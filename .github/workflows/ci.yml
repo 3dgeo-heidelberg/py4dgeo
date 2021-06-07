@@ -12,10 +12,6 @@ on:
   # as well as upon manual triggers through the 'Actions' tab of the Github UI
   workflow_dispatch:
 
-env:
-  CATCH2_VERSION: 2.13.3
-  PYBIND11_VERSION: 2.6.1
-
 jobs:
   build-and-test:
     name: Testing on ${{matrix.os}}
@@ -26,11 +22,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v2
-
       with:
         submodules: 'recursive'
-
-
 
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
@@ -64,8 +57,6 @@ jobs:
       run: |
         sudo apt-get install -y lcov
 
-
-
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
@@ -90,4 +81,3 @@ jobs:
       run: |
         lcov --directory ./build/src --capture --output-file coverage.info
         bash <(curl --connect-timeout 10 --retry 5 -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
-

@@ -11,9 +11,7 @@ on:
       - reopened
 
 env:
-  CATCH2_VERSION: 2.13.3
-  PYBIND11_VERSION: 2.6.1
-  SONAR_SCANNER_VERSION: 4.4.0.2170
+  SONAR_SCANNER_VERSION: 4.6.2.2472
 
 jobs:
   sonarcloud:

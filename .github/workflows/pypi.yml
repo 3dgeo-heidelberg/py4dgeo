@@ -6,7 +6,7 @@ on:
       - published
 
 env:
-  CIBUILDWHEEL_VERSION: 1.7.3
+  CIBUILDWHEEL_VERSION: 1.11.1
 
 jobs:
   build-wheels:
