@@ -44,6 +44,15 @@ which can be set by adding `-D<var>={ON, OFF}` to the `cmake` call:
 * `BUILD_DOCS`: Enable building the documentation (default: `ON`)
 * `BUILD_PYTHON`: Enable building the Python bindings (default: `ON`)
 
+Additionally, GeoLib4D provides a Docker image that allows to explore
+the library using JupyterLab. The image can be locally built and run with
+the following commands:
+
+```
+docker build -t geolib4d:latest .
+docker run -t -p 8888:8888 geolib4d:latest
+```
+
 # Documentation
 
 GeoLib4D provides a Sphinx-based documentation, that can
