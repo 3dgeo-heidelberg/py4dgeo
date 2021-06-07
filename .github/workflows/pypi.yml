@@ -1,0 +1,111 @@
+name: Build Wheels + PyPI deploy
+
+on:
+  release:
+    types:
+      - published
+
+env:
+  CIBUILDWHEEL_VERSION: 1.7.3
+
+jobs:
+  build-wheels:
+    name: Build wheels on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        include:
+        - os: ubuntu-18.04
+          platform: x64
+        - os: macos-10.15
+          platform: x64
+        - os: windows-2019
+          platform: x64
+        - os: windows-2019
+          platform: x86
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - uses: actions/setup-python@v2
+      name: Install Python
+      with:
+        python-version: '3.7'
+        architecture: ${{ matrix.platform }}
+
+    - name: Install cibuildwheel (Linux + MacOS)
+      if: runner.os != 'Windows'
+      run: |
+        python -m pip install cibuildwheel==$CIBUILDWHEEL_VERSION
+
+    - name: Install cibuildwheel (Windows)
+      if: runner.os == 'Windows'
+      run: |
+        python -m pip install cibuildwheel==${env:CIBUILDWHEEL_VERSION}
+
+    - name: Prepare MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: ${{ matrix.platform }}
+
+    - name: Build 64-bit wheels
+      if: matrix.platform == 'x64'
+      env:
+        # These variables allow you to customize the process how the wheels
+        # for the Python packages are built. For a list of options, see this
+        # page: https://cibuildwheel.readthedocs.io/en/stable/options/
+        CIBW_BEFORE_BUILD: python -m pip install cmake
+        CIBW_SKIP: "*-win32 cp27-* cp35-*"
+        CIBW_TEST_COMMAND: pytest {package}/python/tests
+        CIBW_TEST_REQUIRES: pytest
+      run: |
+        python -m cibuildwheel --output-dir wheelhouse
+
+    - name: Build 32-bit wheels
+      if: matrix.platform == 'x86'
+      env:
+        # These variables allow you to customize the process how the wheels
+        # for the Python packages are built. For a list of options, see this
+        # page: https://cibuildwheel.readthedocs.io/en/stable/options/
+        CIBW_BEFORE_BUILD: python -m pip install cmake
+        CIBW_SKIP: "*-win_amd64 cp27-* cp35-*"
+        CIBW_TEST_COMMAND: pytest {package}/python/tests
+        CIBW_TEST_REQUIRES: pytest
+      run: |
+        python -m cibuildwheel --output-dir wheelhouse
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: ./wheelhouse/*.whl
+
+  upload_testpypi:
+    needs: [build-wheels]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.TESTPYPI_API_TOKEN }}
+          repository_url: https://test.pypi.org/legacy/
+
+  upload_pypi:
+    needs: [build-wheels, upload_testpypi]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v2
+        with:
+          name: artifact
+          path: dist
+
+      - uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}

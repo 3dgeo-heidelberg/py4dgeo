@@ -1,0 +1,57 @@
+name: SonarCloud Analysis
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+env:
+  CATCH2_VERSION: 2.13.3
+  PYBIND11_VERSION: 2.6.1
+  SONAR_SCANNER_VERSION: 4.4.0.2170
+
+jobs:
+  sonarcloud:
+    name: SonarCloud
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+          submodules: 'recursive'
+
+
+      - name: Install the SonarCloud Client + build wrapper
+        run: |
+          curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip
+          unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+          curl --create-dirs -sSLo $HOME/.sonar/build-wrapper-linux-x86.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip
+          unzip -o $HOME/.sonar/build-wrapper-linux-x86.zip -d $HOME/.sonar/
+
+      - name: Cache SonarCloud analysis results across runs
+        uses: actions/cache@v2
+        with:
+          path: $HOME/.sonarcache
+          key: sonar-${{ github.job }}-${{ runner.os }}-${{ github.sha }}
+          restore-keys: sonar-${{ github.job }}-${{ runner.os }}-
+
+      - name: Compile, Run and Analyse the tests
+        run: |
+          mkdir build
+          cd build
+          cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" -DBUILD_DOCS=OFF
+          $HOME/.sonar/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir bw-output cmake --build .
+          ctest
+          mkdir gcov
+          cd gcov
+          gcov -p ../tests//CMakeFiles/geolib4d.dir/*.cpp.gcno > /dev/null
+          cd ../..
+          $HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux/bin/sonar-scanner
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN }}

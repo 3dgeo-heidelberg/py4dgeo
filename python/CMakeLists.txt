@@ -1,0 +1,3 @@
+pybind11_add_module(geolib4d_python geolib4d_python.cpp)
+target_link_libraries(geolib4d_python PUBLIC geolib4d)
+set_target_properties(geolib4d_python PROPERTIES OUTPUT_NAME geolib4d)

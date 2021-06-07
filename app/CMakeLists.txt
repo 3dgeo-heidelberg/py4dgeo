@@ -1,0 +1,2 @@
+add_executable(geolib4d_app geolib4d_app.cpp)
+target_link_libraries(geolib4d_app PRIVATE geolib4d)

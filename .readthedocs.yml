@@ -1,0 +1,14 @@
+version: 2
+
+sphinx:
+  configuration: doc/conf.py
+
+formats: all
+
+submodules:
+  include: all
+  recursive: true
+
+python:
+  install:
+    - requirements: doc/requirements-rtd.txt

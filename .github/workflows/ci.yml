@@ -1,0 +1,93 @@
+name: CI
+
+on:
+  # We run CI on pushes to the main branch
+  push:
+    branches:
+      - main
+  # and on all pull requests to the main branch
+  pull_request:
+    branches:
+      - main
+  # as well as upon manual triggers through the 'Actions' tab of the Github UI
+  workflow_dispatch:
+
+env:
+  CATCH2_VERSION: 2.13.3
+  PYBIND11_VERSION: 2.6.1
+
+jobs:
+  build-and-test:
+    name: Testing on ${{matrix.os}}
+    runs-on: ${{matrix.os}}
+    strategy:
+      matrix:
+        os: [ubuntu-18.04, macos-10.15, windows-2019]
+
+    steps:
+    - uses: actions/checkout@v2
+
+      with:
+        submodules: 'recursive'
+
+
+
+    - name: make build directory
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: configure cmake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF
+
+    - name: build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build .
+
+    - name: run tests
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest
+
+
+  coverage-test:
+    name: Coverage Testing
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: Install LCov
+      run: |
+        sudo apt-get install -y lcov
+
+
+
+    - name: make build directory
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: configure cmake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_CXX_FLAGS="--coverage" -DBUILD_DOCS=OFF
+
+    - name: build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build .
+
+    - name: run tests
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest
+
+    - name: collect coverage report
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        lcov --directory ./build/src --capture --output-file coverage.info
+        bash <(curl --connect-timeout 10 --retry 5 -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
+
