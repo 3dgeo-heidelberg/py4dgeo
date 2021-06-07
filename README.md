@@ -19,6 +19,11 @@ Building GeoLib4D requires the following software installed:
 * Doxygen (optional, documentation building is skipped if missing)
 * Python `>= 3.6` for building Python bindings
 
+In order to contribute to the development of GeoLib4D, you should additionally
+install the following tools:
+
+* [Pre-commit](https://pre-commit.com/) and enable it by doing `pre-commit install` in the repository.
+
 # Building GeoLib4D
 
 The following sequence of commands builds GeoLib4D.

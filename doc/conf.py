@@ -19,12 +19,12 @@ import subprocess
 
 # -- Project information -----------------------------------------------------
 
-project = 'geolib4d'
-copyright = '2020, Dominic Kempf'
-author = 'Dominic Kempf'
+project = "geolib4d"
+copyright = "2020, Dominic Kempf"
+author = "Dominic Kempf"
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.1'
+release = "0.0.1"
 
 
 # -- General configuration ---------------------------------------------------
@@ -51,7 +51,7 @@ exclude_patterns = []
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = 'sphinx_rtd_theme'
+html_theme = "sphinx_rtd_theme"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
@@ -64,13 +64,16 @@ breathe_projects = {}
 breathe_default_project = "geolib4d"
 
 # Check if we're running on Read the Docs' servers
-read_the_docs_build = os.environ.get('READTHEDOCS', None) == 'True'
+read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
 
 # Implement build logic on RTD servers
 if read_the_docs_build:
     cwd = os.getcwd()
     os.makedirs("build-cmake", exist_ok=True)
     builddir = os.path.join(cwd, "build-cmake")
-    subprocess.check_call("cmake -DBUILD_DOCS=ON -DBUILD_TESTING=OFF -DBUILD_PYTHON=OFF ../..".split(), cwd=builddir)
+    subprocess.check_call(
+        "cmake -DBUILD_DOCS=ON -DBUILD_TESTING=OFF -DBUILD_PYTHON=OFF ../..".split(),
+        cwd=builddir,
+    )
     subprocess.check_call("cmake --build . --target doxygen".split(), cwd=builddir)
     breathe_projects["geolib4d"] = os.path.join(builddir, "doc", "xml")

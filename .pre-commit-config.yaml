@@ -1,0 +1,14 @@
+repos:
+  # Make sure that Jupyter notebooks under version control
+  # have their outputs stripped before committing
+  - repo: https://github.com/kynan/nbstripout
+    rev: 0.3.9
+    hooks:
+      - id: nbstripout
+        files: ".ipynb"
+
+  # Run Black - the uncompromising Python code formatter
+  - repo: https://github.com/psf/black
+    rev: 21.5b2
+    hooks:
+      - id: black
