@@ -20,3 +20,12 @@ repos:
       - id: clang-format
         args:
           - -i
+
+  # Add some general purpose useful hooks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.0.1
+    hooks:
+      # Make sure that contained YAML files are well-formed
+      - id: check-yaml
+      # Trim trailing whitespace of all sorts
+      - id: trailing-whitespace
