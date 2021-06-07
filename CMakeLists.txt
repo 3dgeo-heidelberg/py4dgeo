@@ -10,14 +10,15 @@ include(GNUInstallDirs)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+# Enable PIC for Python bindings
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 # Compilation options
 set(BUILD_PYTHON ON CACHE BOOL "Enable building of Python bindings")
 set(BUILD_DOCS ON CACHE BOOL "Enable building of documentation")
+
 # compile the library
 add_subdirectory(src)
-
 
 # compile the application
 add_subdirectory(app)
@@ -34,10 +35,10 @@ if(BUILD_DOCS)
   # Add the documentation
   add_subdirectory(doc)
 endif()
+
 if(BUILD_PYTHON)
   # Add Python bindings
   add_subdirectory(ext/pybind11)
-  
   add_subdirectory(python)
 endif()
 

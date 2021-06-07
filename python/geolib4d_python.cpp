@@ -10,7 +10,6 @@ namespace geolib4d {
 PYBIND11_MODULE(geolib4d, m)
 {
   m.doc() = "Python Bindings for GeoLib4d";
-  m.def("add_one", &add_one, "Increments an integer value");
 }
 
 } // namespace geolib4d

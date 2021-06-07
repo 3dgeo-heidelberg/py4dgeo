@@ -5,7 +5,6 @@ import subprocess
 
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-from distutils.version import LooseVersion
 
 
 class CMakeExtension(Extension):
@@ -61,8 +60,8 @@ setup(
     name='geolib4d',
     version='0.0.1',
     author='Dominic Kempf',
-    author_email='your@email.com',
-    description='Add description here',
+    author_email='ssc@iwr.uni-heidelberg.de',
+    description='Library for change detection in 4D point cloud data',
     long_description='',
     ext_modules=[CMakeExtension('geolib4d')],
     cmdclass=dict(build_ext=CMakeBuild),
@@ -70,8 +69,6 @@ setup(
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
-
         "License :: OSI Approved :: MIT License",
-
     ],
 )
