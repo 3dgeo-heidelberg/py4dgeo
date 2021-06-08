@@ -7,9 +7,10 @@ namespace py = pybind11;
 
 namespace geolib4d {
 
-PYBIND11_MODULE(geolib4d, m)
-{
+PYBIND11_MODULE(geolib4d, m) {
   m.doc() = "Python Bindings for GeoLib4d";
+
+  py::class_<PointCloud>(m, "PointCloud");
 }
 
 } // namespace geolib4d

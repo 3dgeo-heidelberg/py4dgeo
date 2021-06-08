@@ -42,28 +42,14 @@ if(BUILD_PYTHON)
   add_subdirectory(python)
 endif()
 
+# Build the bundled external libraries
+add_subdirectory(ext)
+
 # Add an alias target for use if this project is included as a subproject in another project
 add_library(geolib4d::geolib4d ALIAS geolib4d)
 
-# Install targets and configuration
-install(
-  TARGETS geolib4d
-  EXPORT geolib4d-config
-  RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-  LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-)
-
-install(
-  EXPORT geolib4d-config
-  NAMESPACE geolib4d::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/geolib4d
-)
-
-install(
-  DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/include/
-  DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-)
+# I would really love to export my targets here, but the fact that PCL
+# does not properly do it with their libraries prevents it.
 
 # This prints a summary of found dependencies
 include(FeatureSummary)
