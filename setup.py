@@ -62,19 +62,19 @@ class CMakeBuild(build_ext):
             ["cmake", ext.sourcedir] + cmake_args, cwd=self.build_temp, env=env
         )
         subprocess.check_call(
-            ["cmake", "--build", ".", "--target", "geolib4d_python"] + build_args,
+            ["cmake", "--build", ".", "--target", "py4dgeo_python"] + build_args,
             cwd=self.build_temp,
         )
 
 
 setup(
-    name="geolib4d",
+    name="py4dgeo",
     version="0.0.1",
     author="Dominic Kempf",
     author_email="ssc@iwr.uni-heidelberg.de",
     description="Library for change detection in 4D point cloud data",
     long_description="",
-    ext_modules=[CMakeExtension("geolib4d")],
+    ext_modules=[CMakeExtension("py4dgeo")],
     cmdclass=dict(build_ext=CMakeBuild),
     zip_safe=False,
     classifiers=[

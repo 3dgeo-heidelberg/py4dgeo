@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.9)
 
 # Set a name and a version number for your project:
-project(geolib4d VERSION 0.0.1 LANGUAGES CXX)
+project(py4dgeo VERSION 0.0.1 LANGUAGES CXX)
 
 # Initialize some default paths
 include(GNUInstallDirs)
@@ -43,21 +43,21 @@ if(BUILD_PYTHON)
 endif()
 
 # Add an alias target for use if this project is included as a subproject in another project
-add_library(geolib4d::geolib4d ALIAS geolib4d)
+add_library(py4dgeo::py4dgeo ALIAS py4dgeo)
 
 # Install targets and configuration
 install(
-  TARGETS geolib4d
-  EXPORT geolib4d-config
+  TARGETS py4dgeo
+  EXPORT py4dgeo-config
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
 )
 
 install(
-  EXPORT geolib4d-config
-  NAMESPACE geolib4d::
-  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/geolib4d
+  EXPORT py4dgeo-config
+  NAMESPACE py4dgeo::
+  DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/py4dgeo
 )
 
 install(
