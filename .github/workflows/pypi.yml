@@ -59,7 +59,7 @@ jobs:
         # for the Python packages are built. For a list of options, see this
         # page: https://cibuildwheel.readthedocs.io/en/stable/options/
         CIBW_BEFORE_BUILD: python -m pip install cmake
-        CIBW_SKIP: "*-win32 cp27-* cp35-*"
+        CIBW_SKIP: "*-win32 *p27-* cp35-*"
         CIBW_TEST_COMMAND: pytest {package}/python/tests
         CIBW_TEST_REQUIRES: pytest
       run: |
@@ -72,7 +72,7 @@ jobs:
         # for the Python packages are built. For a list of options, see this
         # page: https://cibuildwheel.readthedocs.io/en/stable/options/
         CIBW_BEFORE_BUILD: python -m pip install cmake
-        CIBW_SKIP: "*-win_amd64 cp27-* cp35-*"
+        CIBW_SKIP: "*-win_amd64 *p27-* cp35-*"
         CIBW_TEST_COMMAND: pytest {package}/python/tests
         CIBW_TEST_REQUIRES: pytest
       run: |
