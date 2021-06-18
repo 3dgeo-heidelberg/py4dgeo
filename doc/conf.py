@@ -19,7 +19,7 @@ import subprocess
 
 # -- Project information -----------------------------------------------------
 
-project = "geolib4d"
+project = "py4dgeo"
 copyright = "2020, Dominic Kempf"
 author = "Dominic Kempf"
 
@@ -61,7 +61,7 @@ html_static_path = []
 # Breathe Configuration: Breathe is the bridge between the information extracted
 # from the C++ sources by Doxygen and Sphinx.
 breathe_projects = {}
-breathe_default_project = "geolib4d"
+breathe_default_project = "py4dgeo"
 
 # Check if we're running on Read the Docs' servers
 read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
@@ -76,4 +76,4 @@ if read_the_docs_build:
         cwd=builddir,
     )
     subprocess.check_call("cmake --build . --target doxygen".split(), cwd=builddir)
-    breathe_projects["geolib4d"] = os.path.join(builddir, "doc", "xml")
+    breathe_projects["py4dgeo"] = os.path.join(builddir, "doc", "xml")

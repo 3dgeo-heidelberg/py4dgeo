@@ -1,5 +1,5 @@
-GeoLib4d
-==============================
+py4dgeo
+=======
 
 .. toctree::
    :maxdepth: 2

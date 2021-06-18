@@ -1,2 +1,2 @@
-add_executable(geolib4d_app geolib4d_app.cpp)
-target_link_libraries(geolib4d_app PRIVATE geolib4d)
+add_executable(py4dgeo_app py4dgeo_app.cpp)
+target_link_libraries(py4dgeo_app PRIVATE py4dgeo)

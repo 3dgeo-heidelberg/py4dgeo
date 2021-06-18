@@ -47,7 +47,7 @@ jobs:
           ctest
           mkdir gcov
           cd gcov
-          gcov -p ../tests//CMakeFiles/geolib4d.dir/*.cpp.gcno > /dev/null
+          gcov -p ../tests//CMakeFiles/py4dgeo.dir/*.cpp.gcno > /dev/null
           cd ../..
           $HOME/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux/bin/sonar-scanner
         env:
