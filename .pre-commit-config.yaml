@@ -20,6 +20,7 @@ repos:
       - id: clang-format
         args:
           - -i
+          - --style=Mozilla
 
   # Add some general purpose useful hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
