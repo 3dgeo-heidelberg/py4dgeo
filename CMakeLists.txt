@@ -17,6 +17,14 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_PYTHON ON CACHE BOOL "Enable building of Python bindings")
 set(BUILD_DOCS ON CACHE BOOL "Enable building of documentation")
 
+# Check that the repository was clone recursively
+if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
+  message(FATAL_ERROR
+      "Submodules not found. py4dgeo needs to be either cloned with the"
+      "'--recursive' flag or 'git submodule update --init' needs to be called"
+  )
+endif()
+
 # compile the library
 add_subdirectory(src)
 
