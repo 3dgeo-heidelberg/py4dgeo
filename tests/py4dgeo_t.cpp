@@ -3,4 +3,7 @@
 
 using namespace py4dgeo;
 
-TEST_CASE("dummy", "[dummy]") { REQUIRE(true); }
+TEST_CASE("dummy", "[dummy]")
+{
+  REQUIRE(true);
+}

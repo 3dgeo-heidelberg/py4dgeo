@@ -7,6 +7,9 @@ namespace py = pybind11;
 
 namespace py4dgeo {
 
-PYBIND11_MODULE(py4dgeo, m) { m.doc() = "Python Bindings for py4dgeo"; }
+PYBIND11_MODULE(py4dgeo, m)
+{
+  m.doc() = "Python Bindings for py4dgeo";
+}
 
 } // namespace py4dgeo
