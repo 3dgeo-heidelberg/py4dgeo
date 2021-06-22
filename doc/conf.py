@@ -73,3 +73,6 @@ if os.environ.get("READTHEDOCS", "False") == "True":
     )
     subprocess.check_call("cmake --build . --target doxygen".split(), cwd=builddir)
     breathe_projects["py4dgeo"] = os.path.join(builddir, "doc", "xml")
+
+    # Make sure to also install the Python package on RTD
+    subprocess.check_call("python -m pip install ..".split())
