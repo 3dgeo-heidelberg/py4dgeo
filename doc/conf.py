@@ -6,26 +6,23 @@
 
 import os
 import subprocess
+import sys
 
 # -- Path setup --------------------------------------------------------------
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-#
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
-
+sys.path.insert(0, os.path.abspath(".."))
 
 # -- Project information -----------------------------------------------------
 
 project = "py4dgeo"
-copyright = "2020, Dominic Kempf"
+copyright = "2021, Scientific Software Center, Heidelberg University"
 author = "Dominic Kempf"
 
 # The full version, including alpha/beta/rc tags
 release = "0.0.1"
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -34,6 +31,7 @@ release = "0.0.1"
 # ones.
 extensions = [
     "breathe",
+    "m2r2",
     "sphinx_rtd_theme",
 ]
 
@@ -44,7 +42,6 @@ templates_path = []
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
-
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -63,11 +60,8 @@ html_static_path = []
 breathe_projects = {}
 breathe_default_project = "py4dgeo"
 
-# Check if we're running on Read the Docs' servers
-read_the_docs_build = os.environ.get("READTHEDOCS", None) == "True"
-
-# Implement build logic on RTD servers
-if read_the_docs_build:
+# Implement the Doxygen generation logic on RTD servers
+if os.environ.get("READTHEDOCS", "False") == "True":
     cwd = os.getcwd()
     os.makedirs("build-cmake", exist_ok=True)
     builddir = os.path.join(cwd, "build-cmake")

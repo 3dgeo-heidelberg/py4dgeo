@@ -1,3 +1,6 @@
+breathe
+m2r2
+pre-commit
 pytest
 sphinx
 sphinx_rtd_theme

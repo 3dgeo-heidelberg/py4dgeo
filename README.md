@@ -10,7 +10,7 @@
 py4dgeo is a C++ library with Python bindings for change detection in 4D point cloud data.
 It is currently *under active development*.
 
-# Prerequisites
+## Prerequisites
 
 Building py4dgeo requires the following software installed:
 
@@ -24,7 +24,7 @@ install the following tools:
 
 * [Pre-commit](https://pre-commit.com/) and enable it by doing `pre-commit install` in the repository.
 
-# Building py4dgeo
+## Building py4dgeo
 
 The following sequence of commands builds py4dgeo.
 It assumes that your current working directory is the top-level directory
@@ -52,8 +52,3 @@ the following commands:
 docker build -t py4dgeo:latest .
 docker run -t -p 8888:8888 py4dgeo:latest
 ```
-
-# Documentation
-
-py4dgeo provides a Sphinx-based documentation, that can
-be browsed [online at readthedocs.org](https://py4dgeo.readthedocs.io).

@@ -1,2 +1,3 @@
-breathe==4.24.1
-cmake==3.18.4
+breathe
+cmake
+m2r2
