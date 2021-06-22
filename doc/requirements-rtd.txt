@@ -1,3 +1,5 @@
 breathe
 cmake
 m2r2
+nbsphinx
+nbsphinx-link

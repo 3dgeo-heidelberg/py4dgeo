@@ -3,3 +3,6 @@
    :caption: Contents:
 
    intro
+   basic
+   pythonapi
+   cppapi
