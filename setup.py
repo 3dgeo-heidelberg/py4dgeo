@@ -3,7 +3,7 @@ import sys
 import platform
 import subprocess
 
-from setuptools import setup, Extension
+from setuptools import setup, Extension, find_packages
 from setuptools.command.build_ext import build_ext
 
 
@@ -74,8 +74,9 @@ setup(
     author_email="ssc@iwr.uni-heidelberg.de",
     description="Library for change detection in 4D point cloud data",
     long_description="",
-    ext_modules=[CMakeExtension("py4dgeo")],
+    ext_modules=[CMakeExtension("_py4dgeo")],
     cmdclass=dict(build_ext=CMakeBuild),
+    packages=find_packages(),
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python :: 3",

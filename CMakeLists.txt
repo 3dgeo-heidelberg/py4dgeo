@@ -43,7 +43,7 @@ include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
-  add_subdirectory(tests)
+  add_subdirectory(tests/c++)
 endif()
 
 if(BUILD_DOCS)
@@ -54,7 +54,19 @@ endif()
 if(BUILD_PYTHON)
   # Add Python bindings
   add_subdirectory(ext/pybind11)
-  add_subdirectory(python)
+  add_subdirectory(py4dgeo)
+
+  # Generate a file that sets the PYTHONPATH during development This is
+  # necessary to have access to both the pure Python part and the compiled
+  # module. To use it, source the generated file.
+  file(
+    GENERATE
+    OUTPUT ${CMAKE_BINARY_DIR}/setup-pythonpath.sh
+    CONTENT
+      "
+export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}/py4dgeo\
+:${PROJECT_SOURCE_DIR}/py4dgeo:$PYTHONPATH
+      ")
 endif()
 
 # Add an alias target for use if this project is included as a subproject in
