@@ -25,6 +25,11 @@ jobs:
       with:
         submodules: 'recursive'
 
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
