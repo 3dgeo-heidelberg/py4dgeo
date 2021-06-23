@@ -12,25 +12,34 @@ It is currently *under active development*.
 
 ## Prerequisites
 
-Building py4dgeo requires the following software installed:
+Using py4dgeo requires the following software installed:
+
+* Python `>= 3.6`
+
+In order to build the package from source, the following tools are also needed.
 
 * A C++17-compliant compiler
 * CMake `>= 3.9`
 * Doxygen (optional, documentation building is skipped if missing)
-* Python `>= 3.6` for building Python bindings
 
-In order to contribute to the development of py4dgeo, you should additionally
-install the following tools:
+## Installing and using py4dgeo
 
-* [Pre-commit](https://pre-commit.com/) and enable it by doing `pre-commit install` in the repository.
+The preferred way of installing `py4dgeo` is using `pip`.
+### Using pip
 
-## Building py4dgeo
-
-The following sequence of commands builds py4dgeo.
-It assumes that your current working directory is the top-level directory
-of the freshly cloned repository:
+`py4dgeo` can be installed using `pip`:
 
 ```
+python -m pip install py4dgeo
+```
+
+### Building from source
+
+The following sequence of commands is used to build `py4dgeo` from source:
+
+```
+git clone --recursive https://github.com/ssciwr/py4dgeo.git
+cd py4dgeo
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
@@ -44,7 +53,24 @@ which can be set by adding `-D<var>={ON, OFF}` to the `cmake` call:
 * `BUILD_DOCS`: Enable building the documentation (default: `ON`)
 * `BUILD_PYTHON`: Enable building the Python bindings (default: `ON`)
 
-Additionally, py4dgeo provides a Docker image that allows to explore
+If you want to contribute to the library's development you should also install
+its additional Python dependencies for testing and documentation building:
+
+```
+python -m pip install -r requirements-dev.txt`
+```
+
+The build directory contains a file `setup-pythonpath.sh` that you can use
+to modify your `PYTHONPATH` during development, so that it includes the compiled
+module, as well as the Python package from the source directory:
+
+```
+source build/setup-pythonpath.sh
+```
+
+### Using Docker
+
+Additionally, `py4dgeo` provides a Docker image that allows to explore
 the library using JupyterLab. The image can be locally built and run with
 the following commands:
 
