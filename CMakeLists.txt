@@ -43,7 +43,7 @@ include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
-  add_subdirectory(tests)
+  add_subdirectory(tests/c++)
 endif()
 
 if(BUILD_DOCS)
@@ -54,7 +54,7 @@ endif()
 if(BUILD_PYTHON)
   # Add Python bindings
   add_subdirectory(ext/pybind11)
-  add_subdirectory(python)
+  add_subdirectory(py4dgeo)
 endif()
 
 # Add an alias target for use if this project is included as a subproject in
