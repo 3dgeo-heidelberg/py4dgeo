@@ -57,7 +57,7 @@ If you want to contribute to the library's development you should also install
 its additional Python dependencies for testing and documentation building:
 
 ```
-python -m pip install -r requirements-dev.txt`
+python -m pip install -r requirements-dev.txt
 ```
 
 The build directory contains a file `setup-pythonpath.sh` that you can use
