@@ -1,7 +1,7 @@
-#include "geolib4d/geolib4d.hpp"
 #include "catch2/catch.hpp"
+#include "py4dgeo/py4dgeo.hpp"
 
-using namespace geolib4d;
+using namespace py4dgeo;
 
 TEST_CASE("dummy", "[dummy]")
 {

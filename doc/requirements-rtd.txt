@@ -1,2 +1,6 @@
-breathe==4.24.1
-cmake==3.18.4
+breathe
+cmake
+ipykernel
+m2r2
+nbsphinx
+nbsphinx-link

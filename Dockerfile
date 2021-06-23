@@ -8,10 +8,10 @@ RUN conda install -c conda-forge \
     conda clean -a -q -y
 
 # Copy the repository into the container
-COPY --chown=${NB_UID} . /opt/geolib4d
+COPY --chown=${NB_UID} . /opt/py4dgeo
 
 # Build and install the project
-RUN conda run -n base python -m pip install /opt/geolib4d
+RUN conda run -n base python -m pip install /opt/py4dgeo
 
 # Make JupyterLab the default for this application
 ENV JUPYTER_ENABLE_LAB=yes

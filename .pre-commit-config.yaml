@@ -20,6 +20,7 @@ repos:
       - id: clang-format
         args:
           - -i
+          - --style=Mozilla
         exclude: ^ext/
 
   # Add some general purpose useful hooks
@@ -30,3 +31,10 @@ repos:
       - id: check-yaml
       # Trim trailing whitespace of all sorts
       - id: trailing-whitespace
+
+  # CMake Formatting/Linting Utility
+  - repo: https://github.com/cheshirekow/cmake-format-precommit
+    rev: v0.6.13
+    hooks:
+      - id: cmake-format
+      - id: cmake-lint
