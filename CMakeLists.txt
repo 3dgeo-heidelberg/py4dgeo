@@ -32,8 +32,14 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
       "'--recursive' flag or 'git submodule update --init' needs to be called")
 endif()
 
-# Build the bundled external libraries
-add_subdirectory(ext)
+# Find external dependencies
+find_package(PCL REQUIRED COMPONENTS search)
+
+# Add a convenience target that we can link against to link against PCL
+add_library(pcl INTERFACE)
+target_link_libraries(pcl INTERFACE ${PCL_LIBRARIES})
+target_include_directories(pcl INTERFACE ${PCL_INCLUDE_DIRS})
+target_compile_definitions(pcl INTERFACE ${PCL_DEFINITIONS})
 
 # compile the library
 add_subdirectory(src)
