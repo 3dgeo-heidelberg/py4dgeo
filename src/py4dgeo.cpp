@@ -16,7 +16,6 @@ PCLPointCloud::PCLPointCloud(const float* ptr, std::size_t n)
   for (std::size_t i = 0; i < n; ++i) {
     pcl::PointXYZ point(ptr[3 * i], ptr[3 * i + 1], ptr[3 * i + 2]);
     (*_cloud)[i] = point;
-    std::cout << "Found point " << point << std::endl;
   }
 }
 
