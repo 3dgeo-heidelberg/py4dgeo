@@ -43,6 +43,22 @@ radius_search(PCLPointCloud& self, py::array_t<float> point, double radius)
   return std::make_tuple(indices.as_numpy(), distances.as_numpy());
 }
 
+py::array_t<float>
+points(PCLPointCloud& self)
+{
+  // No-op py capsule to forbid Python any memory management
+  // The ownership of the memory should always be with the C++ class
+  py::capsule noop(&(self._cloud->points), [](void*) {});
+
+  // This needs a custom definition of shape and strides to account
+  // for the special SSE-friendly memory layout of pcl::PointXYZ.
+  return py::array_t<float>(
+    { py::ssize_t(self._cloud->points.size()), py::ssize_t(3) },
+    { sizeof(float) * 4, sizeof(float) },
+    reinterpret_cast<float*>(self._cloud->points.data()),
+    noop);
+}
+
 } // namespace impl
 
 PYBIND11_MODULE(_py4dgeo, m)
@@ -54,8 +70,9 @@ PYBIND11_MODULE(_py4dgeo, m)
     .def("build_tree",
          &PCLPointCloud::build_tree,
          "Trigger building the search tree")
+    .def("radius_search", &impl::radius_search, "Search points in given radius")
     .def(
-      "radius_search", &impl::radius_search, "Search points in given radius");
+      "_points", &impl::points, "Direct access to the underlying point data");
 
   py::enum_<SearchStrategy>(m, "SearchStrategy")
     .value("kdtree", SearchStrategy::kdtree)

@@ -15,7 +15,7 @@ enum class SearchStrategy
   bruteforce
 };
 
-class PCLPointCloud
+struct PCLPointCloud
 {
 public:
   PCLPointCloud(const float* ptr, std::size_t);
@@ -25,7 +25,6 @@ public:
                     std::vector<int>&,
                     std::vector<float>&);
 
-private:
   pcl::PointCloud<pcl::PointXYZ>::Ptr _cloud;
   pcl::search::Search<pcl::PointXYZ>::Ptr _search;
 };
