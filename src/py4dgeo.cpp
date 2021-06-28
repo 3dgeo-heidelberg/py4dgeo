@@ -42,26 +42,6 @@ PCLPointCloud::radius_search(const pcl::PointXYZ& p,
   return _search->radiusSearch(p, r, indices, dist);
 }
 
-NFPointCloud::NFPointCloud(float* ptr, std::size_t n)
-  : _cloud(ptr, n, 3)
-{}
-
-void
-NFPointCloud::build_tree()
-{
-  _search = std::make_shared<KDTree>(3, std::cref(_cloud), 10);
-}
-
-std::size_t
-NFPointCloud::radius_search(
-  const float* query,
-  const double& radius,
-  std::vector<std::pair<KDTree::IndexType, float>>& result)
-{
-  nanoflann::SearchParams params;
-  return _search->index->radiusSearch(query, radius * radius, result, params);
-}
-
 NFPointCloud2::NFPointCloud2(float* ptr, std::size_t n)
   : data(ptr)
   , n(n)

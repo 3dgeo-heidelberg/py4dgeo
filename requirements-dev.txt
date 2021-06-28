@@ -6,3 +6,7 @@ pre-commit
 pytest
 sphinx
 sphinx_rtd_theme
+# The following is just for the KDTree evaluation
+matplotlib
+scipy
+scikit-learn
