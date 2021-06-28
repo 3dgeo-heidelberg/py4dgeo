@@ -59,6 +59,35 @@ points(PCLPointCloud& self)
     noop);
 }
 
+NFPointCloud
+nf_constructor(py::array_t<float> a)
+{
+  py::buffer_info info = a.request();
+
+  // Make sure that the shape is correct
+  if (info.shape[1] != 3)
+    throw std::runtime_error("Shape of np.array expected to be (n, 3)");
+
+  return NFPointCloud(static_cast<float*>(info.ptr), info.shape[0]);
+}
+
+std::size_t
+nf_radius_search(NFPointCloud& self, py::array_t<float> point, double radius)
+{
+  // Extract the float* for the query point
+  float* ptr = static_cast<float*>(point.request().ptr);
+
+  // Allocate two vectors for the search algorithm
+  NumpyVector<std::pair<NFPointCloud::KDTree::IndexType, float>> result;
+
+  // Do the actual work
+  auto ret = self.radius_search(ptr, radius, result.as_std());
+
+  return ret;
+
+  // TODO: Why on earth does this need to be std::vector<std::pair>???
+}
+
 } // namespace impl
 
 PYBIND11_MODULE(_py4dgeo, m)
@@ -78,6 +107,14 @@ PYBIND11_MODULE(_py4dgeo, m)
     .value("kdtree", SearchStrategy::kdtree)
     .value("octree", SearchStrategy::octree)
     .value("bruteforce", SearchStrategy::bruteforce);
+
+  py::class_<NFPointCloud>(m, "NFPointCloud", py::buffer_protocol())
+    .def(py::init<>(&impl::nf_constructor))
+    .def("build_tree",
+         &NFPointCloud::build_tree,
+         "Trigger building the search tree")
+    .def(
+      "radius_search", &impl::nf_radius_search, "Search point in given radius");
 }
 
 } // namespace py4dgeo

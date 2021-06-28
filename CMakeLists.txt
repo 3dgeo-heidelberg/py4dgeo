@@ -34,6 +34,7 @@ endif()
 
 # Find external dependencies
 find_package(PCL REQUIRED COMPONENTS search)
+add_subdirectory(ext/eigen)
 
 # Add a convenience target that we can link against to link against PCL
 add_library(pcl INTERFACE)
