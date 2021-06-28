@@ -49,8 +49,7 @@ NFPointCloud::NFPointCloud(float* ptr, std::size_t n)
 void
 NFPointCloud::build_tree()
 {
-  _search = std::make_shared<KDTree>(3, std::cref(_cloud), 50);
-  //_search->index->buildIndex();
+  _search = std::make_shared<KDTree>(3, std::cref(_cloud), 10);
 }
 
 std::size_t
@@ -61,6 +60,28 @@ NFPointCloud::radius_search(
 {
   nanoflann::SearchParams params;
   return _search->index->radiusSearch(query, radius * radius, result, params);
+}
+
+NFPointCloud2::NFPointCloud2(float* ptr, std::size_t n)
+  : data(ptr)
+  , n(n)
+{}
+
+void
+NFPointCloud2::build_tree()
+{
+  _search = std::make_shared<KDTree>(
+    3, *this, nanoflann::KDTreeSingleIndexAdaptorParams(50));
+  _search->buildIndex();
+}
+
+std::size_t
+NFPointCloud2::radius_search(const float* query,
+                             const double& radius,
+                             std::vector<std::pair<std::size_t, float>>& result)
+{
+  nanoflann::SearchParams params;
+  return _search->radiusSearch(query, radius * radius, result, params);
 }
 
 } // namespace py4dgeo

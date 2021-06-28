@@ -83,9 +83,52 @@ nf_radius_search(NFPointCloud& self, py::array_t<float> point, double radius)
   // Do the actual work
   auto ret = self.radius_search(ptr, radius, result.as_std());
 
+  // for(auto [i, d] : result.as_std())
+  //   std::cout << "bla Index " << i << " dist: " << std::sqrt(d) << std::endl;
+
   return ret;
 
   // TODO: Why on earth does this need to be std::vector<std::pair>???
+}
+
+NFPointCloud2
+nf_constructor2(py::array_t<float> a)
+{
+  py::buffer_info info = a.request();
+
+  // Make sure that the shape is correct
+  if (info.shape[1] != 3)
+    throw std::runtime_error("Shape of np.array expected to be (n, 3)");
+
+  return NFPointCloud2(static_cast<float*>(info.ptr), info.shape[0]);
+}
+
+std::tuple<py::array_t<std::size_t>, py::array_t<float>>
+nf_radius_search2(NFPointCloud2& self, py::array_t<float> point, double radius)
+{
+  // Extract the float* for the query point
+  float* ptr = static_cast<float*>(point.request().ptr);
+
+  // Allocate two vectors for the search algorithm
+  std::vector<std::pair<std::size_t, float>> result;
+
+  // Do the actual work
+  auto ret = self.radius_search(ptr, radius, result);
+
+  // TODO: Why on earth does this need to be std::vector<std::pair>???
+  //       That absolutely ruins my ability to return the result as a
+  //       a non-copy. For now, make copies instead.
+  NumpyVector<std::size_t> indices;
+  NumpyVector<float> distances;
+
+  indices.as_std().resize(result.size());
+  distances.as_std().resize(result.size());
+  for (std::size_t i = 0; i < result.size(); ++i) {
+    indices.as_std()[i] = result[i].first;
+    distances.as_std()[i] = result[i].second;
+  }
+
+  return std::make_tuple(indices.as_numpy(), distances.as_numpy());
 }
 
 } // namespace impl
@@ -115,6 +158,15 @@ PYBIND11_MODULE(_py4dgeo, m)
          "Trigger building the search tree")
     .def(
       "radius_search", &impl::nf_radius_search, "Search point in given radius");
+
+  py::class_<NFPointCloud2>(m, "NFPointCloud2", py::buffer_protocol())
+    .def(py::init<>(&impl::nf_constructor2))
+    .def("build_tree",
+         &NFPointCloud2::build_tree,
+         "Trigger building the search tree")
+    .def("radius_search",
+         &impl::nf_radius_search2,
+         "Search point in given radius");
 }
 
 } // namespace py4dgeo
