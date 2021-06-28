@@ -1,6 +1,7 @@
 .git
 build
 Dockerfile
+env
 
 # VSCode Configuration
 .vscode
