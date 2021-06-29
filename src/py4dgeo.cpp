@@ -48,10 +48,10 @@ NFPointCloud2::NFPointCloud2(float* ptr, std::size_t n)
 {}
 
 void
-NFPointCloud2::build_tree()
+NFPointCloud2::build_tree(int leaf)
 {
   _search = std::make_shared<KDTree>(
-    3, *this, nanoflann::KDTreeSingleIndexAdaptorParams(50));
+    3, *this, nanoflann::KDTreeSingleIndexAdaptorParams(leaf));
   _search->buildIndex();
 }
 

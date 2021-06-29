@@ -39,7 +39,7 @@ struct NFPointCloud2
     3>;
 
   NFPointCloud2(float* ptr, std::size_t);
-  void build_tree();
+  void build_tree(int);
 
   std::size_t radius_search(const float*,
                             const double&,
