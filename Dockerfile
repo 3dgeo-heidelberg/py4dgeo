@@ -5,6 +5,7 @@ RUN conda install -c conda-forge \
       cmake \
       eigen \
       gxx_linux-64 \
+      jupyter-resource-usage \
       make \
       pcl && \
     conda clean -a -q -y
