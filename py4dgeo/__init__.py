@@ -1,2 +1,1 @@
-from _py4dgeo import SearchStrategy
-from py4dgeo.cloud import NFPointCloud2, PCLPointCloud
+from py4dgeo.kdtree import KDTree

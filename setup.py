@@ -77,6 +77,9 @@ setup(
     ext_modules=[CMakeExtension("_py4dgeo")],
     cmdclass=dict(build_ext=CMakeBuild),
     packages=find_packages(),
+    install_requires=[
+        "numpy",
+    ],
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python :: 3",
