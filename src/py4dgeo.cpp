@@ -19,7 +19,7 @@ KDTree::build_tree(int leaf)
 std::size_t
 KDTree::radius_search(const double* query,
                       const double& radius,
-                      std::vector<std::pair<std::size_t, double>>& result)
+                      std::vector<std::pair<std::size_t, double>>& result) const
 {
   nanoflann::SearchParams params;
   return _search->radiusSearch(query, radius * radius, result, params);

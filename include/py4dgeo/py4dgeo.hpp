@@ -43,7 +43,7 @@ public:
 
   std::size_t radius_search(const double*,
                             const double&,
-                            std::vector<std::pair<std::size_t, double>>&);
+                            std::vector<std::pair<std::size_t, double>>&) const;
 
 private:
   impl::NanoFLANNAdaptor _adaptor;
