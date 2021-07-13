@@ -1,5 +1,4 @@
 breathe
-clang-format
 m2r2
 nbsphinx
 nbsphinx-link
