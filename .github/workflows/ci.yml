@@ -48,9 +48,10 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: ctest
 
-    - name: Install Python development requirements
+    - name: Install Python package and development requirements
       run: |
         python -m pip install -r requirements-dev.txt
+        python -m pip install .
 
     - name: Run Python tests
       run: |
