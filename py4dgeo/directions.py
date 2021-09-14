@@ -57,7 +57,7 @@ class PrecomputedDirection(Direction):
 
 @dataclasses.dataclass(frozen=True)
 class MultiScaleDirection(PrecomputedDirection):
-    radii: list[float] = None
+    scales: list[float] = None
 
     def precompute(self, epoch=None, corepoints=None):
         # This is a Python placeholder for a C++ implementation of the multiscale
@@ -76,8 +76,10 @@ class MultiScaleDirection(PrecomputedDirection):
         result = np.zeros_like(corepoints)
 
         for core_idx in range(corepoints.shape[0]):
-            for r in self.radii:
-                points_idx, _ = epoch.kdtree.radius_search(corepoints[core_idx, :], r)
+            for scale in self.scales:
+                points_idx, _ = epoch.kdtree.radius_search(
+                    corepoints[core_idx, :], scale
+                )
                 points_subs = epoch.cloud[points_idx, :]
                 cxx = np.cov(points_subs.T)
                 eigval, eigvec = np.linalg.eigh(cxx)
