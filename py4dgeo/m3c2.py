@@ -114,14 +114,7 @@ def m3c2_distance(
     :return: The distance and its uncertainty
     :rtype: tuple
     """
-
-    def dist(p):
-        ret = np.empty(shape=(p.shape[0],))
-        for i in range(p.shape[0]):
-            ret[i] = np.inner(p[i, :] - corepoint, direction)
-        return ret
-
-    p1_dist = dist(p1)
-    p2_dist = dist(p2)
+    p1_dist = np.inner(p1 - corepoint, direction)
+    p2_dist = np.inner(p2 - corepoint, direction)
 
     return abs(np.mean(p1_dist) - np.mean(p2_dist)), 0.0
