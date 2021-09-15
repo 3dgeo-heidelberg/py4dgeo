@@ -22,4 +22,4 @@ def epoch_fixture(filename):
 
 # Instantiate one fixture per data dile
 epoch1 = epoch_fixture("plane_horizontal_t1.xyz")
-epoch2 = epoch_fixture("plane_horizontal_t1.xyz")
+epoch2 = epoch_fixture("plane_horizontal_t2.xyz")

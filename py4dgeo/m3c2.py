@@ -45,7 +45,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def run(self):
         # Make sure to precompute the directions
-        self.direction.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
+        self.directions.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
 
         # Correctly shape the distance array
         distances = np.empty(
@@ -73,13 +73,18 @@ class M3C2LikeAlgorithm(abc.ABC):
                     )
                     for dix, direction in enumerate(directions):
                         distances[cix, rix, dix, eix], _ = m3c2_distance(
-                            ref_points, diff_points, direction
+                            p1=ref_points,
+                            p2=diff_points,
+                            corepoint=self.corepoints[cix, :],
+                            direction=direction,
                         )
 
         return distances
 
     def corepoint_vicinity(self, epoch=None, corepoint_index=None, radius=None):
-        indices = epoch.kdtree.radius_search(
+        # TODO: Check with 3DGeo: Is the difference between "in radius of core point"
+        #       and "in cylinder around core point" important?
+        indices, _ = epoch.kdtree.radius_search(
             self.corepoints[corepoint_index, :], radius
         )
         points = epoch.cloud[indices, :]
@@ -90,16 +95,6 @@ class M3C2LikeAlgorithm(abc.ABC):
 class M3C2(M3C2LikeAlgorithm):
     scales: list[float] = None
 
-    def __post_init__(self):
-        # Check the given scales
-        if self.scales is None or len(self.scales) == 0:
-            raise Py4DGeoError(
-                f"{self.name} requires at least one scale radius to be given"
-            )
-
-        # Run base class checks
-        return super().__post_init__()
-
     @property
     def name(self):
         return "M3C2"
@@ -108,7 +103,9 @@ class M3C2(M3C2LikeAlgorithm):
         return MultiScaleDirection(scales=self.scales)
 
 
-def m3c2_distance(p1: np.ndarray, p2: np.ndarray, direction: np.ndarray) -> tuple:
+def m3c2_distance(
+    p1: np.ndarray, p2: np.ndarray, corepoint: np.ndarray, direction: np.ndarray
+) -> tuple:
     """Calculates M3C2 distance between two point clouds P1 and P2 in direction.
 
     :param p1: Point cloud of the first epoch (n x 3) array
@@ -117,4 +114,14 @@ def m3c2_distance(p1: np.ndarray, p2: np.ndarray, direction: np.ndarray) -> tupl
     :return: The distance and its uncertainty
     :rtype: tuple
     """
-    return 0.0, 1.0
+
+    def dist(p):
+        ret = np.empty(shape=(p.shape[0],))
+        for i in range(p.shape[0]):
+            ret[i] = np.inner(p[i, :] - corepoint, direction)
+        return ret
+
+    p1_dist = dist(p1)
+    p2_dist = dist(p2)
+
+    return abs(np.mean(p1_dist) - np.mean(p2_dist)), 0.0

@@ -59,6 +59,17 @@ class PrecomputedDirection(Direction):
 class MultiScaleDirection(PrecomputedDirection):
     scales: list[float] = None
 
+    def __post_init__(self):
+        # Check the validity of the scales parameter
+        if self.scales is None or len(self.scales) == 0:
+            raise Py4DGeoError(
+                f"{self.name} requires at least one scale radius to be given"
+            )
+
+    @property
+    def num_dirs(self):
+        return 1
+
     def precompute(self, epoch=None, corepoints=None):
         # This is a Python placeholder for a C++ implementation of the multiscale
         # direction implementation. Some notes already gathered:
@@ -73,7 +84,7 @@ class MultiScaleDirection(PrecomputedDirection):
 
         # Results to update iteratively
         highest_planarity = 0.0
-        result = np.zeros_like(corepoints)
+        result = np.zeros(shape=(corepoints.shape[0], 1, corepoints.shape[1]))
 
         for core_idx in range(corepoints.shape[0]):
             for scale in self.scales:
@@ -87,7 +98,7 @@ class MultiScaleDirection(PrecomputedDirection):
 
                 if planarity > highest_planarity:
                     highest_planarity = planarity
-                    result[core_idx, :] = eigvec[:, 2]
+                    result[core_idx, 0, :] = eigvec[:, 2]
 
         # Store the result
         self._precomputation.append(result)

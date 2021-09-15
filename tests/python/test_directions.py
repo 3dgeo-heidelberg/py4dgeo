@@ -29,6 +29,6 @@ def test_corepoint_direction():
 def test_multiscale_direction(epoch1):
     dir = MultiScaleDirection(scales=[2.0, 10.0])
     dir.precompute(epoch=epoch1, corepoints=epoch1.cloud)
-    assert dir._precomputation[0].shape == epoch1.cloud.shape
+    assert dir._precomputation[0].shape == (epoch1.cloud.shape[0], 1, 3)
     for i in range(epoch1.cloud.shape[0]):
         dir.get(core_idx=i)
