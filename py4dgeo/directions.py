@@ -1,6 +1,3 @@
-"""
-https://stackoverflow.com/a/15142446
-"""
 from py4dgeo.util import Py4DGeoError
 
 import abc
