@@ -59,7 +59,7 @@ PYBIND11_MODULE(_py4dgeo, m)
 {
   m.doc() = "Python Bindings for py4dgeo";
 
-  py::class_<KDTree>(m, "NFPointCloud2", py::buffer_protocol())
+  py::class_<KDTree>(m, "KDTree", py::buffer_protocol())
     .def(py::init<>(&impl::construct_kdtree))
     .def("build_tree", &KDTree::build_tree, "Trigger building the search tree")
     .def("radius_search", &impl::radius_search, "Search point in given radius");
