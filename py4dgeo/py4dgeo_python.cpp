@@ -3,7 +3,7 @@
 #include <pybind11/stl.h>
 
 #include "py4dgeo/py4dgeo.hpp"
-#include "py4dgeo/pybind11_helpers.hpp"
+#include "py4dgeo/pybind11_numpy_interop.hpp"
 
 #include <tuple>
 
@@ -40,17 +40,18 @@ radius_search(KDTree& self, py::array_t<double> point, double radius)
   // TODO: Why on earth does this need to be std::vector<std::pair>???
   //       That absolutely ruins my ability to return the result as a
   //       a non-copy. For now, make copies instead.
-  NumpyVector<std::size_t> indices;
-  NumpyVector<double> distances;
+  std::vector<std::size_t> indices;
+  std::vector<double> distances;
 
-  indices.as_std().resize(result.size());
-  distances.as_std().resize(result.size());
+  indices.resize(result.size());
+  distances.resize(result.size());
   for (std::size_t i = 0; i < result.size(); ++i) {
-    indices.as_std()[i] = result[i].first;
-    distances.as_std()[i] = result[i].second;
+    indices[i] = result[i].first;
+    distances[i] = result[i].second;
   }
 
-  return std::make_tuple(indices.as_numpy(), distances.as_numpy());
+  return std::make_tuple(py4dgeo::as_pyarray(std::move(indices)),
+                         py4dgeo::as_pyarray(std::move(distances)));
 }
 
 } // namespace impl
