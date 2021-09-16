@@ -114,8 +114,13 @@ class M3C2(M3C2LikeAlgorithm):
     scales: typing.List[float] = None
 
     def __post_init__(self):
-        # Build cached kdtrees
-        maxradius = max(max(self.scales), max(self.radii))
+        # Build cached kdtrees by finding the maximum search radius
+        radius_candidates = []
+        if self.scales is not None:
+            radius_candidates.extend(list(self.scales))
+        if self.radii is not None:
+            radius_candidates.extend(list(self.radii))
+        maxradius = max(radius_candidates)
         self.cached_kdtrees = tuple(
             CachedKDTree(e.kdtree, self.corepoints, maxradius) for e in self.epochs
         )
