@@ -23,7 +23,7 @@ class FixedQueryKDTree:
         self.query_points = query_points
 
     def fixed_radius_search(self, query_idx, radius):
-        return self.kdtree.radius_search(self, self.query_points[query_idx, :], radius)
+        return self.kdtree.radius_search(self.query_points[query_idx, :], radius)
 
     def build_tree(self, leaf=10):
         self.kdtree.build_tree(leaf)

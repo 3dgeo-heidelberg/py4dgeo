@@ -1,3 +1,4 @@
+from py4dgeo.kdtree import FixedQueryKDTree
 from py4dgeo.util import Py4DGeoError
 
 import abc
@@ -68,7 +69,7 @@ class MultiScaleDirection(PrecomputedDirection):
     def num_dirs(self):
         return 1
 
-    def precompute(self, epoch=None, corepoints=None, method=None):
+    def precompute(self, epoch=None, corepoints=None, radius_searcher=None):
         # This is a Python placeholder for a C++ implementation of the multiscale
         # direction implementation. Some notes already gathered:
         # * https://eigen.tuxfamily.org/dox/group__TutorialSlicingIndexing.html (see Array of Indices)
@@ -76,6 +77,11 @@ class MultiScaleDirection(PrecomputedDirection):
         # * Radii too small to produce a good covariance matrix need to be detected
         if epoch is None or corepoints is None:
             raise ValueError("epoch and corepoints need to be provided to precompute")
+
+        if radius_searcher is None:
+            radius_searcher = lambda idx, r: FixedQueryKDTree(
+                epoch.kdtree, corepoints
+            ).fixed_radius_search(idx, r)
 
         # Reset precomputation results
         self._precomputation.clear()
@@ -86,9 +92,7 @@ class MultiScaleDirection(PrecomputedDirection):
 
         for core_idx in range(corepoints.shape[0]):
             for scale in self.scales:
-                points_idx, _ = method.radius_search_around_corepoint(
-                    0, core_idx, scale
-                )
+                points_idx, _ = radius_searcher(core_idx, scale)
                 points_subs = epoch.cloud[points_idx, :]
                 cxx = np.cov(points_subs.T)
                 eigval, eigvec = np.linalg.eigh(cxx)

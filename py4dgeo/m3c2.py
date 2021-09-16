@@ -59,7 +59,11 @@ class M3C2LikeAlgorithm(abc.ABC):
     def run(self):
         # Make sure to precompute the directions
         self.directions.precompute(
-            epoch=self.epochs[0], corepoints=self.corepoints, method=self
+            epoch=self.epochs[0],
+            corepoints=self.corepoints,
+            radius_searcher=lambda idx, r: self.radius_search_around_corepoint(
+                0, idx, r
+            ),
         )
 
         # Correctly shape the distance array
