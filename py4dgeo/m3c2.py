@@ -6,13 +6,14 @@ from py4dgeo.util import Py4DGeoError
 import abc
 import dataclasses
 import numpy as np
+import typing
 
 
 @dataclasses.dataclass
 class M3C2LikeAlgorithm(abc.ABC):
-    epochs: tuple[Epoch] = None
+    epochs: typing.Tuple[Epoch, ...] = None
     corepoints: np.ndarray = None
-    radii: list[float] = None
+    radii: typing.List[float] = None
     directions: Direction = None
 
     def __post_init__(self):
@@ -106,7 +107,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
 @dataclasses.dataclass
 class M3C2(M3C2LikeAlgorithm):
-    scales: list[float] = None
+    scales: typing.List[float] = None
 
     def __post_init__(self):
         # Build cached kdtrees
