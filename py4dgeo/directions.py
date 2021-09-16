@@ -3,6 +3,7 @@ from py4dgeo.util import Py4DGeoError
 import abc
 import dataclasses
 import numpy as np
+import typing
 
 
 @dataclasses.dataclass(frozen=True)
@@ -54,7 +55,7 @@ class PrecomputedDirection(Direction):
 
 @dataclasses.dataclass(frozen=True)
 class MultiScaleDirection(PrecomputedDirection):
-    scales: list[float] = None
+    scales: typing.List[float] = None
 
     def __post_init__(self):
         # Check the validity of the scales parameter
