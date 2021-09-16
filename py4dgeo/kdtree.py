@@ -37,7 +37,7 @@ class CachedKDTree:
 
     def fixed_radius_search(self, query_idx, radius):
         indices, distances = self.cache[query_idx]
-        pos = np.searchsorted(distances, radius, side="right")
+        pos = np.searchsorted(distances, radius * radius, side="right")
         return indices[:pos], distances[:pos]
 
     def build_tree(self, leaf=10):
