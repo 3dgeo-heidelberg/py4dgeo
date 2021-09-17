@@ -63,7 +63,40 @@ PYBIND11_MODULE(_py4dgeo, m)
   py::class_<KDTree>(m, "KDTree", py::buffer_protocol())
     .def(py::init<>(&impl::construct_kdtree))
     .def("build_tree", &KDTree::build_tree, "Trigger building the search tree")
-    .def("radius_search", &impl::radius_search, "Search point in given radius");
+    .def("radius_search", &impl::radius_search, "Search point in given radius")
+    .def(py::pickle(
+      [](const KDTree& self) {
+        // Instantiate a stream object
+        std::stringstream buf;
+
+        // Write the cloud itself. This is very unfortunate as it is a redundant
+        // copy of the point cloud, but deserializing a point cloud without it
+        // is impossible.
+        buf.write(reinterpret_cast<const char*>(&self._adaptor.n),
+                  sizeof(std::size_t));
+        buf.write(reinterpret_cast<const char*>(self._adaptor.ptr),
+                  sizeof(double) * self._adaptor.n * 3);
+
+        // Write the search index
+        self._search->saveIndex(buf);
+
+        // Make and return a bytes object
+        return py::bytes(buf.str());
+      },
+      [](const py::bytes& data) {
+        std::stringstream buf(data.cast<std::string>());
+
+        std::size_t n;
+        buf.read(reinterpret_cast<char*>(&n), sizeof(std::size_t));
+        auto obj = new KDTree(n);
+        buf.read(reinterpret_cast<char*>(obj->_adaptor.ptr),
+                 sizeof(double) * n * 3);
+
+        obj->_search = std::make_shared<KDTree::KDTreeImpl>(
+          3, obj->_adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+        obj->_search->loadIndex(buf);
+        return obj;
+      }));
 }
 
 } // namespace py4dgeo

@@ -5,7 +5,11 @@
 namespace py4dgeo {
 
 KDTree::KDTree(double* ptr, std::size_t n)
-  : _adaptor{ ptr, n }
+  : _adaptor(ptr, n)
+{}
+
+KDTree::KDTree(std::size_t n)
+  : _adaptor(n)
 {}
 
 void

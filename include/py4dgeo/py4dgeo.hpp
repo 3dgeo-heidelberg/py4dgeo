@@ -10,6 +10,25 @@ namespace impl {
 
 struct NanoFLANNAdaptor
 {
+  // Constructors and destructors
+  NanoFLANNAdaptor(std::size_t n)
+    : ownership(true)
+    , ptr(new double[n * 3])
+    , n(n)
+  {}
+
+  NanoFLANNAdaptor(double* ptr, std::size_t n)
+    : ownership(false)
+    , ptr(ptr)
+    , n(n)
+  {}
+
+  ~NanoFLANNAdaptor()
+  {
+    if (ownership)
+      delete[] ptr;
+  }
+
   inline std::size_t kdtree_get_point_count() const { return n; }
 
   inline double kdtree_get_pt(const size_t idx, const size_t dim) const
@@ -23,6 +42,7 @@ struct NanoFLANNAdaptor
     return false;
   }
 
+  bool ownership;
   double* ptr;
   std::size_t n;
 };
@@ -31,21 +51,20 @@ struct NanoFLANNAdaptor
 
 class KDTree
 {
-private:
+public:
   using KDTreeImpl = nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<double, impl::NanoFLANNAdaptor>,
     impl::NanoFLANNAdaptor,
     3>;
 
-public:
   KDTree(double* ptr, std::size_t);
+  KDTree(std::size_t);
   void build_tree(int);
 
   std::size_t radius_search(const double*,
                             const double&,
                             std::vector<std::pair<std::size_t, double>>&) const;
 
-private:
   impl::NanoFLANNAdaptor _adaptor;
   std::shared_ptr<KDTreeImpl> _search;
 };
