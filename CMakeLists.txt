@@ -32,6 +32,9 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
       "'--recursive' flag or 'git submodule update --init' needs to be called")
 endif()
 
+# Handle library dependencies
+add_subdirectory(ext/eigen)
+
 # compile the library
 add_subdirectory(src)
 

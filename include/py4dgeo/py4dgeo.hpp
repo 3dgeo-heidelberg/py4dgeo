@@ -1,10 +1,16 @@
 #pragma once
 
+#include <Eigen/Eigen>
+
 #include <memory>
 #include <vector>
 
 #include "nanoflann.hpp"
 namespace py4dgeo {
+
+// The type we use for Point Clouds on the C++ side
+using EigenPointCloud =
+  Eigen::Ref<Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>>;
 
 namespace impl {
 
@@ -49,5 +55,12 @@ private:
   impl::NanoFLANNAdaptor _adaptor;
   std::shared_ptr<KDTreeImpl> _search;
 };
+
+// Compute interfaces
+void
+compute_multiscale_directions(const EigenPointCloud&,
+                              const std::vector<double>&,
+                              const KDTree&,
+                              EigenPointCloud&);
 
 } // namespace py4dgeo

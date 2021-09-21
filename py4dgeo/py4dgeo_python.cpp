@@ -1,3 +1,4 @@
+#include <pybind11/eigen.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -64,6 +65,10 @@ PYBIND11_MODULE(_py4dgeo, m)
     .def(py::init<>(&impl::construct_kdtree))
     .def("build_tree", &KDTree::build_tree, "Trigger building the search tree")
     .def("radius_search", &impl::radius_search, "Search point in given radius");
+
+  m.def("compute_multiscale_directions",
+        &compute_multiscale_directions,
+        "Calculate multiscale directions for M3C2");
 }
 
 } // namespace py4dgeo
