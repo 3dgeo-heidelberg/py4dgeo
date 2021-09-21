@@ -54,6 +54,15 @@ PYBIND11_MODULE(_py4dgeo, m)
     .def("build_tree", &KDTree::build_tree, "Trigger building the search tree")
     .def("radius_search", &impl::radius_search, "Search point in given radius");
 
+  py::class_<CachedKDTree>(m, "CachedKDTree", py::buffer_protocol())
+    .def(py::init<>(&CachedKDTree::create))
+    .def("build_tree",
+         &CachedKDTree::build_tree,
+         "Trigger building the search tree")
+    .def("fixed_radius_search",
+         &CachedKDTree::fixed_radius_search,
+         "Search point in given radius");
+
   // m.def("compute_multiscale_directions",
   //       &compute_multiscale_directions,
   //       "Calculate multiscale directions for M3C2");

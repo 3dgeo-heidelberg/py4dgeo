@@ -55,6 +55,28 @@ private:
   std::shared_ptr<KDTreeImpl> _search;
 };
 
+class CachedKDTree
+{
+  // private constructor
+  CachedKDTree(const EigenPointCloudRef&, const EigenPointCloudRef&, double);
+
+public:
+  void build_tree(int);
+  std::size_t fixed_radius_search(
+    const IndexType&,
+    const double&,
+    std::vector<std::pair<IndexType, double>>&) const;
+  static CachedKDTree create(const EigenPointCloudRef&,
+                             const EigenPointCloudRef&,
+                             double);
+
+private:
+  KDTree kdtree;
+  EigenPointCloudRef querypoints;
+  double maxradius;
+  std::vector<std::vector<std::pair<IndexType, double>>> results;
+};
+
 // Compute interfaces
 void
 compute_multiscale_directions(const EigenPointCloudRef&,
