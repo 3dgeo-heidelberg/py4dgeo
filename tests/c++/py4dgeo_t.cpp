@@ -26,13 +26,16 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
     ++points;
   }
 
+  // Interpret the given data as an Eigen matrix
+  Eigen::Map<EigenPointCloud> cloud(data.data(), points, 3);
+
   // Construct the KDTree
-  KDTree tree(data.data(), points);
+  auto tree = KDTree::create(cloud);
   tree.build_tree(10);
 
   // Find all nodes with a radius search
   std::array<double, 3> o{ 0.0, 0.0, 0.0 };
-  std::vector<std::pair<std::size_t, double>> result;
+  std::vector<std::pair<IndexType, double>> result;
 
   auto num = tree.radius_search(o.data(), 100.0, result);
 

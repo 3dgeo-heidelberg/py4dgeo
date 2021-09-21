@@ -4,9 +4,34 @@
 
 namespace py4dgeo {
 
-KDTree::KDTree(double* ptr, std::size_t n)
-  : _adaptor{ ptr, n }
+inline std::size_t
+KDTree::Adaptor::kdtree_get_point_count() const
+{
+  return cloud.rows();
+}
+
+inline double
+KDTree::Adaptor::kdtree_get_pt(const IndexType idx, const IndexType dim) const
+{
+  return cloud(idx, dim);
+}
+
+template<class BBOX>
+bool
+KDTree::Adaptor::kdtree_get_bbox(BBOX&) const
+{
+  return false;
+}
+
+KDTree::KDTree(const EigenPointCloudRef& cloud)
+  : _adaptor{ cloud }
 {}
+
+KDTree
+KDTree::create(const EigenPointCloudRef& cloud)
+{
+  return KDTree(cloud);
+}
 
 void
 KDTree::build_tree(int leaf)
@@ -19,7 +44,7 @@ KDTree::build_tree(int leaf)
 std::size_t
 KDTree::radius_search(const double* query,
                       const double& radius,
-                      std::vector<std::pair<std::size_t, double>>& result) const
+                      std::vector<std::pair<IndexType, double>>& result) const
 {
   nanoflann::SearchParams params;
   return _search->radiusSearch(query, radius * radius, result, params);
