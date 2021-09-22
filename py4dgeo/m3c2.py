@@ -1,6 +1,5 @@
 from py4dgeo.directions import Direction, MultiScaleDirection
 from py4dgeo.epoch import Epoch
-from py4dgeo.kdtree import FixedQueryKDTree, CachedKDTree
 from py4dgeo.util import Py4DGeoError
 
 import abc
@@ -28,6 +27,9 @@ class M3C2LikeAlgorithm(abc.ABC):
         # Check the given number of epochs
         self.check_number_of_epochs()
 
+        # Run setup code defined by the algorithm
+        self.setup()
+
         # Calculate the directions if they were not given
         if self.directions is None:
             self.directions = self.calculate_directions()
@@ -35,6 +37,9 @@ class M3C2LikeAlgorithm(abc.ABC):
     @property
     def name(self):
         raise NotImplementedError
+
+    def setup(self):
+        pass
 
     def calculate_directions(self):
         raise NotImplementedError
@@ -52,9 +57,9 @@ class M3C2LikeAlgorithm(abc.ABC):
         algorithm classes inheriting from this class can override this to provide a
         specialized search tree that e.g. implements a suitable caching strategy.
         """
-        return FixedQueryKDTree(
-            self.epochs[epoch_idx].kdtree, self.corepoints
-        ).fixed_radius_search(core_idx, radius)
+        return self.epochs[epoch_idx].kdtree.radius_search(
+            self.corepoints[core_idx, :], radius
+        )
 
     def run(self):
         # Make sure to precompute the directions
@@ -103,7 +108,7 @@ class M3C2LikeAlgorithm(abc.ABC):
     def corepoint_vicinity(self, epoch_idx=None, corepoint_index=None, radius=None):
         # TODO: Check with 3DGeo: Is the difference between "in radius of core point"
         #       and "in cylinder around core point" important?
-        indices, _ = self.radius_search_around_corepoint(
+        indices = self.radius_search_around_corepoint(
             epoch_idx, corepoint_index, radius
         )
         return self.epochs[epoch_idx].cloud[indices, :]
@@ -113,31 +118,27 @@ class M3C2LikeAlgorithm(abc.ABC):
 class M3C2(M3C2LikeAlgorithm):
     scales: typing.List[float] = None
 
-    def __post_init__(self):
-        # Build cached kdtrees by finding the maximum search radius
+    @property
+    def name(self):
+        return "M3C2"
+
+    def setup(self):
+        # Cache KDTree evaluations
         radius_candidates = []
         if self.scales is not None:
             radius_candidates.extend(list(self.scales))
         if self.radii is not None:
             radius_candidates.extend(list(self.radii))
         maxradius = max(radius_candidates)
-        self.cached_kdtrees = tuple(
-            CachedKDTree(e.kdtree, self.corepoints, maxradius) for e in self.epochs
-        )
-        for tree in self.cached_kdtrees:
-            tree.build_tree()
 
-        return super().__post_init__()
-
-    @property
-    def name(self):
-        return "M3C2"
+        for epoch in self.epochs:
+            epoch.kdtree.precompute(self.corepoints, maxradius)
 
     def calculate_directions(self):
         return MultiScaleDirection(scales=self.scales)
 
     def radius_search_around_corepoint(self, epoch_idx, core_idx, radius):
-        return self.cached_kdtrees[epoch_idx].fixed_radius_search(core_idx, radius)
+        return self.epochs[epoch_idx].kdtree.precomputed_radius_search(core_idx, radius)
 
 
 def m3c2_distance(

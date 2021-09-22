@@ -1,4 +1,4 @@
-add_executable(tests tests.cpp py4dgeo_t.cpp)
+add_executable(tests tests.cpp kdtree_t.cpp)
 target_link_libraries(tests PUBLIC py4dgeo Catch2::Catch2)
 
 # allow user to run tests with `make test` or `ctest`
