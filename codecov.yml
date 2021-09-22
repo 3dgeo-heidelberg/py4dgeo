@@ -22,3 +22,4 @@ comment:
 ignore:
   - "**/tests"
   - "**/Catch2"
+  - "**/eigen"
