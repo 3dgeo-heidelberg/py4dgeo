@@ -1,4 +1,3 @@
-from py4dgeo.kdtree import FixedQueryKDTree
 from py4dgeo.util import Py4DGeoError
 
 import abc
@@ -79,9 +78,9 @@ class MultiScaleDirection(PrecomputedDirection):
             raise ValueError("epoch and corepoints need to be provided to precompute")
 
         if radius_searcher is None:
-            radius_searcher = lambda idx, r: FixedQueryKDTree(
-                epoch.kdtree, corepoints
-            ).fixed_radius_search(idx, r)
+            radius_searcher = lambda idx, r: epoch.kdtree.radius_search(
+                corepoints[idx, :], r
+            )
 
         # Reset precomputation results
         self._precomputation.clear()
@@ -92,7 +91,7 @@ class MultiScaleDirection(PrecomputedDirection):
 
         for core_idx in range(corepoints.shape[0]):
             for scale in self.scales:
-                points_idx, _ = radius_searcher(core_idx, scale)
+                points_idx = radius_searcher(core_idx, scale)
                 points_subs = epoch.cloud[points_idx, :]
                 cxx = np.cov(points_subs.T)
                 eigval, eigvec = np.linalg.eigh(cxx)

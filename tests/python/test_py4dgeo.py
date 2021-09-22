@@ -16,4 +16,4 @@ def test_kdtree(filename):
     tree = py4dgeo.KDTree(data)
     tree.build_tree(10)
     result = tree.radius_search(np.array([0, 0, 0]), 100)
-    assert result[0].shape[0] == data.shape[0]
+    assert result.shape[0] == data.shape[0]
