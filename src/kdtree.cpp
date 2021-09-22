@@ -120,7 +120,6 @@ KDTree::precomputed_radius_search(const IndexType idx,
                          precomputed_distances[idx].end(),
                          [radius](auto d) { return d > radius * radius; });
 
-  auto start = precomputed_indices[idx].begin();
   std::copy(precomputed_indices[idx].begin(),
             precomputed_indices[idx].begin() +
               (it - precomputed_distances[idx].begin()),
