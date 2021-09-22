@@ -15,5 +15,16 @@ def test_kdtree(filename):
     data = np.genfromtxt(filename)
     tree = py4dgeo.KDTree(data)
     tree.build_tree(10)
+
+    # Find all points in sufficiently large radius
     result = tree.radius_search(np.array([0, 0, 0]), 100)
     assert result.shape[0] == data.shape[0]
+
+    # Trigger precomputations
+    tree.precompute(data[:20, :], 20)
+
+    # Compare precomputed and real results
+    for i in range(20):
+        result1 = tree.radius_search(data[i, :], 5)
+        result2 = tree.precomputed_radius_search(i, 5)
+        assert result1.shape == result2.shape
