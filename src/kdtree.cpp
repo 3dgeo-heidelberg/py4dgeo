@@ -79,6 +79,22 @@ KDTree::from_stream(std::istream& stream)
     3, obj.adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
   obj.search->loadIndex(stream);
 
+  // Read the precomputation results
+  std::size_t size;
+  stream.read(reinterpret_cast<char*>(&size), sizeof(std::size_t));
+  obj.precomputed_indices.resize(size);
+  obj.precomputed_distances.resize(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    std::size_t size2;
+    stream.read(reinterpret_cast<char*>(&size2), sizeof(std::size_t));
+    obj.precomputed_indices[i].resize(size2);
+    obj.precomputed_distances[i].resize(size2);
+    stream.read(reinterpret_cast<char*>(obj.precomputed_indices[i].data()),
+                sizeof(IndexType) * size2);
+    stream.read(reinterpret_cast<char*>(obj.precomputed_distances[i].data()),
+                sizeof(double) * size2);
+  }
+
   return obj;
 }
 
@@ -95,6 +111,18 @@ KDTree::to_stream(std::ostream& stream) const
 
   // Write the search index
   search->saveIndex(stream);
+
+  // Write the precomputation results
+  std::size_t size = precomputed_indices.size();
+  stream.write(reinterpret_cast<const char*>(&size), sizeof(std::size_t));
+  for (std::size_t i = 0; i < size; ++i) {
+    std::size_t size2 = precomputed_indices[i].size();
+    stream.write(reinterpret_cast<const char*>(&size2), sizeof(std::size_t));
+    stream.write(reinterpret_cast<const char*>(precomputed_indices[i].data()),
+                 sizeof(IndexType) * size2);
+    stream.write(reinterpret_cast<const char*>(precomputed_distances[i].data()),
+                 sizeof(double) * size2);
+  }
 
   return stream;
 }
