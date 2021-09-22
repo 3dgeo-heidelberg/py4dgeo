@@ -50,13 +50,53 @@ KDTree::NoDistancesReturnSet::worstDist() const
 }
 
 KDTree::KDTree(const EigenPointCloudRef& cloud)
-  : adaptor{ cloud }
+  : adaptor{ nullptr, cloud }
+{}
+
+KDTree::KDTree(const std::shared_ptr<EigenPointCloud>& data)
+  : adaptor{ data, *data }
 {}
 
 KDTree
 KDTree::create(const EigenPointCloudRef& cloud)
 {
   return KDTree(cloud);
+}
+
+KDTree
+KDTree::from_stream(std::istream& stream)
+{
+  // Read the cloud itself
+  IndexType rows;
+  stream.read(reinterpret_cast<char*>(&rows), sizeof(IndexType));
+  auto cloud = std::make_shared<EigenPointCloud>(rows, 3);
+  stream.read(reinterpret_cast<char*>(&(*cloud)(0, 0)),
+              sizeof(double) * rows * 3);
+  KDTree obj(cloud);
+
+  // Read the search index
+  obj.search = std::make_unique<KDTreeImpl>(
+    3, obj.adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  obj.search->loadIndex(stream);
+
+  return obj;
+}
+
+std::ostream&
+KDTree::to_stream(std::ostream& stream) const
+{
+  // Write the cloud itself. This is very unfortunate as it is a redundant
+  // copy of the point cloud, but this seems to be the only way to have an
+  // unpickled copy be actually usable. Scipy does exactly the same.
+  IndexType rows = adaptor.cloud.rows();
+  stream.write(reinterpret_cast<const char*>(&rows), sizeof(IndexType));
+  stream.write(reinterpret_cast<const char*>(&adaptor.cloud(0, 0)),
+               sizeof(double) * rows * 3);
+
+  // Write the search index
+  search->saveIndex(stream);
+
+  return stream;
 }
 
 void
