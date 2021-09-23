@@ -1,6 +1,6 @@
 #include "catch2/catch.hpp"
 #include "py4dgeo/py4dgeo.hpp"
-#include "tests.hpp"
+#include "testsetup.hpp"
 
 #include <fstream>
 #include <iostream>

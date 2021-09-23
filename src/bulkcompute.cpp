@@ -14,7 +14,7 @@ compute_multiscale_directions(const EigenPointCloudRef& cloud,
                               const EigenPointCloudRef& corepoints,
                               const std::vector<double>& scales,
                               const KDTree& kdtree,
-                              EigenPointCloudRef& result)
+                              EigenPointCloudRef result)
 {
   // TODO: Make sure that precomputation has been triggered.
 
