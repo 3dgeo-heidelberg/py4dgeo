@@ -1,5 +1,6 @@
 #include "catch2/catch.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "tests.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -10,24 +11,8 @@ using namespace py4dgeo;
 
 TEST_CASE("KDTree is correctly build", "[kdtree]")
 {
-  // Load a test case
-  std::vector<double> data;
-  std::ifstream stream("../data/plane_horizontal_t1.xyz");
-  std::string line;
-  std::size_t points{ 0 };
-
-  while (std::getline(stream, line)) {
-    std::istringstream s(line);
-    double x;
-    for (int i = 0; i < 3; ++i) {
-      s >> x;
-      data.push_back(x);
-    }
-    ++points;
-  }
-
-  // Interpret the given data as an Eigen matrix
-  Eigen::Map<EigenPointCloud> cloud(data.data(), points, 3);
+  // Get the test cloud
+  auto cloud = testcloud();
 
   // Construct the KDTree
   auto tree = KDTree::create(cloud);
@@ -41,13 +26,13 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
 
     // Do radius search with radius wide enough to cover the entire cloud
     auto num = tree.radius_search(o.data(), 100.0, result);
-    REQUIRE(num == points);
-    REQUIRE(result.size() == points);
+    REQUIRE(num == cloud.rows());
+    REQUIRE(result.size() == cloud.rows());
   }
 
   SECTION("Precomputation and radius search")
   {
-    Eigen::Map<EigenPointCloud> qp(data.data(), 20, 3);
+    EigenPointCloud qp = cloud(Eigen::seq(0, 20), Eigen::all);
     tree.precompute(qp, 20.0);
 
     for (std::size_t i = 0; i < 20; ++i) {
@@ -71,7 +56,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
 
     // Do radius search with radius wide enough to cover the entire cloud
     auto num = deserialized->radius_search(o.data(), 100.0, result);
-    REQUIRE(num == points);
-    REQUIRE(result.size() == points);
+    REQUIRE(num == cloud.rows());
+    REQUIRE(result.size() == cloud.rows());
   }
 }
