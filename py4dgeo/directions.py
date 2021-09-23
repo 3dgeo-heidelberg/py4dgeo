@@ -86,10 +86,10 @@ class MultiScaleDirection(PrecomputedDirection):
         self._precomputation.clear()
 
         # Results to update iteratively
-        highest_planarity = 0.0
         result = np.zeros(shape=(corepoints.shape[0], 1, corepoints.shape[1]))
 
         for core_idx in range(corepoints.shape[0]):
+            highest_planarity = 0.0
             for scale in self.scales:
                 points_idx = radius_searcher(core_idx, scale)
                 points_subs = epoch.cloud[points_idx, :]
