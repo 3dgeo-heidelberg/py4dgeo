@@ -65,6 +65,11 @@ PYBIND11_MODULE(_py4dgeo, m)
       std::stringstream buf(data.cast<std::string>());
       return KDTree::from_stream(buf);
     }));
+
+  // Add compute interfaces
+  m.def("compute_multiscale_directions",
+        &compute_multiscale_directions,
+        "Compute M3C2 multiscale directions");
 }
 
 } // namespace py4dgeo
