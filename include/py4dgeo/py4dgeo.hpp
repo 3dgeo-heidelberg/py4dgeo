@@ -93,6 +93,7 @@ public:
 private:
   Adaptor adaptor;
   std::shared_ptr<KDTreeImpl> search;
+  int leaf_parameter;
   std::vector<std::vector<IndexType>> precomputed_indices;
   std::vector<std::vector<double>> precomputed_distances;
 };

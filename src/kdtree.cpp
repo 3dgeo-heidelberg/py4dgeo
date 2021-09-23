@@ -51,10 +51,12 @@ KDTree::NoDistancesReturnSet::worstDist() const
 
 KDTree::KDTree(const EigenPointCloudRef& cloud)
   : adaptor{ nullptr, cloud }
+  , leaf_parameter(0)
 {}
 
 KDTree::KDTree(const std::shared_ptr<EigenPointCloud>& data)
   : adaptor{ data, *data }
+  , leaf_parameter(0)
 {}
 
 KDTree
@@ -74,10 +76,17 @@ KDTree::from_stream(std::istream& stream)
               sizeof(double) * rows * 3);
   KDTree* obj = new KDTree(cloud);
 
-  // Read the search index
-  obj->search = std::make_shared<KDTreeImpl>(
-    3, obj->adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  obj->search->loadIndex(stream);
+  // Read the leaf parameter
+  stream.read(reinterpret_cast<char*>(&(obj->leaf_parameter)), sizeof(int));
+
+  // Read the search index iff the index was built
+  if (obj->leaf_parameter != 0) {
+    obj->search = std::make_shared<KDTreeImpl>(
+      3,
+      obj->adaptor,
+      nanoflann::KDTreeSingleIndexAdaptorParams(obj->leaf_parameter));
+    obj->search->loadIndex(stream);
+  }
 
   // Read the precomputation results
   std::size_t size;
@@ -109,8 +118,12 @@ KDTree::to_stream(std::ostream& stream) const
   stream.write(reinterpret_cast<const char*>(&adaptor.cloud(0, 0)),
                sizeof(double) * rows * 3);
 
-  // Write the search index
-  search->saveIndex(stream);
+  // Write the leaf parameter
+  stream.write(reinterpret_cast<const char*>(&leaf_parameter), sizeof(int));
+
+  // Write the search index iff the index was built
+  if (leaf_parameter != 0)
+    search->saveIndex(stream);
 
   // Write the precomputation results
   std::size_t size = precomputed_indices.size();
@@ -133,6 +146,7 @@ KDTree::build_tree(int leaf)
   search = std::make_shared<KDTreeImpl>(
     3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(leaf));
   search->buildIndex();
+  leaf_parameter = leaf;
 }
 
 void
