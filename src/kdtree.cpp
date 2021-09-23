@@ -63,7 +63,7 @@ KDTree::create(const EigenPointCloudRef& cloud)
   return KDTree(cloud);
 }
 
-KDTree
+KDTree*
 KDTree::from_stream(std::istream& stream)
 {
   // Read the cloud itself
@@ -72,26 +72,26 @@ KDTree::from_stream(std::istream& stream)
   auto cloud = std::make_shared<EigenPointCloud>(rows, 3);
   stream.read(reinterpret_cast<char*>(&(*cloud)(0, 0)),
               sizeof(double) * rows * 3);
-  KDTree obj(cloud);
+  KDTree* obj = new KDTree(cloud);
 
   // Read the search index
-  obj.search = std::make_unique<KDTreeImpl>(
-    3, obj.adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
-  obj.search->loadIndex(stream);
+  obj->search = std::make_shared<KDTreeImpl>(
+    3, obj->adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(10));
+  obj->search->loadIndex(stream);
 
   // Read the precomputation results
   std::size_t size;
   stream.read(reinterpret_cast<char*>(&size), sizeof(std::size_t));
-  obj.precomputed_indices.resize(size);
-  obj.precomputed_distances.resize(size);
+  obj->precomputed_indices.resize(size);
+  obj->precomputed_distances.resize(size);
   for (std::size_t i = 0; i < size; ++i) {
     std::size_t size2;
     stream.read(reinterpret_cast<char*>(&size2), sizeof(std::size_t));
-    obj.precomputed_indices[i].resize(size2);
-    obj.precomputed_distances[i].resize(size2);
-    stream.read(reinterpret_cast<char*>(obj.precomputed_indices[i].data()),
+    obj->precomputed_indices[i].resize(size2);
+    obj->precomputed_distances[i].resize(size2);
+    stream.read(reinterpret_cast<char*>(obj->precomputed_indices[i].data()),
                 sizeof(IndexType) * size2);
-    stream.read(reinterpret_cast<char*>(obj.precomputed_distances[i].data()),
+    stream.read(reinterpret_cast<char*>(obj->precomputed_distances[i].data()),
                 sizeof(double) * size2);
   }
 
@@ -130,7 +130,7 @@ KDTree::to_stream(std::ostream& stream) const
 void
 KDTree::build_tree(int leaf)
 {
-  search = std::make_unique<KDTreeImpl>(
+  search = std::make_shared<KDTreeImpl>(
     3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(leaf));
   search->buildIndex();
 }

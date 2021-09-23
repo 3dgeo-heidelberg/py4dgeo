@@ -65,7 +65,7 @@ public:
   // Static factory functions. These serve as de facto constructors, but they
   // can are much easier exposed in Python bindings than actual constructors.
   static KDTree create(const EigenPointCloudRef&);
-  static KDTree from_stream(std::istream&);
+  static KDTree* from_stream(std::istream&);
 
   // The counterpart to from_file: Serializing the tree to a stream
   std::ostream& to_stream(std::ostream&) const;
@@ -92,7 +92,7 @@ public:
 
 private:
   Adaptor adaptor;
-  std::unique_ptr<KDTreeImpl> search;
+  std::shared_ptr<KDTreeImpl> search;
   std::vector<std::vector<IndexType>> precomputed_indices;
   std::vector<std::vector<double>> precomputed_distances;
 };

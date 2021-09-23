@@ -70,7 +70,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
     KDTree::RadiusSearchResult result;
 
     // Do radius search with radius wide enough to cover the entire cloud
-    auto num = deserialized.radius_search(o.data(), 100.0, result);
+    auto num = deserialized->radius_search(o.data(), 100.0, result);
     REQUIRE(num == points);
     REQUIRE(result.size() == points);
   }
