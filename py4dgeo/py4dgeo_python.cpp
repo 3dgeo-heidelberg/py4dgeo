@@ -6,6 +6,8 @@
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 
+#include <sstream>
+#include <string>
 #include <tuple>
 
 namespace py = pybind11;
@@ -52,9 +54,17 @@ PYBIND11_MODULE(_py4dgeo, m)
                return as_pyarray(std::move(result));
              });
 
-  // m.def("compute_multiscale_directions",
-  //       &compute_multiscale_directions,
-  //       "Calculate multiscale directions for M3C2");
+  // Pickling support for the KDTree data structure
+  kdtree.def(py::pickle(
+    [](const KDTree& self) {
+      std::stringstream buf;
+      self.to_stream(buf);
+      return py::bytes(buf.str());
+    },
+    [](const py::bytes& data) {
+      std::stringstream buf(data.cast<std::string>());
+      return KDTree::from_stream(buf);
+    }));
 }
 
 } // namespace py4dgeo
