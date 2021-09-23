@@ -101,8 +101,9 @@ private:
 // Compute interfaces
 void
 compute_multiscale_directions(const EigenPointCloudRef&,
+                              const EigenPointCloudRef&,
                               const std::vector<double>&,
                               const KDTree&,
-                              EigenPointCloudRef&);
+                              EigenPointCloudRef);
 
 } // namespace py4dgeo

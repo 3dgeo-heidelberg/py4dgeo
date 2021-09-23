@@ -5,6 +5,8 @@ import dataclasses
 import numpy as np
 import typing
 
+import _py4dgeo
+
 
 @dataclasses.dataclass(frozen=True)
 class Direction(abc.ABC):
@@ -15,7 +17,7 @@ class Direction(abc.ABC):
     def precompute(self, epoch=None, corepoints=None):
         pass
 
-    def get(self, core_idx=None) -> np.ndarray:
+    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
         raise NotImplementedError
 
 
@@ -27,8 +29,8 @@ class MultiConstantDirection(Direction):
     def num_dirs(self):
         return self.directions.shape[0]
 
-    def get(self, core_idx=None) -> np.ndarray:
-        return self.directions
+    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
+        return self.directions[dir_idx, :]
 
 
 class ConstantDirection(MultiConstantDirection):
@@ -44,8 +46,8 @@ class CorePointDirection(Direction):
     def num_dirs(self):
         return self.directions.shape[1]
 
-    def get(self, core_idx=None) -> np.ndarray:
-        return self.directions[core_idx, :, :]
+    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
+        return self.directions[core_idx, dir_idx, :]
 
 
 @dataclasses.dataclass(frozen=True)
@@ -68,41 +70,15 @@ class MultiScaleDirection(PrecomputedDirection):
     def num_dirs(self):
         return 1
 
-    def precompute(self, epoch=None, corepoints=None, radius_searcher=None):
-        # This is a Python placeholder for a C++ implementation of the multiscale
-        # direction implementation. Some notes already gathered:
-        # * https://eigen.tuxfamily.org/dox/group__TutorialSlicingIndexing.html (see Array of Indices)
-        # * https://stackoverflow.com/a/15142446
-        # * Radii too small to produce a good covariance matrix need to be detected
-        if epoch is None or corepoints is None:
-            raise ValueError("epoch and corepoints need to be provided to precompute")
-
-        if radius_searcher is None:
-            radius_searcher = lambda idx, r: epoch.kdtree.radius_search(
-                corepoints[idx, :], r
-            )
-
-        # Reset precomputation results
+    def precompute(self, epoch=None, corepoints=None):
         self._precomputation.clear()
 
-        # Results to update iteratively
-        result = np.zeros(shape=(corepoints.shape[0], 1, corepoints.shape[1]))
+        result = np.empty(corepoints.shape)
+        _py4dgeo.compute_multiscale_directions(
+            epoch.cloud, corepoints, self.scales, epoch.kdtree, result
+        )
 
-        for core_idx in range(corepoints.shape[0]):
-            highest_planarity = 0.0
-            for scale in self.scales:
-                points_idx = radius_searcher(core_idx, scale)
-                points_subs = epoch.cloud[points_idx, :]
-                cxx = np.cov(points_subs.T)
-                eigval, eigvec = np.linalg.eigh(cxx)
-                planarity = (eigval[1] - eigval[0]) / eigval[2]
-
-                if planarity > highest_planarity:
-                    highest_planarity = planarity
-                    result[core_idx, 0, :] = eigvec[:, 2]
-
-        # Store the result
         self._precomputation.append(result)
 
-    def get(self, core_idx=None) -> np.ndarray:
+    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
         return self._precomputation[0][core_idx, :]

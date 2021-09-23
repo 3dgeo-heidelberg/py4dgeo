@@ -63,13 +63,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def run(self):
         # Make sure to precompute the directions
-        self.directions.precompute(
-            epoch=self.epochs[0],
-            corepoints=self.corepoints,
-            radius_searcher=lambda idx, r: self.radius_search_around_corepoint(
-                0, idx, r
-            ),
-        )
+        self.directions.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
 
         # Correctly shape the distance array
         distances = np.empty(
@@ -90,17 +84,16 @@ class M3C2LikeAlgorithm(abc.ABC):
                 ref_points = self.corepoint_vicinity(
                     epoch_idx=0, corepoint_index=cix, radius=radius
                 )
-                directions = self.directions.get(cix)
                 for eix in range(1, len(self.epochs)):
                     diff_points = self.corepoint_vicinity(
                         epoch_idx=eix, corepoint_index=cix, radius=radius
                     )
-                    for dix, direction in enumerate(directions):
+                    for dix in range(self.directions.num_dirs):
                         distances[cix, rix, dix, eix - 1], _ = m3c2_distance(
                             p1=ref_points,
                             p2=diff_points,
                             corepoint=self.corepoints[cix, :],
-                            direction=direction,
+                            direction=self.directions.get(cix, dix),
                         )
 
         return distances
