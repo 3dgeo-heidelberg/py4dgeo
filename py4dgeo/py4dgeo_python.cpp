@@ -70,6 +70,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("compute_multiscale_directions",
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
+
+  m.def("compute_distances", &compute_distances, "Compute M3C2 distances");
 }
 
 } // namespace py4dgeo

@@ -1,3 +1,5 @@
+import _py4dgeo
+
 from py4dgeo.directions import Direction, MultiScaleDirection
 from py4dgeo.epoch import Epoch
 from py4dgeo.util import Py4DGeoError
@@ -65,46 +67,23 @@ class M3C2LikeAlgorithm(abc.ABC):
         # Make sure to precompute the directions
         self.directions.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
 
-        # Correctly shape the distance array
-        distances = np.empty(
-            (
-                self.corepoints.shape[0],
-                len(self.radii),
-                self.directions.num_dirs,
-                len(self.epochs) - 1,
-            )
+        assert len(self.radii) == 1
+
+        # Allocate the result array
+        result = np.empty((len(self.corepoints),))
+
+        _py4dgeo.compute_distances(
+            self.corepoints,
+            self.radii[0],
+            self.epochs[0].cloud,
+            self.epochs[0].kdtree,
+            self.epochs[1].cloud,
+            self.epochs[1].kdtree,
+            self.directions._precomputation[0],
+            result,
         )
 
-        # TODO: Decisions necessary how to
-        # * Order these loops
-        # * Allow more "bulk" interfaces
-        # * Decide which parts to implement in C++
-        for rix, radius in enumerate(self.radii):
-            for cix in range(self.corepoints.shape[0]):
-                ref_points = self.corepoint_vicinity(
-                    epoch_idx=0, corepoint_index=cix, radius=radius
-                )
-                for eix in range(1, len(self.epochs)):
-                    diff_points = self.corepoint_vicinity(
-                        epoch_idx=eix, corepoint_index=cix, radius=radius
-                    )
-                    for dix in range(self.directions.num_dirs):
-                        distances[cix, rix, dix, eix - 1], _ = m3c2_distance(
-                            p1=ref_points,
-                            p2=diff_points,
-                            corepoint=self.corepoints[cix, :],
-                            direction=self.directions.get(cix, dix),
-                        )
-
-        return distances
-
-    def corepoint_vicinity(self, epoch_idx=None, corepoint_index=None, radius=None):
-        # TODO: Check with 3DGeo: Is the difference between "in radius of core point"
-        #       and "in cylinder around core point" important?
-        indices = self.radius_search_around_corepoint(
-            epoch_idx, corepoint_index, radius
-        )
-        return self.epochs[epoch_idx].cloud[indices, :]
+        return result
 
 
 @dataclasses.dataclass
@@ -129,20 +108,3 @@ class M3C2(M3C2LikeAlgorithm):
 
     def calculate_directions(self):
         return MultiScaleDirection(scales=self.scales)
-
-    def radius_search_around_corepoint(self, epoch_idx, core_idx, radius):
-        return self.epochs[epoch_idx].kdtree.precomputed_radius_search(core_idx, radius)
-
-
-def m3c2_distance(
-    p1: np.ndarray, p2: np.ndarray, corepoint: np.ndarray, direction: np.ndarray
-) -> tuple:
-    """Calculates M3C2 distance between two point clouds P1 and P2 in direction.
-
-    :param p1: Point cloud of the first epoch (n x 3) array
-    :param p2: Point cloud of the second epoch (m x 3) array
-    :param direction: vector showing the direction of the change to be investigated - (1 x 3) array
-    :return: The distance and its uncertainty
-    :rtype: tuple
-    """
-    return abs(np.inner(np.mean(p1, axis=0) - np.mean(p2, axis=0), direction)), 0.0
