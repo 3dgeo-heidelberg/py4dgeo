@@ -19,6 +19,7 @@ TEST_CASE("M3C2 Multiscale direction calculation", "[compute]")
 
   std::vector<double> scales{ 1.0, 2.0, 3.0 };
   EigenPointCloud result(cloud.rows(), 3);
+  REQUIRE(result.rows() == 441);
 
   // Do the calculation
   compute_multiscale_directions(cloud, cloud, scales, kdtree, result);
