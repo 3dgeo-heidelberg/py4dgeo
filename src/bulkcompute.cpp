@@ -32,23 +32,14 @@ compute_multiscale_directions(const EigenPointCloudRef& cloud,
       auto coveval = cov.eval();
 
       // Calculate Eigen vectors
-      Eigen::EigenSolver<decltype(coveval)> solver(coveval);
-      auto evalues = solver.eigenvalues();
-
-      // Sort eigenvalues through a permutation
-      std::array<std::size_t, 3> permutation{ 0, 1, 2 };
-      std::sort(
-        permutation.begin(), permutation.end(), [&evalues](auto a, auto b) {
-          return std::real(evalues[a]) < std::real(evalues[b]);
-        });
+      Eigen::SelfAdjointEigenSolver<decltype(coveval)> solver(coveval);
+      const auto& evalues = solver.eigenvalues();
 
       // Calculate planarity
-      double planarity = (std::real(evalues[permutation[1]]) -
-                          std::real(evalues[permutation[0]])) /
-                         std::real(evalues[permutation[2]]);
+      double planarity = (evalues[1] - evalues[0]) / evalues[2];
       if (planarity > highest_planarity) {
         highest_planarity = planarity;
-        const auto& evec = solver.eigenvectors().col(permutation[2]);
+        const auto& evec = solver.eigenvectors().col(2);
         for (IndexType j = 0; j < 3; ++j)
           result(i, j) = std::real(evec[j]);
       }
