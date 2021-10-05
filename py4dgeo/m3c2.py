@@ -52,17 +52,6 @@ class M3C2LikeAlgorithm(abc.ABC):
                 f"{self.name} only operates on exactly 2 epochs, {len(self.epochs)} given!"
             )
 
-    def radius_search_around_corepoint(self, epoch_idx, core_idx, radius):
-        """Perform a radius search around a core point
-
-        By default, this will use the KDTree stored with the epoch. Alternatively,
-        algorithm classes inheriting from this class can override this to provide a
-        specialized search tree that e.g. implements a suitable caching strategy.
-        """
-        return self.epochs[epoch_idx].kdtree.radius_search(
-            self.corepoints[core_idx, :], radius
-        )
-
     def run(self):
         # Make sure to precompute the directions
         self.directions.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
