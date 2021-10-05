@@ -16,6 +16,8 @@ namespace py4dgeo {
 using EigenPointCloud =
   Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
 using EigenPointCloudRef = Eigen::Ref<EigenPointCloud>;
+using EigenVector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
+using EigenVectorRef = Eigen::Ref<EigenVector>;
 using IndexType = Eigen::Index;
 
 class KDTree
@@ -105,5 +107,15 @@ compute_multiscale_directions(const EigenPointCloudRef&,
                               const std::vector<double>&,
                               const KDTree&,
                               EigenPointCloudRef);
+
+void
+compute_distances(const EigenPointCloudRef&,
+                  double,
+                  const EigenPointCloudRef&,
+                  const KDTree&,
+                  const EigenPointCloudRef&,
+                  const KDTree&,
+                  const EigenPointCloudRef&,
+                  EigenVectorRef);
 
 } // namespace py4dgeo
