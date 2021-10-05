@@ -15,7 +15,7 @@ repos:
 
   # Format C++ code with Clang-Format - automatically applying the changes
   - repo: https://github.com/ssciwr/clang-format-precommit
-    rev: v12.0.1
+    rev: v13.0.0
     hooks:
       - id: clang-format
         args:
