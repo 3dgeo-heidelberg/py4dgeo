@@ -109,13 +109,14 @@ compute_multiscale_directions(const EigenPointCloudRef&,
                               EigenPointCloudRef);
 
 void
-compute_distances(const EigenPointCloudRef&,
+compute_distances(EigenPointCloudRef,
                   double,
-                  const EigenPointCloudRef&,
+                  EigenPointCloudRef,
                   const KDTree&,
-                  const EigenPointCloudRef&,
+                  EigenPointCloudRef,
                   const KDTree&,
-                  const EigenPointCloudRef&,
+                  EigenPointCloudRef,
+                  double,
                   EigenVectorRef);
 
 } // namespace py4dgeo
