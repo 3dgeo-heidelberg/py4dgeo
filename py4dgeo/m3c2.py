@@ -72,6 +72,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.directions._precomputation[0],
             self.max_cylinder_length,
             result,
+            _py4dgeo.radius_workingset_finder,
         )
 
         return result

@@ -1,4 +1,6 @@
 #include "catch2/catch.hpp"
+#include "py4dgeo/compute.hpp"
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "testsetup.hpp"
 

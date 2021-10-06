@@ -1,21 +1,22 @@
 #include <Eigen/Eigen>
 
+#include "py4dgeo/compute.hpp"
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
 namespace py4dgeo {
 
-template<typename WorkingSetFinder>
 void
-compute_distances_impl(WorkingSetFinder&& workingsetfinder,
-                       EigenPointCloudRef corepoints,
-                       double scale,
-                       EigenPointCloudRef cloud1,
-                       const KDTree& kdtree1,
-                       EigenPointCloudRef cloud2,
-                       const KDTree& kdtree2,
-                       EigenPointCloudRef direction,
-                       double max_cylinder_length,
-                       EigenVectorRef distances)
+compute_distances(EigenPointCloudRef corepoints,
+                  double scale,
+                  EigenPointCloudRef cloud1,
+                  const KDTree& kdtree1,
+                  EigenPointCloudRef cloud2,
+                  const KDTree& kdtree2,
+                  EigenPointCloudRef direction,
+                  double max_cylinder_length,
+                  EigenVectorRef distances,
+                  WorkingSetFinderCallback workingsetfinder)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     auto subset1 = workingsetfinder(cloud1,
@@ -66,10 +67,17 @@ cylinder_workingset_finder(EigenPointCloudRef cloud,
                            double max_cylinder_length,
                            IndexType core_idx)
 {
+  // The search radius is the maximum of cylinder length and radius
+  auto search_radius = std::max(radius, max_cylinder_length);
+
   // Find the points in the radius of max_cylinder_length
   KDTree::RadiusSearchResult ball_points;
-  kdtree.precomputed_radius_search(core_idx, max_cylinder_length, ball_points);
+  kdtree.precomputed_radius_search(core_idx, search_radius, ball_points);
   auto superset = cloud(ball_points, Eigen::all);
+
+  // If max_cylinder_length is sufficiently small, we are done
+  if (max_cylinder_length <= radius)
+    return superset;
 
   // Calculate the squared distances to the cylinder axis
   auto distances = (superset.rowwise() - corepoint.row(0))
@@ -87,41 +95,6 @@ cylinder_workingset_finder(EigenPointCloudRef cloud,
 
   // Select only those indices that are within the cylinder
   return superset(indices, Eigen::all);
-}
-
-void
-compute_distances(EigenPointCloudRef corepoints,
-                  double scale,
-                  EigenPointCloudRef cloud1,
-                  const KDTree& kdtree1,
-                  EigenPointCloudRef cloud2,
-                  const KDTree& kdtree2,
-                  EigenPointCloudRef direction,
-                  double max_cylinder_length,
-                  EigenVectorRef distances)
-{
-  if (max_cylinder_length > scale)
-    return compute_distances_impl(cylinder_workingset_finder,
-                                  corepoints,
-                                  scale,
-                                  cloud1,
-                                  kdtree1,
-                                  cloud2,
-                                  kdtree2,
-                                  direction,
-                                  max_cylinder_length,
-                                  distances);
-  else
-    return compute_distances_impl(radius_workingset_finder,
-                                  corepoints,
-                                  scale,
-                                  cloud1,
-                                  kdtree1,
-                                  cloud2,
-                                  kdtree2,
-                                  direction,
-                                  max_cylinder_length,
-                                  distances);
 }
 
 } // namespace py4dgeo

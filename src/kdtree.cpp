@@ -1,3 +1,4 @@
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
 #include <iostream>
