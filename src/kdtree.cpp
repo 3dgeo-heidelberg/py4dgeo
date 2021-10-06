@@ -150,7 +150,7 @@ KDTree::build_tree(int leaf)
 }
 
 void
-KDTree::precompute(const EigenPointCloudRef& querypoints, double maxradius)
+KDTree::precompute(EigenPointCloudRef querypoints, double maxradius)
 {
   // Resize the output data structures
   precomputed_indices.resize(querypoints.rows());

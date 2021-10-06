@@ -20,15 +20,22 @@ using EigenVector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
 using EigenVectorRef = Eigen::Ref<EigenVector>;
 using IndexType = Eigen::Index;
 
+/** @brief Efficient KDTree data structure for nearest neighbor/radius searches
+ *
+ * This data structure allows efficient radius searches in 3D point cloud data.
+ * It is based on NanoFLANN: https://github.com/jlblancoc/nanoflann
+ */
 class KDTree
 {
 public:
-  // The Types used for the results
+  //! Return type used for radius searches
   using RadiusSearchResult = std::vector<IndexType>;
+
+  //! Return type used for radius searches that export calculated distances
   using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
 
 private:
-  // An adaptor between Eigen and our NanoFLANN data structure
+  /** @brief An adaptor between our Eigen data structures and NanoFLANN */
   struct Adaptor
   {
     std::shared_ptr<EigenPointCloud> data;
@@ -40,6 +47,12 @@ private:
     bool kdtree_get_bbox(BBOX&) const;
   };
 
+  /** @brief A structure to perform efficient radius searches with NanoFLANN
+   *
+   * The built-in return set of NanoFLANN does automatically export the
+   * distances as well, which we want to omit if we already know that we do not
+   * need the distance information.
+   */
   struct NoDistancesReturnSet
   {
     double radius;
@@ -51,43 +64,131 @@ private:
     inline double worstDist() const;
   };
 
-  // The NanoFLANN internal type we are using
+  //! The NanoFLANN index implementation that we use
   using KDTreeImpl = nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<double, Adaptor>,
     Adaptor,
     3,
     IndexType>;
 
-  // Private constructors - they are used through below static factory function
-  // which is more suitable for construction through Python bindings
+  //! Private constructor from pointcloud - use through @ref KDTree::create
   KDTree(const EigenPointCloudRef&);
+  //! Private constructor from shared_ptr - used from @ref KDTree::from_stream
   KDTree(const std::shared_ptr<EigenPointCloud>& data);
 
 public:
-  // Static factory functions. These serve as de facto constructors, but they
-  // can are much easier exposed in Python bindings than actual constructors.
-  static KDTree create(const EigenPointCloudRef&);
+  /** @brief Construct instance of KDTree from a given point cloud
+   *
+   * This is implemented as a static function instead of a public constructor
+   * to ease the implementation of Python bindings.
+   *
+   * @param cloud The point cloud to construct the search tree for
+   */
+  static KDTree create(const EigenPointCloudRef& cloud);
+
+  /** @brief Construct instance of KDTree from a C++ stream
+   *
+   * Construction from streams is needed for the implementation of
+   * pickling for the KDTree data structure. Typically, this is used
+   * to deserialize search trees previously serialized with the writing
+   * counterpart @ref KDTree::to_stream.
+   *
+   * This is implemented as a static function instead of a public constructor
+   * to ease the implementation of Python bindings.
+   *
+   * @param stream The C++ input stream to construct from.
+   */
   static KDTree* from_stream(std::istream&);
 
-  // The counterpart to from_file: Serializing the tree to a stream
+  /** @brief Serialize the search tree into a C++ stream
+   *
+   * This serialization is used in the implementation of pickling support
+   * for the KDTree data structure. This is the counterpart of the reader
+   * @ref KDTree::from_stream.
+   *
+   * @param stream The C++ output stream to write to.
+   */
   std::ostream& to_stream(std::ostream&) const;
 
-  // Building the KDTree structure given a leaf threshold parameter
-  void build_tree(int);
+  /** @brief Build the KDTree index
+   *
+   * This initializes the KDTree search index. Calling this method is required
+   * before performing any nearest neighbors or radius searches.
+   *
+   * @param leaf The threshold parameter definining at what size the search
+   *             tree is cutoff. Below the cutoff, a brute force search is
+   * performed. This parameter controls a trade off decision between search tree
+   *             build time and query time.
+   */
+  void build_tree(int leaf);
 
-  // Precompute on a number of query points with a maximal radius
-  void precompute(const EigenPointCloudRef&, double);
+  /** @brief Perform precomputation of radius search results
+   *
+   * Calling this method allows to precompute radius searches for a fixed set
+   * of query points given a maximum radius. In the follow up, the results can
+   * be accessed using the @ref KDTree::precomputed_radius_search method.
+   *
+   * @param querypoints The fixed set of query points we want to perform radius
+   * searches for.
+   * @param maxradius The maximum search radius this precomputation should cover
+   */
+  void precompute(EigenPointCloudRef querypoints, double maxradius);
 
-  // Normal radius search at an arbitrary query point
-  std::size_t radius_search(const double*, double, RadiusSearchResult&) const;
+  /** @brief Peform radius search around given query point
+   *
+   * This method determines all the points from the point cloud within the given
+   * radius of the query point. It returns only the indices and the result is
+   * not sorted according to distance.
+   *
+   * @param[in] querypoint A pointer to the 3D coordinate of the query point
+   * @param[in] radius The radius to search within
+   * @param[out] result A data structure to hold the result. It will be cleared
+   * during application.
+   *
+   * @return The amount of points in the return set
+   */
+  std::size_t radius_search(const double* querypoint,
+                            double radius,
+                            RadiusSearchResult& result) const;
 
-  // A normal radius search that also returns the squared distances. The entries
-  // are always sorted according to distance.
-  std::size_t radius_search_with_distances(const double*,
-                                           double,
-                                           RadiusSearchDistanceResult&) const;
+  /** @brief Peform radius search around given query point exporting distance
+   * information
+   *
+   * This method determines all the points from the point cloud within the given
+   * radius of the query point. It returns their indices and their distances
+   * from the query point. The result is sorted by ascending distance from the
+   * query point.
+   *
+   * @param[in] querypoint A pointer to the 3D coordinate of the query point
+   * @param[in] radius The radius to search within
+   * @param[out] result A data structure to hold the result. It will be cleared
+   * during application.
+   *
+   * @return The amount of points in the return set
+   */
+  std::size_t radius_search_with_distances(
+    const double* querypoint,
+    double radius,
+    RadiusSearchDistanceResult& result) const;
 
-  // Radius search around a query point from the precomputation set
+  /** @brief Peform radius search around a query point from the precomputation
+   * set
+   *
+   * This method determines all the points from the point cloud within the given
+   * radius of the query point. It determines their indices and the result is
+   * sorted by ascending distance from the query point.
+   *
+   * This method requires a previous call to @ref KDTree::precompute.
+   *
+   * @param[in] index The index of the query point in the precomputation set
+   * @param[in] radius The radius to search within. If this radius is larger
+   * than the maximum radius given to @ref KDTree::precompute, the results will
+   * not be correct.
+   * @param[out] result A data structure to hold the result. It will be cleared
+   * during application.
+   *
+   * @return The amount of points in the return set
+   */
   std::size_t precomputed_radius_search(const IndexType,
                                         double,
                                         RadiusSearchResult&) const;
@@ -100,14 +201,15 @@ private:
   std::vector<std::vector<double>> precomputed_distances;
 };
 
-// Compute interfaces
+/** @brief Compute M3C2 multi scale directions */
 void
-compute_multiscale_directions(const EigenPointCloudRef&,
-                              const EigenPointCloudRef&,
+compute_multiscale_directions(EigenPointCloudRef,
+                              EigenPointCloudRef,
                               const std::vector<double>&,
                               const KDTree&,
                               EigenPointCloudRef);
 
+/** @brief Compute M3C2 distances */
 void
 compute_distances(EigenPointCloudRef,
                   double,
