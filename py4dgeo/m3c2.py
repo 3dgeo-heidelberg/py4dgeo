@@ -72,10 +72,14 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.directions._precomputation[0],
             self.max_cylinder_length,
             result,
-            _py4dgeo.radius_workingset_finder,
+            self.callback_workingset_finder(),
         )
 
         return result
+
+    def callback_workingset_finder(self):
+        """The callback used to determine the point cloud subset around a corepoint"""
+        return _py4dgeo.radius_workingset_finder
 
 
 @dataclasses.dataclass
