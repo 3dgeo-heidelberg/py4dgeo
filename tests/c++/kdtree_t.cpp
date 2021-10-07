@@ -59,5 +59,17 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
     auto num = deserialized->radius_search(o.data(), 100.0, result);
     REQUIRE(num == cloud.rows());
     REQUIRE(result.size() == cloud.rows());
+
+    // Do precomputation
+    EigenPointCloud qp = cloud(Eigen::seq(0, 20), Eigen::all);
+    tree.precompute(qp, 20.0);
+
+    // Assert that the precomputation yields correct results
+    for (std::size_t i = 0; i < 20; ++i) {
+      KDTree::RadiusSearchResult presult1, presult2;
+      tree.radius_search(&qp(i, 0), 5.0, presult1);
+      tree.precomputed_radius_search(i, 5.0, presult2);
+      REQUIRE(presult1.size() == presult2.size());
+    }
   }
 }
