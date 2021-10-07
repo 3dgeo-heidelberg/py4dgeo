@@ -30,13 +30,13 @@ using WorkingSetFinderCallback =
 /** @brief Implementation of working set finder that performs a regular radius
  * search
  *
- * @param cloud
- * @param kdtree
- * @param radius
- * @param corepoint
- * @param direction
- * @param max_cylinder_length
- * @param core_idx
+ * @param cloud The full point cloud that we operate on
+ * @param kdtree The search tree for the point cloud
+ * @param radius Search radius
+ * @param corepoint The (single) core point that we are dealing with
+ * @param direction The search direction
+ * @param max_cylinder_length The maximum cylinder length
+ * @param core_idx The index of the core point in the core point set
  *
  * @return A point cloud data structure representing the working set
  */
