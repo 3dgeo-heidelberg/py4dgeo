@@ -16,6 +16,7 @@ class M3C2LikeAlgorithm(abc.ABC):
     corepoints: np.ndarray = None
     radii: typing.List[float] = None
     directions: Direction = None
+    max_cylinder_length: float = 0.0
 
     def __post_init__(self):
         # Check the given array shapes
@@ -69,10 +70,16 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.epochs[1].cloud,
             self.epochs[1].kdtree,
             self.directions._precomputation[0],
+            self.max_cylinder_length,
             result,
+            self.callback_workingset_finder(),
         )
 
         return result
+
+    def callback_workingset_finder(self):
+        """The callback used to determine the point cloud subset around a corepoint"""
+        return _py4dgeo.radius_workingset_finder
 
 
 @dataclasses.dataclass
@@ -90,6 +97,7 @@ class M3C2(M3C2LikeAlgorithm):
             radius_candidates.extend(list(self.scales))
         if self.radii is not None:
             radius_candidates.extend(list(self.radii))
+        radius_candidates.append(self.max_cylinder_length)
         maxradius = max(radius_candidates)
 
         for epoch in self.epochs:

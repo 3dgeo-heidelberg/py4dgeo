@@ -1,4 +1,6 @@
 #include "catch2/catch.hpp"
+#include "py4dgeo/compute.hpp"
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "testsetup.hpp"
 
@@ -22,11 +24,33 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   // Precompute the multiscale directions
   compute_multiscale_directions(cloud, cloud, scales, kdtree, directions);
 
-  // Calculate the distances
-  EigenVector distances(cloud.rows(), 1);
-  compute_distances(
-    cloud, 1.0, cloud, kdtree, cloud, kdtree, directions, distances);
+  SECTION("Distance calculation with standard radius search")
+  {
+    // Calculate the distances
+    EigenVector distances(cloud.rows(), 1);
+    compute_distances(
+      cloud, 1.0, cloud, kdtree, cloud, kdtree, directions, 0.0, distances);
 
-  for (IndexType i = 0; i < distances.rows(); ++i)
-    REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
+    for (IndexType i = 0; i < distances.rows(); ++i)
+      REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
+  }
+
+  SECTION("Distance calculation with cylinder search")
+  {
+    // Calculate the distances
+    EigenVector distances(cloud.rows(), 1);
+    compute_distances(cloud,
+                      1.0,
+                      cloud,
+                      kdtree,
+                      cloud,
+                      kdtree,
+                      directions,
+                      2.0,
+                      distances,
+                      cylinder_workingset_finder);
+
+    for (IndexType i = 0; i < distances.rows(); ++i)
+      REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
+  }
 }

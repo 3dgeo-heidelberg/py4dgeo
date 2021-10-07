@@ -1,8 +1,10 @@
 #include <pybind11/eigen.h>
+#include <pybind11/functional.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#include "py4dgeo/compute.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 
@@ -71,6 +73,8 @@ PYBIND11_MODULE(_py4dgeo, m)
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
 
+  m.def("radius_workingset_finder", &radius_workingset_finder);
+  m.def("cylidner_workingset_finder", &cylinder_workingset_finder);
   m.def("compute_distances", &compute_distances, "Compute M3C2 distances");
 }
 

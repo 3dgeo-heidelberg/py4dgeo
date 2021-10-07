@@ -1,6 +1,8 @@
 #include <Eigen/Eigen>
 #include <Eigen/Eigenvalues>
 
+#include "py4dgeo/compute.hpp"
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
 #include <algorithm>
@@ -10,8 +12,8 @@
 namespace py4dgeo {
 
 void
-compute_multiscale_directions(const EigenPointCloudRef& cloud,
-                              const EigenPointCloudRef& corepoints,
+compute_multiscale_directions(EigenPointCloudConstRef cloud,
+                              EigenPointCloudConstRef corepoints,
                               const std::vector<double>& scales,
                               const KDTree& kdtree,
                               EigenPointCloudRef result)

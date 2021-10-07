@@ -1,29 +1,38 @@
 #include <Eigen/Eigen>
 
+#include "py4dgeo/compute.hpp"
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
 namespace py4dgeo {
 
 void
-compute_distances(const EigenPointCloudRef& corepoints,
+compute_distances(EigenPointCloudConstRef corepoints,
                   double scale,
-                  const EigenPointCloudRef& cloud1,
+                  EigenPointCloudConstRef cloud1,
                   const KDTree& kdtree1,
-                  const EigenPointCloudRef& cloud2,
+                  EigenPointCloudConstRef cloud2,
                   const KDTree& kdtree2,
-                  const EigenPointCloudRef& direction,
-                  EigenVectorRef distances)
+                  EigenPointCloudConstRef direction,
+                  double max_cylinder_length,
+                  EigenVectorRef distances,
+                  WorkingSetFinderCallback workingsetfinder)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
-    // Find the working set in the reference epoch
-    KDTree::RadiusSearchResult points1;
-    kdtree1.precomputed_radius_search(i, scale, points1);
-    auto subset1 = cloud1(points1, Eigen::all);
-
-    // Find the working set in the other epoch
-    KDTree::RadiusSearchResult points2;
-    kdtree2.precomputed_radius_search(i, scale, points2);
-    auto subset2 = cloud2(points2, Eigen::all);
+    auto subset1 = workingsetfinder(cloud1,
+                                    kdtree1,
+                                    scale,
+                                    corepoints.row(i),
+                                    direction.row(i),
+                                    max_cylinder_length,
+                                    i);
+    auto subset2 = workingsetfinder(cloud2,
+                                    kdtree2,
+                                    scale,
+                                    corepoints.row(i),
+                                    direction.row(i),
+                                    max_cylinder_length,
+                                    i);
 
     // Distance calculation
     double dist =
@@ -32,6 +41,61 @@ compute_distances(const EigenPointCloudRef& corepoints,
     // Store in result vector
     distances(i, 0) = std::abs(dist);
   }
+}
+
+EigenPointCloud
+radius_workingset_finder(EigenPointCloudConstRef cloud,
+                         const KDTree& kdtree,
+                         double radius,
+                         EigenPointCloudConstRef,
+                         EigenPointCloudConstRef,
+                         double,
+                         IndexType core_idx)
+{
+  // Find the working set in the other epoch
+  KDTree::RadiusSearchResult points;
+  kdtree.precomputed_radius_search(core_idx, radius, points);
+  return cloud(points, Eigen::all);
+}
+
+EigenPointCloud
+cylinder_workingset_finder(EigenPointCloudConstRef cloud,
+                           const KDTree& kdtree,
+                           double radius,
+                           EigenPointCloudConstRef corepoint,
+                           EigenPointCloudConstRef direction,
+                           double max_cylinder_length,
+                           IndexType core_idx)
+{
+  // The search radius is the maximum of cylinder length and radius
+  auto search_radius = std::max(radius, max_cylinder_length);
+
+  // Find the points in the radius of max_cylinder_length
+  KDTree::RadiusSearchResult ball_points;
+  kdtree.precomputed_radius_search(core_idx, search_radius, ball_points);
+  auto superset = cloud(ball_points, Eigen::all);
+
+  // If max_cylinder_length is sufficiently small, we are done
+  if (max_cylinder_length <= radius)
+    return superset;
+
+  // Calculate the squared distances to the cylinder axis
+  auto distances = (superset.rowwise() - corepoint.row(0))
+                     .rowwise()
+                     .cross(direction.row(0))
+                     .rowwise()
+                     .squaredNorm()
+                     .eval();
+
+  // Non-performance oriented version of index extraction. There should
+  // be a version using Eigen masks, but I could not find it.
+  std::vector<Eigen::Index> indices;
+  for (Eigen::Index i = 0; i < superset.rows(); ++i)
+    if (distances(i, 0) < radius * radius)
+      indices.push_back(i);
+
+  // Select only those indices that are within the cylinder
+  return superset(indices, Eigen::all);
 }
 
 } // namespace py4dgeo
