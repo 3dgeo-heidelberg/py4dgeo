@@ -16,7 +16,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   EigenPointCloudConstRef direction,
                   double max_cylinder_length,
                   EigenVectorRef distances,
-                  WorkingSetFinderCallback workingsetfinder)
+                  const WorkingSetFinderCallback& workingsetfinder)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     auto subset1 = workingsetfinder(cloud1,
