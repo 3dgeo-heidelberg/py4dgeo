@@ -7,7 +7,7 @@
 
 namespace py4dgeo {
 
-/** Signatures for the callbacks used in the M3C2 algorithm implementation */
+/* Signatures for the callbacks used in the M3C2 algorithm implementation */
 
 /** @brief The callback type that determines the point cloud working subset in
  * the vicinity of a core point
@@ -26,6 +26,8 @@ using WorkingSetFinderCallback =
                                 EigenPointCloudRef,
                                 double,
                                 IndexType)>;
+
+/* Variety of callback declarations usable in M3C2 algorithms */
 
 /** @brief Implementation of working set finder that performs a regular radius
  * search
@@ -67,6 +69,8 @@ cylinder_workingset_finder(EigenPointCloudRef cloud,
                            EigenPointCloudRef direction,
                            double max_cylinder_length,
                            IndexType core_idx);
+
+/* Compute interfaces used in the M3C2 main algorithm */
 
 /** @brief Compute M3C2 multi scale directions */
 void
