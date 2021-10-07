@@ -39,8 +39,16 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   {
     // Calculate the distances
     EigenVector distances(cloud.rows(), 1);
-    compute_distances(
-      cloud, 1.0, cloud, kdtree, cloud, kdtree, directions, 2.0, distances);
+    compute_distances(cloud,
+                      1.0,
+                      cloud,
+                      kdtree,
+                      cloud,
+                      kdtree,
+                      directions,
+                      2.0,
+                      distances,
+                      cylinder_workingset_finder);
 
     for (IndexType i = 0; i < distances.rows(); ++i)
       REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
