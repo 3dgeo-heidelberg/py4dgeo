@@ -91,6 +91,6 @@ compute_distances(EigenPointCloudConstRef,
                   EigenPointCloudConstRef,
                   double,
                   EigenVectorRef,
-                  const WorkingSetFinderCallback&);
+                  WorkingSetFinderCallback wsfinder = radius_workingset_finder);
 
 }
