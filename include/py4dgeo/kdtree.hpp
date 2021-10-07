@@ -91,7 +91,7 @@ public:
    *
    * @param stream The C++ input stream to construct from.
    */
-  static KDTree* from_stream(std::istream&);
+  static std::unique_ptr<KDTree> from_stream(std::istream&);
 
   /** @brief Serialize the search tree into a C++ stream
    *

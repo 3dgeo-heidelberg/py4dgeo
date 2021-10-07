@@ -66,7 +66,7 @@ KDTree::create(const EigenPointCloudRef& cloud)
   return KDTree(cloud);
 }
 
-KDTree*
+std::unique_ptr<KDTree>
 KDTree::from_stream(std::istream& stream)
 {
   // Read the cloud itself
@@ -75,7 +75,7 @@ KDTree::from_stream(std::istream& stream)
   auto cloud = std::make_shared<EigenPointCloud>(rows, 3);
   stream.read(reinterpret_cast<char*>(&(*cloud)(0, 0)),
               sizeof(double) * rows * 3);
-  KDTree* obj = new KDTree(cloud);
+  std::unique_ptr<KDTree> obj(new KDTree(cloud));
 
   // Read the leaf parameter
   stream.read(reinterpret_cast<char*>(&(obj->leaf_parameter)), sizeof(int));
