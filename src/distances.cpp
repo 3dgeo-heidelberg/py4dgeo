@@ -84,7 +84,8 @@ cylinder_workingset_finder(EigenPointCloudConstRef cloud,
                      .rowwise()
                      .cross(direction.row(0))
                      .rowwise()
-                     .squaredNorm();
+                     .squaredNorm()
+                     .eval();
 
   // Non-performance oriented version of index extraction. There should
   // be a version using Eigen masks, but I could not find it.
