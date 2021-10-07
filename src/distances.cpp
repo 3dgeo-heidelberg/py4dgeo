@@ -7,13 +7,13 @@
 namespace py4dgeo {
 
 void
-compute_distances(EigenPointCloudRef corepoints,
+compute_distances(EigenPointCloudConstRef corepoints,
                   double scale,
-                  EigenPointCloudRef cloud1,
+                  EigenPointCloudConstRef cloud1,
                   const KDTree& kdtree1,
-                  EigenPointCloudRef cloud2,
+                  EigenPointCloudConstRef cloud2,
                   const KDTree& kdtree2,
-                  EigenPointCloudRef direction,
+                  EigenPointCloudConstRef direction,
                   double max_cylinder_length,
                   EigenVectorRef distances,
                   WorkingSetFinderCallback workingsetfinder)
@@ -44,11 +44,11 @@ compute_distances(EigenPointCloudRef corepoints,
 }
 
 EigenPointCloud
-radius_workingset_finder(EigenPointCloudRef cloud,
+radius_workingset_finder(EigenPointCloudConstRef cloud,
                          const KDTree& kdtree,
                          double radius,
-                         EigenPointCloudRef,
-                         EigenPointCloudRef,
+                         EigenPointCloudConstRef,
+                         EigenPointCloudConstRef,
                          double,
                          IndexType core_idx)
 {
@@ -59,11 +59,11 @@ radius_workingset_finder(EigenPointCloudRef cloud,
 }
 
 EigenPointCloud
-cylinder_workingset_finder(EigenPointCloudRef cloud,
+cylinder_workingset_finder(EigenPointCloudConstRef cloud,
                            const KDTree& kdtree,
                            double radius,
-                           EigenPointCloudRef corepoint,
-                           EigenPointCloudRef direction,
+                           EigenPointCloudConstRef corepoint,
+                           EigenPointCloudConstRef direction,
                            double max_cylinder_length,
                            IndexType core_idx)
 {

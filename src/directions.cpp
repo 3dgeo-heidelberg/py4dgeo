@@ -12,8 +12,8 @@
 namespace py4dgeo {
 
 void
-compute_multiscale_directions(EigenPointCloudRef cloud,
-                              EigenPointCloudRef corepoints,
+compute_multiscale_directions(EigenPointCloudConstRef cloud,
+                              EigenPointCloudConstRef corepoints,
                               const std::vector<double>& scales,
                               const KDTree& kdtree,
                               EigenPointCloudRef result)

@@ -19,11 +19,11 @@ namespace py4dgeo {
  *  * @ref cylinder_workingset_finder
  */
 using WorkingSetFinderCallback =
-  std::function<EigenPointCloud(EigenPointCloudRef,
+  std::function<EigenPointCloud(EigenPointCloudConstRef,
                                 const KDTree&,
                                 double,
-                                EigenPointCloudRef,
-                                EigenPointCloudRef,
+                                EigenPointCloudConstRef,
+                                EigenPointCloudConstRef,
                                 double,
                                 IndexType)>;
 
@@ -43,11 +43,11 @@ using WorkingSetFinderCallback =
  * @return A point cloud data structure representing the working set
  */
 EigenPointCloud
-radius_workingset_finder(EigenPointCloudRef cloud,
+radius_workingset_finder(EigenPointCloudConstRef cloud,
                          const KDTree& kdtree,
                          double radius,
-                         EigenPointCloudRef corepoint,
-                         EigenPointCloudRef direction,
+                         EigenPointCloudConstRef corepoint,
+                         EigenPointCloudConstRef direction,
                          double max_cylinder_length,
                          IndexType core_idx);
 
@@ -62,11 +62,11 @@ radius_workingset_finder(EigenPointCloudRef cloud,
  * @copydoc radius_workingset_finder
  */
 EigenPointCloud
-cylinder_workingset_finder(EigenPointCloudRef cloud,
+cylinder_workingset_finder(EigenPointCloudConstRef cloud,
                            const KDTree& kdtree,
                            double radius,
-                           EigenPointCloudRef corepoint,
-                           EigenPointCloudRef direction,
+                           EigenPointCloudConstRef corepoint,
+                           EigenPointCloudConstRef direction,
                            double max_cylinder_length,
                            IndexType core_idx);
 
@@ -74,21 +74,21 @@ cylinder_workingset_finder(EigenPointCloudRef cloud,
 
 /** @brief Compute M3C2 multi scale directions */
 void
-compute_multiscale_directions(EigenPointCloudRef,
-                              EigenPointCloudRef,
+compute_multiscale_directions(EigenPointCloudConstRef,
+                              EigenPointCloudConstRef,
                               const std::vector<double>&,
                               const KDTree&,
                               EigenPointCloudRef);
 
 /** @brief Compute M3C2 distances */
 void
-compute_distances(EigenPointCloudRef,
+compute_distances(EigenPointCloudConstRef,
                   double,
-                  EigenPointCloudRef,
+                  EigenPointCloudConstRef,
                   const KDTree&,
-                  EigenPointCloudRef,
+                  EigenPointCloudConstRef,
                   const KDTree&,
-                  EigenPointCloudRef,
+                  EigenPointCloudConstRef,
                   double,
                   EigenVectorRef,
                   WorkingSetFinderCallback wsfinder = radius_workingset_finder);
