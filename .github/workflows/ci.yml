@@ -57,7 +57,6 @@ jobs:
       run: |
         python -m pytest
 
-
   coverage-test:
     name: Coverage Testing
     runs-on: ubuntu-18.04
@@ -115,3 +114,30 @@ jobs:
       with:
         fail_ci_if_error: true
         files: coverage.xml,coverage.info
+
+  address-sanitizer:
+    name: Address sanitizer run (C++ only)
+    runs-on: ubuntu-18.04
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - name: make build directory
+      run: cmake -E make_directory ${{runner.workspace}}/build
+
+    - name: configure cmake
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address" -DBUILD_DOCS=OFF
+
+    - name: build
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: cmake --build .
+
+    - name: run tests
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest
