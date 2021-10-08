@@ -2,6 +2,7 @@ breathe
 m2r2
 nbsphinx
 nbsphinx-link
+nbval
 pre-commit
 pytest
 pytest-cov

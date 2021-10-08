@@ -79,6 +79,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         "numpy",
+        "xdg",
     ],
     zip_safe=False,
     classifiers=[

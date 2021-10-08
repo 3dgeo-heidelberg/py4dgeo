@@ -69,7 +69,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.epochs[0].kdtree,
             self.epochs[1].cloud,
             self.epochs[1].kdtree,
-            self.directions._precomputation[0],
+            self.directions.directions,
             self.max_cylinder_length,
             result,
             self.callback_workingset_finder(),

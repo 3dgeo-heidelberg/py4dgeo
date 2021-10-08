@@ -54,6 +54,10 @@ class CorePointDirection(Direction):
 class PrecomputedDirection(Direction):
     _precomputation: list = dataclasses.field(default_factory=lambda: [], init=False)
 
+    @property
+    def directions(self):
+        return self._precomputation[0]
+
 
 @dataclasses.dataclass(frozen=True)
 class MultiScaleDirection(PrecomputedDirection):

@@ -11,7 +11,7 @@ repos:
   - repo: https://github.com/psf/black
     rev: 21.9b0
     hooks:
-      - id: black
+      - id: black-jupyter
 
   # Format C++ code with Clang-Format - automatically applying the changes
   - repo: https://github.com/ssciwr/clang-format-precommit

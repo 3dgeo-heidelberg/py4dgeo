@@ -13,30 +13,23 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   const KDTree& kdtree1,
                   EigenPointCloudConstRef cloud2,
                   const KDTree& kdtree2,
-                  EigenPointCloudConstRef direction,
+                  EigenPointCloudConstRef directions,
                   double max_cylinder_length,
                   EigenVectorRef distances,
                   const WorkingSetFinderCallback& workingsetfinder)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
-    auto subset1 = workingsetfinder(cloud1,
-                                    kdtree1,
-                                    scale,
-                                    corepoints.row(i),
-                                    direction.row(i),
-                                    max_cylinder_length,
-                                    i);
-    auto subset2 = workingsetfinder(cloud2,
-                                    kdtree2,
-                                    scale,
-                                    corepoints.row(i),
-                                    direction.row(i),
-                                    max_cylinder_length,
-                                    i);
+    // Either choose the ith row or the first (if there is no per-corepoint
+    // direction)
+    auto dir = directions.row(directions.rows() > 1 ? i : 0);
+
+    auto subset1 = workingsetfinder(
+      cloud1, kdtree1, scale, corepoints.row(i), dir, max_cylinder_length, i);
+    auto subset2 = workingsetfinder(
+      cloud2, kdtree2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
     // Distance calculation
-    double dist =
-      direction.row(i).dot(subset1.colwise().mean() - subset2.colwise().mean());
+    double dist = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
 
     // Store in result vector
     distances(i, 0) = std::abs(dist);
