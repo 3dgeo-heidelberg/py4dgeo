@@ -52,12 +52,10 @@ KDTree::NoDistancesReturnSet::worstDist() const
 
 KDTree::KDTree(const EigenPointCloudRef& cloud)
   : adaptor{ nullptr, cloud }
-  , leaf_parameter(0)
 {}
 
 KDTree::KDTree(const std::shared_ptr<EigenPointCloud>& data)
   : adaptor{ data, *data }
-  , leaf_parameter(0)
 {}
 
 KDTree
