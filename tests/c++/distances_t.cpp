@@ -62,3 +62,34 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
       REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
   }
 }
+
+TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
+{
+  // Get a test cloud
+  auto cloud = testcloud();
+
+  // Get a KDTree
+  auto kdtree = KDTree::create(cloud);
+  kdtree.build_tree(10);
+  kdtree.precompute(cloud, 10.0);
+
+  // Single distance vector
+  EigenPointCloud directions(1, 3);
+  directions << 0, 0, 1;
+
+  // Calculate the distances
+  EigenVector distances(cloud.rows(), 1);
+  compute_distances(cloud,
+                    1.0,
+                    cloud,
+                    kdtree,
+                    cloud,
+                    kdtree,
+                    directions,
+                    0.0,
+                    distances,
+                    radius_workingset_finder);
+
+  for (IndexType i = 0; i < distances.rows(); ++i)
+    REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
+}
