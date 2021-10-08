@@ -20,3 +20,8 @@ RUN rm -rf ${HOME}/work && \
 
 # Make JupyterLab the default for this application
 ENV JUPYTER_ENABLE_LAB=yes
+
+# Always include some directory into directory lookup:
+# * The shared folder
+# * test data directory
+ENV XDG_DATA_DIRS="${HOME}/shared:/opt/py4dgeo/tests/data"
