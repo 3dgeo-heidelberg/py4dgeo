@@ -41,7 +41,7 @@ compute_multiscale_directions(EigenPointCloudConstRef cloud,
       double planarity = (evalues[1] - evalues[0]) / evalues[2];
       if (planarity > highest_planarity) {
         highest_planarity = planarity;
-        result.row(i) = solver.eigenvectors().col(2);
+        result.row(i) = solver.eigenvectors().col(0);
       }
     }
   }
