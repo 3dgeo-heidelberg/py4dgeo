@@ -2,7 +2,12 @@ import _py4dgeo
 
 from py4dgeo.directions import Direction, MultiScaleDirection
 from py4dgeo.epoch import Epoch
-from py4dgeo.util import Py4DGeoError
+from py4dgeo.util import (
+    MemoryPolicy,
+    Py4DGeoError,
+    memory_policy_is_minimum,
+    get_memory_policy,
+)
 
 import abc
 import dataclasses
@@ -79,7 +84,12 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
-        return _py4dgeo.radius_workingset_finder
+        if memory_policy_is_minimum(MemoryPolicy.COREPOINTS):
+            return _py4dgeo.radius_workingset_finder
+        else:
+            raise NotImplementedError(
+                "No implementation of workingset_finder for your memory policy yet"
+            )
 
 
 @dataclasses.dataclass

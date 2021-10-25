@@ -20,6 +20,14 @@ PYBIND11_MODULE(_py4dgeo, m)
 {
   m.doc() = "Python Bindings for py4dgeo";
 
+  // The enum class for our memory policy
+  py::enum_<MemoryPolicy>(m, "MemoryPolicy", py::arithmetic())
+    .value("STRICT", MemoryPolicy::STRICT)
+    .value("MINIMAL", MemoryPolicy::MINIMAL)
+    .value("COREPOINTS", MemoryPolicy::COREPOINTS)
+    .value("RELAXED", MemoryPolicy::RELAXED)
+    .export_values();
+
   // Expose the KDTree class
   py::class_<KDTree> kdtree(m, "KDTree", py::buffer_protocol());
 
