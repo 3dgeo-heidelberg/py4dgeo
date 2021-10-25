@@ -22,3 +22,10 @@ def test_find_file(monkeypatch, tmp_path):
 
     with pytest.raises(FileNotFoundError):
         find_file("not.existent")
+
+
+def test_memory_policy():
+    set_memory_policy(MemoryPolicy.RELAXED)
+
+    assert get_memory_policy() is MemoryPolicy.RELAXED
+    assert memory_policy_is_minimum(MemoryPolicy.STRICT)

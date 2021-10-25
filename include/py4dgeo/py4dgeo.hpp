@@ -54,4 +54,16 @@ using EigenVectorConstRef = const Eigen::Ref<const EigenVector>&;
 /** @brief The type used for point cloud indices */
 using IndexType = Eigen::Index;
 
+/** @brief An enumerator for py4dgeo's memory policy
+ *
+ * This is used and documented through its Python binding equivalent.
+ */
+enum class MemoryPolicy
+{
+  STRICT = 0,
+  MINIMAL = 1,
+  COREPOINTS = 2,
+  RELAXED = 3
+};
+
 }

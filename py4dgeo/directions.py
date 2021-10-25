@@ -1,4 +1,4 @@
-from py4dgeo.util import Py4DGeoError
+from py4dgeo.util import Py4DGeoError, memory_policy_is_minimum, MemoryPolicy
 
 import abc
 import dataclasses
@@ -64,6 +64,12 @@ class MultiScaleDirection(PrecomputedDirection):
     scales: typing.List[float] = None
 
     def __post_init__(self):
+        # This is currently only implemented as a precomputation
+        if not memory_policy_is_minimum(MemoryPolicy.COREPOINTS):
+            raise NotImplementedError(
+                "M3C2 normal direction not implemented for your memory policy"
+            )
+
         # Check the validity of the scales parameter
         if self.scales is None or len(self.scales) == 0:
             raise Py4DGeoError(
