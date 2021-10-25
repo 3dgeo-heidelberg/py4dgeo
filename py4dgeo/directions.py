@@ -84,9 +84,7 @@ class MultiScaleDirection(PrecomputedDirection):
         self._precomputation.clear()
 
         result = np.empty(corepoints.shape)
-        _py4dgeo.compute_multiscale_directions(
-            epoch.cloud, corepoints, self.scales, epoch.kdtree, result
-        )
+        _py4dgeo.compute_multiscale_directions(epoch, corepoints, self.scales, result)
 
         self._precomputation.append(result)
 

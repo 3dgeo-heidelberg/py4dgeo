@@ -12,10 +12,9 @@
 namespace py4dgeo {
 
 void
-compute_multiscale_directions(EigenPointCloudConstRef cloud,
+compute_multiscale_directions(const Epoch& epoch,
                               EigenPointCloudConstRef corepoints,
                               const std::vector<double>& scales,
-                              const KDTree& kdtree,
                               EigenPointCloudRef result)
 {
   // TODO: Make sure that precomputation has been triggered.
@@ -25,8 +24,8 @@ compute_multiscale_directions(EigenPointCloudConstRef cloud,
     for (auto scale : scales) {
       // Find the working set on this scale
       KDTree::RadiusSearchResult points;
-      kdtree.precomputed_radius_search(i, scale, points);
-      auto subset = cloud(points, Eigen::all);
+      epoch.kdtree.precomputed_radius_search(i, scale, points);
+      auto subset = epoch.cloud(points, Eigen::all);
 
       // Calculate covariance matrix
       auto centered = subset.rowwise() - subset.colwise().mean();

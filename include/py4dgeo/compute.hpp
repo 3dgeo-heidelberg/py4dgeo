@@ -2,6 +2,7 @@
 
 #include <functional>
 
+#include "epoch.hpp"
 #include "kdtree.hpp"
 #include "py4dgeo.hpp"
 
@@ -19,8 +20,7 @@ namespace py4dgeo {
  *  * @ref cylinder_workingset_finder
  */
 using WorkingSetFinderCallback =
-  std::function<EigenPointCloud(EigenPointCloudConstRef,
-                                const KDTree&,
+  std::function<EigenPointCloud(const Epoch&,
                                 double,
                                 EigenPointCloudConstRef,
                                 EigenPointCloudConstRef,
@@ -32,8 +32,7 @@ using WorkingSetFinderCallback =
 /** @brief Implementation of working set finder that performs a regular radius
  * search
  *
- * @param cloud The full point cloud that we operate on
- * @param kdtree The search tree for the point cloud
+ * @param epoch The epoch that we are operating on
  * @param radius Search radius
  * @param corepoint The (single) core point that we are dealing with
  * @param direction The search direction
@@ -43,8 +42,7 @@ using WorkingSetFinderCallback =
  * @return A point cloud data structure representing the working set
  */
 EigenPointCloud
-radius_workingset_finder(EigenPointCloudConstRef cloud,
-                         const KDTree& kdtree,
+radius_workingset_finder(const Epoch& epoch,
                          double radius,
                          EigenPointCloudConstRef corepoint,
                          EigenPointCloudConstRef direction,
@@ -62,8 +60,7 @@ radius_workingset_finder(EigenPointCloudConstRef cloud,
  * @copydoc radius_workingset_finder
  */
 EigenPointCloud
-cylinder_workingset_finder(EigenPointCloudConstRef cloud,
-                           const KDTree& kdtree,
+cylinder_workingset_finder(const Epoch& epoch,
                            double radius,
                            EigenPointCloudConstRef corepoint,
                            EigenPointCloudConstRef direction,
@@ -74,20 +71,17 @@ cylinder_workingset_finder(EigenPointCloudConstRef cloud,
 
 /** @brief Compute M3C2 multi scale directions */
 void
-compute_multiscale_directions(EigenPointCloudConstRef,
+compute_multiscale_directions(const Epoch&,
                               EigenPointCloudConstRef,
                               const std::vector<double>&,
-                              const KDTree&,
                               EigenPointCloudRef);
 
 /** @brief Compute M3C2 distances */
 void
 compute_distances(EigenPointCloudConstRef,
                   double,
-                  EigenPointCloudConstRef,
-                  const KDTree&,
-                  EigenPointCloudConstRef,
-                  const KDTree&,
+                  const Epoch&,
+                  const Epoch&,
                   EigenPointCloudConstRef,
                   double,
                   EigenVectorRef,
