@@ -1,21 +1,20 @@
-from py4dgeo.kdtree import KDTree
 from py4dgeo.util import Py4DGeoError
 
-import dataclasses
 import numpy as np
 
+import _py4dgeo
 
-@dataclasses.dataclass
-class Epoch:
-    cloud: np.ndarray = None
-    kdtree: KDTree = None
 
-    def __post_init__(self):
+class Epoch(_py4dgeo.Epoch):
+    def __init__(self, cloud: np.ndarray):
         # Check the given array shapes
-        if len(self.cloud.shape) != 2 or self.cloud.shape[1] != 3:
+        if len(cloud.shape) != 2 or cloud.shape[1] != 3:
             raise Py4DGeoError("Clouds need to be an array of shape nx3")
 
-        # If the kdtree was not already built, build it now
-        if self.kdtree is None:
-            self.kdtree = KDTree(self.cloud)
-            self.kdtree.build_tree(10)
+        # Call base class constructor
+        super().__init__(cloud)
+
+        # Build the KDTree index
+        # TODO: When exactly should this be done and how do we want to
+        #       the user interface to look like?
+        self.kdtree.build_tree(10)

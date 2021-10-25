@@ -5,6 +5,8 @@
 #include <pybind11/stl.h>
 
 #include "py4dgeo/compute.hpp"
+#include "py4dgeo/epoch.hpp"
+#include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 
@@ -27,6 +29,12 @@ PYBIND11_MODULE(_py4dgeo, m)
     .value("COREPOINTS", MemoryPolicy::COREPOINTS)
     .value("RELAXED", MemoryPolicy::RELAXED)
     .export_values();
+
+  // The epoch class
+  py::class_<Epoch>(m, "Epoch")
+    .def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>())
+    .def_readwrite("cloud", &Epoch::cloud)
+    .def_readwrite("kdtree", &Epoch::kdtree);
 
   // Expose the KDTree class
   py::class_<KDTree> kdtree(m, "KDTree", py::buffer_protocol());

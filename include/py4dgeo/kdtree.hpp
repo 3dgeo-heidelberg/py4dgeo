@@ -13,6 +13,9 @@
 
 namespace py4dgeo {
 
+// Forward declaration of Epoch
+struct Epoch;
+
 /** @brief Efficient KDTree data structure for nearest neighbor/radius searches
  *
  * This data structure allows efficient radius searches in 3D point cloud data.
@@ -63,6 +66,9 @@ private:
     Adaptor,
     3,
     IndexType>;
+
+  // We allow the Epoch class to directly call below constructor
+  friend Epoch;
 
   //! Private constructor from pointcloud - use through @ref KDTree::create
   KDTree(const EigenPointCloudRef&);
