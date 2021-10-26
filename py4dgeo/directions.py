@@ -1,69 +1,58 @@
 from py4dgeo.util import Py4DGeoError, memory_policy_is_minimum, MemoryPolicy
 
 import abc
-import dataclasses
 import numpy as np
 import typing
 
 import _py4dgeo
 
 
-@dataclasses.dataclass(frozen=True)
 class Direction(abc.ABC):
     @property
-    def num_dirs(self):
+    def num_dirs(self) -> int:
         raise NotImplementedError
 
-    def precompute(self, epoch=None, corepoints=None):
+    def precompute(self, epoch=None, corepoints=None) -> None:
         pass
 
     def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
         raise NotImplementedError
 
 
-@dataclasses.dataclass(frozen=True)
 class MultiConstantDirection(Direction):
-    directions: np.ndarray = None
+    def __init__(self, directions: np.ndarray = None):
+        self.directions = directions
 
     @property
     def num_dirs(self):
         return self.directions.shape[0]
 
-    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
+    def get(self, core_idx=None, dir_idx=None):
         return self.directions[dir_idx, :]
 
 
 class ConstantDirection(MultiConstantDirection):
-    def __init__(self, direction=None):
+    def __init__(self, direction: np.ndarray = None):
         super(ConstantDirection, self).__init__(directions=direction[np.newaxis])
 
 
-@dataclasses.dataclass(frozen=True)
 class CorePointDirection(Direction):
-    directions: np.ndarray = None
+    def __init__(self, directions: np.ndarray = None):
+        self.directions = directions
 
     @property
     def num_dirs(self):
         return self.directions.shape[1]
 
-    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
+    def get(self, core_idx=None, dir_idx=None):
         return self.directions[core_idx, dir_idx, :]
 
 
-@dataclasses.dataclass(frozen=True)
-class PrecomputedDirection(Direction):
-    _precomputation: list = dataclasses.field(default_factory=lambda: [], init=False)
+class MultiScaleDirection(Direction):
+    def __init__(self, scales: typing.List[float] = None):
+        self.scales = scales
+        self.directions = None
 
-    @property
-    def directions(self):
-        return self._precomputation[0]
-
-
-@dataclasses.dataclass(frozen=True)
-class MultiScaleDirection(PrecomputedDirection):
-    scales: typing.List[float] = None
-
-    def __post_init__(self):
         # This is currently only implemented as a precomputation
         if not memory_policy_is_minimum(MemoryPolicy.COREPOINTS):
             raise NotImplementedError(
@@ -81,12 +70,10 @@ class MultiScaleDirection(PrecomputedDirection):
         return 1
 
     def precompute(self, epoch=None, corepoints=None):
-        self._precomputation.clear()
+        self.directions = np.empty(corepoints.shape)
+        _py4dgeo.compute_multiscale_directions(
+            epoch, corepoints, self.scales, self.directions
+        )
 
-        result = np.empty(corepoints.shape)
-        _py4dgeo.compute_multiscale_directions(epoch, corepoints, self.scales, result)
-
-        self._precomputation.append(result)
-
-    def get(self, core_idx=None, dir_idx=None) -> np.ndarray:
-        return self._precomputation[0][core_idx, :]
+    def get(self, core_idx=None, dir_idx=None):
+        return self.directions[core_idx, :]

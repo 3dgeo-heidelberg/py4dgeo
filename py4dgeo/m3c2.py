@@ -5,25 +5,30 @@ from py4dgeo.epoch import Epoch
 from py4dgeo.util import (
     MemoryPolicy,
     Py4DGeoError,
+    make_contiguous,
     memory_policy_is_minimum,
-    get_memory_policy,
 )
 
 import abc
-import dataclasses
 import numpy as np
 import typing
 
 
-@dataclasses.dataclass
 class M3C2LikeAlgorithm(abc.ABC):
-    epochs: typing.Tuple[Epoch, ...] = None
-    corepoints: np.ndarray = None
-    radii: typing.List[float] = None
-    directions: Direction = None
-    max_cylinder_length: float = 0.0
+    def __init__(
+        self,
+        epochs: typing.Tuple[Epoch, ...],
+        corepoints: np.ndarray = None,
+        radii: typing.List[float] = None,
+        max_cylinder_length: float = 0.0,
+        directions: Direction = None,
+    ):
+        self.epochs = epochs
+        self.corepoints = make_contiguous(corepoints)
+        self.radii = radii
+        self.max_cylinder_length = max_cylinder_length
+        self.directions = directions
 
-    def __post_init__(self):
         # Check the given array shapes
         if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
             raise Py4DGeoError("Corepoints need to be given as an array of shape nx3")
@@ -90,9 +95,10 @@ class M3C2LikeAlgorithm(abc.ABC):
             )
 
 
-@dataclasses.dataclass
 class M3C2(M3C2LikeAlgorithm):
-    scales: typing.List[float] = None
+    def __init__(self, scales: typing.List[float] = None, **kwargs):
+        self.scales = scales
+        super().__init__(**kwargs)
 
     @property
     def name(self):
