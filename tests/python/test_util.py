@@ -29,3 +29,27 @@ def test_memory_policy():
 
     assert get_memory_policy() is MemoryPolicy.RELAXED
     assert memory_policy_is_minimum(MemoryPolicy.STRICT)
+
+
+def test_make_contiguous():
+    arr1 = np.full((42, 3), 1.0, order="C")
+    arr1_c = make_contiguous(arr1)
+    assert arr1 is arr1_c
+
+    arr1_slice = arr1[::5]
+    arr1_slice_c = make_contiguous(arr1_slice)
+    assert arr1_slice.shape == arr1_slice_c.shape
+
+    arr1_fort = np.full((42, 3), 1.0, order="F")
+    arr1_fort_c = make_contiguous(arr1_fort)
+    assert arr1_fort.shape == arr1_fort_c.shape
+
+
+def test_make_contiguous_strict():
+    set_memory_policy(MemoryPolicy.STRICT)
+
+    arr1 = np.full((42, 3), 1.0, order="C")
+    arr1_slice = arr1[::5]
+
+    with pytest.raises(Py4DGeoError):
+        make_contiguous(arr1_slice)

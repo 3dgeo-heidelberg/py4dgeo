@@ -1,4 +1,4 @@
-import enum
+import numpy as np
 import os
 import platform
 import xdg
@@ -111,3 +111,24 @@ def memory_policy_is_minimum(policy: MemoryPolicy):
     :rtype: bool
     """
     return policy <= get_memory_policy()
+
+
+def make_contiguous(arr: np.ndarray):
+    """Make a numpy array contiguous
+
+    This is a no-op if the array is already contiguous and makes
+    a copy if it is not.
+
+    :param arr: The numpy array
+    :type arr: np.ndarray
+    """
+
+    if arr.flags["C_CONTIGUOUS"]:
+        return arr
+
+    if not memory_policy_is_minimum(MemoryPolicy.MINIMAL):
+        raise Py4DGeoError(
+            "Using non-contiguous memory layouts requires at least the MINIMAL memory policy"
+        )
+
+    return np.copy(arr, order="C")
