@@ -54,6 +54,8 @@ jobs:
         python -m pip install .
 
     - name: Run Python tests
+      env:
+        XDG_DATA_DIRS: $GITHUB_WORKSPACE/tests/data
       run: |
         python -m pytest
 
@@ -106,6 +108,8 @@ jobs:
         python -m pip install .
 
     - name: Run coverage tests
+      env:
+        XDG_DATA_DIRS: $GITHUB_WORKSPACE/tests/data
       run: |
         python -m pytest --cov=./py4dgeo --cov-report=xml
 

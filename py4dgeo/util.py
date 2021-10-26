@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import platform
 import xdg
 
 import _py4dgeo
@@ -21,7 +20,7 @@ def find_file(filename):
 
     * If an absolute filename is given, it is used
     * Check whether the given relative path exists with respect to the current working directory
-    * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable XDG_DATA_DIR) - Linux/MacOS only.
+    * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable XDG_DATA_DIRS).
 
     :param: filename
         The (relative) filename to search for
@@ -39,9 +38,8 @@ def find_file(filename):
     candidates.append(os.path.join(os.getcwd(), filename))
 
     # Use the XDG data directories
-    if platform.system() in ["Linux", "Darwin"]:
-        for xdg_dir in xdg.xdg_data_dirs():
-            candidates.append(os.path.join(xdg_dir, filename))
+    for xdg_dir in xdg.xdg_data_dirs():
+        candidates.append(os.path.join(xdg_dir, filename))
 
     # Iterate through the list to check for file existence
     for candidate in candidates:
