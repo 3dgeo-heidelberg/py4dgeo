@@ -9,10 +9,8 @@ namespace py4dgeo {
 void
 compute_distances(EigenPointCloudConstRef corepoints,
                   double scale,
-                  EigenPointCloudConstRef cloud1,
-                  const KDTree& kdtree1,
-                  EigenPointCloudConstRef cloud2,
-                  const KDTree& kdtree2,
+                  const Epoch& epoch1,
+                  const Epoch& epoch2,
                   EigenPointCloudConstRef directions,
                   double max_cylinder_length,
                   EigenVectorRef distances,
@@ -24,9 +22,9 @@ compute_distances(EigenPointCloudConstRef corepoints,
     auto dir = directions.row(directions.rows() > 1 ? i : 0);
 
     auto subset1 = workingsetfinder(
-      cloud1, kdtree1, scale, corepoints.row(i), dir, max_cylinder_length, i);
+      epoch1, scale, corepoints.row(i), dir, max_cylinder_length, i);
     auto subset2 = workingsetfinder(
-      cloud2, kdtree2, scale, corepoints.row(i), dir, max_cylinder_length, i);
+      epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
     // Distance calculation
     double dist = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
@@ -37,8 +35,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
 }
 
 EigenPointCloud
-radius_workingset_finder(EigenPointCloudConstRef cloud,
-                         const KDTree& kdtree,
+radius_workingset_finder(const Epoch& epoch,
                          double radius,
                          EigenPointCloudConstRef,
                          EigenPointCloudConstRef,
@@ -47,13 +44,12 @@ radius_workingset_finder(EigenPointCloudConstRef cloud,
 {
   // Find the working set in the other epoch
   KDTree::RadiusSearchResult points;
-  kdtree.precomputed_radius_search(core_idx, radius, points);
-  return cloud(points, Eigen::all);
+  epoch.kdtree.precomputed_radius_search(core_idx, radius, points);
+  return epoch.cloud(points, Eigen::all);
 }
 
 EigenPointCloud
-cylinder_workingset_finder(EigenPointCloudConstRef cloud,
-                           const KDTree& kdtree,
+cylinder_workingset_finder(const Epoch& epoch,
                            double radius,
                            EigenPointCloudConstRef corepoint,
                            EigenPointCloudConstRef direction,
@@ -65,8 +61,8 @@ cylinder_workingset_finder(EigenPointCloudConstRef cloud,
 
   // Find the points in the radius of max_cylinder_length
   KDTree::RadiusSearchResult ball_points;
-  kdtree.precomputed_radius_search(core_idx, search_radius, ball_points);
-  auto superset = cloud(ball_points, Eigen::all);
+  epoch.kdtree.precomputed_radius_search(core_idx, search_radius, ball_points);
+  auto superset = epoch.cloud(ball_points, Eigen::all);
 
   // If max_cylinder_length is sufficiently small, we are done
   if (max_cylinder_length <= radius)

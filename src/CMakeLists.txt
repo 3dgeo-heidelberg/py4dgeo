@@ -1,4 +1,4 @@
-add_library(py4dgeo directions.cpp distances.cpp kdtree.cpp)
+add_library(py4dgeo directions.cpp distances.cpp epoch.cpp kdtree.cpp)
 
 target_include_directories(
   py4dgeo PUBLIC $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/include/>

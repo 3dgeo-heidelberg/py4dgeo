@@ -13,6 +13,9 @@
 
 namespace py4dgeo {
 
+// Forward declaration of Epoch
+struct Epoch;
+
 /** @brief Efficient KDTree data structure for nearest neighbor/radius searches
  *
  * This data structure allows efficient radius searches in 3D point cloud data.
@@ -31,13 +34,20 @@ private:
   /** @brief An adaptor between our Eigen data structures and NanoFLANN */
   struct Adaptor
   {
-    std::shared_ptr<EigenPointCloud> data;
     EigenPointCloudRef cloud;
 
-    inline std::size_t kdtree_get_point_count() const;
-    inline double kdtree_get_pt(const IndexType, const IndexType) const;
+    inline std::size_t kdtree_get_point_count() const { return cloud.rows(); }
+
+    double kdtree_get_pt(const IndexType idx, const IndexType dim) const
+    {
+      return cloud(idx, dim);
+    }
+
     template<class BBOX>
-    bool kdtree_get_bbox(BBOX&) const;
+    bool kdtree_get_bbox(BBOX&) const
+    {
+      return false;
+    }
   };
 
   /** @brief A structure to perform efficient radius searches with NanoFLANN
@@ -51,10 +61,18 @@ private:
     double radius;
     RadiusSearchResult& indices;
 
-    inline std::size_t size() const;
-    inline bool full() const;
-    inline bool addPoint(double, IndexType);
-    inline double worstDist() const;
+    inline std::size_t size() const { return indices.size(); }
+
+    inline bool full() const { return true; }
+
+    inline bool addPoint(double dist, IndexType idx)
+    {
+      if (dist < radius)
+        indices.push_back(idx);
+      return true;
+    }
+
+    inline double worstDist() const { return radius; }
   };
 
   //! The NanoFLANN index implementation that we use
@@ -64,10 +82,11 @@ private:
     3,
     IndexType>;
 
+  // We allow the Epoch class to directly call below constructor
+  friend Epoch;
+
   //! Private constructor from pointcloud - use through @ref KDTree::create
   KDTree(const EigenPointCloudRef&);
-  //! Private constructor from shared_ptr - used from @ref KDTree::from_stream
-  KDTree(const std::shared_ptr<EigenPointCloud>& data);
 
 public:
   /** @brief Construct instance of KDTree from a given point cloud
@@ -78,30 +97,6 @@ public:
    * @param cloud The point cloud to construct the search tree for
    */
   static KDTree create(const EigenPointCloudRef& cloud);
-
-  /** @brief Construct instance of KDTree from a C++ stream
-   *
-   * Construction from streams is needed for the implementation of
-   * pickling for the KDTree data structure. Typically, this is used
-   * to deserialize search trees previously serialized with the writing
-   * counterpart @ref KDTree::to_stream.
-   *
-   * This is implemented as a static function instead of a public constructor
-   * to ease the implementation of Python bindings.
-   *
-   * @param stream The C++ input stream to construct from.
-   */
-  static std::unique_ptr<KDTree> from_stream(std::istream&);
-
-  /** @brief Serialize the search tree into a C++ stream
-   *
-   * This serialization is used in the implementation of pickling support
-   * for the KDTree data structure. This is the counterpart of the reader
-   * @ref KDTree::from_stream.
-   *
-   * @param stream The C++ output stream to write to.
-   */
-  std::ostream& to_stream(std::ostream&) const;
 
   /** @brief Build the KDTree index
    *

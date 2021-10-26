@@ -1,5 +1,5 @@
 add_executable(tests tests.cpp testsetup.cpp directions_t.cpp distances_t.cpp
-                     kdtree_t.cpp)
+                     epoch_t.cpp kdtree_t.cpp)
 
 target_link_libraries(tests PUBLIC py4dgeo Catch2::Catch2)
 

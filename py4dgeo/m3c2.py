@@ -70,10 +70,8 @@ class M3C2LikeAlgorithm(abc.ABC):
         _py4dgeo.compute_distances(
             self.corepoints,
             self.radii[0],
-            self.epochs[0].cloud,
-            self.epochs[0].kdtree,
-            self.epochs[1].cloud,
-            self.epochs[1].kdtree,
+            self.epochs[0],
+            self.epochs[1],
             self.directions.directions,
             self.max_cylinder_length,
             result,

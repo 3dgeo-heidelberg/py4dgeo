@@ -10,30 +10,26 @@ using namespace py4dgeo;
 
 TEST_CASE("M3C2 distance calculation", "[compute]")
 {
-  // Get a test cloud
+  // Get a test epoch
   auto cloud = testcloud();
-
-  // Get a KDTree
-  auto kdtree = KDTree::create(cloud);
-  kdtree.build_tree(10);
-  kdtree.precompute(cloud, 10.0);
+  Epoch epoch(cloud);
+  epoch.kdtree.build_tree(10);
+  epoch.kdtree.precompute(epoch.cloud, 10.0);
 
   std::vector<double> scales{ 1.0 };
-  EigenPointCloud directions(cloud.rows(), 3);
+  EigenPointCloud directions(epoch.cloud.rows(), 3);
 
   // Precompute the multiscale directions
-  compute_multiscale_directions(cloud, cloud, scales, kdtree, directions);
+  compute_multiscale_directions(epoch, epoch.cloud, scales, directions);
 
   SECTION("Distance calculation with standard radius search")
   {
     // Calculate the distances
-    EigenVector distances(cloud.rows(), 1);
-    compute_distances(cloud,
+    EigenVector distances(epoch.cloud.rows(), 1);
+    compute_distances(epoch.cloud,
                       1.0,
-                      cloud,
-                      kdtree,
-                      cloud,
-                      kdtree,
+                      epoch,
+                      epoch,
                       directions,
                       0.0,
                       distances,
@@ -46,13 +42,11 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   SECTION("Distance calculation with cylinder search")
   {
     // Calculate the distances
-    EigenVector distances(cloud.rows(), 1);
-    compute_distances(cloud,
+    EigenVector distances(epoch.cloud.rows(), 1);
+    compute_distances(epoch.cloud,
                       1.0,
-                      cloud,
-                      kdtree,
-                      cloud,
-                      kdtree,
+                      epoch,
+                      epoch,
                       directions,
                       2.0,
                       distances,
@@ -65,26 +59,22 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
 
 TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
 {
-  // Get a test cloud
+  // Get a test epoch
   auto cloud = testcloud();
-
-  // Get a KDTree
-  auto kdtree = KDTree::create(cloud);
-  kdtree.build_tree(10);
-  kdtree.precompute(cloud, 10.0);
+  Epoch epoch(cloud);
+  epoch.kdtree.build_tree(10);
+  epoch.kdtree.precompute(epoch.cloud, 10.0);
 
   // Single distance vector
   EigenPointCloud directions(1, 3);
   directions << 0, 0, 1;
 
   // Calculate the distances
-  EigenVector distances(cloud.rows(), 1);
-  compute_distances(cloud,
+  EigenVector distances(epoch.cloud.rows(), 1);
+  compute_distances(epoch.cloud,
                     1.0,
-                    cloud,
-                    kdtree,
-                    cloud,
-                    kdtree,
+                    epoch,
+                    epoch,
                     directions,
                     0.0,
                     distances,
