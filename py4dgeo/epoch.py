@@ -1,4 +1,4 @@
-from py4dgeo.util import Py4DGeoError
+from py4dgeo.util import Py4DGeoError, make_contiguous
 
 import numpy as np
 
@@ -10,6 +10,9 @@ class Epoch(_py4dgeo.Epoch):
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
             raise Py4DGeoError("Clouds need to be an array of shape nx3")
+
+        # Make sure that cloud is contiguous in memory
+        cloud = make_contiguous(cloud)
 
         # Call base class constructor
         super().__init__(cloud)
