@@ -6,7 +6,7 @@
 
 namespace py4dgeo {
 
-Epoch::Epoch(EigenPointCloudRef cloud_)
+Epoch::Epoch(const EigenPointCloudRef& cloud_)
   : owned_cloud(nullptr)
   , cloud(cloud_)
   , kdtree(cloud_)

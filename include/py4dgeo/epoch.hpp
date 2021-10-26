@@ -16,7 +16,7 @@ class Epoch
 {
 public:
   // Constructors
-  Epoch(EigenPointCloudRef);
+  Epoch(const EigenPointCloudRef&);
   Epoch(std::shared_ptr<EigenPointCloud>);
 
   // Methods for (de)serialization
