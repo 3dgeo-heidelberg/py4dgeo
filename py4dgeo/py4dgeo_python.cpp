@@ -31,10 +31,28 @@ PYBIND11_MODULE(_py4dgeo, m)
     .export_values();
 
   // The epoch class
-  py::class_<Epoch>(m, "Epoch")
-    .def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>())
-    .def_readwrite("cloud", &Epoch::cloud)
-    .def_readwrite("kdtree", &Epoch::kdtree);
+  py::class_<Epoch> epoch(m, "Epoch");
+
+  // Initializing with a numpy array prevents the numpy array from being
+  // garbage collected as long as the Epoch object is alive
+  epoch.def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>());
+
+  // We can directly access the point cloud and the kdtree
+  epoch.def_readwrite("cloud", &Epoch::cloud);
+  epoch.def_readwrite("kdtree", &Epoch::kdtree);
+
+  // Pickling support for the Epoch class
+  epoch.def(py::pickle(
+    [](const Epoch& self) {
+      // Serialize into in-memory stream
+      std::stringstream buf;
+      self.to_stream(buf);
+      return py::bytes(buf.str());
+    },
+    [](const py::bytes& data) {
+      std::stringstream buf(data.cast<std::string>());
+      return Epoch::from_stream(buf);
+    }));
 
   // Expose the KDTree class
   py::class_<KDTree> kdtree(m, "KDTree", py::buffer_protocol());
@@ -73,16 +91,13 @@ PYBIND11_MODULE(_py4dgeo, m)
              });
 
   // Pickling support for the KDTree data structure
-  kdtree.def(py::pickle(
-    [](const KDTree& self) {
-      std::stringstream buf;
-      self.to_stream(buf);
-      return py::bytes(buf.str());
-    },
-    [](const py::bytes& data) {
-      std::stringstream buf(data.cast<std::string>());
-      return KDTree::from_stream(buf);
-    }));
+  kdtree.def("__getstate__", [](const KDTree& self) {
+    // If a user pickles KDTree itself, we end up redundantly storing
+    // the point cloud itself, because the KDTree is only usable with the
+    // cloud (scipy does exactly the same). We solve the problem by asking
+    // users to pickle Epoch instead, which is the much cleaner solution.
+    throw std::runtime_error{ "Please pickle Epoch instead of KDTree" };
+  });
 
   // Add compute interfaces
   m.def("compute_multiscale_directions",

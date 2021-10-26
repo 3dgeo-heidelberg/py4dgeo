@@ -12,14 +12,24 @@ namespace py4dgeo {
  * be easily added to this data structure without changing any signatures
  * that depend on Epoch.
  */
-struct Epoch
+class Epoch
 {
-  Epoch(EigenPointCloudRef cloud_)
-    : cloud(cloud_)
-    , kdtree(cloud_)
-  {}
+public:
+  // Constructors
+  Epoch(EigenPointCloudRef);
+  Epoch(std::shared_ptr<EigenPointCloud>);
 
-  // The relevant data members
+  // Methods for (de)serialization
+  static std::unique_ptr<Epoch> from_stream(std::istream&);
+  std::ostream& to_stream(std::ostream&) const;
+
+private:
+  // If this epoch is unserialized, it owns the point cloud
+  std::shared_ptr<EigenPointCloud> owned_cloud;
+
+public:
+  // The data members are accessible from the outside. This could be
+  // realized through getter methods.
   EigenPointCloudRef cloud;
   KDTree kdtree;
 

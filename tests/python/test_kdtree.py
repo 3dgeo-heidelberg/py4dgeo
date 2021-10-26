@@ -4,7 +4,6 @@ import numpy as np
 import os
 import pickle
 import pytest
-import tempfile
 
 from . import epoch1
 
@@ -34,17 +33,7 @@ def test_kdtree(filename):
 
 
 def test_kdtree_pickle(epoch1):
-    # Operate in a temporary directory
-    with tempfile.TemporaryDirectory() as dir:
-        # Pickle the given KDTree
-        fn = os.path.join(dir, "kdtree.pickle")
+    with pytest.raises(RuntimeError):
+        fn = os.path.join("kdtree.pickle")
         with open(fn, "wb") as f:
             pickle.dump(epoch1.kdtree, f)
-
-        # Unpickle it
-        with open(fn, "rb") as f:
-            unpickled = pickle.load(f)
-
-        # Try a radius search
-        result = unpickled.radius_search(np.array([0, 0, 0]), 100)
-        assert result.shape[0] == epoch1.cloud.shape[0]

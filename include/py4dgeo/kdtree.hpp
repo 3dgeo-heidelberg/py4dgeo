@@ -34,7 +34,6 @@ private:
   /** @brief An adaptor between our Eigen data structures and NanoFLANN */
   struct Adaptor
   {
-    std::shared_ptr<EigenPointCloud> data;
     EigenPointCloudRef cloud;
 
     inline std::size_t kdtree_get_point_count() const;
@@ -72,8 +71,6 @@ private:
 
   //! Private constructor from pointcloud - use through @ref KDTree::create
   KDTree(const EigenPointCloudRef&);
-  //! Private constructor from shared_ptr - used from @ref KDTree::from_stream
-  KDTree(const std::shared_ptr<EigenPointCloud>& data);
 
 public:
   /** @brief Construct instance of KDTree from a given point cloud
@@ -84,30 +81,6 @@ public:
    * @param cloud The point cloud to construct the search tree for
    */
   static KDTree create(const EigenPointCloudRef& cloud);
-
-  /** @brief Construct instance of KDTree from a C++ stream
-   *
-   * Construction from streams is needed for the implementation of
-   * pickling for the KDTree data structure. Typically, this is used
-   * to deserialize search trees previously serialized with the writing
-   * counterpart @ref KDTree::to_stream.
-   *
-   * This is implemented as a static function instead of a public constructor
-   * to ease the implementation of Python bindings.
-   *
-   * @param stream The C++ input stream to construct from.
-   */
-  static std::unique_ptr<KDTree> from_stream(std::istream&);
-
-  /** @brief Serialize the search tree into a C++ stream
-   *
-   * This serialization is used in the implementation of pickling support
-   * for the KDTree data structure. This is the counterpart of the reader
-   * @ref KDTree::from_stream.
-   *
-   * @param stream The C++ output stream to write to.
-   */
-  std::ostream& to_stream(std::ostream&) const;
 
   /** @brief Build the KDTree index
    *
