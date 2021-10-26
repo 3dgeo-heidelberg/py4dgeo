@@ -30,6 +30,6 @@ def test_multiscale_direction(epoch1):
     epoch1.kdtree.precompute(epoch1.cloud, 12.0)
     dir = MultiScaleDirection(scales=[2.0, 10.0])
     dir.precompute(epoch=epoch1, corepoints=epoch1.cloud)
-    assert dir._precomputation[0].shape == (epoch1.cloud.shape[0], 3)
+    assert dir.directions.shape == (epoch1.cloud.shape[0], 3)
     for i in range(epoch1.cloud.shape[0]):
         dir.get(core_idx=i)
