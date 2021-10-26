@@ -15,6 +15,9 @@ import sys
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath("../.."))
 
+# We need to be able to locate data files to include Jupyter notebooks
+os.environ["XDG_DATA_DIRS"] = os.path.abspath("../tests/data")
+
 # -- Project information -----------------------------------------------------
 
 project = "py4dgeo"
