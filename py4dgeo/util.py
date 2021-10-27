@@ -21,7 +21,7 @@ def find_file(filename):
 
     * If an absolute filename is given, it is used
     * Check whether the given relative path exists with respect to the current working directory
-    * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable XDG_DATA_DIR) - Linux/MacOS only.
+    * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable XDG_DATA_DIRS).
 
     :param: filename
         The (relative) filename to search for

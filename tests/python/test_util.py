@@ -1,6 +1,7 @@
 from py4dgeo.util import *
 
 import os
+import platform
 import pytest
 import tempfile
 
@@ -14,6 +15,7 @@ def test_find_file(monkeypatch, tmp_path):
     with tempfile.NamedTemporaryFile(dir=os.getcwd()) as tmp_file:
         assert os.path.join(os.getcwd(), tmp_file.name) == find_file(tmp_file.name)
 
+    # Test with XDG data directory
     if platform.system() in ["Linux", "Darwin"]:
         monkeypatch.setenv("XDG_DATA_DIRS", str(tmp_path))
         abspath = os.path.join(tmp_path, "somefile.txt")
