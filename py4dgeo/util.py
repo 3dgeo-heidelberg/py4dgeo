@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import platform
 import xdg
 
 import _py4dgeo
@@ -38,8 +39,9 @@ def find_file(filename):
     candidates.append(os.path.join(os.getcwd(), filename))
 
     # Use the XDG data directories
-    for xdg_dir in xdg.xdg_data_dirs():
-        candidates.append(os.path.join(xdg_dir, filename))
+    if platform.system() in ["Linux", "Darwin"]:
+        for xdg_dir in xdg.xdg_data_dirs():
+            candidates.append(os.path.join(xdg_dir, filename))
 
     # Iterate through the list to check for file existence
     for candidate in candidates:
