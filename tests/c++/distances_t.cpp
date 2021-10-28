@@ -26,6 +26,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   {
     // Calculate the distances
     EigenVector distances(epoch.cloud.rows(), 1);
+    EigenVector uncertainties(epoch.cloud.rows(), 1);
+
     compute_distances(epoch.cloud,
                       1.0,
                       epoch,
@@ -33,6 +35,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                       directions,
                       0.0,
                       distances,
+                      uncertainties,
                       radius_workingset_finder);
 
     for (IndexType i = 0; i < distances.rows(); ++i)
@@ -43,6 +46,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   {
     // Calculate the distances
     EigenVector distances(epoch.cloud.rows(), 1);
+    EigenVector uncertainties(epoch.cloud.rows(), 1);
+
     compute_distances(epoch.cloud,
                       1.0,
                       epoch,
@@ -50,6 +55,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                       directions,
                       2.0,
                       distances,
+                      uncertainties,
                       cylinder_workingset_finder);
 
     for (IndexType i = 0; i < distances.rows(); ++i)
@@ -71,6 +77,8 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
 
   // Calculate the distances
   EigenVector distances(epoch.cloud.rows(), 1);
+  EigenVector uncertainties(epoch.cloud.rows(), 1);
+
   compute_distances(epoch.cloud,
                     1.0,
                     epoch,
@@ -78,6 +86,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     directions,
                     0.0,
                     distances,
+                    uncertainties,
                     radius_workingset_finder);
 
   for (IndexType i = 0; i < distances.rows(); ++i)

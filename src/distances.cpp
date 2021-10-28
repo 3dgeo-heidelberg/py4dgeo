@@ -14,6 +14,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   EigenPointCloudConstRef directions,
                   double max_cylinder_length,
                   EigenVectorRef distances,
+                  EigenVectorRef uncertainties,
                   const WorkingSetFinderCallback& workingsetfinder)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
@@ -26,11 +27,24 @@ compute_distances(EigenPointCloudConstRef corepoints,
     auto subset2 = workingsetfinder(
       epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
+    // Calculate the centers of mass
+    auto mean1 = subset1.colwise().mean();
+    auto mean2 = subset2.colwise().mean();
+
     // Distance calculation
-    double dist = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
+    double dist = dir.dot(mean1 - mean2);
+
+    // Calculate standard deviation
+    auto variance1 =
+      ((subset1.rowwise() - mean1.row(0)) * dir.transpose()).squaredNorm() /
+      subset1.rows();
+    auto variance2 =
+      ((subset2.rowwise() - mean2.row(0)) * dir.transpose()).squaredNorm() /
+      subset2.rows();
 
     // Store in result vector
     distances(i, 0) = std::abs(dist);
+    uncertainties(i, 0) = std::sqrt(variance1 + variance2);
   }
 }
 

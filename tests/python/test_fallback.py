@@ -16,4 +16,8 @@ def test_python_fallback_m3c2(epoch1, epoch2):
     )
 
     # The results should match
-    assert (m3c2.run() == pym3c2.run()).all()
+    distances, uncertainties = m3c2.run()
+    fb_distances, fb_uncertainties = pym3c2.run()
+
+    assert (distances == fb_distances).all()
+    assert (uncertainties == fb_uncertainties).all()

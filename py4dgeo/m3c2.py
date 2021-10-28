@@ -72,7 +72,8 @@ class M3C2LikeAlgorithm(abc.ABC):
         assert len(self.radii) == 1
 
         # Allocate the result array
-        result = np.empty((len(self.corepoints),))
+        distances = np.empty((len(self.corepoints),))
+        uncertainties = np.empty((len(self.corepoints),))
 
         _py4dgeo.compute_distances(
             self.corepoints,
@@ -81,11 +82,12 @@ class M3C2LikeAlgorithm(abc.ABC):
             epoch2,
             self.directions.directions,
             self.max_cylinder_length,
-            result,
+            distances,
+            uncertainties,
             self.callback_workingset_finder(),
         )
 
-        return result
+        return distances, uncertainties
 
     def run(self):
         """Main entry point for running the algorithm"""
