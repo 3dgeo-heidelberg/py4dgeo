@@ -63,9 +63,11 @@ class M3C2LikeAlgorithm(abc.ABC):
                 f"{self.name} only operates on exactly 2 epochs, {len(self.epochs)} given!"
             )
 
-    def run(self):
+    def calculate_distances(self, epoch1, epoch2):
+        """Calculate the distances between two epochs"""
+
         # Make sure to precompute the directions
-        self.directions.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
+        self.directions.precompute(epoch=epoch1, corepoints=self.corepoints)
 
         assert len(self.radii) == 1
 
@@ -75,8 +77,8 @@ class M3C2LikeAlgorithm(abc.ABC):
         _py4dgeo.compute_distances(
             self.corepoints,
             self.radii[0],
-            self.epochs[0],
-            self.epochs[1],
+            epoch1,
+            epoch2,
             self.directions.directions,
             self.max_cylinder_length,
             result,
@@ -84,6 +86,10 @@ class M3C2LikeAlgorithm(abc.ABC):
         )
 
         return result
+
+    def run(self):
+        """Main entry point for running the algorithm"""
+        return self.calculate_distances(self.epochs[0], self.epochs[1])
 
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
