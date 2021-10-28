@@ -27,4 +27,4 @@ ignore:
   - "**/tests"
   - "**/Catch2"
   - "**/eigen"
-  - "include/py4dgeo/nanoflann.hpp"
+  - "./include/py4dgeo/nanoflann.hpp"
