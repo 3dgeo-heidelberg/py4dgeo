@@ -37,10 +37,10 @@ compute_distances(EigenPointCloudConstRef corepoints,
     // Calculate standard deviation
     auto variance1 =
       ((subset1.rowwise() - mean1.row(0)) * dir.transpose()).squaredNorm() /
-      subset1.rows();
+      static_cast<double>(subset1.rows());
     auto variance2 =
       ((subset2.rowwise() - mean2.row(0)) * dir.transpose()).squaredNorm() /
-      subset2.rows();
+      static_cast<double>(subset2.rows());
 
     // Store in result vector
     distances(i, 0) = std::abs(dist);
