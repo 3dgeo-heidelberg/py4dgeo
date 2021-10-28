@@ -7,3 +7,6 @@
 [submodule "ext/eigen"]
 	path = ext/eigen
 	url = https://gitlab.com/libeigen/eigen.git
+[submodule "ext/nanoflann"]
+	path = ext/nanoflann
+	url = https://github.com/jlblancoc/nanoflann.git
