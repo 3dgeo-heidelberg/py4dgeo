@@ -19,13 +19,8 @@ def test_m3c2(epoch1, epoch2):
     # Run it
     distances, uncertainties = m3c2.run()
 
-    # Running it should produce some non-zero results
-    assert not (distances == 0).all()
-    assert not (uncertainties == 0).all()
-
-    # We only expect positive results
+    # Running it should produce some positive results
     assert (distances > 0).all()
-    assert (uncertainties > 0).all()
 
     # Running with the same epoch twice should yield all zeroes
     distances, uncertainties = M3C2(

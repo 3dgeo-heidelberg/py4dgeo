@@ -85,6 +85,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             distances,
             uncertainties,
             self.callback_workingset_finder(),
+            self.callback_uncertainty_calculation(),
         )
 
         return distances, uncertainties
@@ -101,6 +102,10 @@ class M3C2LikeAlgorithm(abc.ABC):
             raise NotImplementedError(
                 "No implementation of workingset_finder for your memory policy yet"
             )
+
+    def callback_uncertainty_calculation(self):
+        """The callback used to calculate the uncertainty"""
+        return _py4dgeo.no_uncertainty
 
 
 class M3C2(M3C2LikeAlgorithm):

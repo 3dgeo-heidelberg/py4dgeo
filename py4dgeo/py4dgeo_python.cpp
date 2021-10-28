@@ -99,14 +99,17 @@ PYBIND11_MODULE(_py4dgeo, m)
     throw std::runtime_error{ "Please pickle Epoch instead of KDTree" };
   });
 
-  // Add compute interfaces
+  // The main compute interfaces
   m.def("compute_multiscale_directions",
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
-
-  m.def("radius_workingset_finder", &radius_workingset_finder);
-  m.def("cylidner_workingset_finder", &cylinder_workingset_finder);
   m.def("compute_distances", &compute_distances, "Compute M3C2 distances");
+
+  // Callback implementations
+  m.def("radius_workingset_finder", &radius_workingset_finder);
+  m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
+  m.def("no_uncertainty", &no_uncertainty);
+  m.def("standard_deviation_uncertainty", &standard_deviation_uncertainty);
 }
 
 } // namespace py4dgeo

@@ -15,7 +15,8 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   double max_cylinder_length,
                   EigenVectorRef distances,
                   EigenVectorRef uncertainties,
-                  const WorkingSetFinderCallback& workingsetfinder)
+                  const WorkingSetFinderCallback& workingsetfinder,
+                  const UncertaintyMeasureCallback& uncertaintycalculator)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     // Either choose the ith row or the first (if there is no per-corepoint
@@ -27,24 +28,12 @@ compute_distances(EigenPointCloudConstRef corepoints,
     auto subset2 = workingsetfinder(
       epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
-    // Calculate the centers of mass
-    auto mean1 = subset1.colwise().mean();
-    auto mean2 = subset2.colwise().mean();
-
     // Distance calculation
-    double dist = dir.dot(mean1 - mean2);
-
-    // Calculate standard deviation
-    auto variance1 =
-      ((subset1.rowwise() - mean1.row(0)) * dir.transpose()).squaredNorm() /
-      static_cast<double>(subset1.rows());
-    auto variance2 =
-      ((subset2.rowwise() - mean2.row(0)) * dir.transpose()).squaredNorm() /
-      static_cast<double>(subset2.rows());
-
-    // Store in result vector
+    double dist = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
     distances(i, 0) = std::abs(dist);
-    uncertainties(i, 0) = std::sqrt(variance1 + variance2);
+
+    // Uncertainty calculation
+    uncertainties(i, 0) = uncertaintycalculator(subset1, subset2, dir);
   }
 }
 
@@ -99,6 +88,25 @@ cylinder_workingset_finder(const Epoch& epoch,
 
   // Select only those indices that are within the cylinder
   return superset(indices, Eigen::all);
+}
+
+double
+standard_deviation_uncertainty(EigenPointCloudConstRef set1,
+                               EigenPointCloudConstRef set2,
+                               EigenPointCloudConstRef direction)
+{
+  // Calculate variances of individual point cloud subsets
+  auto variance1 = ((set1.rowwise() - set1.colwise().mean().row(0)) *
+                    direction.row(0).transpose())
+                     .squaredNorm() /
+                   static_cast<double>(set1.rows());
+  auto variance2 = ((set2.rowwise() - set2.colwise().mean().row(0)) *
+                    direction.row(0).transpose())
+                     .squaredNorm() /
+                   static_cast<double>(set2.rows());
+
+  // Calculate the standard deviation from above variances
+  return std::sqrt(variance1 + variance2);
 }
 
 } // namespace py4dgeo

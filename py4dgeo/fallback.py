@@ -29,6 +29,18 @@ def cylinder_workingset_finder(
     raise NotImplementedError
 
 
+def no_uncertainty(
+    set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
+) -> np.float64:
+    return 0.0
+
+
+def standard_deviation_uncertainty(
+    set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
+) -> np.float64:
+    raise NotImplementedError
+
+
 class PythonFallbackM3C2(M3C2):
     """An implementation of M3C2 that makes use of Python fallback implementations"""
 
@@ -38,3 +50,6 @@ class PythonFallbackM3C2(M3C2):
 
     def callback_workingset_finder(self):
         return radius_workingset_finder
+
+    def callback_uncertainty_calculation(self):
+        return no_uncertainty

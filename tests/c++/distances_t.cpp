@@ -36,7 +36,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                       0.0,
                       distances,
                       uncertainties,
-                      radius_workingset_finder);
+                      radius_workingset_finder,
+                      no_uncertainty);
 
     for (IndexType i = 0; i < distances.rows(); ++i)
       REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
@@ -56,7 +57,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                       2.0,
                       distances,
                       uncertainties,
-                      cylinder_workingset_finder);
+                      cylinder_workingset_finder,
+                      no_uncertainty);
 
     for (IndexType i = 0; i < distances.rows(); ++i)
       REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
@@ -87,7 +89,8 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     0.0,
                     distances,
                     uncertainties,
-                    radius_workingset_finder);
+                    radius_workingset_finder,
+                    no_uncertainty);
 
   for (IndexType i = 0; i < distances.rows(); ++i)
     REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
