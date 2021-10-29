@@ -60,8 +60,8 @@ def test_fallback_implementations(
     distances, uncertainties = m3c2.run()
     fb_distances, fb_uncertainties = pym3c2.run()
 
-    assert (distances - fb_distances < 1e-8).all()
-    assert (uncertainties - fb_uncertainties < 1e-8).all()
+    assert np.allclose(distances, fb_distances)
+    assert np.allclose(uncertainties, fb_uncertainties)
 
 
 def test_python_fallback_m3c2(epoch1, epoch2):
@@ -79,5 +79,5 @@ def test_python_fallback_m3c2(epoch1, epoch2):
     distances, uncertainties = m3c2.run()
     fb_distances, fb_uncertainties = pym3c2.run()
 
-    assert (distances - fb_distances < 1e-8).all()
-    assert (uncertainties - fb_uncertainties < 1e-8).all()
+    assert np.allclose(distances, fb_distances)
+    assert np.allclose(uncertainties, fb_uncertainties)

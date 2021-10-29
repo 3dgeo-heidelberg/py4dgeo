@@ -52,12 +52,8 @@ def no_uncertainty(
 def standard_deviation_uncertainty(
     set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
 ) -> np.float64:
-    def variance(s):
-        points = (s - s.mean(axis=0)).dot(direction[0, :])
-        return np.inner(points, points) / s.shape[0]
-
-    variance1 = variance(set1)
-    variance2 = variance(set2)
+    variance1 = direction @ np.cov(set1.T) @ direction.T
+    variance2 = direction @ np.cov(set2.T) @ direction.T
 
     # Calculate the standard deviation from above variances
     return np.sqrt(variance1 + variance2)

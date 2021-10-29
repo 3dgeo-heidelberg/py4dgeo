@@ -91,19 +91,21 @@ cylinder_workingset_finder(const Epoch& epoch,
 }
 
 double
+variance(EigenPointCloudConstRef subset, EigenPointCloudConstRef direction)
+{
+  auto centered = subset.rowwise() - subset.colwise().mean();
+  auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
+  auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
+  return multiplied.eval()(0, 0);
+}
+
+double
 standard_deviation_uncertainty(EigenPointCloudConstRef set1,
                                EigenPointCloudConstRef set2,
                                EigenPointCloudConstRef direction)
 {
-  // Calculate variances of individual point cloud subsets
-  auto variance1 = ((set1.rowwise() - set1.colwise().mean().row(0)) *
-                    direction.row(0).transpose())
-                     .squaredNorm() /
-                   static_cast<double>(set1.rows());
-  auto variance2 = ((set2.rowwise() - set2.colwise().mean().row(0)) *
-                    direction.row(0).transpose())
-                     .squaredNorm() /
-                   static_cast<double>(set2.rows());
+  auto variance1 = variance(set1, direction);
+  auto variance2 = variance(set2, direction);
 
   // Calculate the standard deviation from above variances
   return std::sqrt(variance1 + variance2);
