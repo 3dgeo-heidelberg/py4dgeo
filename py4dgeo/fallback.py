@@ -50,6 +50,3 @@ class PythonFallbackM3C2(M3C2):
 
     def callback_workingset_finder(self):
         return radius_workingset_finder
-
-    def callback_uncertainty_calculation(self):
-        return no_uncertainty

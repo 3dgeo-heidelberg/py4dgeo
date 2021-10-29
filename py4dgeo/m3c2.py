@@ -22,12 +22,14 @@ class M3C2LikeAlgorithm(abc.ABC):
         radii: typing.List[float] = None,
         max_cylinder_length: float = 0.0,
         directions: Direction = None,
+        calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
         self.corepoints = make_contiguous(corepoints)
         self.radii = radii
         self.max_cylinder_length = max_cylinder_length
         self.directions = directions
+        self.calculate_uncertainty = calculate_uncertainty
 
         # Check the given array shapes
         if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
@@ -75,6 +77,11 @@ class M3C2LikeAlgorithm(abc.ABC):
         distances = np.empty((len(self.corepoints),))
         uncertainties = np.empty((len(self.corepoints),))
 
+        # Extract the uncertainty callback
+        uncertainty_callback = self.callback_uncertainty_calculation()
+        if not self.calculate_uncertainty:
+            uncertainty_callback = _py4dgeo.no_uncertainty
+
         _py4dgeo.compute_distances(
             self.corepoints,
             self.radii[0],
@@ -85,7 +92,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             distances,
             uncertainties,
             self.callback_workingset_finder(),
-            self.callback_uncertainty_calculation(),
+            uncertainty_callback,
         )
 
         return distances, uncertainties
@@ -105,7 +112,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_uncertainty_calculation(self):
         """The callback used to calculate the uncertainty"""
-        return _py4dgeo.no_uncertainty
+        return _py4dgeo.standard_deviation_uncertainty
 
 
 class M3C2(M3C2LikeAlgorithm):
