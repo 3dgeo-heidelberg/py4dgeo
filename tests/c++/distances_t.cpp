@@ -22,47 +22,29 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   // Precompute the multiscale directions
   compute_multiscale_directions(epoch, epoch.cloud, scales, directions);
 
-  SECTION("Distance calculation with standard radius search")
-  {
-    // Calculate the distances
-    EigenVector distances(epoch.cloud.rows(), 1);
-    EigenVector uncertainties(epoch.cloud.rows(), 1);
+  // Calculate the distances
+  EigenVector distances(epoch.cloud.rows(), 1);
+  EigenVector uncertainties(epoch.cloud.rows(), 1);
 
-    compute_distances(epoch.cloud,
-                      1.0,
-                      epoch,
-                      epoch,
-                      directions,
-                      0.0,
-                      distances,
-                      uncertainties,
-                      radius_workingset_finder,
-                      no_uncertainty);
+  // We try to test all callback combinations
+  auto wsfinder =
+    GENERATE(radius_workingset_finder, cylinder_workingset_finder);
+  auto uncertaintymeasure =
+    GENERATE(no_uncertainty, standard_deviation_uncertainty);
 
-    for (IndexType i = 0; i < distances.rows(); ++i)
-      REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
-  }
+  compute_distances(epoch.cloud,
+                    1.0,
+                    epoch,
+                    epoch,
+                    directions,
+                    0.0,
+                    distances,
+                    uncertainties,
+                    wsfinder,
+                    uncertaintymeasure);
 
-  SECTION("Distance calculation with cylinder search")
-  {
-    // Calculate the distances
-    EigenVector distances(epoch.cloud.rows(), 1);
-    EigenVector uncertainties(epoch.cloud.rows(), 1);
-
-    compute_distances(epoch.cloud,
-                      1.0,
-                      epoch,
-                      epoch,
-                      directions,
-                      2.0,
-                      distances,
-                      uncertainties,
-                      cylinder_workingset_finder,
-                      no_uncertainty);
-
-    for (IndexType i = 0; i < distances.rows(); ++i)
-      REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
-  }
+  for (IndexType i = 0; i < distances.rows(); ++i)
+    REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
 }
 
 TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
@@ -81,6 +63,12 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   EigenVector distances(epoch.cloud.rows(), 1);
   EigenVector uncertainties(epoch.cloud.rows(), 1);
 
+  // We try to test all callback combinations
+  auto wsfinder =
+    GENERATE(radius_workingset_finder, cylinder_workingset_finder);
+  auto uncertaintymeasure =
+    GENERATE(no_uncertainty, standard_deviation_uncertainty);
+
   compute_distances(epoch.cloud,
                     1.0,
                     epoch,
@@ -89,8 +77,8 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     0.0,
                     distances,
                     uncertainties,
-                    radius_workingset_finder,
-                    no_uncertainty);
+                    wsfinder,
+                    uncertaintymeasure);
 
   for (IndexType i = 0; i < distances.rows(); ++i)
     REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
