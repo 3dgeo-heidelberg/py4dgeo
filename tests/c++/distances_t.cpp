@@ -22,39 +22,29 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   // Precompute the multiscale directions
   compute_multiscale_directions(epoch, epoch.cloud, scales, directions);
 
-  SECTION("Distance calculation with standard radius search")
-  {
-    // Calculate the distances
-    EigenVector distances(epoch.cloud.rows(), 1);
-    compute_distances(epoch.cloud,
-                      1.0,
-                      epoch,
-                      epoch,
-                      directions,
-                      0.0,
-                      distances,
-                      radius_workingset_finder);
+  // Calculate the distances
+  EigenVector distances(epoch.cloud.rows(), 1);
+  EigenVector uncertainties(epoch.cloud.rows(), 1);
 
-    for (IndexType i = 0; i < distances.rows(); ++i)
-      REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
-  }
+  // We try to test all callback combinations
+  auto wsfinder =
+    GENERATE(radius_workingset_finder, cylinder_workingset_finder);
+  auto uncertaintymeasure =
+    GENERATE(no_uncertainty, standard_deviation_uncertainty);
 
-  SECTION("Distance calculation with cylinder search")
-  {
-    // Calculate the distances
-    EigenVector distances(epoch.cloud.rows(), 1);
-    compute_distances(epoch.cloud,
-                      1.0,
-                      epoch,
-                      epoch,
-                      directions,
-                      2.0,
-                      distances,
-                      cylinder_workingset_finder);
+  compute_distances(epoch.cloud,
+                    2.0,
+                    epoch,
+                    epoch,
+                    directions,
+                    0.0,
+                    distances,
+                    uncertainties,
+                    wsfinder,
+                    uncertaintymeasure);
 
-    for (IndexType i = 0; i < distances.rows(); ++i)
-      REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
-  }
+  for (IndexType i = 0; i < distances.rows(); ++i)
+    REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
 }
 
 TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
@@ -71,14 +61,24 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
 
   // Calculate the distances
   EigenVector distances(epoch.cloud.rows(), 1);
+  EigenVector uncertainties(epoch.cloud.rows(), 1);
+
+  // We try to test all callback combinations
+  auto wsfinder =
+    GENERATE(radius_workingset_finder, cylinder_workingset_finder);
+  auto uncertaintymeasure =
+    GENERATE(no_uncertainty, standard_deviation_uncertainty);
+
   compute_distances(epoch.cloud,
-                    1.0,
+                    2.0,
                     epoch,
                     epoch,
                     directions,
                     0.0,
                     distances,
-                    radius_workingset_finder);
+                    uncertainties,
+                    wsfinder,
+                    uncertaintymeasure);
 
   for (IndexType i = 0; i < distances.rows(); ++i)
     REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);

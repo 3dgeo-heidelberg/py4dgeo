@@ -14,7 +14,9 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   EigenPointCloudConstRef directions,
                   double max_cylinder_length,
                   EigenVectorRef distances,
-                  const WorkingSetFinderCallback& workingsetfinder)
+                  EigenVectorRef uncertainties,
+                  const WorkingSetFinderCallback& workingsetfinder,
+                  const UncertaintyMeasureCallback& uncertaintycalculator)
 {
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     // Either choose the ith row or the first (if there is no per-corepoint
@@ -28,9 +30,10 @@ compute_distances(EigenPointCloudConstRef corepoints,
 
     // Distance calculation
     double dist = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
-
-    // Store in result vector
     distances(i, 0) = std::abs(dist);
+
+    // Uncertainty calculation
+    uncertainties(i, 0) = uncertaintycalculator(subset1, subset2, dir);
   }
 }
 
@@ -85,6 +88,27 @@ cylinder_workingset_finder(const Epoch& epoch,
 
   // Select only those indices that are within the cylinder
   return superset(indices, Eigen::all);
+}
+
+double
+variance(EigenPointCloudConstRef subset, EigenPointCloudConstRef direction)
+{
+  auto centered = subset.rowwise() - subset.colwise().mean();
+  auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
+  auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
+  return multiplied.eval()(0, 0);
+}
+
+double
+standard_deviation_uncertainty(EigenPointCloudConstRef set1,
+                               EigenPointCloudConstRef set2,
+                               EigenPointCloudConstRef direction)
+{
+  auto variance1 = variance(set1, direction);
+  auto variance2 = variance(set2, direction);
+
+  // Calculate the standard deviation from above variances
+  return std::sqrt(variance1 + variance2);
 }
 
 } // namespace py4dgeo

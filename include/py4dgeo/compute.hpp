@@ -27,6 +27,19 @@ using WorkingSetFinderCallback =
                                 double,
                                 IndexType)>;
 
+/** @brief The callback type for calculating uncertainty measures
+ *
+ * For a reference of the signature, see the implementation provided by @c
+ * py4dgeo:
+ *
+ * * @ref no_uncertainty
+ * * @ref standard_deviation_uncertainty
+ */
+using UncertaintyMeasureCallback =
+  std::function<double(EigenPointCloudConstRef,
+                       EigenPointCloudConstRef,
+                       EigenPointCloudConstRef)>;
+
 /* Variety of callback declarations usable in M3C2 algorithms */
 
 /** @brief Implementation of working set finder that performs a regular radius
@@ -67,6 +80,33 @@ cylinder_workingset_finder(const Epoch& epoch,
                            double max_cylinder_length,
                            IndexType core_idx);
 
+/** @brief No-op implementation of uncertainty calculation
+ *
+ * This can be used if the calculation of uncertainties should be skipped
+ * to save computation time.
+ */
+inline double
+no_uncertainty(EigenPointCloudConstRef,
+               EigenPointCloudConstRef,
+               EigenPointCloudConstRef)
+{
+  return 0.0;
+}
+
+/** @brief Standard deviation implementation of uncertainty calculation
+ *
+ * Calculates the standard deviation of the distance measure.
+ *
+ * @param set1 The working set of points in the first epoch
+ * @param set2 The working set of points in the second epoch
+ * @param direction The normal direction
+ * @returns uncertainty The storage for the computed uncertainty values
+ */
+double
+standard_deviation_uncertainty(EigenPointCloudConstRef set1,
+                               EigenPointCloudConstRef set2,
+                               EigenPointCloudConstRef direction);
+
 /* Compute interfaces used in the M3C2 main algorithm */
 
 /** @brief Compute M3C2 multi scale directions */
@@ -85,6 +125,8 @@ compute_distances(EigenPointCloudConstRef,
                   EigenPointCloudConstRef,
                   double,
                   EigenVectorRef,
-                  const WorkingSetFinderCallback&);
+                  EigenVectorRef,
+                  const WorkingSetFinderCallback&,
+                  const UncertaintyMeasureCallback&);
 
 }

@@ -26,7 +26,37 @@ def cylinder_workingset_finder(
     max_cylinder_length: float,
     core_idx: int,
 ) -> np.ndarray:
-    raise NotImplementedError
+    # The search radius is the maximum of cylinder length and radius
+    search_radius = max(radius, max_cylinder_length)
+
+    # Find the points in the radius of max_cylinder_length
+    indices = epoch.kdtree.precomputed_radius_search(core_idx, search_radius)
+    superset = epoch.cloud[indices, :]
+
+    # If max_cylinder_length is sufficiently small, we are done
+    if max_cylinder_length <= radius:
+        return superset
+
+    crossprod = np.cross(superset - corepoint[0, :], direction[0, :])
+    distances = np.sum(crossprod * crossprod, axis=1)
+
+    return superset[distances < radius * radius, :]
+
+
+def no_uncertainty(
+    set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
+) -> np.float64:
+    return 0.0
+
+
+def standard_deviation_uncertainty(
+    set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
+) -> np.float64:
+    variance1 = direction @ np.cov(set1.T) @ direction.T
+    variance2 = direction @ np.cov(set2.T) @ direction.T
+
+    # Calculate the standard deviation from above variances
+    return np.sqrt(variance1 + variance2)
 
 
 class PythonFallbackM3C2(M3C2):
@@ -38,3 +68,6 @@ class PythonFallbackM3C2(M3C2):
 
     def callback_workingset_finder(self):
         return radius_workingset_finder
+
+    def callback_uncertainty_calculation(self):
+        return standard_deviation_uncertainty

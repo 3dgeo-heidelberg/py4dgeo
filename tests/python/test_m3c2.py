@@ -16,11 +16,14 @@ def test_m3c2(epoch1, epoch2):
         epochs=(epoch1, epoch2), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
     )
 
-    # Running it should produce some non-zero results
-    assert not (m3c2.run() == 0).all()
+    # Run it
+    distances, uncertainties = m3c2.run()
+
+    # Running it should produce some positive results
+    assert (distances > 0).all()
 
     # Running with the same epoch twice should yield all zeroes
-    result = M3C2(
+    distances, uncertainties = M3C2(
         epochs=(epoch1, epoch1), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
     ).run()
-    assert (result == 0).all()
+    assert (distances == 0).all()

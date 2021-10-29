@@ -22,12 +22,14 @@ class M3C2LikeAlgorithm(abc.ABC):
         radii: typing.List[float] = None,
         max_cylinder_length: float = 0.0,
         directions: Direction = None,
+        calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
         self.corepoints = make_contiguous(corepoints)
         self.radii = radii
         self.max_cylinder_length = max_cylinder_length
         self.directions = directions
+        self.calculate_uncertainty = calculate_uncertainty
 
         # Check the given array shapes
         if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
@@ -63,27 +65,41 @@ class M3C2LikeAlgorithm(abc.ABC):
                 f"{self.name} only operates on exactly 2 epochs, {len(self.epochs)} given!"
             )
 
-    def run(self):
+    def calculate_distances(self, epoch1, epoch2):
+        """Calculate the distances between two epochs"""
+
         # Make sure to precompute the directions
-        self.directions.precompute(epoch=self.epochs[0], corepoints=self.corepoints)
+        self.directions.precompute(epoch=epoch1, corepoints=self.corepoints)
 
         assert len(self.radii) == 1
 
         # Allocate the result array
-        result = np.empty((len(self.corepoints),))
+        distances = np.empty((len(self.corepoints),))
+        uncertainties = np.empty((len(self.corepoints),))
+
+        # Extract the uncertainty callback
+        uncertainty_callback = self.callback_uncertainty_calculation()
+        if not self.calculate_uncertainty:
+            uncertainty_callback = _py4dgeo.no_uncertainty
 
         _py4dgeo.compute_distances(
             self.corepoints,
             self.radii[0],
-            self.epochs[0],
-            self.epochs[1],
+            epoch1,
+            epoch2,
             self.directions.directions,
             self.max_cylinder_length,
-            result,
+            distances,
+            uncertainties,
             self.callback_workingset_finder(),
+            uncertainty_callback,
         )
 
-        return result
+        return distances, uncertainties
+
+    def run(self):
+        """Main entry point for running the algorithm"""
+        return self.calculate_distances(self.epochs[0], self.epochs[1])
 
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
@@ -93,6 +109,10 @@ class M3C2LikeAlgorithm(abc.ABC):
             raise NotImplementedError(
                 "No implementation of workingset_finder for your memory policy yet"
             )
+
+    def callback_uncertainty_calculation(self):
+        """The callback used to calculate the uncertainty"""
+        return _py4dgeo.standard_deviation_uncertainty
 
 
 class M3C2(M3C2LikeAlgorithm):
