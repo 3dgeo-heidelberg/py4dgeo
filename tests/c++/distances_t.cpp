@@ -33,7 +33,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
     GENERATE(no_uncertainty, standard_deviation_uncertainty);
 
   compute_distances(epoch.cloud,
-                    1.0,
+                    2.0,
                     epoch,
                     epoch,
                     directions,
@@ -70,7 +70,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
     GENERATE(no_uncertainty, standard_deviation_uncertainty);
 
   compute_distances(epoch.cloud,
-                    1.0,
+                    2.0,
                     epoch,
                     epoch,
                     directions,
