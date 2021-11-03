@@ -31,28 +31,30 @@ using EigenPointCloudRef = Eigen::Ref<EigenPointCloud>;
  */
 using EigenPointCloudConstRef = const Eigen::Ref<const EigenPointCloud>&;
 
-/** @brief A vector of dynamic size
- *
- * The choice of this type allows us both very efficient implementation
- * of numeric algorithms using the Eigen library, as well as no-copy
- * interoperability with numpy's arrays.
- */
-using EigenVector = Eigen::Matrix<double, Eigen::Dynamic, 1>;
-
-/** @brief A non-const reference type for passing around @ref EigenVector
- *
- * You should use this in function signatures that accept and modify a vector.
- */
-using EigenVectorRef = Eigen::Ref<EigenVector>;
-
-/** @brief A const reference type for passing around @ref EigenVector
- *
- * You should use this in function signatures that accept a read-only vector.
- */
-using EigenVectorConstRef = const Eigen::Ref<const EigenVector>&;
-
 /** @brief The type used for point cloud indices */
 using IndexType = Eigen::Index;
+
+/** @brief Return structure for the uncertainty of the distance computation
+ *
+ * This structured type is used to describe the uncertainty of point cloud
+ * distance at a single corepoint. It contains the level of detection,
+ * the standard deviations within both point clouds and the number of sampled
+ * points.
+ */
+struct DistanceUncertainty
+{
+  double lodetection;
+  double stddev1;
+  IndexType num_samples1;
+  double stddev2;
+  IndexType num_samples2;
+};
+
+/** @brief The variable-sized vector type used for distances */
+using DistanceVector = std::vector<double>;
+
+/** @brief The variable-sized vector type used for uncertainties */
+using UncertaintyVector = std::vector<DistanceUncertainty>;
 
 /** @brief An enumerator for py4dgeo's memory policy
  *

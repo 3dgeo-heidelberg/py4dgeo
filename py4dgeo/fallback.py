@@ -1,4 +1,5 @@
 """Fallback implementations for C++ components of the M3C2 algorithms """
+import _py4dgeo
 
 from py4dgeo.epoch import Epoch
 from py4dgeo.m3c2 import M3C2
@@ -45,18 +46,26 @@ def cylinder_workingset_finder(
 
 def no_uncertainty(
     set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
-) -> np.float64:
-    return 0.0
+) -> _py4dgeo.DistanceUncertainty:
+    return _py4dgeo.DistanceUncertainty()
 
 
 def standard_deviation_uncertainty(
     set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
-) -> np.float64:
+) -> _py4dgeo.DistanceUncertainty:
+    # Calculate variances
     variance1 = direction @ np.cov(set1.T) @ direction.T
     variance2 = direction @ np.cov(set2.T) @ direction.T
 
-    # Calculate the standard deviation from above variances
-    return np.sqrt(variance1 + variance2)
+    # The structured array that describes the full uncertainty
+    return _py4dgeo.DistanceUncertainty(
+        lodetection=1.96
+        * np.sqrt(variance1 / set1.shape[0] + variance2 / set2.shape[0]),
+        stddev1=np.sqrt(variance1),
+        num_samples1=set1.shape[0],
+        stddev2=np.sqrt(variance2),
+        num_samples2=set2.shape[0],
+    )
 
 
 class PythonFallbackM3C2(M3C2):

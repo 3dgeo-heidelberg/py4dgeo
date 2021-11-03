@@ -23,8 +23,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   compute_multiscale_directions(epoch, epoch.cloud, scales, directions);
 
   // Calculate the distances
-  EigenVector distances(epoch.cloud.rows(), 1);
-  EigenVector uncertainties(epoch.cloud.rows(), 1);
+  DistanceVector distances;
+  UncertaintyVector uncertainties;
 
   // We try to test all callback combinations
   auto wsfinder =
@@ -43,8 +43,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                     wsfinder,
                     uncertaintymeasure);
 
-  for (IndexType i = 0; i < distances.rows(); ++i)
-    REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
+  for (IndexType i = 0; i < distances.size(); ++i)
+    REQUIRE(std::abs(distances[i]) < 1e-8);
 }
 
 TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
@@ -60,8 +60,8 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   directions << 0, 0, 1;
 
   // Calculate the distances
-  EigenVector distances(epoch.cloud.rows(), 1);
-  EigenVector uncertainties(epoch.cloud.rows(), 1);
+  DistanceVector distances;
+  UncertaintyVector uncertainties;
 
   // We try to test all callback combinations
   auto wsfinder =
@@ -80,6 +80,6 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     wsfinder,
                     uncertaintymeasure);
 
-  for (IndexType i = 0; i < distances.rows(); ++i)
-    REQUIRE(std::abs(distances.row(i).norm()) < 1e-8);
+  for (IndexType i = 0; i < distances.size(); ++i)
+    REQUIRE(std::abs(distances[i]) < 1e-8);
 }

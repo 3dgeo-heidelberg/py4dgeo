@@ -13,11 +13,15 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   const Epoch& epoch2,
                   EigenPointCloudConstRef directions,
                   double max_cylinder_length,
-                  EigenVectorRef distances,
-                  EigenVectorRef uncertainties,
+                  DistanceVector& distances,
+                  UncertaintyVector& uncertainties,
                   const WorkingSetFinderCallback& workingsetfinder,
                   const UncertaintyMeasureCallback& uncertaintycalculator)
 {
+  // Resize the output data structures
+  distances.resize(corepoints.rows());
+  uncertainties.resize(corepoints.rows());
+
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     // Either choose the ith row or the first (if there is no per-corepoint
     // direction)
@@ -30,10 +34,10 @@ compute_distances(EigenPointCloudConstRef corepoints,
 
     // Distance calculation
     double dist = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
-    distances(i, 0) = std::abs(dist);
+    distances[i] = std::abs(dist);
 
     // Uncertainty calculation
-    uncertainties(i, 0) = uncertaintycalculator(subset1, subset2, dir);
+    uncertainties[i] = uncertaintycalculator(subset1, subset2, dir);
   }
 }
 
@@ -99,16 +103,26 @@ variance(EigenPointCloudConstRef subset, EigenPointCloudConstRef direction)
   return multiplied.eval()(0, 0);
 }
 
-double
+DistanceUncertainty
 standard_deviation_uncertainty(EigenPointCloudConstRef set1,
                                EigenPointCloudConstRef set2,
                                EigenPointCloudConstRef direction)
 {
-  auto variance1 = variance(set1, direction);
-  auto variance2 = variance(set2, direction);
+  double variance1 = variance(set1, direction);
+  double variance2 = variance(set2, direction);
 
-  // Calculate the standard deviation from above variances
-  return std::sqrt(variance1 + variance2);
+  // Calculate the standard deviations for both point clouds
+  double stddev1 = std::sqrt(variance1);
+  double stddev2 = std::sqrt(variance2);
+
+  // Calculate the level of  from above variances
+  double lodetection =
+    1.96 * std::sqrt(variance1 / static_cast<double>(set1.rows()) +
+                     variance2 / static_cast<double>(set2.rows()));
+
+  return DistanceUncertainty{
+    lodetection, stddev1, set1.rows(), stddev2, set2.rows()
+  };
 }
 
 } // namespace py4dgeo

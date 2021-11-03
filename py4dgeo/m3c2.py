@@ -73,24 +73,18 @@ class M3C2LikeAlgorithm(abc.ABC):
 
         assert len(self.radii) == 1
 
-        # Allocate the result array
-        distances = np.empty((len(self.corepoints),))
-        uncertainties = np.empty((len(self.corepoints),))
-
         # Extract the uncertainty callback
         uncertainty_callback = self.callback_uncertainty_calculation()
         if not self.calculate_uncertainty:
             uncertainty_callback = _py4dgeo.no_uncertainty
 
-        _py4dgeo.compute_distances(
+        distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
             self.radii[0],
             epoch1,
             epoch2,
             self.directions.directions,
             self.max_cylinder_length,
-            distances,
-            uncertainties,
             self.callback_workingset_finder(),
             uncertainty_callback,
         )

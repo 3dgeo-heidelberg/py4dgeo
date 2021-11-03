@@ -30,6 +30,26 @@ PYBIND11_MODULE(_py4dgeo, m)
     .value("RELAXED", MemoryPolicy::RELAXED)
     .export_values();
 
+  // Register a numpy structured type for uncertainty calculation. This allows
+  // us to allocate memory in C++ and expose it as a structured numpy array in
+  // Python. The given names will be usable in Python.
+  PYBIND11_NUMPY_DTYPE(DistanceUncertainty,
+                       lodetection,
+                       stddev1,
+                       num_samples1,
+                       stddev2,
+                       num_samples2);
+
+  // Also expose the DistanceUncertainty data structure in Python, so that
+  // Python fallbacks can use it directly to define their result.
+  py::class_<DistanceUncertainty> unc(m, "DistanceUncertainty");
+  unc.def(py::init<double, double, IndexType, double, IndexType>(),
+          py::arg("lodetection") = 0.0,
+          py::arg("stddev1") = 0.0,
+          py::arg("num_samples1") = 0,
+          py::arg("stddev2") = 0.0,
+          py::arg("num_samples2") = 0);
+
   // The epoch class
   py::class_<Epoch> epoch(m, "Epoch");
 
@@ -99,11 +119,41 @@ PYBIND11_MODULE(_py4dgeo, m)
     throw std::runtime_error{ "Please pickle Epoch instead of KDTree" };
   });
 
-  // The main compute interfaces
+  // The main distance computation function that is the main entry point of M3C2
+  m.def(
+    "compute_distances",
+    [](EigenPointCloudConstRef corepoints,
+       double scale,
+       const Epoch& epoch1,
+       const Epoch& epoch2,
+       EigenPointCloudConstRef directions,
+       double max_cylinder_length,
+       const WorkingSetFinderCallback& workingsetfinder,
+       const UncertaintyMeasureCallback& uncertaintycalculator) {
+      // Allocate memory for the return types
+      DistanceVector distances;
+      UncertaintyVector uncertainties;
+
+      compute_distances(corepoints,
+                        scale,
+                        epoch1,
+                        epoch2,
+                        directions,
+                        max_cylinder_length,
+                        distances,
+                        uncertainties,
+                        workingsetfinder,
+                        uncertaintycalculator);
+
+      return std::make_tuple(as_pyarray(std::move(distances)),
+                             as_pyarray(std::move(uncertainties)));
+    },
+    "Compute M3C2 distances");
+
+  // Multiscale direction computation
   m.def("compute_multiscale_directions",
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
-  m.def("compute_distances", &compute_distances, "Compute M3C2 distances");
 
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);
