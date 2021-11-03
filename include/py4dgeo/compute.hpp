@@ -36,9 +36,9 @@ using WorkingSetFinderCallback =
  * * @ref standard_deviation_uncertainty
  */
 using UncertaintyMeasureCallback =
-  std::function<double(EigenPointCloudConstRef,
-                       EigenPointCloudConstRef,
-                       EigenPointCloudConstRef)>;
+  std::function<DistanceUncertainty(EigenPointCloudConstRef,
+                                    EigenPointCloudConstRef,
+                                    EigenPointCloudConstRef)>;
 
 /* Variety of callback declarations usable in M3C2 algorithms */
 
@@ -85,12 +85,12 @@ cylinder_workingset_finder(const Epoch& epoch,
  * This can be used if the calculation of uncertainties should be skipped
  * to save computation time.
  */
-inline double
+inline DistanceUncertainty
 no_uncertainty(EigenPointCloudConstRef,
                EigenPointCloudConstRef,
                EigenPointCloudConstRef)
 {
-  return 0.0;
+  return DistanceUncertainty{ 0.0, 0.0, 0, 0.0, 0 };
 }
 
 /** @brief Standard deviation implementation of uncertainty calculation
@@ -102,7 +102,7 @@ no_uncertainty(EigenPointCloudConstRef,
  * @param direction The normal direction
  * @returns uncertainty The storage for the computed uncertainty values
  */
-double
+DistanceUncertainty
 standard_deviation_uncertainty(EigenPointCloudConstRef set1,
                                EigenPointCloudConstRef set2,
                                EigenPointCloudConstRef direction);
@@ -124,8 +124,8 @@ compute_distances(EigenPointCloudConstRef,
                   const Epoch&,
                   EigenPointCloudConstRef,
                   double,
-                  EigenVectorRef,
-                  EigenVectorRef,
+                  DistanceVector&,
+                  UncertaintyVector&,
                   const WorkingSetFinderCallback&,
                   const UncertaintyMeasureCallback&);
 
