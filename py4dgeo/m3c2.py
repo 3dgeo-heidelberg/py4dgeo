@@ -110,8 +110,14 @@ class M3C2LikeAlgorithm(abc.ABC):
 
 
 class M3C2(M3C2LikeAlgorithm):
-    def __init__(self, scales: typing.List[float] = None, **kwargs):
+    def __init__(
+        self,
+        scales: typing.List[float] = None,
+        orientation_vector: np.ndarray = np.array([0, 0, 1]),
+        **kwargs,
+    ):
         self.scales = scales
+        self.orientation_vector = orientation_vector
         super().__init__(**kwargs)
 
     @property
@@ -132,4 +138,6 @@ class M3C2(M3C2LikeAlgorithm):
             epoch.kdtree.precompute(self.corepoints, maxradius)
 
     def calculate_directions(self):
-        return MultiScaleDirection(scales=self.scales)
+        return MultiScaleDirection(
+            scales=self.scales, orientation_vector=self.orientation_vector
+        )
