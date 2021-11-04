@@ -18,9 +18,12 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
 
   std::vector<double> scales{ 1.0 };
   EigenPointCloud directions(epoch.cloud.rows(), 3);
+  EigenPointCloud orientation(1, 3);
+  orientation << 0, 0, 1;
 
   // Precompute the multiscale directions
-  compute_multiscale_directions(epoch, epoch.cloud, scales, directions);
+  compute_multiscale_directions(
+    epoch, epoch.cloud, scales, orientation, directions);
 
   // Calculate the distances
   DistanceVector distances;

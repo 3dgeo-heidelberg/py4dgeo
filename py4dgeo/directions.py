@@ -49,8 +49,13 @@ class CorePointDirection(Direction):
 
 
 class MultiScaleDirection(Direction):
-    def __init__(self, scales: typing.List[float] = None):
+    def __init__(
+        self,
+        scales: typing.List[float] = None,
+        orientation_vector: np.array = np.array([0.0, 0.0, 1.0]),
+    ):
         self.scales = scales
+        self.orientation_vector = orientation_vector
         self.directions = None
 
         # This is currently only implemented as a precomputation
@@ -72,7 +77,7 @@ class MultiScaleDirection(Direction):
     def precompute(self, epoch=None, corepoints=None):
         self.directions = np.empty(corepoints.shape)
         _py4dgeo.compute_multiscale_directions(
-            epoch, corepoints, self.scales, self.directions
+            epoch, corepoints, self.scales, self.orientation_vector, self.directions
         )
 
     def get(self, core_idx=None, dir_idx=None):

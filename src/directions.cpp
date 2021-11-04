@@ -15,6 +15,7 @@ void
 compute_multiscale_directions(const Epoch& epoch,
                               EigenPointCloudConstRef corepoints,
                               const std::vector<double>& scales,
+                              EigenPointCloudConstRef orientation,
                               EigenPointCloudRef result)
 {
   // TODO: Make sure that precomputation has been triggered.
@@ -40,7 +41,11 @@ compute_multiscale_directions(const Epoch& epoch,
       double planarity = (evalues[1] - evalues[0]) / evalues[2];
       if (planarity > highest_planarity) {
         highest_planarity = planarity;
-        result.row(i) = solver.eigenvectors().col(0);
+
+        double prod =
+          (solver.eigenvectors().col(0).dot(orientation.row(0).transpose()));
+        double sign = (prod < 0.0) ? -1.0 : 1.0;
+        result.row(i) = sign * solver.eigenvectors().col(0);
       }
     }
   }
