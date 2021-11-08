@@ -1,4 +1,4 @@
-from py4dgeo.util import Py4DGeoError, make_contiguous
+from py4dgeo.util import Py4DGeoError, as_double_precision, make_contiguous
 
 import numpy as np
 
@@ -11,7 +11,8 @@ class Epoch(_py4dgeo.Epoch):
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
             raise Py4DGeoError("Clouds need to be an array of shape nx3")
 
-        # Make sure that cloud is contiguous in memory
+        # Make sure that cloud is double precision and contiguous in memory
+        cloud = as_double_precision(cloud)
         cloud = make_contiguous(cloud)
 
         # Call base class constructor

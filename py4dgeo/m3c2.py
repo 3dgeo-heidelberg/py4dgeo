@@ -3,6 +3,7 @@ import _py4dgeo
 from py4dgeo.directions import Direction, MultiScaleDirection
 from py4dgeo.epoch import Epoch
 from py4dgeo.util import (
+    as_double_precision,
     MemoryPolicy,
     Py4DGeoError,
     make_contiguous,
@@ -25,7 +26,7 @@ class M3C2LikeAlgorithm(abc.ABC):
         calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
-        self.corepoints = make_contiguous(corepoints)
+        self.corepoints = as_double_precision(make_contiguous(corepoints))
         self.radii = radii
         self.max_cylinder_length = max_cylinder_length
         self.directions = directions
@@ -117,7 +118,9 @@ class M3C2(M3C2LikeAlgorithm):
         **kwargs,
     ):
         self.scales = scales
-        self.orientation_vector = orientation_vector
+        self.orientation_vector = as_double_precision(
+            make_contiguous(orientation_vector)
+        )
         super().__init__(**kwargs)
 
     @property
