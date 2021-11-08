@@ -7,6 +7,13 @@ import typing
 import _py4dgeo
 
 
+def normalize_directions(dir: np.ndarray):
+    """Normalize the given directions"""
+    assert len(dir.shape) == 2
+    assert dir.shape[1] == 3
+    return dir / dir.sum(axis=1)[:, np.newaxis]
+
+
 class Direction(abc.ABC):
     @property
     def num_dirs(self) -> int:
@@ -21,7 +28,7 @@ class Direction(abc.ABC):
 
 class MultiConstantDirection(Direction):
     def __init__(self, directions: np.ndarray = None):
-        self.directions = directions
+        self.directions = normalize_directions(directions)
 
     @property
     def num_dirs(self):
@@ -39,6 +46,8 @@ class ConstantDirection(MultiConstantDirection):
 class CorePointDirection(Direction):
     def __init__(self, directions: np.ndarray = None):
         self.directions = directions
+        for i in range(directions.shape[0]):
+            self.directions[i, :, :] = normalize_directions(self.directions[i, :, :])
 
     @property
     def num_dirs(self):
