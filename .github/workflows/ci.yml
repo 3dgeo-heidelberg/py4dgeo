@@ -107,7 +107,7 @@ jobs:
 
     - name: Run coverage tests
       run: |
-        python -m pytest --cov=./py4dgeo --cov-report=xml
+        python -m pytest --cov=./src/py4dgeo --cov-report=xml
 
     - name: Upload coverage to Codecov.io
       uses: codecov/codecov-action@v2
