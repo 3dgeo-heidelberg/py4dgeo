@@ -73,7 +73,7 @@ class PythonFallbackM3C2(M3C2):
 
     @property
     def name(self):
-        raise "M3C2 (Python Fallback)"
+        return "M3C2 (Python Fallback)"
 
     def callback_workingset_finder(self):
         return radius_workingset_finder
