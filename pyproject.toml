@@ -1,0 +1,6 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "cmake>=3.9", "ninja"]
+
+[tool.cibuildwheel]
+# Super-verbose output for debugging purpose
+build-verbosity = 3
