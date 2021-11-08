@@ -97,7 +97,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        lcov --directory ./build/src --capture --output-file coverage.info
+        lcov --directory ./build/lib --capture --output-file coverage.info
         bash <(curl --connect-timeout 10 --retry 5 -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
 
     - name: Install Python package and development requirements
