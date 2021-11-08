@@ -1,5 +1,5 @@
 from py4dgeo.fallback import *
-from ._py4dgeo import (
+from py4dgeo._py4dgeo import (
     cylinder_workingset_finder as cxx_cylinder_workingset_finder,
     no_uncertainty as cxx_no_uncertainty,
     radius_workingset_finder as cxx_radius_workingset_finder,
