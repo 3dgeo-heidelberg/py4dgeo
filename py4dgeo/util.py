@@ -117,7 +117,7 @@ def make_contiguous(arr: np.ndarray):
     """Make a numpy array contiguous
 
     This is a no-op if the array is already contiguous and makes
-    a copy if it is not.
+    a copy if it is not. It checks py4dgeo's memory policy before copying.
 
     :param arr: The numpy array
     :type arr: np.ndarray
@@ -132,3 +132,24 @@ def make_contiguous(arr: np.ndarray):
         )
 
     return np.copy(arr, order="C")
+
+
+def as_double_precision(arr: np.ndarray):
+    """Ensure that a numpy array is double precision
+
+    This is a no-op if the array is already double precision and makes a copy
+    if it is not. It checks py4dgeo's memory policy before copying.
+
+    :param arr: The numpy array
+    :type arr: np.ndarray
+    """
+
+    if arr.dtype.name == "float64":
+        return arr
+
+    if not memory_policy_is_minimum(MemoryPolicy.MINIMAL):
+        raise Py4DGeoError(
+            "py4dgeo only operates on double precision input. Please provide it or set the memory policy to MINIMAL or above."
+        )
+
+    return np.asarray(arr, dtype=np.float64)
