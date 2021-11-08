@@ -38,11 +38,11 @@ include(CTest)
 # Handle library dependencies
 set(BKP_BUILD_TESTING ${BUILD_TESTING})
 set(BUILD_TESTING OFF)
-add_subdirectory(ext/eigen)
+add_subdirectory(ext/eigen EXCLUDE_FROM_ALL)
 set(BUILD_TESTING ${BKP_BUILD_TESTING})
 
 # compile the library
-add_subdirectory(src)
+add_subdirectory(lib)
 
 # compile the application
 add_subdirectory(app)
@@ -54,35 +54,20 @@ if(BUILD_TESTING)
   add_subdirectory(tests)
 endif()
 
+# Add the documentation
 if(BUILD_DOCS)
-  # Add the documentation
   add_subdirectory(doc)
 endif()
 
 if(BUILD_PYTHON)
   # Add Python bindings
   add_subdirectory(ext/pybind11)
-  add_subdirectory(py4dgeo)
-
-  # Generate a file that sets the PYTHONPATH during development This is
-  # necessary to have access to both the pure Python part and the compiled
-  # module. To use it, source the generated file.
-  file(
-    GENERATE
-    OUTPUT ${CMAKE_BINARY_DIR}/setup-pythonpath.sh
-    CONTENT
-      "
-export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}/py4dgeo\
-:${PROJECT_SOURCE_DIR}/py4dgeo:$PYTHONPATH
-      ")
+  pybind11_add_module(_py4dgeo MODULE src/py4dgeo/py4dgeo_python.cpp)
+  target_link_libraries(_py4dgeo PUBLIC py4dgeo)
 endif()
 
-# Add an alias target for use if this project is included as a subproject in
-# another project
-add_library(py4dgeo::py4dgeo ALIAS py4dgeo)
-
-# I would really love to export my targets here, but the fact that PCL does not
-# properly do it with their libraries prevents it.
+# Install library targets
+install(TARGETS _py4dgeo DESTINATION .)
 
 # This prints a summary of found dependencies
 include(FeatureSummary)
