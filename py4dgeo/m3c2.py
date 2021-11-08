@@ -1,7 +1,7 @@
 import _py4dgeo
 
 from py4dgeo.directions import Direction, MultiScaleDirection
-from py4dgeo.epoch import Epoch
+from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     MemoryPolicy,
     Py4DGeoError,
@@ -68,8 +68,14 @@ class M3C2LikeAlgorithm(abc.ABC):
     def calculate_distances(self, epoch1, epoch2):
         """Calculate the distances between two epochs"""
 
+        # Find the correct epoch to use for normal calculation
+        normals_epoch = self.cloud_for_normals
+        if normals_epoch is None:
+            normals_epoch = epoch1
+        normals_epoch = as_epoch(normals_epoch)
+
         # Make sure to precompute the directions
-        self.directions.precompute(epoch=epoch1, corepoints=self.corepoints)
+        self.directions.precompute(epoch=normals_epoch, corepoints=self.corepoints)
 
         assert len(self.radii) == 1
 
@@ -114,10 +120,13 @@ class M3C2(M3C2LikeAlgorithm):
         self,
         scales: typing.List[float] = None,
         orientation_vector: np.ndarray = np.array([0, 0, 1]),
+        cloud_for_normals: Epoch = None,
         **kwargs,
     ):
         self.scales = scales
         self.orientation_vector = orientation_vector
+        self.cloud_for_normals = cloud_for_normals
+
         super().__init__(**kwargs)
 
     @property

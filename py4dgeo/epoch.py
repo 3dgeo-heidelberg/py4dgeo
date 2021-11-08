@@ -21,3 +21,17 @@ class Epoch(_py4dgeo.Epoch):
         # TODO: When exactly should this be done and how do we want to
         #       the user interface to look like?
         self.kdtree.build_tree(10)
+
+
+def as_epoch(cloud):
+    """Create an epoch from a cloud
+
+    Idempotent operation to create an epoch from a cloud.
+    """
+
+    # If this is already an epoch, this is a no-op
+    if isinstance(cloud, Epoch):
+        return cloud
+
+    # Initialize an epoch from the given cloud
+    return Epoch(cloud)
