@@ -37,9 +37,26 @@ jobs:
       with:
         path: ./wheelhouse/*.whl
 
+  build-sdist:
+    name: Build source distribution
+    runs-on: ubuntu-20.04
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: 'recursive'
+
+      - name: Build SDist
+        run: pipx run build --sdist
+
+      - uses: actions/upload-artifact@v2
+        with:
+          path: dist/*.tar.gz
+
   upload_testpypi:
-    needs: [build-wheels]
+    needs: [build-sdist, build-wheels]
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'ssciwr'
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -53,8 +70,9 @@ jobs:
           repository_url: https://test.pypi.org/legacy/
 
   upload_pypi:
-    needs: [build-wheels, upload_testpypi]
+    needs: [build-sdist, build-wheels, upload_testpypi]
     runs-on: ubuntu-latest
+    if: github.repository_owner == 'ssciwr'
     steps:
       - uses: actions/download-artifact@v2
         with:
