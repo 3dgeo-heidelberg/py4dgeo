@@ -1,5 +1,4 @@
 from skbuild import setup
-from setuptools import find_packages
 
 
 setup(
@@ -9,7 +8,7 @@ setup(
     author_email="ssc@iwr.uni-heidelberg.de",
     description="Library for change detection in 4D point cloud data",
     long_description="",
-    packages=find_packages(),
+    packages=["py4dgeo"],
     install_requires=[
         "numpy",
         "xdg",
