@@ -112,8 +112,8 @@ jobs:
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
-        codecov -f coverage.info
-        codecov -f coverage.xml
+        ./codecov -f coverage.info
+        ./codecov -f coverage.xml
 
   address-sanitizer:
     name: Address sanitizer run (C++ only)
