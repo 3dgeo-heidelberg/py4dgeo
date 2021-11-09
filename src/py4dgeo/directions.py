@@ -1,10 +1,9 @@
+from ._py4dgeo import compute_multiscale_directions
 from py4dgeo.util import Py4DGeoError, memory_policy_is_minimum, MemoryPolicy
 
 import abc
 import numpy as np
 import typing
-
-import _py4dgeo
 
 
 def normalize_directions(dir: np.ndarray):
@@ -85,7 +84,7 @@ class MultiScaleDirection(Direction):
 
     def precompute(self, epoch=None, corepoints=None):
         self.directions = np.empty(corepoints.shape)
-        _py4dgeo.compute_multiscale_directions(
+        compute_multiscale_directions(
             epoch, corepoints, self.scales, self.orientation_vector, self.directions
         )
 

@@ -97,7 +97,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}
       run: |
-        lcov --directory ./build/src --capture --output-file coverage.info
+        lcov --directory ./build/lib --capture --output-file coverage.info
         bash <(curl --connect-timeout 10 --retry 5 -s https://codecov.io/bash) -f coverage.info || echo "Codecov did not collect coverage reports"
 
     - name: Install Python package and development requirements
@@ -107,7 +107,7 @@ jobs:
 
     - name: Run coverage tests
       run: |
-        python -m pytest --cov=./py4dgeo --cov-report=xml
+        python -m pytest --cov=./src/py4dgeo --cov-report=xml
 
     - name: Upload coverage to Codecov.io
       uses: codecov/codecov-action@v2

@@ -32,57 +32,39 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
       "'--recursive' flag or 'git submodule update --init' needs to be called")
 endif()
 
-# Enable CTest early to set the BUILD_TESTING option
-include(CTest)
+# Compile the library
+add_library(py4dgeo lib/directions.cpp lib/distances.cpp lib/epoch.cpp
+                    lib/kdtree.cpp)
+target_include_directories(
+  py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
+                 ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
 
-# Handle library dependencies
-set(BKP_BUILD_TESTING ${BUILD_TESTING})
-set(BUILD_TESTING OFF)
-add_subdirectory(ext/eigen)
-set(BUILD_TESTING ${BKP_BUILD_TESTING})
+# Compile a stand-alone application - mostly used for testing purposes
+add_executable(py4dgeo_app app/py4dgeo_app.cpp)
+target_link_libraries(py4dgeo_app PRIVATE py4dgeo)
 
-# compile the library
-add_subdirectory(src)
-
-# compile the application
-add_subdirectory(app)
-
-# compile the tests
+# Compile the tests
 if(BUILD_TESTING)
+  include(CTest)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
   add_subdirectory(tests)
 endif()
 
+# Add the documentation
 if(BUILD_DOCS)
-  # Add the documentation
   add_subdirectory(doc)
 endif()
 
 if(BUILD_PYTHON)
   # Add Python bindings
   add_subdirectory(ext/pybind11)
-  add_subdirectory(py4dgeo)
-
-  # Generate a file that sets the PYTHONPATH during development This is
-  # necessary to have access to both the pure Python part and the compiled
-  # module. To use it, source the generated file.
-  file(
-    GENERATE
-    OUTPUT ${CMAKE_BINARY_DIR}/setup-pythonpath.sh
-    CONTENT
-      "
-export PYTHONPATH=${CMAKE_CURRENT_BINARY_DIR}/py4dgeo\
-:${PROJECT_SOURCE_DIR}/py4dgeo:$PYTHONPATH
-      ")
+  pybind11_add_module(_py4dgeo MODULE src/py4dgeo/py4dgeo_python.cpp)
+  target_link_libraries(_py4dgeo PUBLIC py4dgeo)
 endif()
 
-# Add an alias target for use if this project is included as a subproject in
-# another project
-add_library(py4dgeo::py4dgeo ALIAS py4dgeo)
-
-# I would really love to export my targets here, but the fact that PCL does not
-# properly do it with their libraries prevents it.
+# Install th Python module library target
+install(TARGETS _py4dgeo DESTINATION .)
 
 # This prints a summary of found dependencies
 include(FeatureSummary)

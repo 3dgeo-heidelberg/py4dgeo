@@ -1,5 +1,9 @@
-import _py4dgeo
-
+from ._py4dgeo import (
+    compute_distances,
+    no_uncertainty,
+    radius_workingset_finder,
+    standard_deviation_uncertainty,
+)
 from py4dgeo.directions import Direction, MultiScaleDirection
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
@@ -83,9 +87,9 @@ class M3C2LikeAlgorithm(abc.ABC):
         # Extract the uncertainty callback
         uncertainty_callback = self.callback_uncertainty_calculation()
         if not self.calculate_uncertainty:
-            uncertainty_callback = _py4dgeo.no_uncertainty
+            uncertainty_callback = no_uncertainty
 
-        distances, uncertainties = _py4dgeo.compute_distances(
+        distances, uncertainties = compute_distances(
             self.corepoints,
             self.radii[0],
             epoch1,
@@ -105,7 +109,7 @@ class M3C2LikeAlgorithm(abc.ABC):
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
         if memory_policy_is_minimum(MemoryPolicy.COREPOINTS):
-            return _py4dgeo.radius_workingset_finder
+            return radius_workingset_finder
         else:
             raise NotImplementedError(
                 "No implementation of workingset_finder for your memory policy yet"
@@ -113,7 +117,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_uncertainty_calculation(self):
         """The callback used to calculate the uncertainty"""
-        return _py4dgeo.standard_deviation_uncertainty
+        return standard_deviation_uncertainty
 
 
 class M3C2(M3C2LikeAlgorithm):

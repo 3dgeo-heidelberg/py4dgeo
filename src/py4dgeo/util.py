@@ -1,9 +1,9 @@
+from ._py4dgeo import MemoryPolicy as CxxMemoryPolicy
+
 import numpy as np
 import os
 import platform
 import xdg
-
-import _py4dgeo
 
 
 class Py4DGeoError(Exception):
@@ -53,7 +53,7 @@ def find_file(filename):
     )
 
 
-class MemoryPolicy(_py4dgeo.MemoryPolicy):
+class MemoryPolicy(CxxMemoryPolicy):
     """A desciptor for py4dgeo's memory usage policy
 
     This can be used to describe the memory usage policy that py4dgeo
