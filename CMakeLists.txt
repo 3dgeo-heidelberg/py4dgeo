@@ -44,8 +44,8 @@ add_executable(py4dgeo_app app/py4dgeo_app.cpp)
 target_link_libraries(py4dgeo_app PRIVATE py4dgeo)
 
 # Compile the tests
+include(CTest)
 if(BUILD_TESTING)
-  include(CTest)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
   add_subdirectory(tests)
