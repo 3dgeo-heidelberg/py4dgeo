@@ -106,6 +106,7 @@ jobs:
         python -m lcov_cobertura coverage.info -o coverage2.xml
 
     - name: Run coverage tests
+      working-directory: ${{runner.workspace}}
       run: |
         python -m pytest --cov=py4dgeo --cov-report=xml
 
