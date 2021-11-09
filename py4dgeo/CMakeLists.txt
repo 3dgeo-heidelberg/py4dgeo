@@ -1,3 +1,0 @@
-pybind11_add_module(py4dgeo_python py4dgeo_python.cpp)
-target_link_libraries(py4dgeo_python PUBLIC py4dgeo)
-set_target_properties(py4dgeo_python PROPERTIES OUTPUT_NAME _py4dgeo)

@@ -1,24 +1,29 @@
 from py4dgeo.fallback import *
+from py4dgeo._py4dgeo import (
+    cylinder_workingset_finder as cxx_cylinder_workingset_finder,
+    no_uncertainty as cxx_no_uncertainty,
+    radius_workingset_finder as cxx_radius_workingset_finder,
+    standard_deviation_uncertainty as cxx_standard_deviation_uncertainty,
+)
 from py4dgeo.m3c2 import M3C2
 
 from . import epoch1, epoch2
 
 import pytest
-import _py4dgeo
 
 
 @pytest.mark.parametrize(
     "uncertainty_callback",
     [
-        (_py4dgeo.standard_deviation_uncertainty, standard_deviation_uncertainty),
-        (_py4dgeo.no_uncertainty, no_uncertainty),
+        (cxx_standard_deviation_uncertainty, standard_deviation_uncertainty),
+        (cxx_no_uncertainty, no_uncertainty),
     ],
 )
 @pytest.mark.parametrize(
     "workingset_callback",
     [
-        (_py4dgeo.radius_workingset_finder, radius_workingset_finder),
-        (_py4dgeo.cylinder_workingset_finder, cylinder_workingset_finder),
+        (cxx_radius_workingset_finder, radius_workingset_finder),
+        (cxx_cylinder_workingset_finder, cylinder_workingset_finder),
     ],
 )
 def test_fallback_implementations(

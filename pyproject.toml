@@ -1,0 +1,14 @@
+[build-system]
+requires = ["setuptools>=42", "wheel", "scikit-build", "cmake>=3.9"]
+build-backend = "setuptools.build_meta"
+
+[tool.cibuildwheel]
+# Super-verbose output for debugging purpose
+build-verbosity = 3
+
+# We restrict ourselves to recent Python versions
+skip = "*p27-* cp35-*"
+
+# Testing commands for our wheels
+test-command = "pytest {package}/python/tests"
+test-requires = ["pytest"]

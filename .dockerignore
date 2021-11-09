@@ -3,6 +3,9 @@ build
 Dockerfile
 env
 
+# scikit-build editable directory
+_skbuild
+
 # VSCode Configuration
 .vscode
 

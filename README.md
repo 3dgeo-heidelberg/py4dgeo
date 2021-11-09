@@ -40,32 +40,17 @@ The following sequence of commands is used to build `py4dgeo` from source:
 ```
 git clone --recursive https://github.com/ssciwr/py4dgeo.git
 cd py4dgeo
-mkdir build
-cd build
-cmake -DCMAKE_BUILD_TYPE=Release ..
-cmake --build .
+python -m pip install --editable .
 ```
 
-The build process can be customized with the following CMake variables,
-which can be set by adding `-D<var>={ON, OFF}` to the `cmake` call:
-
-* `BUILD_TESTING`: Enable building of the test suite (default: `ON`)
-* `BUILD_DOCS`: Enable building the documentation (default: `ON`)
-* `BUILD_PYTHON`: Enable building the Python bindings (default: `ON`)
+The `--editable` flag allows you to change the Python sources of `py4dgeo` without
+reinstalling the package. To recompile the C++ source, please run `pip install` again.
 
 If you want to contribute to the library's development you should also install
 its additional Python dependencies for testing and documentation building:
 
 ```
 python -m pip install -r requirements-dev.txt
-```
-
-The build directory contains a file `setup-pythonpath.sh` that you can use
-to modify your `PYTHONPATH` during development, so that it includes the compiled
-module, as well as the Python package from the source directory:
-
-```
-source build/setup-pythonpath.sh
 ```
 
 ### Using Docker

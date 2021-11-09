@@ -94,7 +94,7 @@ PYBIND11_MODULE(_py4dgeo, m)
     "radius_search",
     [](const KDTree& self, py::array_t<double> qp, double radius) {
       // Get a pointer for the query point
-      double* ptr = static_cast<double*>(qp.request().ptr);
+      auto ptr = static_cast<const double*>(qp.request().ptr);
 
       KDTree::RadiusSearchResult result;
       self.radius_search(ptr, radius, result);
@@ -111,7 +111,7 @@ PYBIND11_MODULE(_py4dgeo, m)
              });
 
   // Pickling support for the KDTree data structure
-  kdtree.def("__getstate__", [](const KDTree& self) {
+  kdtree.def("__getstate__", [](const KDTree&) {
     // If a user pickles KDTree itself, we end up redundantly storing
     // the point cloud itself, because the KDTree is only usable with the
     // cloud (scipy does exactly the same). We solve the problem by asking
