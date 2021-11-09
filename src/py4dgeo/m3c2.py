@@ -124,7 +124,7 @@ class M3C2(M3C2LikeAlgorithm):
     def __init__(
         self,
         scales: typing.List[float] = None,
-        orientation_vector: np.ndarray = np.array([0, 0, 1]),
+        orientation_vector: np.ndarray = np.array([0, 0, 1], dtype=np.float64),
         cloud_for_normals: Epoch = None,
         **kwargs,
     ):
