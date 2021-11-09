@@ -1,4 +1,5 @@
 breathe
+lcov_cobertura
 m2r2
 nbsphinx
 nbsphinx-link

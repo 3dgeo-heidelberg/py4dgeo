@@ -75,6 +75,11 @@ jobs:
       run: |
         sudo apt-get install -y lcov
 
+    - name: Install Python package and development requirements
+      run: |
+        python -m pip install -r requirements-dev.txt
+        python -m pip install .
+
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
@@ -98,22 +103,19 @@ jobs:
       working-directory: ${{runner.workspace}}
       run: |
         lcov --directory ./build --capture --output-file coverage.info
-
-    - name: Install Python package and development requirements
-      run: |
-        python -m pip install -r requirements-dev.txt
-        python -m pip install .
+        python -m lcov_cobertura coverage.info -o coverage2.xml
 
     - name: Run coverage tests
       run: |
-        python -m pytest --cov=./src/py4dgeo --cov-report=xml
+        python -m pytest --cov=py4dgeo --cov-report=xml
 
     - name: Upload coverage to Codecov.io
+      working-directory: ${{runner.workspace}}
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
-        ./codecov -f coverage.info
         ./codecov -f coverage.xml
+        ./codecov -f coverage2.xml
 
   address-sanitizer:
     name: Address sanitizer run (C++ only)
