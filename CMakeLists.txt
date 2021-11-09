@@ -32,15 +32,6 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
       "'--recursive' flag or 'git submodule update --init' needs to be called")
 endif()
 
-# Enable CTest early to set the BUILD_TESTING option
-include(CTest)
-
-# Handle library dependencies
-set(BKP_BUILD_TESTING ${BUILD_TESTING})
-set(BUILD_TESTING OFF)
-add_subdirectory(ext/eigen EXCLUDE_FROM_ALL)
-set(BUILD_TESTING ${BKP_BUILD_TESTING})
-
 # compile the library
 add_subdirectory(lib)
 
@@ -48,6 +39,7 @@ add_subdirectory(lib)
 add_subdirectory(app)
 
 # compile the tests
+include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
