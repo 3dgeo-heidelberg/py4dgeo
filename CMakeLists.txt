@@ -61,10 +61,10 @@ if(BUILD_PYTHON)
   add_subdirectory(ext/pybind11)
   pybind11_add_module(_py4dgeo MODULE src/py4dgeo/py4dgeo_python.cpp)
   target_link_libraries(_py4dgeo PUBLIC py4dgeo)
-endif()
 
-# Install th Python module library target
-install(TARGETS _py4dgeo DESTINATION .)
+  # Install th Python module library target
+  install(TARGETS _py4dgeo DESTINATION .)
+endif()
 
 # This prints a summary of found dependencies
 include(FeatureSummary)
