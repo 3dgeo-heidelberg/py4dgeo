@@ -107,13 +107,13 @@ jobs:
 
     - name: Run coverage tests
       run: |
-        python -m pytest --cov=./src/py4dgeo --cov-report=xml
+        python -m pytest --cov=py4dgeo --cov-report=xml
 
     - name: Upload coverage to Codecov.io
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
-        ./codecov
+        ./codecov -f coverage.info
 
   address-sanitizer:
     name: Address sanitizer run (C++ only)
