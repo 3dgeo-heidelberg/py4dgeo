@@ -98,12 +98,13 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: ctest
 
-    # - name: collect coverage report
-    #   shell: bash
-    #   working-directory: ${{runner.workspace}}
-    #   run: |
-    #     lcov --directory ./build --capture --output-file coverage.info
-    #     python -m lcov_cobertura coverage.info -o cxxcov.xml
+    - name: collect coverage report
+      shell: bash
+      working-directory: ${{runner.workspace}}
+      run: |
+        lcov --directory ./build --capture --output-file coverage.info
+
+   #python -m lcov_cobertura coverage.info -o cxxcov.xml
 
     - name: Run coverage tests
       run: |
