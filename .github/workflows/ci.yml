@@ -110,6 +110,7 @@ jobs:
         python -m pytest --cov=py4dgeo --cov-report=xml
 
     - name: Upload coverage to Codecov.io
+      working-directory: ${{runner.workspace}}
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
