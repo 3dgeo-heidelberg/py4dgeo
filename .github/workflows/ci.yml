@@ -110,6 +110,7 @@ jobs:
         python -m pytest --cov=py4dgeo --cov-report=xml
 
     - name: Display coverage
+      working-directory: ${{runner.workspace}}
       run: |
         cat py4dgeo/coverage.xml
         cat coverage2.xml
