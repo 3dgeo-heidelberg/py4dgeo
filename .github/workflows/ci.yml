@@ -106,7 +106,6 @@ jobs:
         python -m lcov_cobertura coverage.info -o coverage2.xml
 
     - name: Run coverage tests
-      working-directory: ${{runner.workspace}}
       run: |
         python -m pytest --cov=py4dgeo --cov-report=xml
 
@@ -115,7 +114,8 @@ jobs:
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
-        ./codecov -f coverage.xml -f coverage2.xml
+        ./codecov -f py4dgeo/coverage.xml -F python
+        ./codecov -f coverage2.xml -F cxx
 
   address-sanitizer:
     name: Address sanitizer run (C++ only)
