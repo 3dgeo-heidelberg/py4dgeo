@@ -120,8 +120,8 @@ jobs:
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
-        ./codecov -f py4dgeo/coverage.xml -F python
         ./codecov -f coverage2.xml -F cxx
+        ./codecov -f py4dgeo/coverage.xml -F python
 
   address-sanitizer:
     name: Address sanitizer run (C++ only)
