@@ -32,15 +32,20 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
       "'--recursive' flag or 'git submodule update --init' needs to be called")
 endif()
 
-# compile the library
-add_subdirectory(lib)
+# Compile the library
+add_library(py4dgeo lib/directions.cpp lib/distances.cpp lib/epoch.cpp
+                    lib/kdtree.cpp)
+target_include_directories(
+  py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
+                 ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
 
-# compile the application
-add_subdirectory(app)
+# Compile a stand-alone application - mostly used for testing purposes
+add_executable(py4dgeo_app app/py4dgeo_app.cpp)
+target_link_libraries(py4dgeo_app PRIVATE py4dgeo)
 
-# compile the tests
-include(CTest)
+# Compile the tests
 if(BUILD_TESTING)
+  include(CTest)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
   add_subdirectory(tests)
@@ -58,7 +63,7 @@ if(BUILD_PYTHON)
   target_link_libraries(_py4dgeo PUBLIC py4dgeo)
 endif()
 
-# Install library targets
+# Install th Python module library target
 install(TARGETS _py4dgeo DESTINATION .)
 
 # This prints a summary of found dependencies
