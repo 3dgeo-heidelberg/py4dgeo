@@ -10,5 +10,5 @@ build-verbosity = 3
 skip = "*p27-* cp35-*"
 
 # Testing commands for our wheels
-test-command = "pytest {package}/python/tests"
+test-command = "pytest {package}/tests/python"
 test-requires = ["pytest"]
