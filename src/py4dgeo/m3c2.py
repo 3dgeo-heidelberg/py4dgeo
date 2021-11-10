@@ -1,10 +1,10 @@
 from ._py4dgeo import (
     compute_distances,
+    compute_multiscale_directions,
     no_uncertainty,
     radius_workingset_finder,
     standard_deviation_uncertainty,
 )
-from py4dgeo.directions import Direction, MultiScaleDirection
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
@@ -26,14 +26,12 @@ class M3C2LikeAlgorithm(abc.ABC):
         corepoints: np.ndarray = None,
         radii: typing.List[float] = None,
         max_cylinder_length: float = 0.0,
-        directions: Direction = None,
         calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
         self.corepoints = as_double_precision(make_contiguous(corepoints))
         self.radii = radii
         self.max_cylinder_length = max_cylinder_length
-        self.directions = directions
         self.calculate_uncertainty = calculate_uncertainty
 
         # Check the given array shapes
@@ -50,10 +48,6 @@ class M3C2LikeAlgorithm(abc.ABC):
         # Run setup code defined by the algorithm
         self.setup()
 
-        # Calculate the directions if they were not given
-        if self.directions is None:
-            self.directions = self.calculate_directions()
-
     @property
     def name(self):
         raise NotImplementedError
@@ -61,7 +55,8 @@ class M3C2LikeAlgorithm(abc.ABC):
     def setup(self):
         pass
 
-    def calculate_directions(self):
+    def directions(self):
+        """The normal direction(s) to use for this algorithm."""
         raise NotImplementedError
 
     def check_number_of_epochs(self):
@@ -72,15 +67,6 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def calculate_distances(self, epoch1, epoch2):
         """Calculate the distances between two epochs"""
-
-        # Find the correct epoch to use for normal calculation
-        normals_epoch = self.cloud_for_normals
-        if normals_epoch is None:
-            normals_epoch = epoch1
-        normals_epoch = as_epoch(normals_epoch)
-
-        # Make sure to precompute the directions
-        self.directions.precompute(epoch=normals_epoch, corepoints=self.corepoints)
 
         assert len(self.radii) == 1
 
@@ -94,7 +80,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.radii[0],
             epoch1,
             epoch2,
-            self.directions.directions,
+            self.directions(),
             self.max_cylinder_length,
             self.callback_workingset_finder(),
             uncertainty_callback,
@@ -124,7 +110,7 @@ class M3C2(M3C2LikeAlgorithm):
     def __init__(
         self,
         scales: typing.List[float] = None,
-        orientation_vector: np.ndarray = np.array([0, 0, 1]),
+        orientation_vector: np.ndarray = np.array([0, 0, 1], dtype=np.float64),
         cloud_for_normals: Epoch = None,
         **kwargs,
     ):
@@ -133,7 +119,35 @@ class M3C2(M3C2LikeAlgorithm):
             make_contiguous(orientation_vector)
         )
         self.cloud_for_normals = cloud_for_normals
+        self._precomputed_normals = None
         super().__init__(**kwargs)
+
+    def directions(self):
+        # This does not work in STRICT mode
+        if not memory_policy_is_minimum(MemoryPolicy.MINIMAL):
+            raise Py4DGeoError(
+                "M3C2 requires at least the MINIMUM memory policy level to compute multiscale normals"
+            )
+
+        # Trigger the precomputation
+        if self._precomputed_normals is None:
+            self._precomputed_normals = np.empty(self.corepoints.shape)
+
+            # Find the correct epoch to use for normal calculation
+            normals_epoch = self.cloud_for_normals
+            if normals_epoch is None:
+                normals_epoch = self.epochs[0]
+            normals_epoch = as_epoch(normals_epoch)
+
+            compute_multiscale_directions(
+                normals_epoch,
+                self.corepoints,
+                self.scales,
+                self.orientation_vector,
+                self._precomputed_normals,
+            )
+
+        return self._precomputed_normals
 
     @property
     def name(self):
@@ -151,8 +165,3 @@ class M3C2(M3C2LikeAlgorithm):
 
         for epoch in self.epochs:
             epoch.kdtree.precompute(self.corepoints, maxradius)
-
-    def calculate_directions(self):
-        return MultiScaleDirection(
-            scales=self.scales, orientation_vector=self.orientation_vector
-        )
