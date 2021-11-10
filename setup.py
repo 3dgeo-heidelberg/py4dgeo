@@ -3,7 +3,7 @@ from skbuild import setup
 
 setup(
     name="py4dgeo",
-    version="0.0.1",
+    version="0.1.0",
     author="Dominic Kempf",
     author_email="ssc@iwr.uni-heidelberg.de",
     description="Library for change detection in 4D point cloud data",
