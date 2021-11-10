@@ -20,6 +20,8 @@ jobs:
             arch: "i686"
           - os: windows-2016
             arch: "x86"
+          - os: windows-2016
+            arch: "AMD64"
           - os: macos-10.15
             arch: "universal2"
 
