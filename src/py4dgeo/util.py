@@ -21,10 +21,11 @@ def find_file(filename):
 
     * If an absolute filename is given, it is used
     * Check whether the given relative path exists with respect to the current working directory
-    * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable XDG_DATA_DIRS).
+    * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable :code:`XDG_DATA_DIRS`).
 
-    :param: filename
+    :param filename:
         The (relative) filename to search for
+    :type filename: str
     :return: An absolute filename
     """
 
@@ -54,7 +55,7 @@ def find_file(filename):
 
 
 class MemoryPolicy(CxxMemoryPolicy):
-    """A desciptor for py4dgeo's memory usage policy
+    """A descriptor for py4dgeo's memory usage policy
 
     This can be used to describe the memory usage policy that py4dgeo
     should follow. The implementation of py4dgeo checks the currently
@@ -86,7 +87,7 @@ _policy = MemoryPolicy.COREPOINTS
 def set_memory_policy(policy: MemoryPolicy):
     """Globally set py4dgeo's memory policy
 
-    For details about the memory policy, see :ref:`~py4dgeo.MemoryPolicy`.
+    For details about the memory policy, see :class:`~py4dgeo.MemoryPolicy`.
     Use this once before performing any operations. Changing the memory policy
     in the middle of the computation results in undefined behaviour.
 

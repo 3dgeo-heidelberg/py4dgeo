@@ -12,7 +12,7 @@ doxygen_add_docs(
 add_custom_target(
   sphinx-doc
   COMMAND
-    sphinx-build -b singlehtml
+    sphinx-build -b html
     -Dbreathe_projects.py4dgeo="${CMAKE_CURRENT_BINARY_DIR}/xml" -c
     ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}
     ${CMAKE_CURRENT_BINARY_DIR}/sphinx
