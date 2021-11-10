@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 build-verbosity = 3
 
 # We restrict ourselves to recent Python versions
-skip = "*p27-* cp35-*"
+skip = "*p27-* cp35-* *musllinux*"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
