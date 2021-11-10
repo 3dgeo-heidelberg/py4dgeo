@@ -61,9 +61,6 @@ html_theme = "sphinx_rtd_theme"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = []
 
-# Make sure that classes are documented by their init method
-autoclass_content = "init"
-
 # Breathe Configuration: Breathe is the bridge between the information extracted
 # from the C++ sources by Doxygen and Sphinx.
 breathe_projects = {}

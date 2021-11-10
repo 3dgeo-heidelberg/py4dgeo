@@ -6,3 +6,4 @@
    basic
    pythonapi
    cppapi
+   callbacks
