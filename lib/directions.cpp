@@ -50,4 +50,5 @@ compute_multiscale_directions(const Epoch& epoch,
     }
   }
 }
+
 }
