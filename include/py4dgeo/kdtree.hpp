@@ -119,8 +119,11 @@ public:
    * @param querypoints The fixed set of query points we want to perform radius
    * searches for.
    * @param maxradius The maximum search radius this precomputation should cover
+   * @param policy The current policy level
    */
-  void precompute(EigenPointCloudRef querypoints, double maxradius);
+  void precompute(EigenPointCloudRef querypoints,
+                  double maxradius,
+                  MemoryPolicy policy);
 
   /** @brief Peform radius search around given query point
    *
@@ -187,6 +190,8 @@ private:
   int leaf_parameter = 0;
   std::vector<std::vector<IndexType>> precomputed_indices;
   std::vector<std::vector<double>> precomputed_distances;
+  EigenPointCloud precomputed_querypoints;
+  MemoryPolicy precomputed_policy;
 };
 
 } // namespace py4dgeo

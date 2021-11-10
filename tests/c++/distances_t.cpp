@@ -14,7 +14,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   auto cloud = testcloud();
   Epoch epoch(cloud);
   epoch.kdtree.build_tree(10);
-  epoch.kdtree.precompute(epoch.cloud, 10.0);
+  epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
   std::vector<double> scales{ 1.0 };
   EigenPointCloud directions(epoch.cloud.rows(), 3);
@@ -56,7 +56,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   auto cloud = testcloud();
   Epoch epoch(cloud);
   epoch.kdtree.build_tree(10);
-  epoch.kdtree.precompute(epoch.cloud, 10.0);
+  epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
   // Single distance vector
   EigenPointCloud directions(1, 3);

@@ -36,7 +36,20 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
   SECTION("Precomputation and radius search")
   {
     EigenPointCloud qp = epoch.cloud(Eigen::seq(0, 20), Eigen::all);
-    tree.precompute(qp, 20.0);
+    tree.precompute(qp, 20.0, MemoryPolicy::COREPOINTS);
+
+    for (std::size_t i = 0; i < 20; ++i) {
+      KDTree::RadiusSearchResult result1, result2;
+      tree.radius_search(&qp(i, 0), 5.0, result1);
+      tree.precomputed_radius_search(i, 5.0, result2);
+      REQUIRE(result1.size() == result2.size());
+    }
+  }
+
+  SECTION("Pseudo-precomputation with too small memory policy level")
+  {
+    EigenPointCloud qp = epoch.cloud(Eigen::seq(0, 20), Eigen::all);
+    tree.precompute(qp, 20.0, MemoryPolicy::MINIMAL);
 
     for (std::size_t i = 0; i < 20; ++i) {
       KDTree::RadiusSearchResult result1, result2;

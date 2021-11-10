@@ -1,5 +1,5 @@
 from py4dgeo.m3c2 import *
-from py4dgeo.util import Py4DGeoError
+from py4dgeo.util import Py4DGeoError, set_memory_policy, MemoryPolicy
 
 from . import epoch1, epoch2
 
@@ -24,3 +24,15 @@ def test_m3c2(epoch1, epoch2):
         epochs=(epoch1, epoch1), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
     ).run()
     assert (distances == 0).all()
+
+
+def test_minimal_m3c2(epoch1, epoch2):
+    set_memory_policy(MemoryPolicy.MINIMAL)
+
+    # Instantiate an M3C2 instance
+    m3c2 = M3C2(
+        epochs=(epoch1, epoch2), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
+    )
+
+    # Run it
+    distances, uncertainties = m3c2.run()
