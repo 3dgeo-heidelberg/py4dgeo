@@ -1,4 +1,4 @@
-import py4dgeo
+from py4dgeo.util import get_memory_policy
 
 import numpy as np
 import os
@@ -20,7 +20,7 @@ def test_kdtree(epoch1):
     assert result.shape[0] == data.shape[0]
 
     # Trigger precomputations
-    epoch1.kdtree.precompute(data[:20, :], 20)
+    epoch1.kdtree.precompute(data[:20, :], 20, get_memory_policy())
 
     # Compare precomputed and real results
     for i in range(20):

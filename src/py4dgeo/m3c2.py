@@ -8,8 +8,10 @@ from ._py4dgeo import (
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
+    get_memory_policy,
     MemoryPolicy,
     Py4DGeoError,
+    get_memory_policy,
     make_contiguous,
     memory_policy_is_minimum,
 )
@@ -94,12 +96,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
-        if memory_policy_is_minimum(MemoryPolicy.COREPOINTS):
-            return radius_workingset_finder
-        else:
-            raise NotImplementedError(
-                "No implementation of workingset_finder for your memory policy yet"
-            )
+        return radius_workingset_finder
 
     def callback_uncertainty_calculation(self):
         """The callback used to calculate the uncertainty"""
@@ -164,4 +161,4 @@ class M3C2(M3C2LikeAlgorithm):
         maxradius = max(radius_candidates)
 
         for epoch in self.epochs:
-            epoch.kdtree.precompute(self.corepoints, maxradius)
+            epoch.kdtree.precompute(self.corepoints, maxradius, get_memory_policy())

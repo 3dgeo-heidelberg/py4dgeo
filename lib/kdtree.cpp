@@ -25,8 +25,15 @@ KDTree::build_tree(int leaf)
 }
 
 void
-KDTree::precompute(EigenPointCloudRef querypoints, double maxradius)
+KDTree::precompute(EigenPointCloudRef querypoints,
+                   double maxradius,
+                   MemoryPolicy policy)
 {
+  precomputed_querypoints = querypoints;
+  precomputed_policy = policy;
+  if (policy < MemoryPolicy::COREPOINTS)
+    return;
+
   // Resize the output data structures
   precomputed_indices.resize(querypoints.rows());
   precomputed_distances.resize(querypoints.rows());
@@ -71,8 +78,12 @@ KDTree::precomputed_radius_search(const IndexType idx,
                                   double radius,
                                   RadiusSearchResult& result) const
 {
-  result.clear();
+  // Check whether precomputation was no-op
+  if (precomputed_policy < MemoryPolicy::COREPOINTS)
+    return radius_search(&precomputed_querypoints(idx, 0), radius, result);
 
+  // Access our precomputation
+  result.clear();
   auto it = std::find_if(precomputed_distances[idx].begin(),
                          precomputed_distances[idx].end(),
                          [radius](auto d) { return d > radius * radius; });
