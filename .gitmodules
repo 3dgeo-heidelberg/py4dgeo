@@ -10,3 +10,6 @@
 [submodule "ext/nanoflann"]
 	path = ext/nanoflann
 	url = https://github.com/jlblancoc/nanoflann.git
+[submodule "ext/benchmark"]
+	path = ext/benchmark
+	url = https://github.com/google/benchmark
