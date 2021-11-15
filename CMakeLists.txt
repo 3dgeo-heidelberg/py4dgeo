@@ -23,6 +23,9 @@ set(BUILD_PYTHON
 set(BUILD_DOCS
     ON
     CACHE BOOL "Enable building of documentation")
+set(BUILD_BENCHMARKS
+    OFF
+    CACHE BOOL "Enable building of benchmark applications")
 
 # Check that the repository was clone recursively
 if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
@@ -43,12 +46,19 @@ target_include_directories(
 add_executable(py4dgeo_app app/py4dgeo_app.cpp)
 target_link_libraries(py4dgeo_app PRIVATE py4dgeo)
 
-# Compile the tests
+# Compile the tests and benchmarks
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(ext/Catch2)
   include(./ext/Catch2/contrib/Catch.cmake)
   add_subdirectory(tests)
+endif()
+
+if(BUILD_BENCHMARKS)
+  set(BENCHMARK_ENABLE_GTEST_TESTS OFF)
+  set(BENCHMARK_ENABLE_TESTING OFF)
+  add_subdirectory(./ext/benchmark)
+  add_subdirectory(benchmarks)
 endif()
 
 # Add the documentation
