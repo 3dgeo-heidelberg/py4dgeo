@@ -9,7 +9,7 @@ distances_benchmark(benchmark::State& state)
   std::cout << cloud->rows() << std::endl;
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
-  epoch.kdtree.precompute(*corepoints, 10.0, MemoryPolicy::MINIMAL);
+  epoch.kdtree.precompute(*corepoints, 2.0, MemoryPolicy::COREPOINTS);
 
   std::vector<double> scales{ 1.0 };
   EigenPointCloud directions(corepoints->rows(), 3);
