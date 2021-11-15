@@ -6,7 +6,6 @@ static void
 distances_benchmark(benchmark::State& state)
 {
   auto [cloud, corepoints] = ahk_benchcloud();
-  std::cout << cloud->rows() << std::endl;
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
   epoch.kdtree.precompute(*corepoints, 2.0, MemoryPolicy::COREPOINTS);
