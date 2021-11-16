@@ -1,7 +1,9 @@
+#ifdef PY4DGEO_WITH_OPENMP
+#include <omp.h>
+#endif
+
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
-
-#include <iostream>
 
 namespace py4dgeo {
 
@@ -39,6 +41,9 @@ KDTree::precompute(EigenPointCloudRef querypoints,
   precomputed_distances.resize(querypoints.rows());
 
   // Loop over query points and evaluate with maxradius
+#ifdef PY4DGEO_WITH_OPENMP
+#pragma omp parallel for
+#endif
   for (IndexType i = 0; i < querypoints.rows(); ++i) {
     RadiusSearchDistanceResult result;
     radius_search_with_distances(&querypoints(i, 0), maxradius, result);

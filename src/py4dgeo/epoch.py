@@ -1,10 +1,14 @@
-from ._py4dgeo import Epoch as CxxEpoch
-from py4dgeo.util import Py4DGeoError, as_double_precision, make_contiguous
+from py4dgeo.util import (
+    Py4DGeoError,
+    as_double_precision,
+    make_contiguous,
+)
 
 import numpy as np
+import py4dgeo._py4dgeo as _py4dgeo
 
 
-class Epoch(CxxEpoch):
+class Epoch(_py4dgeo.Epoch):
     def __init__(self, cloud: np.ndarray):
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:

@@ -74,3 +74,8 @@ def test_as_double_precision_strict():
 
     with pytest.raises(Py4DGeoError):
         as_double_precision(arr)
+
+
+def test_set_num_threads():
+    set_num_threads(42)
+    assert get_num_threads() == 42

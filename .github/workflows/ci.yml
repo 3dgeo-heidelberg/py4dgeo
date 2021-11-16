@@ -30,13 +30,17 @@ jobs:
       with:
         python-version: 3.7
 
+    - name: Install OpenMP
+      if: runner.os == 'macOS'
+      run: brew install libomp
+
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: configure cmake
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF -DBUILD_BENCHMARKS=ON
 
     - name: build
       shell: bash
@@ -86,7 +90,7 @@ jobs:
     - name: configure cmake
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" -DBUILD_DOCS=OFF -DBUILD_BENCHMARKS=ON
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" -DBUILD_DOCS=OFF
 
     - name: build
       shell: bash
