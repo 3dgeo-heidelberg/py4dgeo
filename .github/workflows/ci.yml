@@ -122,13 +122,22 @@ jobs:
         ./codecov -f coverage2.xml -F cxx
 
   address-sanitizer:
-    name: Address sanitizer run (C++ only)
+    name: Address sanitizer run
     runs-on: ubuntu-18.04
 
     steps:
     - uses: actions/checkout@v2
       with:
         submodules: 'recursive'
+
+    - name: Set up Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+
+    - name: Install Python development requirements
+      run: |
+        python -m pip install -r requirements-dev.txt
 
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
@@ -143,7 +152,14 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: cmake --build .
 
-    - name: run tests
+    - name: run c++ tests
       shell: bash
       working-directory: ${{runner.workspace}}/build
       run: ctest
+
+    - name: run python tests
+      shell: bash
+      working-directory: ${{runner.workspace}}/py4dgeo
+      run: |
+        mv ../build/_py4dgeo.*.so src/py4dgeo/.
+        PYTHONPATH=src LD_PRELOAD=$(gcc -print-file-name=libasan.so) PYTHONMALLOC=malloc pytest -s
