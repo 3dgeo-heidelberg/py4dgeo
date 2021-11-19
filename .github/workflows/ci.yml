@@ -121,9 +121,9 @@ jobs:
         ./codecov -f py4dgeo/coverage.xml -F python
         ./codecov -f coverage2.xml -F cxx
 
-  address-sanitizer:
-    name: Address sanitizer run (C++ only)
-    runs-on: ubuntu-18.04
+  thread-sanitizer:
+    name: Thread sanitizer run (C++ only)
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
@@ -136,7 +136,7 @@ jobs:
     - name: configure cmake
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address" -DBUILD_DOCS=OFF
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS=-fsanitize=thread -DCMAKE_EXE_LINKER_FLAGS=-fsanitize=thread -DBUILD_DOCS=OFF
 
     - name: build
       shell: bash
@@ -145,5 +145,5 @@ jobs:
 
     - name: run tests
       shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: ctest
+      working-directory: ${{runner.workspace}}/build/tests/c++
+      run: ./tests
