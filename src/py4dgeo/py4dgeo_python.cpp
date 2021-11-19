@@ -137,16 +137,12 @@ PYBIND11_MODULE(_py4dgeo, m)
       // Allocate memory for the return types
       DistanceVector distances;
       UncertaintyVector uncertainties;
-      // Resize the output data structures
-      // note: this operation requires the GIL so we do it before calling
-      // compute_distances this ensures the same resize operation in
-      // compute_distances (without the GIL) is a no-op
-      distances.resize(corepoints.rows());
-      uncertainties.resize(corepoints.rows());
 
       {
-        // release GIL to allow compute_distances
-        // to itself call Python functions
+        // compute_distances may spawn multiple threads that may call Python
+        // functions (which requires them to acquire the GIL), so we need to
+        // first release the GIL on the main thread before calling
+        // compute_distances
         py::gil_scoped_release release_gil;
         compute_distances(corepoints,
                           scale,
