@@ -4,6 +4,7 @@
 #include "py4dgeo/py4dgeo.hpp"
 #include "testsetup.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -43,6 +44,11 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
       tree.radius_search(&qp(i, 0), 5.0, result1);
       tree.precomputed_radius_search(i, 5.0, result2);
       REQUIRE(result1.size() == result2.size());
+      std::sort(result1.begin(), result1.end());
+      std::sort(result2.begin(), result2.end());
+      for (std::size_t j = 0; j < result1.size(); ++j) {
+        REQUIRE(result1[j] == result2[j]);
+      }
     }
   }
 
@@ -56,6 +62,11 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
       tree.radius_search(&qp(i, 0), 5.0, result1);
       tree.precomputed_radius_search(i, 5.0, result2);
       REQUIRE(result1.size() == result2.size());
+      std::sort(result1.begin(), result1.end());
+      std::sort(result2.begin(), result2.end());
+      for (std::size_t j = 0; j < result1.size(); ++j) {
+        REQUIRE(result1[j] == result2[j]);
+      }
     }
   }
 }
