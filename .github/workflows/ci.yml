@@ -160,6 +160,7 @@ jobs:
     - name: run python tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
+      # see https://github.com/google/sanitizers/issues/934#issuecomment-649516500
       run: |
         mv ../build/_py4dgeo.*.so src/py4dgeo/.
-        PYTHONPATH=src LD_PRELOAD=$(gcc -print-file-name=libasan.so) PYTHONMALLOC=malloc pytest -s
+        PYTHONPATH=src LD_PRELOAD="$(gcc -print-file-name=libasan.so) /usr/lib/x86_64-linux-gnu/libstdc++.so.6" PYTHONMALLOC=malloc pytest -s
