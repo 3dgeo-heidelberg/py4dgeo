@@ -137,22 +137,32 @@ PYBIND11_MODULE(_py4dgeo, m)
       // Allocate memory for the return types
       DistanceVector distances;
       UncertaintyVector uncertainties;
+      // Resize the output data structures
+      // note: this operation requires the GIL so we do it before calling
+      // compute_distances this ensures the same resize operation in
+      // compute_distances (without the GIL) is a no-op
+      distances.resize(corepoints.rows());
+      uncertainties.resize(corepoints.rows());
 
-      compute_distances(corepoints,
-                        scale,
-                        epoch1,
-                        epoch2,
-                        directions,
-                        max_cylinder_length,
-                        distances,
-                        uncertainties,
-                        workingsetfinder,
-                        uncertaintycalculator);
+      {
+        // release GIL to allow compute_distances
+        // to itself call Python functions
+        py::gil_scoped_release release_gil;
+        compute_distances(corepoints,
+                          scale,
+                          epoch1,
+                          epoch2,
+                          directions,
+                          max_cylinder_length,
+                          distances,
+                          uncertainties,
+                          workingsetfinder,
+                          uncertaintycalculator);
+      }
 
       return std::make_tuple(as_pyarray(std::move(distances)),
                              as_pyarray(std::move(uncertainties)));
     },
-    py::call_guard<py::gil_scoped_release>(),
     "The main M3C2 distance calculation algorithm");
 
   // Multiscale direction computation
