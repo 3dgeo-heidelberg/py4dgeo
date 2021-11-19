@@ -4,6 +4,10 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
+#ifdef PY4DGEO_WITH_OPENMP
+#include <omp.h>
+#endif
+
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/kdtree.hpp"
@@ -134,21 +138,28 @@ PYBIND11_MODULE(_py4dgeo, m)
       DistanceVector distances;
       UncertaintyVector uncertainties;
 
-      compute_distances(corepoints,
-                        scale,
-                        epoch1,
-                        epoch2,
-                        directions,
-                        max_cylinder_length,
-                        distances,
-                        uncertainties,
-                        workingsetfinder,
-                        uncertaintycalculator);
+      {
+        // compute_distances may spawn multiple threads that may call Python
+        // functions (which requires them to acquire the GIL), so we need to
+        // first release the GIL on the main thread before calling
+        // compute_distances
+        py::gil_scoped_release release_gil;
+        compute_distances(corepoints,
+                          scale,
+                          epoch1,
+                          epoch2,
+                          directions,
+                          max_cylinder_length,
+                          distances,
+                          uncertainties,
+                          workingsetfinder,
+                          uncertaintycalculator);
+      }
 
       return std::make_tuple(as_pyarray(std::move(distances)),
                              as_pyarray(std::move(uncertainties)));
     },
-    "Compute M3C2 distances");
+    "The main M3C2 distance calculation algorithm");
 
   // Multiscale direction computation
   m.def("compute_multiscale_directions",
@@ -160,6 +171,12 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
   m.def("no_uncertainty", &no_uncertainty);
   m.def("standard_deviation_uncertainty", &standard_deviation_uncertainty);
+
+  // Expose OpenMP threading control
+#ifdef PY4DGEO_WITH_OPENMP
+  m.def("omp_set_num_threads", &omp_set_num_threads);
+  m.def("omp_get_max_threads", &omp_get_max_threads);
+#endif
 }
 
 } // namespace py4dgeo

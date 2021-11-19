@@ -25,5 +25,4 @@ setup(
     ],
     package_dir={"": "src"},
     cmake_install_dir="src/py4dgeo",
-    include_package_data=True,
 )

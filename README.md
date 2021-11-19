@@ -45,6 +45,8 @@ python -m pip install --editable .
 
 The `--editable` flag allows you to change the Python sources of `py4dgeo` without
 reinstalling the package. To recompile the C++ source, please run `pip install` again.
+In order to enable multi-threading on builds from source, your compiler toolchain
+needs to support `OpenMP`.
 
 If you want to contribute to the library's development you should also install
 its additional Python dependencies for testing and documentation building:

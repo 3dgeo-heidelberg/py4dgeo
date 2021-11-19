@@ -1,5 +1,9 @@
 #include <Eigen/Eigen>
 
+#ifdef PY4DGEO_WITH_OPENMP
+#include <omp.h>
+#endif
+
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
@@ -22,6 +26,9 @@ compute_distances(EigenPointCloudConstRef corepoints,
   distances.resize(corepoints.rows());
   uncertainties.resize(corepoints.rows());
 
+#ifdef PY4DGEO_WITH_OPENMP
+#pragma omp parallel for
+#endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     // Either choose the ith row or the first (if there is no per-corepoint
     // direction)

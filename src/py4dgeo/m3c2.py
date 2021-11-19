@@ -1,10 +1,3 @@
-from ._py4dgeo import (
-    compute_distances,
-    compute_multiscale_directions,
-    no_uncertainty,
-    radius_workingset_finder,
-    standard_deviation_uncertainty,
-)
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
@@ -19,6 +12,8 @@ from py4dgeo.util import (
 import abc
 import numpy as np
 import typing
+
+import py4dgeo._py4dgeo as _py4dgeo
 
 
 class M3C2LikeAlgorithm(abc.ABC):
@@ -75,9 +70,9 @@ class M3C2LikeAlgorithm(abc.ABC):
         # Extract the uncertainty callback
         uncertainty_callback = self.callback_uncertainty_calculation()
         if not self.calculate_uncertainty:
-            uncertainty_callback = no_uncertainty
+            uncertainty_callback = _py4dgeo.no_uncertainty
 
-        distances, uncertainties = compute_distances(
+        distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
             self.radii[0],
             epoch1,
@@ -96,11 +91,11 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
-        return radius_workingset_finder
+        return _py4dgeo.radius_workingset_finder
 
     def callback_uncertainty_calculation(self):
         """The callback used to calculate the uncertainty"""
-        return standard_deviation_uncertainty
+        return _py4dgeo.standard_deviation_uncertainty
 
 
 class M3C2(M3C2LikeAlgorithm):
@@ -136,7 +131,7 @@ class M3C2(M3C2LikeAlgorithm):
                 normals_epoch = self.epochs[0]
             normals_epoch = as_epoch(normals_epoch)
 
-            compute_multiscale_directions(
+            _py4dgeo.compute_multiscale_directions(
                 normals_epoch,
                 self.corepoints,
                 self.scales,

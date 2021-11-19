@@ -1,6 +1,10 @@
 #include <Eigen/Eigen>
 #include <Eigen/Eigenvalues>
 
+#ifdef PY4DGEO_WITH_OPENMP
+#include <omp.h>
+#endif
+
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
@@ -20,6 +24,9 @@ compute_multiscale_directions(const Epoch& epoch,
 {
   // TODO: Make sure that precomputation has been triggered.
 
+#ifdef PY4DGEO_WITH_OPENMP
+#pragma omp parallel for
+#endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     double highest_planarity = 0.0;
     for (auto scale : scales) {

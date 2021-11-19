@@ -1,9 +1,9 @@
-from ._py4dgeo import MemoryPolicy as CxxMemoryPolicy
-
 import numpy as np
 import os
 import platform
 import xdg
+
+import py4dgeo._py4dgeo as _py4dgeo
 
 
 class Py4DGeoError(Exception):
@@ -54,7 +54,7 @@ def find_file(filename):
     )
 
 
-class MemoryPolicy(CxxMemoryPolicy):
+class MemoryPolicy(_py4dgeo.MemoryPolicy):
     """A descriptor for py4dgeo's memory usage policy
 
     This can be used to describe the memory usage policy that py4dgeo
@@ -154,3 +154,32 @@ def as_double_precision(arr: np.ndarray):
         )
 
     return np.asarray(arr, dtype=np.float64)
+
+
+def set_num_threads(num_threads: int):
+    """Set the number of threads to use in py4dgeo
+
+    :param num_threads: The number of threads to use
+    "type num_threads: int
+    """
+
+    try:
+        _py4dgeo.omp_set_num_threads(num_threads)
+    except AttributeError:
+        # The C++ library was built without OpenMP!
+        if num_threads != 1:
+            raise Py4DGeoError("py4dgeo was built without threading support!")
+
+
+def get_num_threads():
+    """Get the number of threads currently used by py4dgeo
+
+    :return: The number of threads
+    :rtype: int
+    """
+
+    try:
+        return _py4dgeo.omp_get_max_threads()
+    except AttributeError:
+        # The C++ library was built without OpenMP!
+        return 1

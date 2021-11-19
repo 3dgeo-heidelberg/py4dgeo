@@ -6,6 +6,10 @@ project(
   VERSION 0.0.1
   LANGUAGES CXX)
 
+# Take into account <Package>_ROOT environment variable (used in packaging
+# process)
+cmake_policy(SET CMP0074 NEW)
+
 # Initialize some default paths
 include(GNUInstallDirs)
 
@@ -26,6 +30,9 @@ set(BUILD_DOCS
 set(BUILD_BENCHMARKS
     OFF
     CACHE BOOL "Enable building of benchmark applications")
+set(PY4DGEO_WITH_OPENMP
+    ON
+    CACHE BOOL "Enable OpenMP parallelization")
 
 # Check that the repository was clone recursively
 if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
@@ -41,6 +48,14 @@ add_library(py4dgeo lib/directions.cpp lib/distances.cpp lib/epoch.cpp
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
+if(PY4DGEO_WITH_OPENMP)
+  find_package(OpenMP)
+  if(OpenMP_FOUND)
+    target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)
+    target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP
+                                              EIGEN_DONT_PARALLELIZE)
+  endif()
+endif()
 
 # Compile a stand-alone application - mostly used for testing purposes
 add_executable(py4dgeo_app app/py4dgeo_app.cpp)

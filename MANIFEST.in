@@ -1,1 +1,11 @@
-recursive-exclude tests/data *
+include CMakeLists.txt
+include COPYING.md
+include LICENSE.md
+include pyproject.toml
+include setup.py
+
+graft app
+graft ext
+graft include
+graft lib
+graft src

@@ -1,10 +1,10 @@
 """Fallback implementations for C++ components of the M3C2 algorithms """
 
-from ._py4dgeo import DistanceUncertainty
 from py4dgeo.epoch import Epoch
 from py4dgeo.m3c2 import M3C2
 
 import numpy as np
+import py4dgeo._py4dgeo as _py4dgeo
 
 
 def radius_workingset_finder(
@@ -46,19 +46,19 @@ def cylinder_workingset_finder(
 
 def no_uncertainty(
     set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
-) -> DistanceUncertainty:
-    return DistanceUncertainty()
+) -> _py4dgeo.DistanceUncertainty:
+    return _py4dgeo.DistanceUncertainty()
 
 
 def standard_deviation_uncertainty(
     set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
-) -> DistanceUncertainty:
+) -> _py4dgeo.DistanceUncertainty:
     # Calculate variances
     variance1 = direction @ np.cov(set1.T) @ direction.T
     variance2 = direction @ np.cov(set2.T) @ direction.T
 
     # The structured array that describes the full uncertainty
-    return DistanceUncertainty(
+    return _py4dgeo.DistanceUncertainty(
         lodetection=1.96
         * np.sqrt(variance1 / set1.shape[0] + variance2 / set2.shape[0]),
         stddev1=np.sqrt(variance1),
