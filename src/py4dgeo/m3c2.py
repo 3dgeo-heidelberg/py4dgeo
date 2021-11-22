@@ -91,7 +91,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
-        return _py4dgeo.radius_workingset_finder
+        return _py4dgeo.cylinder_workingset_finder
 
     def callback_uncertainty_calculation(self):
         """The callback used to calculate the uncertainty"""
