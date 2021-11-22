@@ -27,7 +27,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
   uncertainties.resize(corepoints.rows());
 
 #ifdef PY4DGEO_WITH_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     // Either choose the ith row or the first (if there is no per-corepoint

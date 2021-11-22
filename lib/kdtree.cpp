@@ -42,7 +42,7 @@ KDTree::precompute(EigenPointCloudRef querypoints,
 
   // Loop over query points and evaluate with maxradius
 #ifdef PY4DGEO_WITH_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < querypoints.rows(); ++i) {
     RadiusSearchDistanceResult result;

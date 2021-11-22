@@ -25,7 +25,7 @@ compute_multiscale_directions(const Epoch& epoch,
   // TODO: Make sure that precomputation has been triggered.
 
 #ifdef PY4DGEO_WITH_OPENMP
-#pragma omp parallel for
+#pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     double highest_planarity = 0.0;
