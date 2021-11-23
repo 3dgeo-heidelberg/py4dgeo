@@ -43,7 +43,7 @@ def cylinder_workingset_finder(
             tuple(
                 epoch.kdtree.radius_search(
                     corepoint[0, :]
-                    + ((2 * i - N + 2) / N) * max_cylinder_length * direction[0, :],
+                    + ((2 * i - N + 1) / N) * max_cylinder_length * direction[0, :],
                     r_cyl,
                 )
                 for i in range(N)
