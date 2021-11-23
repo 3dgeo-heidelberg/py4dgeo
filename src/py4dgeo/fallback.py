@@ -92,7 +92,7 @@ class PythonFallbackM3C2(M3C2):
         return "M3C2 (Python Fallback)"
 
     def callback_workingset_finder(self):
-        return radius_workingset_finder
+        return cylinder_workingset_finder
 
     def callback_uncertainty_calculation(self):
         return standard_deviation_uncertainty
