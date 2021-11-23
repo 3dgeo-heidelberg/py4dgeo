@@ -123,7 +123,9 @@ class M3C2(M3C2LikeAlgorithm):
 
         # Trigger the precomputation
         if self._precomputed_normals is None:
-            self._precomputed_normals = np.empty(self.corepoints.shape)
+            self._precomputed_normals = np.empty(
+                self.corepoints.shape, dtype=np.float64
+            )
 
             # Find the correct epoch to use for normal calculation
             normals_epoch = self.cloud_for_normals

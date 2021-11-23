@@ -69,17 +69,39 @@ cylinder_workingset_finder(const Epoch& epoch,
                            double max_cylinder_length,
                            IndexType core_idx)
 {
-  // The search radius is the maximum of cylinder length and radius
-  auto search_radius = std::max(radius, max_cylinder_length);
+  // Cut the cylinder into N segments, perform radius searches around the
+  // segment midpoints and create the union of indices.
 
-  // Find the points in the radius of max_cylinder_length
-  KDTree::RadiusSearchResult ball_points;
-  epoch.kdtree.precomputed_radius_search(core_idx, search_radius, ball_points);
-  auto superset = epoch.cloud(ball_points, Eigen::all);
+  // The number of segments - later cast to int
+  double N = 1.0;
+  if (max_cylinder_length > radius)
+    N = std::ceil(max_cylinder_length / radius);
+  else
+    max_cylinder_length = radius;
 
-  // If max_cylinder_length is sufficiently small, we are done
-  if (max_cylinder_length <= radius)
-    return superset;
+  // The search radius for each segment
+  double r_cyl = std::sqrt(radius * radius +
+                           max_cylinder_length * max_cylinder_length / (N * N));
+
+  // Perform radius searches and merge results
+  std::vector<IndexType> merged;
+  for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i) {
+    auto qp = (corepoint.row(0) +
+               ((2 * i + 1 - N) / N) * max_cylinder_length * direction.row(0))
+                .eval();
+    KDTree::RadiusSearchResult ball_points;
+    epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
+    merged.reserve(merged.capacity() + ball_points.size());
+    std::copy(
+      ball_points.begin(), ball_points.end(), std::back_inserter(merged));
+  }
+
+  // Making indices unique
+  std::sort(merged.begin(), merged.end());
+  merged.erase(std::unique(merged.begin(), merged.end()), merged.end());
+
+  // Extracting points
+  auto superset = epoch.cloud(merged, Eigen::all);
 
   // Calculate the squared distances to the cylinder axis
   auto distances = (superset.rowwise() - corepoint.row(0))

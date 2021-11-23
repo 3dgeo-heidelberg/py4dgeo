@@ -27,20 +27,36 @@ def cylinder_workingset_finder(
     max_cylinder_length: float,
     core_idx: int,
 ) -> np.ndarray:
-    # The search radius is the maximum of cylinder length and radius
-    search_radius = max(radius, max_cylinder_length)
+    # Cut the cylinder into N segments, perform radius searches around the
+    # segment midpoints and create the union of indices
+    N = 1
+    if max_cylinder_length >= radius:
+        N = int(np.ceil(max_cylinder_length / radius))
+    else:
+        max_cylinder_length = radius
 
-    # Find the points in the radius of max_cylinder_length
-    indices = epoch.kdtree.precomputed_radius_search(core_idx, search_radius)
+    r_cyl = np.sqrt(
+        radius * radius + max_cylinder_length * max_cylinder_length / (N * N)
+    )
+    indices = np.unique(
+        np.concatenate(
+            tuple(
+                epoch.kdtree.radius_search(
+                    corepoint[0, :]
+                    + ((2 * i - N + 1) / N) * max_cylinder_length * direction[0, :],
+                    r_cyl,
+                )
+                for i in range(N)
+            )
+        )
+    )
+
+    # Gather the points from the point cloud
     superset = epoch.cloud[indices, :]
 
-    # If max_cylinder_length is sufficiently small, we are done
-    if max_cylinder_length <= radius:
-        return superset
-
+    # And cut away those points that are too far away from the cylinder axis
     crossprod = np.cross(superset - corepoint[0, :], direction[0, :])
     distances = np.sum(crossprod * crossprod, axis=1)
-
     return superset[distances < radius * radius, :]
 
 
@@ -76,7 +92,7 @@ class PythonFallbackM3C2(M3C2):
         return "M3C2 (Python Fallback)"
 
     def callback_workingset_finder(self):
-        return radius_workingset_finder
+        return cylinder_workingset_finder
 
     def callback_uncertainty_calculation(self):
         return standard_deviation_uncertainty
