@@ -40,7 +40,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
       epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
     // Distance calculation
-    distances[i] = dir.dot(subset1.colwise().mean() - subset2.colwise().mean());
+    distances[i] = dir.dot(subset2.colwise().mean() - subset1.colwise().mean());
 
     // Uncertainty calculation
     uncertainties[i] = uncertaintycalculator(subset1, subset2, dir);
