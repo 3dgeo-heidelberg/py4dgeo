@@ -54,10 +54,23 @@ def cylinder_workingset_finder(
     # Gather the points from the point cloud
     superset = epoch.cloud[indices, :]
 
-    # And cut away those points that are too far away from the cylinder axis
-    crossprod = np.cross(superset - corepoint[0, :], direction[0, :])
-    distances = np.sum(crossprod * crossprod, axis=1)
-    return superset[distances < radius * radius, :]
+    # Calculate distance from the axis and the plane perpendicular to the axis
+    to_corepoint = superset - corepoint[0, :]
+    to_corepoint_plane = to_corepoint.dot(direction[0, :])
+    to_axis2 = np.sum(
+        np.square(
+            to_corepoint
+            - np.multiply(to_corepoint_plane[:, np.newaxis], direction[0, :])
+        ),
+        axis=1,
+    )
+
+    # Cut the points within the cylinder
+    return superset[
+        np.logical_and(
+            to_axis2 < radius * radius, np.abs(to_corepoint_plane) < max_cylinder_length
+        )
+    ]
 
 
 def no_uncertainty(

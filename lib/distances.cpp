@@ -70,7 +70,8 @@ cylinder_workingset_finder(const Epoch& epoch,
                            IndexType core_idx)
 {
   // Cut the cylinder into N segments, perform radius searches around the
-  // segment midpoints and create the union of indices.
+  // segment midpoints and create the union of indices. Afterwards, select
+  // only those points that are within the cylinder
 
   // The number of segments - later cast to int
   double N = 1.0;
@@ -103,19 +104,21 @@ cylinder_workingset_finder(const Epoch& epoch,
   // Extracting points
   auto superset = epoch.cloud(merged, Eigen::all);
 
-  // Calculate the squared distances to the cylinder axis
-  auto distances = (superset.rowwise() - corepoint.row(0))
-                     .rowwise()
-                     .cross(direction.row(0))
-                     .rowwise()
-                     .squaredNorm()
-                     .eval();
+  // Calculate the squared distances to the cylinder axis and to the plane
+  // perpendicular to the axis that contains the corepoint
+  auto to_corepoint = (superset.rowwise() - corepoint.row(0)).eval();
+  auto to_corepoint_plane = (to_corepoint * direction.transpose()).eval();
+  auto to_axis2 = (to_corepoint - to_corepoint_plane * direction)
+                    .rowwise()
+                    .squaredNorm()
+                    .eval();
 
   // Non-performance oriented version of index extraction. There should
   // be a version using Eigen masks, but I could not find it.
   std::vector<Eigen::Index> indices;
   for (Eigen::Index i = 0; i < superset.rows(); ++i)
-    if (distances(i, 0) < radius * radius)
+    if ((to_axis2(i) <= radius * radius) &&
+        (std::abs(to_corepoint_plane(i)) <= max_cylinder_length))
       indices.push_back(i);
 
   // Select only those indices that are within the cylinder
