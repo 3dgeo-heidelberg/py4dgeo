@@ -16,7 +16,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   epoch.kdtree.build_tree(10);
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
-  std::vector<double> scales{ 1.0 };
+  std::vector<double> scales{ 3.0 };
   EigenNormalSet directions(epoch.cloud.rows(), 3);
   EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
@@ -34,6 +34,9 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
     GENERATE(radius_workingset_finder, cylinder_workingset_finder);
   auto uncertaintymeasure =
     GENERATE(no_uncertainty, standard_deviation_uncertainty);
+
+  REQUIRE(distances.size() == epoch.cloud.rows());
+  REQUIRE(uncertainties.size() == epoch.cloud.rows());
 
   compute_distances(epoch.cloud,
                     2.0,
