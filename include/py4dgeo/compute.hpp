@@ -23,7 +23,7 @@ using WorkingSetFinderCallback =
   std::function<EigenPointCloud(const Epoch&,
                                 double,
                                 EigenPointCloudConstRef,
-                                EigenPointCloudConstRef,
+                                EigenNormalSetConstRef,
                                 double,
                                 IndexType)>;
 
@@ -38,7 +38,7 @@ using WorkingSetFinderCallback =
 using UncertaintyMeasureCallback =
   std::function<DistanceUncertainty(EigenPointCloudConstRef,
                                     EigenPointCloudConstRef,
-                                    EigenPointCloudConstRef)>;
+                                    EigenNormalSetConstRef)>;
 
 /* Variety of callback declarations usable in M3C2 algorithms */
 
@@ -58,7 +58,7 @@ EigenPointCloud
 radius_workingset_finder(const Epoch& epoch,
                          double radius,
                          EigenPointCloudConstRef corepoint,
-                         EigenPointCloudConstRef direction,
+                         EigenNormalSetConstRef direction,
                          double max_cylinder_length,
                          IndexType core_idx);
 
@@ -76,7 +76,7 @@ EigenPointCloud
 cylinder_workingset_finder(const Epoch& epoch,
                            double radius,
                            EigenPointCloudConstRef corepoint,
-                           EigenPointCloudConstRef direction,
+                           EigenNormalSetConstRef direction,
                            double max_cylinder_length,
                            IndexType core_idx);
 
@@ -88,7 +88,7 @@ cylinder_workingset_finder(const Epoch& epoch,
 inline DistanceUncertainty
 no_uncertainty(EigenPointCloudConstRef,
                EigenPointCloudConstRef,
-               EigenPointCloudConstRef)
+               EigenNormalSetConstRef)
 {
   return DistanceUncertainty{ 0.0, 0.0, 0, 0.0, 0 };
 }
@@ -105,7 +105,7 @@ no_uncertainty(EigenPointCloudConstRef,
 DistanceUncertainty
 standard_deviation_uncertainty(EigenPointCloudConstRef set1,
                                EigenPointCloudConstRef set2,
-                               EigenPointCloudConstRef direction);
+                               EigenNormalSetConstRef direction);
 
 /* Compute interfaces used in the M3C2 main algorithm */
 
@@ -114,8 +114,8 @@ void
 compute_multiscale_directions(const Epoch&,
                               EigenPointCloudConstRef,
                               const std::vector<double>&,
-                              EigenPointCloudConstRef,
-                              EigenPointCloudRef);
+                              EigenNormalSetConstRef,
+                              EigenNormalSetRef);
 
 /** @brief Compute M3C2 distances */
 void
@@ -123,7 +123,7 @@ compute_distances(EigenPointCloudConstRef,
                   double,
                   const Epoch&,
                   const Epoch&,
-                  EigenPointCloudConstRef,
+                  EigenNormalSetConstRef,
                   double,
                   DistanceVector&,
                   UncertaintyVector&,

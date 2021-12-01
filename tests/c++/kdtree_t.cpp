@@ -25,7 +25,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
   SECTION("Perform radius search")
   {
     // Find all nodes with a radius search
-    std::array<double, 3> o{ 0.0, 0.0, 0.0 };
+    std::array<float, 3> o{ 0.0, 0.0, 0.0 };
     KDTree::RadiusSearchResult result;
 
     // Do radius search with radius wide enough to cover the entire cloud

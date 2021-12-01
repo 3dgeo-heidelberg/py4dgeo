@@ -8,14 +8,14 @@
 std::shared_ptr<EigenPointCloud>
 benchcloud_from_file(const std::string& filename)
 {
-  std::vector<double> data;
+  std::vector<float> data;
   std::ifstream stream(filename);
   std::string line;
   std::size_t points{ 0 };
 
   while (std::getline(stream, line)) {
     std::istringstream s(line);
-    double x;
+    float x;
     for (int i = 0; i < 3; ++i) {
       s >> x;
       data.push_back(x);

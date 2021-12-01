@@ -15,7 +15,7 @@ namespace py4dgeo {
  * interoperability with numpy's multidimensional arrays.
  */
 using EigenPointCloud =
-  Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>;
 
 /** @brief A non-const reference type for passing around @ref EigenPointCloud
  *
@@ -30,6 +30,12 @@ using EigenPointCloudRef = Eigen::Ref<EigenPointCloud>;
  * point cloud.
  */
 using EigenPointCloudConstRef = const Eigen::Ref<const EigenPointCloud>&;
+
+//! Doc the normal types
+using EigenNormalSet =
+  Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+using EigenNormalSetRef = Eigen::Ref<EigenNormalSet>;
+using EigenNormalSetConstRef = const Eigen::Ref<const EigenNormalSet>&;
 
 /** @brief The type used for point cloud indices */
 using IndexType = Eigen::Index;

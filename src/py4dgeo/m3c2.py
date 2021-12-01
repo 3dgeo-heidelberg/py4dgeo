@@ -1,6 +1,7 @@
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
+    as_single_precision,
     get_memory_policy,
     MemoryPolicy,
     Py4DGeoError,
@@ -26,7 +27,7 @@ class M3C2LikeAlgorithm(abc.ABC):
         calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
-        self.corepoints = as_double_precision(make_contiguous(corepoints))
+        self.corepoints = as_single_precision(make_contiguous(corepoints))
         self.radii = radii
         self.max_cylinder_length = max_cylinder_length
         self.calculate_uncertainty = calculate_uncertainty
@@ -102,13 +103,13 @@ class M3C2(M3C2LikeAlgorithm):
     def __init__(
         self,
         scales: typing.List[float] = None,
-        orientation_vector: np.ndarray = np.array([0, 0, 1], dtype=np.float64),
+        orientation_vector: np.ndarray = np.array([0, 0, 1]),
         cloud_for_normals: Epoch = None,
         **kwargs,
     ):
         self.scales = scales
         self.orientation_vector = as_double_precision(
-            make_contiguous(orientation_vector)
+            make_contiguous(orientation_vector), policy_check=False
         )
         self.cloud_for_normals = cloud_for_normals
         self._precomputed_normals = None

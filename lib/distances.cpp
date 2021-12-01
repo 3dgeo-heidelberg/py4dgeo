@@ -15,7 +15,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   double scale,
                   const Epoch& epoch1,
                   const Epoch& epoch2,
-                  EigenPointCloudConstRef directions,
+                  EigenNormalSetConstRef directions,
                   double max_cylinder_length,
                   DistanceVector& distances,
                   UncertaintyVector& uncertainties,
@@ -40,7 +40,8 @@ compute_distances(EigenPointCloudConstRef corepoints,
       epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
     // Distance calculation
-    distances[i] = dir.dot(subset2.colwise().mean() - subset1.colwise().mean());
+    distances[i] = dir.dot(subset2.cast<double>().colwise().mean() -
+                           subset1.cast<double>().colwise().mean());
 
     // Uncertainty calculation
     uncertainties[i] = uncertaintycalculator(subset1, subset2, dir);
@@ -51,7 +52,7 @@ EigenPointCloud
 radius_workingset_finder(const Epoch& epoch,
                          double radius,
                          EigenPointCloudConstRef,
-                         EigenPointCloudConstRef,
+                         EigenNormalSetConstRef,
                          double,
                          IndexType core_idx)
 {
@@ -65,7 +66,7 @@ EigenPointCloud
 cylinder_workingset_finder(const Epoch& epoch,
                            double radius,
                            EigenPointCloudConstRef corepoint,
-                           EigenPointCloudConstRef direction,
+                           EigenNormalSetConstRef direction,
                            double max_cylinder_length,
                            IndexType core_idx)
 {
@@ -87,8 +88,9 @@ cylinder_workingset_finder(const Epoch& epoch,
   // Perform radius searches and merge results
   std::vector<IndexType> merged;
   for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i) {
-    auto qp = (corepoint.row(0) +
-               ((2 * i + 1 - N) / N) * max_cylinder_length * direction.row(0))
+    auto qp = (corepoint.row(0) + ((2 * i + 1 - N) / N) *
+                                    static_cast<float>(max_cylinder_length) *
+                                    direction.cast<float>().row(0))
                 .eval();
     KDTree::RadiusSearchResult ball_points;
     epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
@@ -106,7 +108,9 @@ cylinder_workingset_finder(const Epoch& epoch,
 
   // Calculate the squared distances to the cylinder axis and to the plane
   // perpendicular to the axis that contains the corepoint
-  auto to_corepoint = (superset.rowwise() - corepoint.row(0)).eval();
+  auto to_corepoint =
+    (superset.cast<double>().rowwise() - corepoint.cast<double>().row(0))
+      .eval();
   auto to_corepoint_plane = (to_corepoint * direction.transpose()).eval();
   auto to_axis2 = (to_corepoint - to_corepoint_plane * direction)
                     .rowwise()
@@ -126,9 +130,10 @@ cylinder_workingset_finder(const Epoch& epoch,
 }
 
 double
-variance(EigenPointCloudConstRef subset, EigenPointCloudConstRef direction)
+variance(EigenPointCloudConstRef subset, EigenNormalSetConstRef direction)
 {
-  auto centered = subset.rowwise() - subset.colwise().mean();
+  auto centered =
+    subset.cast<double>().rowwise() - subset.cast<double>().colwise().mean();
   auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
   auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
   return multiplied.eval()(0, 0);
@@ -137,7 +142,7 @@ variance(EigenPointCloudConstRef subset, EigenPointCloudConstRef direction)
 DistanceUncertainty
 standard_deviation_uncertainty(EigenPointCloudConstRef set1,
                                EigenPointCloudConstRef set2,
-                               EigenPointCloudConstRef direction)
+                               EigenNormalSetConstRef direction)
 {
   double variance1 = variance(set1, direction);
   double variance2 = variance(set2, direction);

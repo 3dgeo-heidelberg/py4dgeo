@@ -20,8 +20,8 @@ scalability_benchmark(benchmark::State& state)
     epoch.kdtree.precompute(*corepoints, 2.0, MemoryPolicy::COREPOINTS);
 
     std::vector<double> scales{ 1.0 };
-    EigenPointCloud directions(corepoints->rows(), 3);
-    EigenPointCloud orientation(1, 3);
+    EigenNormalSet directions(corepoints->rows(), 3);
+    EigenNormalSet orientation(1, 3);
     orientation << 0, 0, 1;
 
     // Precompute the multiscale directions

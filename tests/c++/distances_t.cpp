@@ -17,8 +17,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
   std::vector<double> scales{ 1.0 };
-  EigenPointCloud directions(epoch.cloud.rows(), 3);
-  EigenPointCloud orientation(1, 3);
+  EigenNormalSet directions(epoch.cloud.rows(), 3);
+  EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
 
   // Precompute the multiscale directions
@@ -59,7 +59,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
   // Single distance vector
-  EigenPointCloud directions(1, 3);
+  EigenNormalSet directions(1, 3);
   directions << 0, 0, 1;
 
   // Calculate the distances
