@@ -10,7 +10,7 @@ EigenPointCloud
 testcloud()
 {
   std::vector<float> data;
-  std::ifstream stream("../data/plane_horizontal_t1.xyz");
+  std::ifstream stream(DATAPATH(plane_horizontal_t1.xyz));
   std::string line;
   std::size_t points{ 0 };
 
