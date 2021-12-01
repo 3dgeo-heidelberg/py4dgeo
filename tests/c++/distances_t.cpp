@@ -46,7 +46,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                     wsfinder,
                     uncertaintymeasure);
 
-  for (IndexType i = 0; i < distances.size(); ++i)
+  for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);
 }
 
@@ -83,6 +83,6 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     wsfinder,
                     uncertaintymeasure);
 
-  for (IndexType i = 0; i < distances.size(); ++i)
+  for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);
 }

@@ -14,7 +14,7 @@
 namespace py4dgeo {
 
 // Forward declaration of Epoch
-struct Epoch;
+class Epoch;
 
 /** @brief Efficient KDTree data structure for nearest neighbor/radius searches
  *
