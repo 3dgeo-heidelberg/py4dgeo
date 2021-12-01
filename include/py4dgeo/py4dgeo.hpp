@@ -31,10 +31,17 @@ using EigenPointCloudRef = Eigen::Ref<EigenPointCloud>;
  */
 using EigenPointCloudConstRef = const Eigen::Ref<const EigenPointCloud>&;
 
-//! Doc the normal types
+/** @brief The C++ type to represent a set of normal vectors on a point cloud
+ *
+ * In contrast to point clouds, these use double precision.
+ */
 using EigenNormalSet =
   Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
+
+/** @brief A mutable reference to a set of normal vectors on a point cloud */
 using EigenNormalSetRef = Eigen::Ref<EigenNormalSet>;
+
+/** @brief An immutable reference to a set of normal vectors on a point cloud */
 using EigenNormalSetConstRef = const Eigen::Ref<const EigenNormalSet>&;
 
 /** @brief The type used for point cloud indices */
