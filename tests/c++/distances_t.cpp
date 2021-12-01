@@ -35,9 +35,6 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   auto uncertaintymeasure =
     GENERATE(no_uncertainty, standard_deviation_uncertainty);
 
-  REQUIRE(distances.size() == epoch.cloud.rows());
-  REQUIRE(uncertainties.size() == epoch.cloud.rows());
-
   compute_distances(epoch.cloud,
                     2.0,
                     epoch,
@@ -48,6 +45,9 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                     uncertainties,
                     wsfinder,
                     uncertaintymeasure);
+
+  REQUIRE(distances.size() == epoch.cloud.rows());
+  REQUIRE(uncertainties.size() == epoch.cloud.rows());
 
   for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);
