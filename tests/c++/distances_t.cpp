@@ -11,8 +11,8 @@ using namespace py4dgeo;
 TEST_CASE("M3C2 distance calculation", "[compute]")
 {
   // Get a test epoch
-  auto cloud = testcloud();
-  Epoch epoch(cloud);
+  auto [cloud, corepoints] = testcloud();
+  Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
@@ -23,7 +23,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
 
   // Precompute the multiscale directions
   compute_multiscale_directions(
-    epoch, epoch.cloud, scales, orientation, directions);
+    epoch, *corepoints, scales, orientation, directions);
 
   // Calculate the distances
   DistanceVector distances;
@@ -56,8 +56,8 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
 TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
 {
   // Get a test epoch
-  auto cloud = testcloud();
-  Epoch epoch(cloud);
+  auto [cloud, corepoints] = testcloud();
+  Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
@@ -75,7 +75,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   auto uncertaintymeasure =
     GENERATE(no_uncertainty, standard_deviation_uncertainty);
 
-  compute_distances(epoch.cloud,
+  compute_distances(*corepoints,
                     2.0,
                     epoch,
                     epoch,

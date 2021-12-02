@@ -9,8 +9,8 @@ using namespace py4dgeo;
 TEST_CASE("Epoch is working correctly", "[epoch]")
 {
   // Instantiate a test epoch
-  auto cloud = testcloud();
-  Epoch epoch(cloud);
+  auto [cloud, corepoints] = testcloud();
+  Epoch epoch(*cloud);
 
   SECTION("Serialize + deserialize")
   {

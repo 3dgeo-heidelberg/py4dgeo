@@ -15,8 +15,8 @@ using namespace py4dgeo;
 TEST_CASE("KDTree is correctly build", "[kdtree]")
 {
   // Get a test epoch
-  auto cloud = testcloud();
-  Epoch epoch(cloud);
+  auto [cloud, corepoints] = testcloud();
+  Epoch epoch(*cloud);
 
   // Construct the KDTree
   auto tree = KDTree::create(epoch.cloud);
