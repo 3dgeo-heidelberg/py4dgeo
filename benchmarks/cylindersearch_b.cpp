@@ -20,9 +20,11 @@ cylindersearch_benchmark(benchmark::State& state)
 
   for (auto _ : state) {
     auto points = cylinder_workingset_finder(
-      epoch, 1.0, corepoints->row(0), directions, 3.0, 0);
+      epoch, 1.0, corepoints->row(0), directions, state.range(0), 0);
   }
 }
 
-BENCHMARK(cylindersearch_benchmark)->Unit(benchmark::kMicrosecond);
+BENCHMARK(cylindersearch_benchmark)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(2.0, 8.0, 1.0);
 BENCHMARK_MAIN();
