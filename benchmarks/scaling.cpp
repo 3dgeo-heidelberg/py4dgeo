@@ -56,3 +56,5 @@ BENCHMARK(scalability_benchmark)
   ->Complexity();
 
 #endif // PY4DGEO_WITH_OPENMP
+
+BENCHMARK_MAIN();

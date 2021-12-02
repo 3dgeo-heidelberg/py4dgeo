@@ -45,5 +45,3 @@ ahk_benchcloud()
   auto cloud = benchcloud_from_file("../tests/data/ahk_2017_small.xyz");
   return std::make_pair(cloud, slice_cloud(*cloud, 1000));
 }
-
-BENCHMARK_MAIN();

@@ -42,3 +42,4 @@ distances_benchmark(benchmark::State& state)
 }
 
 BENCHMARK(distances_benchmark);
+BENCHMARK_MAIN();
