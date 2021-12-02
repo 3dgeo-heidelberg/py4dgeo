@@ -135,7 +135,19 @@ def make_contiguous(arr: np.ndarray):
     return np.copy(arr, order="C")
 
 
-def as_double_precision(arr: np.ndarray):
+def _as_dtype(arr, dtype, policy_check):
+    if np.issubdtype(arr.dtype, dtype):
+        return arr
+
+    if policy_check and not memory_policy_is_minimum(MemoryPolicy.MINIMAL):
+        raise Py4DGeoError(
+            f"py4dgeo expected an input of type {np.dtype(dtype).name}, but got {np.dtype(arr.dtype).name}. Current memory policy forbids automatic cast."
+        )
+
+    return np.asarray(arr, dtype=dtype)
+
+
+def as_double_precision(arr: np.ndarray, policy_check=True):
     """Ensure that a numpy array is double precision
 
     This is a no-op if the array is already double precision and makes a copy
@@ -144,16 +156,19 @@ def as_double_precision(arr: np.ndarray):
     :param arr: The numpy array
     :type arr: np.ndarray
     """
+    return _as_dtype(arr, np.float64, policy_check)
 
-    if arr.dtype.name == "float64":
-        return arr
 
-    if not memory_policy_is_minimum(MemoryPolicy.MINIMAL):
-        raise Py4DGeoError(
-            "py4dgeo only operates on double precision input. Please provide it or set the memory policy to MINIMAL or above."
-        )
+def as_single_precision(arr: np.ndarray, policy_check=True):
+    """Ensure that a numpy array is signle precision
 
-    return np.asarray(arr, dtype=np.float64)
+    This is a no-op if the array is already double precision and makes a copy
+    if it is not. It checks py4dgeo's memory policy before copying.
+
+    :param arr: The numpy array
+    :type arr: np.ndarray
+    """
+    return _as_dtype(arr, np.float32, policy_check)
 
 
 def set_num_threads(num_threads: int):

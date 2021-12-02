@@ -50,7 +50,7 @@ jobs:
     - name: run tests
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: ctest
+      run: ctest --output-on-failure
 
     - name: Install Python package and development requirements
       run: |

@@ -14,7 +14,7 @@ def epoch_fixture(filename):
 
     @pytest.fixture
     def _epoch_fixture():
-        cloud = np.genfromtxt(os.path.join(data_dir, filename), dtype=np.float64)
+        cloud = np.genfromtxt(os.path.join(data_dir, filename), dtype=np.float32)
         return Epoch(cloud=cloud)
 
     return _epoch_fixture

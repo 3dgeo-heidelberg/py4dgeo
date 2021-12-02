@@ -9,14 +9,14 @@ using namespace py4dgeo;
 EigenPointCloud
 testcloud()
 {
-  std::vector<double> data;
-  std::ifstream stream("../data/plane_horizontal_t1.xyz");
+  std::vector<float> data;
+  std::ifstream stream(DATAPATH(plane_horizontal_t1.xyz));
   std::string line;
   std::size_t points{ 0 };
 
   while (std::getline(stream, line)) {
     std::istringstream s(line);
-    double x;
+    float x;
     for (int i = 0; i < 3; ++i) {
       s >> x;
       data.push_back(x);

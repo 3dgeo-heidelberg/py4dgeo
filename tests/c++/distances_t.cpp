@@ -16,9 +16,9 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   epoch.kdtree.build_tree(10);
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
-  std::vector<double> scales{ 1.0 };
-  EigenPointCloud directions(epoch.cloud.rows(), 3);
-  EigenPointCloud orientation(1, 3);
+  std::vector<double> scales{ 3.0 };
+  EigenNormalSet directions(epoch.cloud.rows(), 3);
+  EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
 
   // Precompute the multiscale directions
@@ -46,7 +46,10 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                     wsfinder,
                     uncertaintymeasure);
 
-  for (IndexType i = 0; i < distances.size(); ++i)
+  REQUIRE(distances.size() == epoch.cloud.rows());
+  REQUIRE(uncertainties.size() == epoch.cloud.rows());
+
+  for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);
 }
 
@@ -59,7 +62,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
   // Single distance vector
-  EigenPointCloud directions(1, 3);
+  EigenNormalSet directions(1, 3);
   directions << 0, 0, 1;
 
   // Calculate the distances
@@ -83,6 +86,6 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     wsfinder,
                     uncertaintymeasure);
 
-  for (IndexType i = 0; i < distances.size(); ++i)
+  for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);
 }
