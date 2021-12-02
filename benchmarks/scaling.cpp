@@ -1,10 +1,15 @@
 #ifdef PY4DGEO_WITH_OPENMP
 
+#include "testsetup.hpp"
+
 #include <omp.h>
 
-#include "bench.hpp"
 #include <py4dgeo/compute.hpp>
 #include <py4dgeo/epoch.hpp>
+
+#include <benchmark/benchmark.h>
+
+using namespace py4dgeo;
 
 static void
 scalability_benchmark(benchmark::State& state)
@@ -56,3 +61,5 @@ BENCHMARK(scalability_benchmark)
   ->Complexity();
 
 #endif // PY4DGEO_WITH_OPENMP
+
+BENCHMARK_MAIN();

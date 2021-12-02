@@ -1,6 +1,11 @@
-#include "bench.hpp"
+#include "testsetup.hpp"
+
 #include <py4dgeo/compute.hpp>
 #include <py4dgeo/epoch.hpp>
+
+#include <benchmark/benchmark.h>
+
+using namespace py4dgeo;
 
 static void
 distances_benchmark(benchmark::State& state)
@@ -41,4 +46,5 @@ distances_benchmark(benchmark::State& state)
   }
 }
 
-BENCHMARK(distances_benchmark);
+BENCHMARK(distances_benchmark)->Unit(benchmark::kMillisecond);
+BENCHMARK_MAIN();
