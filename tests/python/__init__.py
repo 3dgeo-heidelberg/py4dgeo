@@ -1,6 +1,5 @@
-from py4dgeo.epoch import Epoch
+from py4dgeo.epoch import read_from_xyz
 
-import numpy as np
 import os
 import pytest
 
@@ -9,13 +8,16 @@ import pytest
 data_dir = os.path.join(os.path.split(__file__)[0], "..", "data")
 
 
+def find_data_file(filename):
+    return os.path.join(data_dir, filename)
+
+
 def epoch_fixture(filename):
     """Wrap a given data file in an Epoch and make it a pytest fixture"""
 
     @pytest.fixture
     def _epoch_fixture():
-        cloud = np.genfromtxt(os.path.join(data_dir, filename), dtype=np.float32)
-        return Epoch(cloud=cloud)
+        return read_from_xyz(find_data_file(filename))
 
     return _epoch_fixture
 

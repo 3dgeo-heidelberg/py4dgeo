@@ -5,7 +5,7 @@ import os
 import pickle
 import tempfile
 
-from . import epoch1
+from . import epoch1, find_data_file
 
 
 def test_epoch_pickle(epoch1):
@@ -29,3 +29,13 @@ def test_epoch_pickle(epoch1):
 def test_as_epoch(epoch1):
     assert epoch1 is as_epoch(epoch1)
     assert np.allclose(epoch1.cloud, as_epoch(epoch1.cloud).cloud)
+
+
+def test_read_from_xyz():
+    epoch = read_from_xyz(find_data_file("ahk_2017_small.xyz"))
+    assert np.isclose(np.max(epoch.cloud), 60.60600000002887)
+
+
+def test_read_from_las():
+    epoch = read_from_las(find_data_file("ahk_2017_small.las"))
+    assert np.isclose(np.max(epoch.cloud), 146.24525)

@@ -4,6 +4,7 @@ from py4dgeo.util import (
     make_contiguous,
 )
 
+import laspy
 import numpy as np
 import py4dgeo._py4dgeo as _py4dgeo
 
@@ -39,3 +40,32 @@ def as_epoch(cloud):
 
     # Initialize an epoch from the given cloud
     return Epoch(cloud)
+
+
+def read_from_xyz(filename):
+    """Create an epoch from an xyz file
+
+    :param filename:
+        The filename to read from. Each line in the input file is expected
+        to contain three space separated numbers.
+    :type filename: str
+    """
+    cloud = np.genfromtxt(filename, dtype=np.float64)
+    cloud -= cloud.min(axis=0)
+
+    return Epoch(cloud=cloud.astype("f"))
+
+
+def read_from_las(filename):
+    """Create an epoch from a LAS/LAZ file
+
+    :param filename:
+        The filename to read from. It is expected to be in LAS/LAZ format
+        and will be processed using laspy.
+    :type filename: str
+    """
+
+    lasfile = laspy.read(filename)
+    lasfile.header.offsets = np.array([0, 0, 0])
+
+    return Epoch(np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose())
