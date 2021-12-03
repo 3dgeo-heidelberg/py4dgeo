@@ -92,19 +92,19 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
 
 TEST_CASE("Cylinder Search Correctness", "[compute]")
 {
-  auto [cloud, corepoints] = ahk_benchcloud();
+  auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
   epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::MINIMAL);
 
   EigenPointCloud corepoint(1, 3);
-  corepoint << 25.344, 4.391, 16.837;
+  corepoint << 10, 10, 0;
 
   EigenNormalSet normal(1, 3);
-  normal << -0.807895, -0.57368, 0.134896;
+  normal << 0.70710678, 0.70710678, 0.0;
 
   auto cyl = cylinder_workingset_finder(
-    epoch, 0.5, corepoint.row(0), normal.row(0), 3.0, 0);
+    epoch, 1.0, corepoint.row(0), normal.row(0), 5.0, 0);
 
-  REQUIRE(cyl.rows() == 1952);
+  REQUIRE(cyl.rows() == 23);
 }
