@@ -42,7 +42,7 @@ def as_epoch(cloud):
     return Epoch(cloud)
 
 
-def read_from_xyz(filename):
+def read_from_xyz(*filenames, offset=None):
     """Create an epoch from an xyz file
 
     :param filename:
@@ -50,13 +50,28 @@ def read_from_xyz(filename):
         to contain three space separated numbers.
     :type filename: str
     """
-    cloud = np.genfromtxt(filename, dtype=np.float64)
-    cloud -= cloud.min(axis=0)
 
-    return Epoch(cloud=cloud.astype("f"))
+    # End recursion
+    if len(filenames) == 0:
+        return ()
+
+    # Read the first cloud
+    cloud = np.genfromtxt(filenames[0], dtype=np.float64)
+
+    # If no explicit shift was given, calculate it on the first one
+    if offset is None:
+        offset = cloud.min(axis=0)
+
+    # Apply chosen offset
+    cloud -= offset
+
+    # Construct Epoch and go into recursion
+    return (Epoch(cloud=cloud.astype("f")),) + read_from_xyz(
+        *filenames[1:], offset=offset
+    )
 
 
-def read_from_las(filename):
+def read_from_las(*filenames, offset=None):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
@@ -65,7 +80,18 @@ def read_from_las(filename):
     :type filename: str
     """
 
-    lasfile = laspy.read(filename)
-    lasfile.header.offsets = np.array([0, 0, 0])
+    ret = []
 
-    return Epoch(np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose())
+    for filename in filenames:
+        lasfile = laspy.read(filename)
+
+        if offset is None:
+            offset = np.array([0, 0, 0])
+
+        lasfile.header.offsets = offset
+
+        ret.append(
+            Epoch(np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose())
+        )
+
+    return tuple(ret)

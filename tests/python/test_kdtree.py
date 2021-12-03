@@ -5,14 +5,15 @@ import os
 import pickle
 import pytest
 
-from . import epoch1
+from . import epochs
 
 _test_files = [
     os.path.join(os.path.split(__file__)[0], "../data/plane_horizontal_t1.xyz")
 ]
 
 
-def test_kdtree(epoch1):
+def test_kdtree(epochs):
+    epoch1, _ = epochs
     data = epoch1.cloud
 
     # Find all points in sufficiently large radius
@@ -29,7 +30,8 @@ def test_kdtree(epoch1):
         assert result1.shape == result2.shape
 
 
-def test_kdtree_pickle(epoch1):
+def test_kdtree_pickle(epochs):
+    epoch1, _ = epochs
     with pytest.raises(RuntimeError):
         fn = os.path.join("kdtree.pickle")
         with open(fn, "wb") as f:
