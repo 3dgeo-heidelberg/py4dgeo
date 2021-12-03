@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
           submodules: 'recursive'
-          lfs: true
+
 
       - name: Install the SonarCloud Client + build wrapper
         run: |
