@@ -31,11 +31,5 @@ def test_as_epoch(epoch1):
     assert np.allclose(epoch1.cloud, as_epoch(epoch1.cloud).cloud)
 
 
-def test_read_from_xyz():
-    epoch = read_from_xyz(find_data_file("ahk_2017_small.xyz"))
-    assert np.isclose(np.max(epoch.cloud), 60.60600000002887)
-
-
-def test_read_from_las():
-    epoch = read_from_las(find_data_file("ahk_2017_small.las"))
-    assert np.isclose(np.max(epoch.cloud), 146.24525)
+def test_read_from_xyz(epoch1):
+    assert np.isclose(np.max(epoch1.cloud), 20)
