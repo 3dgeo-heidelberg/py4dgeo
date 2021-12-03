@@ -1,32 +1,53 @@
 #include "testsetup.hpp"
 
 #include <fstream>
+#include <limits>
 #include <sstream>
 #include <vector>
+
+#include <iomanip>
+#include <iostream>
 
 using namespace py4dgeo;
 
 std::shared_ptr<EigenPointCloud>
 benchcloud_from_file(const std::string& filename)
 {
-  std::vector<float> data;
   std::ifstream stream(filename);
   std::string line;
-  std::size_t points{ 0 };
 
+  // Read the file once to determine size and lower left corner
+  // Definitely not the best way to read this, but good enough.
+  std::array<double, 3> mincoord{ std::numeric_limits<double>::infinity(),
+                                  std::numeric_limits<double>::infinity(),
+                                  std::numeric_limits<double>::infinity() };
+  std::size_t points{ 0 };
   while (std::getline(stream, line)) {
     std::istringstream s(line);
-    float x;
+    double x;
     for (int i = 0; i < 3; ++i) {
       s >> x;
-      data.push_back(x);
+      if (x < mincoord[i])
+        mincoord[i] = x;
+    }
+    ++points;
+  }
+  stream.close();
+
+  // Now read and shift the actual data
+  auto cloud = std::make_shared<EigenPointCloud>(points, 3);
+  stream.open(filename);
+  points = 0;
+  while (std::getline(stream, line)) {
+    std::istringstream s(line);
+    double x;
+    for (int i = 0; i < 3; ++i) {
+      s >> x;
+      (*cloud)(points, i) = static_cast<float>(x - mincoord[i]);
     }
     ++points;
   }
 
-  // Interpret the given data as an Eigen matrix
-  auto cloud = std::make_shared<EigenPointCloud>(points, 3);
-  std::copy(data.data(), data.data() + points * 3, cloud->data());
   return cloud;
 }
 

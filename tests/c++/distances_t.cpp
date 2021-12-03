@@ -89,3 +89,22 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);
 }
+
+TEST_CASE("Cylinder Search Correctness", "[compute]")
+{
+  auto [cloud, corepoints] = ahk_benchcloud();
+  Epoch epoch(*cloud);
+  epoch.kdtree.build_tree(10);
+  epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::MINIMAL);
+
+  EigenPointCloud corepoint(1, 3);
+  corepoint << 25.344, 4.391, 16.837;
+
+  EigenNormalSet normal(1, 3);
+  normal << -0.807895, -0.57368, 0.134896;
+
+  auto cyl = cylinder_workingset_finder(
+    epoch, 0.5, corepoint.row(0), normal.row(0), 3.0, 0);
+
+  REQUIRE(cyl.rows() == 1952);
+}
