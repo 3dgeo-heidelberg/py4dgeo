@@ -114,7 +114,7 @@ cylinder_workingset_finder(const Epoch& epoch,
     for (Eigen::Index i = 0; i < superset.rows(); ++i)
       if ((to_axis2(i) <= radius * radius) &&
           (std::abs(to_midpoint_plane(i)) <= (max_cylinder_length / N)))
-        merged.push_back(i);
+        merged.push_back(ball_points[i]);
   }
 
   // Select only those indices that are within the cylinder
