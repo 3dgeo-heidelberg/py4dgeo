@@ -107,4 +107,15 @@ TEST_CASE("Cylinder Search Correctness", "[compute]")
     epoch, 1.0, corepoint.row(0), normal.row(0), 5.0, 0);
 
   REQUIRE(cyl.rows() == 23);
+
+  for (IndexType i = 0; i < cyl.rows(); ++i) {
+    auto to_midpoint =
+      cyl.cast<double>().row(i) - corepoint.cast<double>().row(0);
+    auto to_midpoint_plane = (to_midpoint * normal.row(0).transpose()).eval();
+    auto to_axis2 =
+      (to_midpoint - to_midpoint_plane * normal).rowwise().squaredNorm().eval();
+
+    REQUIRE(to_axis2(0, 0) <= 1.0);
+    REQUIRE(std::abs(to_midpoint_plane(0, 0)) <= 5.0);
+  }
 }
