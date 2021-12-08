@@ -10,14 +10,27 @@ import py4dgeo._py4dgeo as _py4dgeo
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray):
+    def __init__(self, cloud: np.ndarray, geographic_offset=None):
+        """
+
+        :param cloud:
+            The point cloud array of shape (n, 3).
+        :param geographic_offset:
+            The offset that needs to be applied to transform the given points
+            into actual geographic coordinates.
+        """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
             raise Py4DGeoError("Clouds need to be an array of shape nx3")
 
-        # Make sure that cloud is double precision and contiguous in memory
+        # Make sure that cloud is single precision and contiguous in memory
         cloud = as_single_precision(cloud)
         cloud = make_contiguous(cloud)
+
+        # Apply defaults to metadata
+        if geographic_offset is None:
+            geographic_offset = np.array([0, 0, 0], dtype=np.float32)
+        self.geographic_offset = geographic_offset
 
         # Call base class constructor
         super().__init__(cloud)
@@ -66,7 +79,7 @@ def read_from_xyz(*filenames, offset=None):
     cloud -= offset
 
     # Construct Epoch and go into recursion
-    return (Epoch(cloud=cloud.astype("f")),) + read_from_xyz(
+    return (Epoch(cloud=cloud.astype("f"), geographic_offset=offset),) + read_from_xyz(
         *filenames[1:], offset=offset
     )
 
@@ -85,13 +98,17 @@ def read_from_las(*filenames, offset=None):
     for filename in filenames:
         lasfile = laspy.read(filename)
 
+        original_offset = lasfile.header.offsets
         if offset is None:
             offset = np.array([0, 0, 0])
 
         lasfile.header.offsets = offset
 
         ret.append(
-            Epoch(np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose())
+            Epoch(
+                np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose(),
+                geographic_offset=original_offset,
+            )
         )
 
     return tuple(ret)
