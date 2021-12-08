@@ -38,39 +38,40 @@ def cylinder_workingset_finder(
     r_cyl = np.sqrt(
         radius * radius + max_cylinder_length * max_cylinder_length / (N * N)
     )
-    indices = np.unique(
-        np.concatenate(
-            tuple(
-                epoch.kdtree.radius_search(
-                    corepoint[0, :]
-                    + ((2 * i - N + 1) / N) * max_cylinder_length * direction[0, :],
-                    r_cyl,
-                )
-                for i in range(N)
+
+    slabs = []
+    for i in range(N):
+        # Find indices around slab midpoint
+        qp = corepoint[0, :] + np.float32(2 * i - N + 1) / np.float32(N) * np.float32(
+            max_cylinder_length
+        ) * direction[0, :].astype("f")
+        indices = epoch.kdtree.radius_search(qp, r_cyl)
+
+        # Gather the points from the point cloud
+        superset = epoch.cloud[indices, :]
+
+        # Calculate distance from the axis and the plane perpendicular to the axis
+        to_corepoint = superset.astype("d") - qp.astype("d")
+        to_corepoint_plane = to_corepoint.dot(direction[0, :])
+        to_axis2 = np.sum(
+            np.square(
+                to_corepoint
+                - np.multiply(to_corepoint_plane[:, np.newaxis], direction[0, :])
+            ),
+            axis=1,
+        )
+
+        # Filter the points that are not within the slab
+        filtered = superset[
+            np.logical_and(
+                to_axis2 <= radius * radius,
+                np.abs(to_corepoint_plane) <= max_cylinder_length / N,
             )
-        )
-    )
+        ]
 
-    # Gather the points from the point cloud
-    superset = epoch.cloud[indices, :]
+        slabs.append(filtered)
 
-    # Calculate distance from the axis and the plane perpendicular to the axis
-    to_corepoint = superset - corepoint[0, :]
-    to_corepoint_plane = to_corepoint.dot(direction[0, :])
-    to_axis2 = np.sum(
-        np.square(
-            to_corepoint
-            - np.multiply(to_corepoint_plane[:, np.newaxis], direction[0, :])
-        ),
-        axis=1,
-    )
-
-    # Cut the points within the cylinder
-    return superset[
-        np.logical_and(
-            to_axis2 < radius * radius, np.abs(to_corepoint_plane) < max_cylinder_length
-        )
-    ]
+    return np.concatenate(tuple(slabs))
 
 
 def no_uncertainty(
