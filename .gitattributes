@@ -1,3 +1,0 @@
-*.xyz filter=lfs diff=lfs merge=lfs -text
-*.las filter=lfs diff=lfs merge=lfs -text
-*.laz filter=lfs diff=lfs merge=lfs -text
