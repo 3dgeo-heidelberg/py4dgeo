@@ -1,12 +1,14 @@
 from py4dgeo.m3c2 import *
 from py4dgeo.util import Py4DGeoError, set_memory_policy, MemoryPolicy
 
-from . import epoch1, epoch2
+from . import epochs
 
 import pytest
 
 
-def test_m3c2(epoch1, epoch2):
+def test_m3c2(epochs):
+    epoch1, epoch2 = epochs
+
     # Try with wrong number of epochs
     with pytest.raises(Py4DGeoError):
         M3C2(epochs=(epoch1,), corepoints=epoch1.cloud, radii=(1.0,))
@@ -26,7 +28,8 @@ def test_m3c2(epoch1, epoch2):
     assert (distances == 0).all()
 
 
-def test_minimal_m3c2(epoch1, epoch2):
+def test_minimal_m3c2(epochs):
+    epoch1, epoch2 = epochs
     set_memory_policy(MemoryPolicy.MINIMAL)
 
     # Instantiate an M3C2 instance
@@ -38,7 +41,8 @@ def test_minimal_m3c2(epoch1, epoch2):
     distances, uncertainties = m3c2.run()
 
 
-def test_external_normals(epoch1, epoch2):
+def test_external_normals(epochs):
+    epoch1, epoch2 = epochs
     # Instantiate an M3C2 instance
     d, u = M3C2(
         epochs=(epoch1, epoch2),
