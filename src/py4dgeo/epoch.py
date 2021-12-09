@@ -113,15 +113,13 @@ def read_from_las(*filenames, other_epoch=None):
     # given, we calculate one. Otherwise, we take the same offset to be
     # compatible.s    
     if other_epoch is None:
-        geographic_offset = lasfile.header.offsets
-        lasfile.header.offsets = np.array([0, 0, 0])
+        geographic_offset = lasfile.header.mins
     else:
         geographic_offset = other_epoch.geographic_offset
-        lasfile.header.offsets = lasfile.header.offsets - other_epoch.geographic_offset
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
-        np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose(),
+        np.vstack((lasfile.x - lasfile.header.x_min, lasfile.y - lasfile.header.y_min, lasfile.z - lasfile.header.z_min)).astype("f").transpose(),
         geographic_offset=geographic_offset,
     )
 
