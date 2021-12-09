@@ -119,7 +119,7 @@ def read_from_las(*filenames, other_epoch=None):
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
-        np.vstack((lasfile.x - lasfile.header.x_min, lasfile.y - lasfile.header.y_min, lasfile.z - lasfile.header.z_min)).astype("f").transpose(),
+        np.vstack((lasfile.x - geographic_offset[0], lasfile.y - geographic_offset[1], lasfile.z - geographic_offset[2])).astype("f").transpose(),
         geographic_offset=geographic_offset,
     )
 
