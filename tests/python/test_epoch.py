@@ -35,4 +35,4 @@ def test_as_epoch(epochs):
 
 def test_read_from_xyz(epochs):
     epoch1, _ = epochs
-    assert np.isclose(np.max(epoch1.cloud), 20)
+    assert np.isclose(np.max(epoch1.cloud), 10)

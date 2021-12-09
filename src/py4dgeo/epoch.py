@@ -55,13 +55,16 @@ def as_epoch(cloud):
     return Epoch(cloud)
 
 
-def read_from_xyz(*filenames, offset=None):
+def read_from_xyz(*filenames, other_epoch=None):
     """Create an epoch from an xyz file
 
     :param filename:
         The filename to read from. Each line in the input file is expected
         to contain three space separated numbers.
     :type filename: str
+    :param other_epoch:
+        An existing epoch that we want to be compatible with.
+    :type other_epoch: py4dgeo.Epoch
     """
 
     # End recursion
@@ -71,44 +74,55 @@ def read_from_xyz(*filenames, offset=None):
     # Read the first cloud
     cloud = np.genfromtxt(filenames[0], dtype=np.float64)
 
-    # If no explicit shift was given, calculate it on the first one
-    if offset is None:
-        offset = cloud.min(axis=0)
+    # Determine the offset to use. If no epoch to be compatible with has been
+    # given, we calculate one. Otherwise, we take the same offset to be
+    # compatible.s
+    if other_epoch is None:
+        offset = cloud.mean(axis=0)
+    else:
+        offset = other_epoch.geographic_offset
 
     # Apply chosen offset
     cloud -= offset
 
     # Construct Epoch and go into recursion
-    return (Epoch(cloud=cloud.astype("f"), geographic_offset=offset),) + read_from_xyz(
-        *filenames[1:], offset=offset
-    )
+    new_epoch = Epoch(cloud=cloud.astype("f"), geographic_offset=offset)
+    return (new_epoch,) + read_from_xyz(*filenames[1:], other_epoch=new_epoch)
 
 
-def read_from_las(*filenames, offset=None):
+def read_from_las(*filenames, other_epoch=None):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
         The filename to read from. It is expected to be in LAS/LAZ format
         and will be processed using laspy.
     :type filename: str
+    :param other_epoch:
+        An existing epoch that we want to be compatible with.
+    :type other_epoch: py4dgeo.Epoch
     """
 
-    ret = []
+    # End recursion
+    if len(filenames) == 0:
+        return ()
 
-    for filename in filenames:
-        lasfile = laspy.read(filename)
+    # Read the lasfile using laspy
+    lasfile = laspy.read(filenames[0])
 
-        original_offset = lasfile.header.offsets
-        if offset is None:
-            offset = np.array([0, 0, 0])
+    # Determine the offset to use. If no epoch to be compatible with has been
+    # given, we calculate one. Otherwise, we take the same offset to be
+    # compatible.s    
+    if other_epoch is None:
+        geographic_offset = lasfile.header.offsets
+        lasfile.header.offsets = np.array([0, 0, 0])
+    else:
+        geographic_offset = other_epoch.geographic_offset
+        lasfile.header.offsets = lasfile.header.offsets - other_epoch.geographic_offset
 
-        lasfile.header.offsets = offset
+    # Construct Epoch and go into recursion
+    new_epoch = Epoch(
+        np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose(),
+        geographic_offset=geographic_offset,
+    )
 
-        ret.append(
-            Epoch(
-                np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose(),
-                geographic_offset=original_offset,
-            )
-        )
-
-    return tuple(ret)
+    return (new_epoch,) + read_from_las(*filenames[1:], other_epoch=new_epoch)
