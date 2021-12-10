@@ -7,56 +7,48 @@ import numpy as np
 import py4dgeo._py4dgeo as _py4dgeo
 
 
-def radius_workingset_finder(
-    epoch: Epoch,
-    radius: float,
-    corepoint: np.ndarray,
-    direction: np.ndarray,
-    max_cylinder_length: float,
-    core_idx: int,
-) -> np.ndarray:
-    indices = epoch.kdtree.radius_search(corepoint, radius)
-    return epoch.cloud[indices, :]
+def radius_workingset_finder(params: _py4dgeo.WorkingSetFinderParameters) -> np.ndarray:
+    indices = params.epoch.kdtree.radius_search(params.corepoint, params.radius)
+    return params.epoch.cloud[indices, :]
 
 
 def cylinder_workingset_finder(
-    epoch: Epoch,
-    radius: float,
-    corepoint: np.ndarray,
-    direction: np.ndarray,
-    max_cylinder_length: float,
-    core_idx: int,
+    params: _py4dgeo.WorkingSetFinderParameters,
 ) -> np.ndarray:
     # Cut the cylinder into N segments, perform radius searches around the
     # segment midpoints and create the union of indices
     N = 1
-    if max_cylinder_length >= radius:
-        N = int(np.ceil(max_cylinder_length / radius))
+    max_cylinder_length = params.cylinder_length
+    if max_cylinder_length >= params.radius:
+        N = int(np.ceil(max_cylinder_length / params.radius))
     else:
-        max_cylinder_length = radius
+        max_cylinder_length = params.radius
 
     r_cyl = np.sqrt(
-        radius * radius + max_cylinder_length * max_cylinder_length / (N * N)
+        params.radius * params.radius
+        + max_cylinder_length * max_cylinder_length / (N * N)
     )
 
     slabs = []
     for i in range(N):
         # Find indices around slab midpoint
-        qp = corepoint[0, :] + np.float32(2 * i - N + 1) / np.float32(N) * np.float32(
-            max_cylinder_length
-        ) * direction[0, :].astype("f")
-        indices = epoch.kdtree.radius_search(qp, r_cyl)
+        qp = params.corepoint[0, :] + np.float32(2 * i - N + 1) / np.float32(
+            N
+        ) * np.float32(max_cylinder_length) * params.cylinder_axis[0, :].astype("f")
+        indices = params.epoch.kdtree.radius_search(qp, r_cyl)
 
         # Gather the points from the point cloud
-        superset = epoch.cloud[indices, :]
+        superset = params.epoch.cloud[indices, :]
 
         # Calculate distance from the axis and the plane perpendicular to the axis
         to_corepoint = superset.astype("d") - qp.astype("d")
-        to_corepoint_plane = to_corepoint.dot(direction[0, :])
+        to_corepoint_plane = to_corepoint.dot(params.cylinder_axis[0, :])
         to_axis2 = np.sum(
             np.square(
                 to_corepoint
-                - np.multiply(to_corepoint_plane[:, np.newaxis], direction[0, :])
+                - np.multiply(
+                    to_corepoint_plane[:, np.newaxis], params.cylinder_axis[0, :]
+                )
             ),
             axis=1,
         )
@@ -64,7 +56,7 @@ def cylinder_workingset_finder(
         # Filter the points that are not within the slab
         filtered = superset[
             np.logical_and(
-                to_axis2 <= radius * radius,
+                to_axis2 <= params.radius * params.radius,
                 np.abs(to_corepoint_plane) <= max_cylinder_length / N,
             )
         ]
@@ -75,26 +67,29 @@ def cylinder_workingset_finder(
 
 
 def no_uncertainty(
-    set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
+    params: _py4dgeo.UncertaintyMeasureParameters,
 ) -> _py4dgeo.DistanceUncertainty:
     return _py4dgeo.DistanceUncertainty()
 
 
 def standard_deviation_uncertainty(
-    set1: np.ndarray, set2: np.ndarray, direction: np.ndarray
+    params: _py4dgeo.UncertaintyMeasureParameters,
 ) -> _py4dgeo.DistanceUncertainty:
     # Calculate variances
-    variance1 = direction @ np.cov(set1.T) @ direction.T
-    variance2 = direction @ np.cov(set2.T) @ direction.T
+    variance1 = params.normal @ np.cov(params.workingset1.T) @ params.normal.T
+    variance2 = params.normal @ np.cov(params.workingset2.T) @ params.normal.T
 
     # The structured array that describes the full uncertainty
     return _py4dgeo.DistanceUncertainty(
         lodetection=1.96
-        * np.sqrt(variance1 / set1.shape[0] + variance2 / set2.shape[0]),
+        * np.sqrt(
+            variance1 / params.workingset1.shape[0]
+            + variance2 / params.workingset2.shape[0]
+        ),
         stddev1=np.sqrt(variance1),
-        num_samples1=set1.shape[0],
+        num_samples1=params.workingset1.shape[0],
         stddev2=np.sqrt(variance2),
-        num_samples2=set2.shape[0],
+        num_samples2=params.workingset2.shape[0],
     )
 
 

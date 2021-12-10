@@ -35,17 +35,22 @@ compute_distances(EigenPointCloudConstRef corepoints,
       // direction)
       auto dir = directions.row(directions.rows() > 1 ? i : 0);
 
-      auto subset1 = workingsetfinder(
-        epoch1, scale, corepoints.row(i), dir, max_cylinder_length, i);
-      auto subset2 = workingsetfinder(
-        epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
+      WorkingSetFinderParameters params1{
+        epoch1, scale, corepoints.row(i), dir, max_cylinder_length
+      };
+      auto subset1 = workingsetfinder(params1);
+      WorkingSetFinderParameters params2{
+        epoch2, scale, corepoints.row(i), dir, max_cylinder_length
+      };
+      auto subset2 = workingsetfinder(params2);
 
       // Distance calculation
       distances[i] = dir.dot(subset2.cast<double>().colwise().mean() -
                              subset1.cast<double>().colwise().mean());
 
       // Uncertainty calculation
-      uncertainties[i] = uncertaintycalculator(subset1, subset2, dir);
+      UncertaintyMeasureParameters uc_params{ subset1, subset2, dir };
+      uncertainties[i] = uncertaintycalculator(uc_params);
     });
   }
 
@@ -54,26 +59,17 @@ compute_distances(EigenPointCloudConstRef corepoints,
 }
 
 EigenPointCloud
-radius_workingset_finder(const Epoch& epoch,
-                         double radius,
-                         EigenPointCloudConstRef corepoint,
-                         EigenNormalSetConstRef,
-                         double,
-                         IndexType core_idx)
+radius_workingset_finder(const WorkingSetFinderParameters& params)
 {
   // Find the working set in the other epoch
   KDTree::RadiusSearchResult points;
-  epoch.kdtree.radius_search(corepoint.data(), radius, points);
-  return epoch.cloud(points, Eigen::all);
+  params.epoch.kdtree.radius_search(
+    params.corepoint.data(), params.radius, points);
+  return params.epoch.cloud(points, Eigen::all);
 }
 
 EigenPointCloud
-cylinder_workingset_finder(const Epoch& epoch,
-                           double radius,
-                           EigenPointCloudConstRef corepoint,
-                           EigenNormalSetConstRef direction,
-                           double max_cylinder_length,
-                           IndexType core_idx)
+cylinder_workingset_finder(const WorkingSetFinderParameters& params)
 {
   // Cut the cylinder into N segments, perform radius searches around the
   // segment midpoints and create the union of indices. Afterwards, select
@@ -81,36 +77,38 @@ cylinder_workingset_finder(const Epoch& epoch,
 
   // The number of segments - later cast to int
   double N = 1.0;
-  if (max_cylinder_length > radius)
-    N = std::ceil(max_cylinder_length / radius);
+  double cylinder_length = params.cylinder_length;
+  if (cylinder_length > params.radius)
+    N = std::ceil(cylinder_length / params.radius);
   else
-    max_cylinder_length = radius;
+    cylinder_length = params.radius;
 
   // The search radius for each segment
-  double r_cyl = std::sqrt(radius * radius +
-                           max_cylinder_length * max_cylinder_length / (N * N));
+  double r_cyl = std::sqrt(params.radius * params.radius +
+                           cylinder_length * cylinder_length / (N * N));
 
   // Perform radius searches and merge results
   std::vector<IndexType> merged;
   for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i) {
-    auto qp = (corepoint.row(0) +
+    auto qp = (params.corepoint.row(0) +
                (static_cast<float>(2 * i + 1 - N) / static_cast<float>(N)) *
-                 static_cast<float>(max_cylinder_length) *
-                 direction.cast<float>().row(0))
+                 static_cast<float>(cylinder_length) *
+                 params.cylinder_axis.cast<float>().row(0))
                 .eval();
     KDTree::RadiusSearchResult ball_points;
-    epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
+    params.epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
     merged.reserve(merged.capacity() + ball_points.size());
 
     // Extracting points
-    auto superset = epoch.cloud(ball_points, Eigen::all);
+    auto superset = params.epoch.cloud(ball_points, Eigen::all);
 
     // Calculate the squared distances to the cylinder axis and to the plane
     // perpendicular to the axis that contains the corepoint
     auto to_midpoint =
       (superset.cast<double>().rowwise() - qp.cast<double>().row(0)).eval();
-    auto to_midpoint_plane = (to_midpoint * direction.transpose()).eval();
-    auto to_axis2 = (to_midpoint - to_midpoint_plane * direction)
+    auto to_midpoint_plane =
+      (to_midpoint * params.cylinder_axis.transpose()).eval();
+    auto to_axis2 = (to_midpoint - to_midpoint_plane * params.cylinder_axis)
                       .rowwise()
                       .squaredNorm()
                       .eval();
@@ -118,13 +116,13 @@ cylinder_workingset_finder(const Epoch& epoch,
     // Non-performance oriented version of index extraction. There should
     // be a version using Eigen masks, but I could not find it.
     for (Eigen::Index i = 0; i < superset.rows(); ++i)
-      if ((to_axis2(i) <= radius * radius) &&
-          (std::abs(to_midpoint_plane(i)) <= (max_cylinder_length / N)))
+      if ((to_axis2(i) <= params.radius * params.radius) &&
+          (std::abs(to_midpoint_plane(i)) <= (cylinder_length / N)))
         merged.push_back(ball_points[i]);
   }
 
   // Select only those indices that are within the cylinder
-  return epoch.cloud(merged, Eigen::all);
+  return params.epoch.cloud(merged, Eigen::all);
 }
 
 double
@@ -138,12 +136,10 @@ variance(EigenPointCloudConstRef subset, EigenNormalSetConstRef direction)
 }
 
 DistanceUncertainty
-standard_deviation_uncertainty(EigenPointCloudConstRef set1,
-                               EigenPointCloudConstRef set2,
-                               EigenNormalSetConstRef direction)
+standard_deviation_uncertainty(const UncertaintyMeasureParameters& params)
 {
-  double variance1 = variance(set1, direction);
-  double variance2 = variance(set2, direction);
+  double variance1 = variance(params.workingset1, params.normal);
+  double variance2 = variance(params.workingset2, params.normal);
 
   // Calculate the standard deviations for both point clouds
   double stddev1 = std::sqrt(variance1);
@@ -151,12 +147,15 @@ standard_deviation_uncertainty(EigenPointCloudConstRef set1,
 
   // Calculate the level of  from above variances
   double lodetection =
-    1.96 * std::sqrt(variance1 / static_cast<double>(set1.rows()) +
-                     variance2 / static_cast<double>(set2.rows()));
+    1.96 *
+    std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
+              variance2 / static_cast<double>(params.workingset2.rows()));
 
-  return DistanceUncertainty{
-    lodetection, stddev1, set1.rows(), stddev2, set2.rows()
-  };
+  return DistanceUncertainty{ lodetection,
+                              stddev1,
+                              params.workingset1.rows(),
+                              stddev2,
+                              params.workingset2.rows() };
 }
 
 } // namespace py4dgeo
