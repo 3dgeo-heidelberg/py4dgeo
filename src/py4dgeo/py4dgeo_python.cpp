@@ -159,6 +159,37 @@ PYBIND11_MODULE(_py4dgeo, m)
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
 
+  // Callback parameter structs
+  py::class_<WorkingSetFinderParameters> ws_params(
+    m, "WorkingSetFinderParameters");
+  ws_params.def_property_readonly(
+    "epoch", [](const WorkingSetFinderParameters& self) { return self.epoch; });
+  ws_params.def_property_readonly(
+    "radius",
+    [](const WorkingSetFinderParameters& self) { return self.radius; });
+  ws_params.def_property_readonly(
+    "corepoint",
+    [](const WorkingSetFinderParameters& self) { return self.corepoint; });
+  ws_params.def_property_readonly(
+    "cylinder_axis",
+    [](const WorkingSetFinderParameters& self) { return self.cylinder_axis; });
+  ws_params.def_property_readonly("cylinder_length",
+                                  [](const WorkingSetFinderParameters& self) {
+                                    return self.cylinder_length;
+                                  });
+
+  py::class_<UncertaintyMeasureParameters> uc_params(
+    m, "UncertaintyMeasureParameters");
+  uc_params.def_property_readonly(
+    "workingset1",
+    [](const UncertaintyMeasureParameters& self) { return self.workingset1; });
+  uc_params.def_property_readonly(
+    "workingset2",
+    [](const UncertaintyMeasureParameters& self) { return self.workingset2; });
+  uc_params.def_property_readonly(
+    "normal",
+    [](const UncertaintyMeasureParameters& self) { return self.normal; });
+
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);

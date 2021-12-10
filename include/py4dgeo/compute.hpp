@@ -10,75 +10,52 @@ namespace py4dgeo {
 
 /* Signatures for the callbacks used in the M3C2 algorithm implementation */
 
-/** @brief The callback type that determines the point cloud working subset in
- * the vicinity of a core point
- *
- *  For a reference of the signature, see the implementations provided by @c
- * py4dgeo:
- *
- *  * @ref radius_workingset_finder
- *  * @ref cylinder_workingset_finder
- */
-using WorkingSetFinderCallback =
-  std::function<EigenPointCloud(const Epoch&,
-                                double,
-                                EigenPointCloudConstRef,
-                                EigenNormalSetConstRef,
-                                double,
-                                IndexType)>;
+/** @brief The parameter struct for @ref WorkingSetFinderCallback */
+struct WorkingSetFinderParameters
+{
+  /** @brief The epoch that we are operating on */
+  const Epoch& epoch;
+  /** @brief The search radius*/
+  double radius;
+  /** @brief The (single) core point that we are dealing with */
+  EigenPointCloudConstRef corepoint;
+  /** @brief The cylinder axis direction */
+  EigenNormalSetConstRef cylinder_axis;
+  /** @brief The maximum cylinder (half) length*/
+  double cylinder_length;
+};
 
-/** @brief The callback type for calculating uncertainty measures
- *
- * For a reference of the signature, see the implementation provided by @c
- * py4dgeo:
- *
- * * @ref no_uncertainty
- * * @ref standard_deviation_uncertainty
- */
+/** @brief The callback type that determines the point cloud working subset in
+ * the vicinity of a core point */
+using WorkingSetFinderCallback =
+  std::function<EigenPointCloud(const WorkingSetFinderParameters&)>;
+
+/** @brief The parameter struct for @ref UncertaintyMeasureCallback */
+struct UncertaintyMeasureParameters
+{
+  /** @brief The point cloud in the first epoch to operate on */
+  EigenPointCloudConstRef workingset1;
+  /** @brief The point cloud in the second epoch to operate on */
+  EigenPointCloudConstRef workingset2;
+  /** @brief The surface normal at the current core point */
+  EigenNormalSetConstRef normal;
+};
+
+/** @brief The callback type for calculating uncertainty measures */
 using UncertaintyMeasureCallback =
-  std::function<DistanceUncertainty(EigenPointCloudConstRef,
-                                    EigenPointCloudConstRef,
-                                    EigenNormalSetConstRef)>;
+  std::function<DistanceUncertainty(const UncertaintyMeasureParameters&)>;
 
 /* Variety of callback declarations usable in M3C2 algorithms */
 
 /** @brief Implementation of working set finder that performs a regular radius
- * search
- *
- * @param epoch The epoch that we are operating on
- * @param radius Search radius
- * @param corepoint The (single) core point that we are dealing with
- * @param direction The search direction
- * @param max_cylinder_length The maximum cylinder length
- * @param core_idx The index of the core point in the core point set
- *
- * @return A point cloud data structure representing the working set
- */
+ * search */
 EigenPointCloud
-radius_workingset_finder(const Epoch& epoch,
-                         double radius,
-                         EigenPointCloudConstRef corepoint,
-                         EigenNormalSetConstRef direction,
-                         double max_cylinder_length,
-                         IndexType core_idx);
+radius_workingset_finder(const WorkingSetFinderParameters&);
 
 /** @brief Implementation of a working set finder that performs a cylinder
- * search.
- *
- * Selects all points within the cylinder defined by:
- * * the middle axis through @c corepoint in direction @c direction
- * * the radius given by @c radius
- * * a maximum cylinder length parameter needed to save resources
- *
- * @copydoc radius_workingset_finder
- */
+ * search */
 EigenPointCloud
-cylinder_workingset_finder(const Epoch& epoch,
-                           double radius,
-                           EigenPointCloudConstRef corepoint,
-                           EigenNormalSetConstRef direction,
-                           double max_cylinder_length,
-                           IndexType core_idx);
+cylinder_workingset_finder(const WorkingSetFinderParameters&);
 
 /** @brief No-op implementation of uncertainty calculation
  *
@@ -86,26 +63,14 @@ cylinder_workingset_finder(const Epoch& epoch,
  * to save computation time.
  */
 inline DistanceUncertainty
-no_uncertainty(EigenPointCloudConstRef,
-               EigenPointCloudConstRef,
-               EigenNormalSetConstRef)
+no_uncertainty(const UncertaintyMeasureParameters&)
 {
   return DistanceUncertainty{ 0.0, 0.0, 0, 0.0, 0 };
 }
 
-/** @brief Standard deviation implementation of uncertainty calculation
- *
- * Calculates the standard deviation of the distance measure.
- *
- * @param set1 The working set of points in the first epoch
- * @param set2 The working set of points in the second epoch
- * @param direction The normal direction
- * @returns uncertainty The storage for the computed uncertainty values
- */
+/** @brief Standard deviation implementation of uncertainty calculation */
 DistanceUncertainty
-standard_deviation_uncertainty(EigenPointCloudConstRef set1,
-                               EigenPointCloudConstRef set2,
-                               EigenNormalSetConstRef direction);
+standard_deviation_uncertainty(const UncertaintyMeasureParameters&);
 
 /* Compute interfaces used in the M3C2 main algorithm */
 
