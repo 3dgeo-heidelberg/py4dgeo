@@ -177,7 +177,9 @@ def read_from_xyz(*filenames, other_epoch=None):
         return new_epoch
     else:
         # Go into recursion
-        return (new_epoch,) + _as_tuple(read_from_xyz(*filenames[1:], other_epoch=new_epoch))
+        return (new_epoch,) + _as_tuple(
+            read_from_xyz(*filenames[1:], other_epoch=new_epoch)
+        )
 
 
 def read_from_las(*filenames, other_epoch=None):
@@ -223,4 +225,6 @@ def read_from_las(*filenames, other_epoch=None):
         return new_epoch
     else:
         # Go into recursion
-        return (new_epoch,) + _as_tuple(read_from_las(*filenames[1:], other_epoch=new_epoch))
+        return (new_epoch,) + _as_tuple(
+            read_from_las(*filenames[1:], other_epoch=new_epoch)
+        )
