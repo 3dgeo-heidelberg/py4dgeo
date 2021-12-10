@@ -9,6 +9,7 @@ from . import epochs, find_data_file
 
 def test_epoch_pickle(epochs):
     epoch1, _ = epochs
+    epoch1.build_kdtree()
 
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
@@ -19,9 +20,13 @@ def test_epoch_pickle(epochs):
         # Unpickle it
         loaded = load_epoch(fn)
 
-        # Try a radius search
-        # result = unpickled.kdtree.radius_search(np.array([0, 0, 0]), 100)
+        # Assert that the two object behave the same
         assert loaded.cloud.shape[0] == epoch1.cloud.shape[0]
+        assert np.allclose(loaded.geographic_offset, epoch1.geographic_offset)
+        assert np.allclose(
+            loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
+            epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+        )
 
 
 def test_as_epoch(epochs):

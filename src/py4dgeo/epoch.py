@@ -10,6 +10,14 @@ import pickle
 import py4dgeo._py4dgeo as _py4dgeo
 
 
+# This integer controls the versioning of the epoch file format. Whenever the
+# format is changed, this version should be increased, so that py4dgeo can warn
+# about incompatibilities of py4dgeo with loaded data. This version is intentionally
+# different from py4dgeo's version, because not all releases of py4dgeo necessarily
+# change the epoch file format and we want to be as compatible as possible.
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 0
+
+
 class Epoch(_py4dgeo.Epoch):
     def __init__(self, cloud: np.ndarray, geographic_offset=None):
         """
@@ -72,6 +80,23 @@ class Epoch(_py4dgeo.Epoch):
         """
         with open(filename, "rb") as f:
             return pickle.load(f)
+
+    def __getstate__(self):
+        return (
+            PY4DGEO_EPOCH_FILE_FORMAT_VERSION,
+            self.__dict__,
+            _py4dgeo.Epoch.__getstate__(self),
+        )
+
+    def __setstate__(self, state):
+        v, metadata, base = state
+
+        if v != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
+            raise Py4DGeoError("Epoch file format is out of date!")
+
+        # Restore metadata and base class object
+        self.__dict__ = metadata
+        _py4dgeo.Epoch.__setstate__(self, base)
 
 
 def save_epoch(epoch, filename):
