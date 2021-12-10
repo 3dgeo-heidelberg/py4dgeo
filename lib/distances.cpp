@@ -1,11 +1,8 @@
 #include <Eigen/Eigen>
 
-#ifdef PY4DGEO_WITH_OPENMP
-#include <omp.h>
-#endif
-
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/kdtree.hpp"
+#include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
 namespace py4dgeo {
@@ -26,26 +23,34 @@ compute_distances(EigenPointCloudConstRef corepoints,
   distances.resize(corepoints.rows());
   uncertainties.resize(corepoints.rows());
 
+  // Instantiate a container for the first thrown exception in
+  // the following parallel region.
+  CallbackExceptionVault vault;
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
-    // Either choose the ith row or the first (if there is no per-corepoint
-    // direction)
-    auto dir = directions.row(directions.rows() > 1 ? i : 0);
+    vault.run([&]() {
+      // Either choose the ith row or the first (if there is no per-corepoint
+      // direction)
+      auto dir = directions.row(directions.rows() > 1 ? i : 0);
 
-    auto subset1 = workingsetfinder(
-      epoch1, scale, corepoints.row(i), dir, max_cylinder_length, i);
-    auto subset2 = workingsetfinder(
-      epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
+      auto subset1 = workingsetfinder(
+        epoch1, scale, corepoints.row(i), dir, max_cylinder_length, i);
+      auto subset2 = workingsetfinder(
+        epoch2, scale, corepoints.row(i), dir, max_cylinder_length, i);
 
-    // Distance calculation
-    distances[i] = dir.dot(subset2.cast<double>().colwise().mean() -
-                           subset1.cast<double>().colwise().mean());
+      // Distance calculation
+      distances[i] = dir.dot(subset2.cast<double>().colwise().mean() -
+                             subset1.cast<double>().colwise().mean());
 
-    // Uncertainty calculation
-    uncertainties[i] = uncertaintycalculator(subset1, subset2, dir);
+      // Uncertainty calculation
+      uncertainties[i] = uncertaintycalculator(subset1, subset2, dir);
+    });
   }
+
+  // Potentially rethrow an exception that occurred in above parallel region
+  vault.rethrow();
 }
 
 EigenPointCloud
