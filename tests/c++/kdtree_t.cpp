@@ -44,6 +44,8 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
     auto num = tree.radius_search_with_distances(o.data(), 100.0, result);
     REQUIRE(num == epoch.cloud.rows());
     REQUIRE(result.size() == epoch.cloud.rows());
-    REQUIRE(std::is_sorted(result.begin(), result.end(), [](auto a, auto b){ return a.second < b.second; }));
+    REQUIRE(std::is_sorted(result.begin(), result.end(), [](auto a, auto b) {
+      return a.second < b.second;
+    }));
   }
 }
