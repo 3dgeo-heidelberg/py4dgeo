@@ -18,7 +18,7 @@ cylindersearch_benchmark(benchmark::State& state)
   directions << 0, 0, 1;
 
   WorkingSetFinderParameters params{
-    epoch, 1.0, corepoints->row(0), directions, state.range(0)
+    epoch, 1.0, corepoints->row(0), directions, static_cast<double>(state.range(0))
   };
 
   for (auto _ : state) {
