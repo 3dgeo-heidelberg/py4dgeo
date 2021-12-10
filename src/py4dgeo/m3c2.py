@@ -43,15 +43,9 @@ class M3C2LikeAlgorithm(abc.ABC):
         # Check the given number of epochs
         self.check_number_of_epochs()
 
-        # Run setup code defined by the algorithm
-        self.setup()
-
     @property
     def name(self):
         raise NotImplementedError
-
-    def setup(self):
-        pass
 
     def directions(self):
         """The normal direction(s) to use for this algorithm."""
@@ -164,16 +158,3 @@ class M3C2(M3C2LikeAlgorithm):
     @property
     def name(self):
         return "M3C2"
-
-    def setup(self):
-        # Cache KDTree evaluations
-        radius_candidates = []
-        if self.scales is not None:
-            radius_candidates.extend(list(self.scales))
-        if self.radii is not None:
-            radius_candidates.extend(list(self.radii))
-        radius_candidates.append(self.max_cylinder_length)
-        maxradius = max(radius_candidates)
-
-        for epoch in self.epochs:
-            epoch.kdtree.precompute(self.corepoints, maxradius, get_memory_policy())

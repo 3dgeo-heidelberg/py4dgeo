@@ -110,21 +110,6 @@ public:
    */
   void build_tree(int leaf);
 
-  /** @brief Perform precomputation of radius search results
-   *
-   * Calling this method allows to precompute radius searches for a fixed set
-   * of query points given a maximum radius. In the follow up, the results can
-   * be accessed using the @ref KDTree::precomputed_radius_search method.
-   *
-   * @param querypoints The fixed set of query points we want to perform radius
-   * searches for.
-   * @param maxradius The maximum search radius this precomputation should cover
-   * @param policy The current policy level
-   */
-  void precompute(EigenPointCloudRef querypoints,
-                  double maxradius,
-                  MemoryPolicy policy);
-
   /** @brief Peform radius search around given query point
    *
    * This method determines all the points from the point cloud within the given
@@ -162,36 +147,10 @@ public:
     double radius,
     RadiusSearchDistanceResult& result) const;
 
-  /** @brief Peform radius search around a query point from the precomputation
-   * set
-   *
-   * This method determines all the points from the point cloud within the given
-   * radius of the query point. It determines their indices and the result is
-   * sorted by ascending distance from the query point.
-   *
-   * This method requires a previous call to @ref KDTree::precompute.
-   *
-   * @param[in] index The index of the query point in the precomputation set
-   * @param[in] radius The radius to search within. If this radius is larger
-   * than the maximum radius given to @ref KDTree::precompute, the results will
-   * not be correct.
-   * @param[out] result A data structure to hold the result. It will be cleared
-   * during application.
-   *
-   * @return The amount of points in the return set
-   */
-  std::size_t precomputed_radius_search(const IndexType,
-                                        double,
-                                        RadiusSearchResult&) const;
-
 private:
   Adaptor adaptor;
   std::shared_ptr<KDTreeImpl> search;
   int leaf_parameter = 0;
-  std::vector<std::vector<IndexType>> precomputed_indices;
-  std::vector<std::vector<double>> precomputed_distances;
-  EigenPointCloud precomputed_querypoints;
-  MemoryPolicy precomputed_policy;
 };
 
 } // namespace py4dgeo

@@ -22,8 +22,6 @@ scalability_benchmark(benchmark::State& state)
     // Set the number of threads according to benchmark state
     omp_set_num_threads(state.range(0));
 
-    epoch.kdtree.precompute(*corepoints, 2.0, MemoryPolicy::COREPOINTS);
-
     std::vector<double> scales{ 1.0 };
     EigenNormalSet directions(corepoints->rows(), 3);
     EigenNormalSet orientation(1, 3);

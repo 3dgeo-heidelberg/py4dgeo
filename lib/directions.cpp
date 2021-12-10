@@ -22,8 +22,6 @@ compute_multiscale_directions(const Epoch& epoch,
                               EigenNormalSetConstRef orientation,
                               EigenNormalSetRef result)
 {
-  // TODO: Make sure that precomputation has been triggered.
-
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
@@ -32,7 +30,8 @@ compute_multiscale_directions(const Epoch& epoch,
     for (auto scale : scales) {
       // Find the working set on this scale
       KDTree::RadiusSearchResult points;
-      epoch.kdtree.precomputed_radius_search(i, scale, points);
+      auto qp = corepoints.row(i).eval();
+      epoch.kdtree.radius_search(&(qp(0, 0)), scale, points);
       auto subset = epoch.cloud(points, Eigen::all).cast<double>();
 
       // Calculate covariance matrix

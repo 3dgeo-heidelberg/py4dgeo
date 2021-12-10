@@ -88,11 +88,6 @@ PYBIND11_MODULE(_py4dgeo, m)
   kdtree.def(
     "build_tree", &KDTree::build_tree, "Trigger building the search tree");
 
-  // Expose the precomputation interface
-  kdtree.def("precompute",
-             &KDTree::precompute,
-             "Precompute radius searches for a number of query points");
-
   // Add all the radius search methods
   kdtree.def(
     "radius_search",
@@ -106,13 +101,6 @@ PYBIND11_MODULE(_py4dgeo, m)
       return as_pyarray(std::move(result));
     },
     "Search point in given radius!");
-
-  kdtree.def("precomputed_radius_search",
-             [](const KDTree& self, IndexType idx, double radius) {
-               KDTree::RadiusSearchResult result;
-               self.precomputed_radius_search(idx, radius, result);
-               return as_pyarray(std::move(result));
-             });
 
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {

@@ -15,7 +15,6 @@ TEST_CASE("M3C2 Multiscale direction calculation", "[compute]")
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
-  epoch.kdtree.precompute(epoch.cloud, 10.0, MemoryPolicy::COREPOINTS);
 
   std::vector<double> scales{ 1.0, 2.0, 3.0 };
   EigenNormalSet result(epoch.cloud.rows(), 3);
