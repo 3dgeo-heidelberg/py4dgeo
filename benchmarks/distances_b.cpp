@@ -13,8 +13,6 @@ distances_benchmark(benchmark::State& state)
   auto [cloud, corepoints] = ahk_benchcloud();
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
-  epoch.kdtree.precompute(*corepoints, 2.0, MemoryPolicy::COREPOINTS);
-
   std::vector<double> scales{ 1.0 };
   EigenNormalSet directions(corepoints->rows(), 3);
   EigenNormalSet orientation(1, 3);

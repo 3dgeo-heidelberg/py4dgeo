@@ -20,15 +20,6 @@ def test_kdtree(epochs):
     result = epoch1.kdtree.radius_search(np.array([0, 0, 0]), 100)
     assert result.shape[0] == data.shape[0]
 
-    # Trigger precomputations
-    epoch1.kdtree.precompute(data[:20, :], 20, get_memory_policy())
-
-    # Compare precomputed and real results
-    for i in range(20):
-        result1 = epoch1.kdtree.radius_search(data[i, :], 5)
-        result2 = epoch1.kdtree.precomputed_radius_search(i, 5)
-        assert result1.shape == result2.shape
-
 
 def test_kdtree_pickle(epochs):
     epoch1, _ = epochs

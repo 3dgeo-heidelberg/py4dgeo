@@ -34,39 +34,18 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
     REQUIRE(result.size() == epoch.cloud.rows());
   }
 
-  SECTION("Precomputation and radius search")
+  SECTION("Perform radius search with distances")
   {
-    EigenPointCloud qp = epoch.cloud(Eigen::seq(0, 20), Eigen::all);
-    tree.precompute(qp, 20.0, MemoryPolicy::COREPOINTS);
+    // Find all nodes with a radius search
+    std::array<float, 3> o{ 0.0, 0.0, 0.0 };
+    KDTree::RadiusSearchDistanceResult result;
 
-    for (std::size_t i = 0; i < 20; ++i) {
-      KDTree::RadiusSearchResult result1, result2;
-      tree.radius_search(&qp(i, 0), 5.0, result1);
-      tree.precomputed_radius_search(i, 5.0, result2);
-      REQUIRE(result1.size() == result2.size());
-      std::sort(result1.begin(), result1.end());
-      std::sort(result2.begin(), result2.end());
-      for (std::size_t j = 0; j < result1.size(); ++j) {
-        REQUIRE(result1[j] == result2[j]);
-      }
-    }
-  }
-
-  SECTION("Pseudo-precomputation with too small memory policy level")
-  {
-    EigenPointCloud qp = epoch.cloud(Eigen::seq(0, 20), Eigen::all);
-    tree.precompute(qp, 20.0, MemoryPolicy::MINIMAL);
-
-    for (std::size_t i = 0; i < 20; ++i) {
-      KDTree::RadiusSearchResult result1, result2;
-      tree.radius_search(&qp(i, 0), 5.0, result1);
-      tree.precomputed_radius_search(i, 5.0, result2);
-      REQUIRE(result1.size() == result2.size());
-      std::sort(result1.begin(), result1.end());
-      std::sort(result2.begin(), result2.end());
-      for (std::size_t j = 0; j < result1.size(); ++j) {
-        REQUIRE(result1[j] == result2[j]);
-      }
-    }
+    // Do radius search with radius wide enough to cover the entire cloud
+    auto num = tree.radius_search_with_distances(o.data(), 100.0, result);
+    REQUIRE(num == epoch.cloud.rows());
+    REQUIRE(result.size() == epoch.cloud.rows());
+    REQUIRE(std::is_sorted(result.begin(), result.end(), [](auto a, auto b) {
+      return a.second < b.second;
+    }));
   }
 }

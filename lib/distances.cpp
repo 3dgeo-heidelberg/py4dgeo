@@ -51,14 +51,14 @@ compute_distances(EigenPointCloudConstRef corepoints,
 EigenPointCloud
 radius_workingset_finder(const Epoch& epoch,
                          double radius,
-                         EigenPointCloudConstRef,
+                         EigenPointCloudConstRef corepoint,
                          EigenNormalSetConstRef,
                          double,
                          IndexType core_idx)
 {
   // Find the working set in the other epoch
   KDTree::RadiusSearchResult points;
-  epoch.kdtree.precomputed_radius_search(core_idx, radius, points);
+  epoch.kdtree.radius_search(corepoint.data(), radius, points);
   return epoch.cloud(points, Eigen::all);
 }
 

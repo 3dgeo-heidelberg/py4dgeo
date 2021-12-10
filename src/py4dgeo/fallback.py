@@ -15,7 +15,7 @@ def radius_workingset_finder(
     max_cylinder_length: float,
     core_idx: int,
 ) -> np.ndarray:
-    indices = epoch.kdtree.precomputed_radius_search(core_idx, radius)
+    indices = epoch.kdtree.radius_search(corepoint, radius)
     return epoch.cloud[indices, :]
 
 
