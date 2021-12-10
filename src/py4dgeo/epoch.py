@@ -35,10 +35,21 @@ class Epoch(_py4dgeo.Epoch):
         # Call base class constructor
         super().__init__(cloud)
 
-        # Build the KDTree index
-        # TODO: When exactly should this be done and how do we want to
-        #       the user interface to look like?
-        self.kdtree.build_tree(10)
+    def build_kdtree(self, leaf_size=10, force_rebuild=False):
+        """Build the search tree index
+
+        :param leaf_size:
+            An internal optimization parameter of the search tree data structure.
+            The algorithm uses a bruteforce search on subtrees of size below the
+            given threshold. Increasing this value speeds up search tree build time,
+            but slows down query times.
+        :type leaf_size: int
+        :param force_rebuild:
+            Rebuild the search tree even if it was already built before.
+        :type force_rebuild: bool
+        """
+        if self.kdtree.leaf_parameter() == 0 or force_rebuild:
+            self.kdtree.build_tree(leaf_size)
 
 
 def as_epoch(cloud):
