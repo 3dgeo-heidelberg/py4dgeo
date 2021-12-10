@@ -4,7 +4,7 @@ import numpy as np
 import os
 import tempfile
 
-from . import epochs, find_data_file
+from . import epochs
 
 
 def test_epoch_pickle(epochs):
