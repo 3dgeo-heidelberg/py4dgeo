@@ -88,6 +88,11 @@ PYBIND11_MODULE(_py4dgeo, m)
   kdtree.def(
     "build_tree", &KDTree::build_tree, "Trigger building the search tree");
 
+  // Give access to the leaf parameter that the tree has been built with
+  kdtree.def("leaf_parameter",
+             &KDTree::get_leaf_parameter,
+             "Retrieve the leaf parameter that the tree has been built with.");
+
   // Add all the radius search methods
   kdtree.def(
     "radius_search",

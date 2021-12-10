@@ -14,6 +14,7 @@ _test_files = [
 
 def test_kdtree(epochs):
     epoch1, _ = epochs
+    epoch1.build_kdtree()
     data = epoch1.cloud
 
     # Find all points in sufficiently large radius
@@ -27,3 +28,22 @@ def test_kdtree_pickle(epochs):
         fn = os.path.join("kdtree.pickle")
         with open(fn, "wb") as f:
             pickle.dump(epoch1.kdtree, f)
+
+
+def test_rebuilding(epochs):
+    epoch1, _ = epochs
+
+    # Not build yet - leaf parameter is 0
+    assert epoch1.kdtree.leaf_parameter() == 0
+
+    # Building with default - leaf parameter is 10
+    epoch1.build_kdtree()
+    assert epoch1.kdtree.leaf_parameter() == 10
+
+    # Non-forced rebuild is ignored - leaf parameter stays 10
+    epoch1.build_kdtree(leaf_size=20)
+    assert epoch1.kdtree.leaf_parameter() == 10
+
+    # forced rebuild - leaf parameter is 20
+    epoch1.build_kdtree(leaf_size=20, force_rebuild=20)
+    assert epoch1.kdtree.leaf_parameter() == 20

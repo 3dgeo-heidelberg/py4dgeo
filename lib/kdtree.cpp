@@ -46,4 +46,10 @@ KDTree::radius_search_with_distances(const float* query,
   return search->radiusSearch(query, radius * radius, result, params);
 }
 
+int
+KDTree::get_leaf_parameter() const
+{
+  return leaf_parameter;
+}
+
 } // namespace py4dgeo

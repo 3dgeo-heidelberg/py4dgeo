@@ -127,7 +127,7 @@ public:
                             double radius,
                             RadiusSearchResult& result) const;
 
-  /** @brief Peform radius search around given query point exporting distance
+  /** @brief Perform radius search around given query point exporting distance
    * information
    *
    * This method determines all the points from the point cloud within the given
@@ -146,6 +146,9 @@ public:
     const float* querypoint,
     double radius,
     RadiusSearchDistanceResult& result) const;
+
+  /** @brief Return the leaf parameter this KDTree has been built with */
+  int get_leaf_parameter() const;
 
 private:
   Adaptor adaptor;

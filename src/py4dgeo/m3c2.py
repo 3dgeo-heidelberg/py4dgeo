@@ -62,6 +62,12 @@ class M3C2LikeAlgorithm(abc.ABC):
 
         assert len(self.radii) == 1
 
+        # Ensure that the KDTree data structures have been built. This is no-op
+        # if it has already been triggered before - e.g. by a user with a custom
+        # leaf cutoff parameter.
+        epoch1.build_kdtree()
+        epoch2.build_kdtree()
+
         # Extract the uncertainty callback
         uncertainty_callback = self.callback_uncertainty_calculation()
         if not self.calculate_uncertainty:
