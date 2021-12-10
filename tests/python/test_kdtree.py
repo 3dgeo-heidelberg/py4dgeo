@@ -4,6 +4,7 @@ import numpy as np
 import os
 import pickle
 import pytest
+import tempfile
 
 from . import epochs
 
@@ -25,9 +26,10 @@ def test_kdtree(epochs):
 def test_kdtree_pickle(epochs):
     epoch1, _ = epochs
     with pytest.raises(RuntimeError):
-        fn = os.path.join("kdtree.pickle")
-        with open(fn, "wb") as f:
-            pickle.dump(epoch1.kdtree, f)
+        with tempfile.TemporaryDirectory() as dir:
+            fn = os.path.join(dir, "kdtree.pickle")
+            with open(fn, "wb") as f:
+                pickle.dump(epoch1.kdtree, f)
 
 
 def test_rebuilding(epochs):
