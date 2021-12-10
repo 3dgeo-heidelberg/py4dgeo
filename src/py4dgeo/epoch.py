@@ -136,6 +136,12 @@ def as_epoch(cloud):
     return Epoch(cloud)
 
 
+def _as_tuple(x):
+    if isinstance(x, tuple):
+        return x
+    return (x,)
+
+
 def read_from_xyz(*filenames, other_epoch=None):
     """Create an epoch from an xyz file
 
@@ -147,10 +153,6 @@ def read_from_xyz(*filenames, other_epoch=None):
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
     """
-
-    # End recursion
-    if len(filenames) == 0:
-        return ()
 
     # Read the first cloud
     cloud = np.genfromtxt(filenames[0], dtype=np.float64)
@@ -166,9 +168,18 @@ def read_from_xyz(*filenames, other_epoch=None):
     # Apply chosen offset
     cloud -= offset
 
-    # Construct Epoch and go into recursion
+    # Construct the new Epoch object
     new_epoch = Epoch(cloud=cloud.astype("f"), geographic_offset=offset)
-    return (new_epoch,) + read_from_xyz(*filenames[1:], other_epoch=new_epoch)
+
+    if len(filenames) == 1:
+        # End recursion and return non-tuple to make the case that the user
+        # called this with only one filename more intuitive
+        return new_epoch
+    else:
+        # Go into recursion
+        return (new_epoch,) + _as_tuple(
+            read_from_xyz(*filenames[1:], other_epoch=new_epoch)
+        )
 
 
 def read_from_las(*filenames, other_epoch=None):
@@ -182,10 +193,6 @@ def read_from_las(*filenames, other_epoch=None):
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
     """
-
-    # End recursion
-    if len(filenames) == 0:
-        return ()
 
     # Read the lasfile using laspy
     lasfile = laspy.read(filenames[0])
@@ -212,4 +219,12 @@ def read_from_las(*filenames, other_epoch=None):
         geographic_offset=geographic_offset,
     )
 
-    return (new_epoch,) + read_from_las(*filenames[1:], other_epoch=new_epoch)
+    if len(filenames) == 1:
+        # End recursion and return non-tuple to make the case that the user
+        # called this with only one filename more intuitive
+        return new_epoch
+    else:
+        # Go into recursion
+        return (new_epoch,) + _as_tuple(
+            read_from_las(*filenames[1:], other_epoch=new_epoch)
+        )
