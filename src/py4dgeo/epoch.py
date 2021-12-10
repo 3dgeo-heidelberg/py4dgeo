@@ -6,7 +6,16 @@ from py4dgeo.util import (
 
 import laspy
 import numpy as np
+import pickle
 import py4dgeo._py4dgeo as _py4dgeo
+
+
+# This integer controls the versioning of the epoch file format. Whenever the
+# format is changed, this version should be increased, so that py4dgeo can warn
+# about incompatibilities of py4dgeo with loaded data. This version is intentionally
+# different from py4dgeo's version, because not all releases of py4dgeo necessarily
+# change the epoch file format and we want to be as compatible as possible.
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 0
 
 
 class Epoch(_py4dgeo.Epoch):
@@ -50,6 +59,67 @@ class Epoch(_py4dgeo.Epoch):
         """
         if self.kdtree.leaf_parameter() == 0 or force_rebuild:
             self.kdtree.build_tree(leaf_size)
+
+    def save(self, filename):
+        """Save this epoch to a file
+
+        :param filename:
+            The filename to save the epoch in.
+        :type filename: str
+        """
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(filename):
+        """Construct an Epoch instance by loading it from a file
+
+        :param filename:
+            The filename to load the epoch from.
+        :type filename: str
+        """
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+
+    def __getstate__(self):
+        return (
+            PY4DGEO_EPOCH_FILE_FORMAT_VERSION,
+            self.__dict__,
+            _py4dgeo.Epoch.__getstate__(self),
+        )
+
+    def __setstate__(self, state):
+        v, metadata, base = state
+
+        if v != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
+            raise Py4DGeoError("Epoch file format is out of date!")
+
+        # Restore metadata and base class object
+        self.__dict__ = metadata
+        _py4dgeo.Epoch.__setstate__(self, base)
+
+
+def save_epoch(epoch, filename):
+    """Save an epoch to a given filename
+
+    :param epoch:
+        The epoch that should be saved.
+    :type epoch: Epoch
+    :param filename:
+        The filename where to save the epoch
+    :type filename: str
+    """
+    return epoch.save(filename)
+
+
+def load_epoch(filename):
+    """Load an epoch from a given filename
+
+    :param filename:
+        The filename to load the epoch from.
+    :type filename: str
+    """
+    return Epoch.load(filename)
 
 
 def as_epoch(cloud):
