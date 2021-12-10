@@ -90,3 +90,23 @@ def test_python_fallback_m3c2(epochs):
     assert np.allclose(uncertainties["stddev2"], fb_uncertainties["stddev2"])
     assert np.allclose(uncertainties["num_samples1"], fb_uncertainties["num_samples1"])
     assert np.allclose(uncertainties["num_samples2"], fb_uncertainties["num_samples2"])
+
+
+def test_python_exception_in_callback(epochs):
+    # Define a fault algorithm
+    class ExcM3C2(M3C2):
+        def callback_workingset_finder(self):
+            def callback(*args):
+                1 / 0
+
+            return callback
+
+    # Instantiate it
+    m3c2 = ExcM3C2(
+        epochs=epochs, corepoints=epochs[0].cloud, radii=(3.0,), scales=(2.0,)
+    )
+
+    # Running it should throw the proper exception despite taking a detour
+    # throw multi-threaded C++ code.
+    with pytest.raises(ZeroDivisionError):
+        m3c2.run()
