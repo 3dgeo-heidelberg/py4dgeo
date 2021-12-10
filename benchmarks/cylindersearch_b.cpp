@@ -17,9 +17,11 @@ cylindersearch_benchmark(benchmark::State& state)
   EigenNormalSet directions(1, 3);
   directions << 0, 0, 1;
 
-  WorkingSetFinderParameters params{
-    epoch, 1.0, corepoints->row(0), directions, static_cast<double>(state.range(0))
-  };
+  WorkingSetFinderParameters params{ epoch,
+                                     1.0,
+                                     corepoints->row(0),
+                                     directions,
+                                     static_cast<double>(state.range(0)) };
 
   for (auto _ : state) {
     auto points = cylinder_workingset_finder(params);
