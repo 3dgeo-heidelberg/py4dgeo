@@ -6,6 +6,7 @@ from py4dgeo.util import (
 
 import laspy
 import numpy as np
+import pickle
 import py4dgeo._py4dgeo as _py4dgeo
 
 
@@ -50,6 +51,50 @@ class Epoch(_py4dgeo.Epoch):
         """
         if self.kdtree.leaf_parameter() == 0 or force_rebuild:
             self.kdtree.build_tree(leaf_size)
+
+    def save(self, filename):
+        """Save this epoch to a file
+
+        :param filename:
+            The filename to save the epoch in.
+        :type filename: str
+        """
+        with open(filename, "wb") as f:
+            pickle.dump(self, f)
+
+    @staticmethod
+    def load(filename):
+        """Construct an Epoch instance by loading it from a file
+
+        :param filename:
+            The filename to load the epoch from.
+        :type filename: str
+        """
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+
+
+def save_epoch(epoch, filename):
+    """Save an epoch to a given filename
+
+    :param epoch:
+        The epoch that should be saved.
+    :type epoch: Epoch
+    :param filename:
+        The filename where to save the epoch
+    :type filename: str
+    """
+    return epoch.save(filename)
+
+
+def load_epoch(filename):
+    """Load an epoch from a given filename
+
+    :param filename:
+        The filename to load the epoch from.
+    :type filename: str
+    """
+    return Epoch.load(filename)
 
 
 def as_epoch(cloud):

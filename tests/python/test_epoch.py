@@ -2,7 +2,6 @@ from py4dgeo.epoch import *
 
 import numpy as np
 import os
-import pickle
 import tempfile
 
 from . import epochs, find_data_file
@@ -14,17 +13,15 @@ def test_epoch_pickle(epochs):
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
         # Pickle the given KDTree
-        fn = os.path.join(dir, "kdtree.pickle")
-        with open(fn, "wb") as f:
-            pickle.dump(epoch1, f)
+        fn = os.path.join(dir, "saved-epoch")
+        save_epoch(epoch1, fn)
 
         # Unpickle it
-        with open(fn, "rb") as f:
-            unpickled = pickle.load(f)
+        loaded = load_epoch(fn)
 
         # Try a radius search
         # result = unpickled.kdtree.radius_search(np.array([0, 0, 0]), 100)
-        assert unpickled.cloud.shape[0] == epoch1.cloud.shape[0]
+        assert loaded.cloud.shape[0] == epoch1.cloud.shape[0]
 
 
 def test_as_epoch(epochs):
