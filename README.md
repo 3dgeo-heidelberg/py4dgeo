@@ -7,6 +7,8 @@
 [![codecov](https://codecov.io/gh/ssciwr/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/ssciwr/py4dgeo)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=ssciwr_geolib4d&metric=alert_status)](https://sonarcloud.io/dashboard?id=ssciwr_geolib4d)
 
+![logo](py4dgeo_logo_mini.png)
+
 py4dgeo is a C++ library with Python bindings for change detection in 4D point cloud data.
 It is currently *under active development*.
 
