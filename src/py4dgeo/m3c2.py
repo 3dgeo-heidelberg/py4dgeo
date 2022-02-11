@@ -22,13 +22,13 @@ class M3C2LikeAlgorithm(abc.ABC):
         self,
         epochs: typing.Tuple[Epoch, ...],
         corepoints: np.ndarray = None,
-        radii: typing.List[float] = None,
+        cyl_radii: typing.List[float] = None,
         max_cylinder_length: float = 0.0,
         calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
         self.corepoints = as_single_precision(make_contiguous(corepoints))
-        self.radii = radii
+        self.cyl_radii = cyl_radii
         self.max_cylinder_length = max_cylinder_length
         self.calculate_uncertainty = calculate_uncertainty
 
@@ -36,8 +36,8 @@ class M3C2LikeAlgorithm(abc.ABC):
         if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
             raise Py4DGeoError("Corepoints need to be given as an array of shape nx3")
 
-        # Check the given radii
-        if self.radii is None or len(self.radii) == 0:
+        # Check the given cylinder radii
+        if self.cyl_radii is None or len(self.cyl_radii) == 0:
             raise Py4DGeoError(f"{self.name} requires at least one radius to be given")
 
         # Check the given number of epochs
@@ -60,7 +60,7 @@ class M3C2LikeAlgorithm(abc.ABC):
     def calculate_distances(self, epoch1, epoch2):
         """Calculate the distances between two epochs"""
 
-        assert len(self.radii) == 1
+        assert len(self.cyl_radii) == 1
 
         # Ensure that the KDTree data structures have been built. This is no-op
         # if it has already been triggered before - e.g. by a user with a custom
@@ -75,7 +75,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
-            self.radii[0],
+            self.cyl_radii[0],
             epoch1,
             epoch2,
             self.directions(),

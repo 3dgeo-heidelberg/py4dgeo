@@ -11,13 +11,13 @@ def test_m3c2(epochs):
 
     # Try with wrong number of epochs
     with pytest.raises(Py4DGeoError):
-        M3C2(epochs=(epoch1,), corepoints=epoch1.cloud, radii=(1.0,))
+        M3C2(epochs=(epoch1,), corepoints=epoch1.cloud, cyl_radii=(1.0,))
 
     # Instantiate an M3C2 instance
     m3c2 = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        radii=(3.0,),
+        cyl_radii=(3.0,),
         normal_radii=(2.0,),
     )
 
@@ -28,7 +28,7 @@ def test_m3c2(epochs):
     distances, uncertainties = M3C2(
         epochs=(epoch1, epoch1),
         corepoints=epoch1.cloud,
-        radii=(3.0,),
+        cyl_radii=(3.0,),
         normal_radii=(2.0,),
     ).run()
     assert (distances == 0).all()
@@ -42,7 +42,7 @@ def test_minimal_m3c2(epochs):
     m3c2 = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        radii=(3.0,),
+        cyl_radii=(3.0,),
         normal_radii=(2.0,),
     )
 
@@ -56,7 +56,7 @@ def test_external_normals(epochs):
     d, u = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        radii=(3.0,),
+        cyl_radii=(3.0,),
         normal_radii=(2.0,),
         corepoint_normals=np.array([[0, 0, 1]]),
     ).run()
@@ -65,7 +65,7 @@ def test_external_normals(epochs):
         d, u = M3C2(
             epochs=(epoch1, epoch2),
             corepoints=epoch1.cloud,
-            radii=(3.0,),
+            cyl_radii=(3.0,),
             normal_radii=(2.0,),
             corepoint_normals=np.array([[0, 0, 1], [0, 0, 1]]),
         ).run()
