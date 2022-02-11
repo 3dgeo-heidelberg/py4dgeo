@@ -169,7 +169,7 @@ median_distance(const DistanceCalculationParameters& params)
     (params.workingset1.cast<double>() * params.normal.row(0).transpose())
       .eval();
   auto dist2 =
-    (params.workingset1.cast<double>() * params.normal.row(0).transpose())
+    (params.workingset2.cast<double>() * params.normal.row(0).transpose())
       .eval();
   return median(dist2) - median(dist1);
 }
