@@ -14,6 +14,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   const Epoch& epoch2,
                   EigenNormalSetConstRef directions,
                   double max_distance,
+                  double registration_error,
                   DistanceVector& distances,
                   UncertaintyVector& uncertainties,
                   const WorkingSetFinderCallback& workingsetfinder,
@@ -49,7 +50,9 @@ compute_distances(EigenPointCloudConstRef corepoints,
                              subset1.cast<double>().colwise().mean());
 
       // Uncertainty calculation
-      UncertaintyMeasureParameters uc_params{ subset1, subset2, dir };
+      UncertaintyMeasureParameters uc_params{
+        subset1, subset2, dir, registration_error
+      };
       uncertainties[i] = uncertaintycalculator(uc_params);
     });
   }
@@ -148,8 +151,9 @@ standard_deviation_uncertainty(const UncertaintyMeasureParameters& params)
   // Calculate the level of  from above variances
   double lodetection =
     1.96 *
-    std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
-              variance2 / static_cast<double>(params.workingset2.rows()));
+    (std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
+               variance2 / static_cast<double>(params.workingset2.rows())) +
+     params.registration_error);
 
   return DistanceUncertainty{ lodetection,
                               stddev1,

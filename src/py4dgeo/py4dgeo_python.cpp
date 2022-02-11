@@ -125,6 +125,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        const Epoch& epoch2,
        EigenNormalSetConstRef directions,
        double max_distance,
+       double registration_error,
        const WorkingSetFinderCallback& workingsetfinder,
        const UncertaintyMeasureCallback& uncertaintycalculator) {
       // Allocate memory for the return types
@@ -143,6 +144,7 @@ PYBIND11_MODULE(_py4dgeo, m)
                           epoch2,
                           directions,
                           max_distance,
+                          registration_error,
                           distances,
                           uncertainties,
                           workingsetfinder,
@@ -188,6 +190,10 @@ PYBIND11_MODULE(_py4dgeo, m)
   uc_params.def_property_readonly(
     "normal",
     [](const UncertaintyMeasureParameters& self) { return self.normal; });
+  uc_params.def_property_readonly("registration_error",
+                                  [](const UncertaintyMeasureParameters& self) {
+                                    return self.registration_error;
+                                  });
 
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);

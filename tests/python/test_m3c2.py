@@ -50,6 +50,22 @@ def test_minimal_m3c2(epochs):
     distances, uncertainties = m3c2.run()
 
 
+def test_registration_error(epochs):
+    epoch1, _ = epochs
+
+    m3c2 = M3C2(
+        epochs=(epoch1, epoch1),
+        corepoints=epoch1.cloud,
+        cyl_radii=(3.0,),
+        normal_radii=(2.0,),
+        registration_error=1.0,
+    )
+
+    # Run it and check that lodetection is at least 1.96
+    _, uncertainties = m3c2.run()
+    assert (uncertainties["lodetection"] > 1.96).all()
+
+
 def test_external_normals(epochs):
     epoch1, epoch2 = epochs
     # Instantiate an M3C2 instance

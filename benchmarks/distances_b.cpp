@@ -37,6 +37,7 @@ distances_benchmark(benchmark::State& state)
                       epoch,
                       directions,
                       0.0,
+                      0.0,
                       distances,
                       uncertainties,
                       wsfinder,
