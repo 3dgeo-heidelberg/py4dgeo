@@ -7,7 +7,7 @@ from py4dgeo._py4dgeo import (
 )
 from py4dgeo.m3c2 import M3C2
 
-from . import epochs
+from . import epochs, compare_algorithms
 
 import pytest
 
@@ -59,16 +59,7 @@ def test_fallback_implementations(epochs, uncertainty_callback, workingset_callb
         max_distance=6.0,
     )
 
-    # The results should match
-    distances, uncertainties = m3c2.run()
-    fb_distances, fb_uncertainties = pym3c2.run()
-
-    assert np.allclose(distances, fb_distances)
-    assert np.allclose(uncertainties["lodetection"], fb_uncertainties["lodetection"])
-    assert np.allclose(uncertainties["stddev1"], fb_uncertainties["stddev1"])
-    assert np.allclose(uncertainties["stddev2"], fb_uncertainties["stddev2"])
-    assert np.allclose(uncertainties["num_samples1"], fb_uncertainties["num_samples1"])
-    assert np.allclose(uncertainties["num_samples2"], fb_uncertainties["num_samples2"])
+    compare_algorithms(m3c2, pym3c2)
 
 
 def test_python_fallback_m3c2(epochs):
@@ -82,16 +73,7 @@ def test_python_fallback_m3c2(epochs):
         epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
     )
 
-    # The results should match
-    distances, uncertainties = m3c2.run()
-    fb_distances, fb_uncertainties = pym3c2.run()
-
-    assert np.allclose(distances, fb_distances)
-    assert np.allclose(uncertainties["lodetection"], fb_uncertainties["lodetection"])
-    assert np.allclose(uncertainties["stddev1"], fb_uncertainties["stddev1"])
-    assert np.allclose(uncertainties["stddev2"], fb_uncertainties["stddev2"])
-    assert np.allclose(uncertainties["num_samples1"], fb_uncertainties["num_samples1"])
-    assert np.allclose(uncertainties["num_samples2"], fb_uncertainties["num_samples2"])
+    compare_algorithms(m3c2, pym3c2)
 
 
 def test_python_exception_in_callback(epochs):
