@@ -33,6 +33,7 @@ scalability_benchmark(benchmark::State& state)
 
     // We try to test all callback combinations
     auto wsfinder = radius_workingset_finder;
+    auto distancecalc = mean_distance;
     auto uncertaintymeasure = standard_deviation_uncertainty;
 
     // Calculate the distances
@@ -49,6 +50,7 @@ scalability_benchmark(benchmark::State& state)
                       distances,
                       uncertainties,
                       wsfinder,
+                      distancecalc,
                       uncertaintymeasure);
   }
   state.SetComplexityN(state.range(0));
