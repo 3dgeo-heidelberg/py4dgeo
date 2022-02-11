@@ -102,13 +102,13 @@ class M3C2LikeAlgorithm(abc.ABC):
 class M3C2(M3C2LikeAlgorithm):
     def __init__(
         self,
-        scales: typing.List[float] = None,
+        normal_radii: typing.List[float] = None,
         orientation_vector: np.ndarray = np.array([0, 0, 1]),
         corepoint_normals: np.ndarray = None,
         cloud_for_normals: Epoch = None,
         **kwargs,
     ):
-        self.scales = scales
+        self.normal_radii = normal_radii
         self.orientation_vector = as_double_precision(
             make_contiguous(orientation_vector), policy_check=False
         )
@@ -154,7 +154,7 @@ class M3C2(M3C2LikeAlgorithm):
         _py4dgeo.compute_multiscale_directions(
             normals_epoch,
             self.corepoints,
-            self.scales,
+            self.normal_radii,
             self.orientation_vector,
             self.corepoint_normals,
         )

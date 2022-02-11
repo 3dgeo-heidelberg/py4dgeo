@@ -15,14 +15,14 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
 
-  std::vector<double> scales{ 3.0 };
+  std::vector<double> normal_radii{ 3.0 };
   EigenNormalSet directions(epoch.cloud.rows(), 3);
   EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
 
   // Precompute the multiscale directions
   compute_multiscale_directions(
-    epoch, *corepoints, scales, orientation, directions);
+    epoch, *corepoints, normal_radii, orientation, directions);
 
   // Calculate the distances
   DistanceVector distances;

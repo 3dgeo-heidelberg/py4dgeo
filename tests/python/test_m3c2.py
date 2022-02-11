@@ -15,7 +15,10 @@ def test_m3c2(epochs):
 
     # Instantiate an M3C2 instance
     m3c2 = M3C2(
-        epochs=(epoch1, epoch2), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
+        epochs=(epoch1, epoch2),
+        corepoints=epoch1.cloud,
+        radii=(3.0,),
+        normal_radii=(2.0,),
     )
 
     # Run it
@@ -23,7 +26,10 @@ def test_m3c2(epochs):
 
     # Running with the same epoch twice should yield all zeroes
     distances, uncertainties = M3C2(
-        epochs=(epoch1, epoch1), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
+        epochs=(epoch1, epoch1),
+        corepoints=epoch1.cloud,
+        radii=(3.0,),
+        normal_radii=(2.0,),
     ).run()
     assert (distances == 0).all()
 
@@ -34,7 +40,10 @@ def test_minimal_m3c2(epochs):
 
     # Instantiate an M3C2 instance
     m3c2 = M3C2(
-        epochs=(epoch1, epoch2), corepoints=epoch1.cloud, radii=(3.0,), scales=(2.0,)
+        epochs=(epoch1, epoch2),
+        corepoints=epoch1.cloud,
+        radii=(3.0,),
+        normal_radii=(2.0,),
     )
 
     # Run it
@@ -48,7 +57,7 @@ def test_external_normals(epochs):
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
         radii=(3.0,),
-        scales=(2.0,),
+        normal_radii=(2.0,),
         corepoint_normals=np.array([[0, 0, 1]]),
     ).run()
 
@@ -57,6 +66,6 @@ def test_external_normals(epochs):
             epochs=(epoch1, epoch2),
             corepoints=epoch1.cloud,
             radii=(3.0,),
-            scales=(2.0,),
+            normal_radii=(2.0,),
             corepoint_normals=np.array([[0, 0, 1], [0, 0, 1]]),
         ).run()
