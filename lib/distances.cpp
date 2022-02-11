@@ -5,6 +5,8 @@
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
+#include <algorithm>
+
 namespace py4dgeo {
 
 void
@@ -47,7 +49,9 @@ compute_distances(EigenPointCloudConstRef corepoints,
       auto subset2 = workingsetfinder(params2);
 
       // Distance calculation
-      DistanceCalculationParameters d_params{ subset1, subset2, dir };
+      DistanceCalculationParameters d_params{
+        subset1, subset2, corepoints.row(i), dir
+      };
       distances[i] = distancecalculator(d_params);
 
       // Uncertainty calculation
@@ -135,6 +139,39 @@ mean_distance(const DistanceCalculationParameters& params)
   return params.normal.row(0).dot(
     params.workingset2.cast<double>().colwise().mean() -
     params.workingset1.cast<double>().colwise().mean());
+}
+
+double
+median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
+{
+  if (v.size() == 0)
+    return std::numeric_limits<double>::quiet_NaN();
+
+  // ADL-friendly version of using STL algorithms
+  using std::max_element;
+  using std::nth_element;
+
+  // https://stackoverflow.com/a/34077478
+  auto n = v.size() / 2;
+  nth_element(v.begin(), v.begin() + n, v.end());
+  auto med = v[n];
+  if (v.size() % 2 == 0) {
+    auto max_it = max_element(v.begin(), v.begin() + n);
+    med = (*max_it + med) / 2.0;
+  }
+  return med;
+}
+
+double
+median_distance(const DistanceCalculationParameters& params)
+{
+  auto dist1 =
+    (params.workingset1.cast<double>() * params.normal.row(0).transpose())
+      .eval();
+  auto dist2 =
+    (params.workingset1.cast<double>() * params.normal.row(0).transpose())
+      .eval();
+  return median(dist2) - median(dist1);
 }
 
 double

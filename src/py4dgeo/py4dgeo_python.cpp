@@ -190,6 +190,9 @@ PYBIND11_MODULE(_py4dgeo, m)
     "workingset2",
     [](const DistanceCalculationParameters& self) { return self.workingset2; });
   d_params.def_property_readonly(
+    "corepoint",
+    [](const DistanceCalculationParameters& self) { return self.corepoint; });
+  d_params.def_property_readonly(
     "normal",
     [](const DistanceCalculationParameters& self) { return self.normal; });
 
@@ -213,6 +216,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("radius_workingset_finder", &radius_workingset_finder);
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
   m.def("mean_distance", &mean_distance);
+  m.def("median_distance", &median_distance);
   m.def("no_uncertainty", &no_uncertainty);
   m.def("standard_deviation_uncertainty", &standard_deviation_uncertainty);
 

@@ -37,6 +37,8 @@ struct DistanceCalculationParameters
   EigenPointCloudConstRef workingset1;
   /** @brief The point cloud in the second epoch to operate on */
   EigenPointCloudConstRef workingset2;
+  /** @brief The (single) core point that we are dealing with */
+  EigenPointCloudConstRef corepoint;
   /** @brief The surface normal at the current core point */
   EigenNormalSetConstRef normal;
 };
@@ -83,6 +85,14 @@ cylinder_workingset_finder(const WorkingSetFinderParameters&);
  */
 double
 mean_distance(const DistanceCalculationParameters&);
+
+/** @brief Median-based implementation of point cloud distance
+ *
+ * Use median of distances in pointcloud instead of mean. This
+ * results in a more expensive but more robust distance measure.
+ */
+double
+median_distance(const DistanceCalculationParameters&);
 
 /** @brief No-op implementation of uncertainty calculation
  *

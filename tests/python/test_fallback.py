@@ -2,6 +2,7 @@ from py4dgeo.fallback import *
 from py4dgeo._py4dgeo import (
     cylinder_workingset_finder as cxx_cylinder_workingset_finder,
     mean_distance as cxx_mean_distance,
+    median_distance as cxx_median_distance,
     no_uncertainty as cxx_no_uncertainty,
     radius_workingset_finder as cxx_radius_workingset_finder,
     standard_deviation_uncertainty as cxx_standard_deviation_uncertainty,
@@ -24,6 +25,7 @@ import pytest
     "distance_callback",
     [
         (cxx_mean_distance, mean_distance),
+        (cxx_median_distance, median_distance),
     ],
 )
 @pytest.mark.parametrize(

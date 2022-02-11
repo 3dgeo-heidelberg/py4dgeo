@@ -73,6 +73,18 @@ def mean_distance(params: _py4dgeo.DistanceCalculationParameters) -> np.float64:
     )
 
 
+def median_distance(params: _py4dgeo.DistanceCalculationParameters) -> np.float64:
+    return np.median(
+        (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
+            params.normal[0, :]
+        )
+    ) - np.median(
+        (params.workingset1.astype("d") - params.corepoint.astype("d")[0, :]).dot(
+            params.normal[0, :]
+        )
+    )
+
+
 def no_uncertainty(
     params: _py4dgeo.UncertaintyMeasureParameters,
 ) -> _py4dgeo.DistanceUncertainty:
