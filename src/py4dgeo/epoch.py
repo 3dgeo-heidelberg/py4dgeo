@@ -142,7 +142,7 @@ def _as_tuple(x):
     return (x,)
 
 
-def read_from_xyz(*filenames, other_epoch=None):
+def read_from_xyz(*filenames, other_epoch=None, delimiter=" ", header_lines=0):
     """Create an epoch from an xyz file
 
     :param filename:
@@ -152,10 +152,27 @@ def read_from_xyz(*filenames, other_epoch=None):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
+    :param delimiter:
+        The delimiter used between x, y and z coordinates in the file (defaults to a space)
+    :type delimited: str
+    :param header_lines:
+        The number of header lines in the XYZ files. These will be skipped
+        and ignored when reading the file.
+    :type header_lines: int
     """
 
     # Read the first cloud
-    cloud = np.genfromtxt(filenames[0], dtype=np.float64)
+    try:
+        cloud = np.genfromtxt(
+            filenames[0],
+            dtype=np.float64,
+            delimiter=delimiter,
+            skip_header=header_lines,
+        )
+    except ValueError:
+        raise Py4DGeoError(
+            "Malformed XYZ file - all rows are expected to have exactly three columns"
+        )
 
     # Determine the offset to use. If no epoch to be compatible with has been
     # given, we calculate one. Otherwise, we take the same offset to be

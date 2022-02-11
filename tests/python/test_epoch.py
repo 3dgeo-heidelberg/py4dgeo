@@ -1,7 +1,9 @@
 from py4dgeo.epoch import *
+from py4dgeo.util import Py4DGeoError
 
 import numpy as np
 import os
+import pytest
 import tempfile
 
 from . import epochs
@@ -38,3 +40,54 @@ def test_as_epoch(epochs):
 def test_read_from_xyz(epochs):
     epoch1, _ = epochs
     assert np.isclose(np.max(epoch1.cloud), 10)
+
+
+def test_read_from_xyz_more_columns(tmp_path):
+    filename = os.path.join(tmp_path, "more-than-three-columns.xyz")
+
+    with open(filename, "w") as f:
+        f.write("0 0 0 1 2 3")
+
+    with pytest.raises(Py4DGeoError):
+        epoch = read_from_xyz(filename)
+
+
+def test_read_from_xyz_more_differing_colums(tmp_path):
+    filename = os.path.join(tmp_path, "differing-columns.xyz")
+
+    with open(filename, "w") as f:
+        f.write("0 0 0\n")
+        f.write("0 0")
+
+    with pytest.raises(Py4DGeoError):
+        epoch = read_from_xyz(filename)
+
+
+def test_read_from_xyz_comma_delimited(tmp_path):
+    filename = os.path.join(tmp_path, "comma-delimited.xyz")
+
+    with open(filename, "w") as f:
+        f.write("0,0,0\n")
+        f.write("1,1,1")
+
+    with pytest.raises(Py4DGeoError):
+        epoch = read_from_xyz(filename)
+
+    epoch = read_from_xyz(filename, delimiter=",")
+    assert epoch.cloud.shape[0] == 2
+
+
+def test_read_from_xyz_header(tmp_path):
+    filename = os.path.join(tmp_path, "header.xyz")
+
+    with open(filename, "w") as f:
+        f.write("This is a header line\n")
+        f.write("and another one\n")
+        f.write("0 0 0\n")
+        f.write("1 1 1\n")
+
+    with pytest.raises(Py4DGeoError):
+        epoch = read_from_xyz(filename)
+
+    epoch = read_from_xyz(filename, header_lines=2)
+    assert epoch.cloud.shape[0] == 2
