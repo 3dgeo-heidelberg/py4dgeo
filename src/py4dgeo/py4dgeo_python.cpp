@@ -127,6 +127,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        double max_distance,
        double registration_error,
        const WorkingSetFinderCallback& workingsetfinder,
+       const DistanceCalculationCallback& distancecalculator,
        const UncertaintyMeasureCallback& uncertaintycalculator) {
       // Allocate memory for the return types
       DistanceVector distances;
@@ -148,6 +149,7 @@ PYBIND11_MODULE(_py4dgeo, m)
                           distances,
                           uncertainties,
                           workingsetfinder,
+                          distancecalculator,
                           uncertaintycalculator);
       }
 
@@ -179,6 +181,18 @@ PYBIND11_MODULE(_py4dgeo, m)
     "max_distance",
     [](const WorkingSetFinderParameters& self) { return self.max_distance; });
 
+  py::class_<DistanceCalculationParameters> d_params(
+    m, "DistanceCalculationParameters");
+  d_params.def_property_readonly(
+    "workingset1",
+    [](const DistanceCalculationParameters& self) { return self.workingset1; });
+  d_params.def_property_readonly(
+    "workingset2",
+    [](const DistanceCalculationParameters& self) { return self.workingset2; });
+  d_params.def_property_readonly(
+    "normal",
+    [](const DistanceCalculationParameters& self) { return self.normal; });
+
   py::class_<UncertaintyMeasureParameters> uc_params(
     m, "UncertaintyMeasureParameters");
   uc_params.def_property_readonly(
@@ -198,6 +212,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
+  m.def("mean_distance", &mean_distance);
   m.def("no_uncertainty", &no_uncertainty);
   m.def("standard_deviation_uncertainty", &standard_deviation_uncertainty);
 

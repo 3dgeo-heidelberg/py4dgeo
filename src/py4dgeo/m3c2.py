@@ -84,6 +84,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.max_distance,
             self.registration_error,
             self.callback_workingset_finder(),
+            self.callback_distance_calculation(),
             uncertainty_callback,
         )
 
@@ -96,6 +97,10 @@ class M3C2LikeAlgorithm(abc.ABC):
     def callback_workingset_finder(self):
         """The callback used to determine the point cloud subset around a corepoint"""
         return _py4dgeo.cylinder_workingset_finder
+
+    def callback_distance_calculation(self):
+        """The callback used to calculate the distance between two point clouds"""
+        return _py4dgeo.mean_distance
 
     def callback_uncertainty_calculation(self):
         """The callback used to calculate the uncertainty"""

@@ -66,6 +66,13 @@ def cylinder_workingset_finder(
     return np.concatenate(tuple(slabs))
 
 
+def mean_distance(params: _py4dgeo.DistanceCalculationParameters) -> np.float64:
+    return params.normal[0, :].dot(
+        params.workingset2.astype("d").mean(axis=0)
+        - params.workingset1.astype("d").mean(axis=0)
+    )
+
+
 def no_uncertainty(
     params: _py4dgeo.UncertaintyMeasureParameters,
 ) -> _py4dgeo.DistanceUncertainty:
@@ -105,6 +112,9 @@ class PythonFallbackM3C2(M3C2):
 
     def callback_workingset_finder(self):
         return cylinder_workingset_finder
+
+    def callback_distance_calculation(self):
+        return mean_distance
 
     def callback_uncertainty_calculation(self):
         return standard_deviation_uncertainty

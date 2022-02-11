@@ -30,6 +30,22 @@ struct WorkingSetFinderParameters
 using WorkingSetFinderCallback =
   std::function<EigenPointCloud(const WorkingSetFinderParameters&)>;
 
+/** @brief The parameter struct for @ref DistanceCalculationCallback */
+struct DistanceCalculationParameters
+{
+  /** @brief The point cloud in the first epoch to operate on */
+  EigenPointCloudConstRef workingset1;
+  /** @brief The point cloud in the second epoch to operate on */
+  EigenPointCloudConstRef workingset2;
+  /** @brief The surface normal at the current core point */
+  EigenNormalSetConstRef normal;
+};
+
+/** @brief The callback type for calculating the distance between two point
+ * clouds */
+using DistanceCalculationCallback =
+  std::function<double(const DistanceCalculationParameters&)>;
+
 /** @brief The parameter struct for @ref UncertaintyMeasureCallback */
 struct UncertaintyMeasureParameters
 {
@@ -58,6 +74,15 @@ radius_workingset_finder(const WorkingSetFinderParameters&);
  * search */
 EigenPointCloud
 cylinder_workingset_finder(const WorkingSetFinderParameters&);
+
+/** @brief Mean-based implementation of point cloud distance
+ *
+ * This is the default implementation of point cloud distance that takes
+ * the mean of both point clouds (center of mass), projects it onto the
+ * cylinder axis and calculates the distance.
+ */
+double
+mean_distance(const DistanceCalculationParameters&);
 
 /** @brief No-op implementation of uncertainty calculation
  *
@@ -96,6 +121,7 @@ compute_distances(EigenPointCloudConstRef,
                   DistanceVector&,
                   UncertaintyVector&,
                   const WorkingSetFinderCallback&,
+                  const DistanceCalculationCallback&,
                   const UncertaintyMeasureCallback&);
 
 }

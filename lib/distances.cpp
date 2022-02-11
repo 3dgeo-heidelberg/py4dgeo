@@ -18,6 +18,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   DistanceVector& distances,
                   UncertaintyVector& uncertainties,
                   const WorkingSetFinderCallback& workingsetfinder,
+                  const DistanceCalculationCallback& distancecalculator,
                   const UncertaintyMeasureCallback& uncertaintycalculator)
 {
   // Resize the output data structures
@@ -46,8 +47,8 @@ compute_distances(EigenPointCloudConstRef corepoints,
       auto subset2 = workingsetfinder(params2);
 
       // Distance calculation
-      distances[i] = dir.dot(subset2.cast<double>().colwise().mean() -
-                             subset1.cast<double>().colwise().mean());
+      DistanceCalculationParameters d_params{ subset1, subset2, dir };
+      distances[i] = distancecalculator(d_params);
 
       // Uncertainty calculation
       UncertaintyMeasureParameters uc_params{
@@ -126,6 +127,14 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
 
   // Select only those indices that are within the cylinder
   return params.epoch.cloud(merged, Eigen::all);
+}
+
+double
+mean_distance(const DistanceCalculationParameters& params)
+{
+  return params.normal.row(0).dot(
+    params.workingset2.cast<double>().colwise().mean() -
+    params.workingset1.cast<double>().colwise().mean());
 }
 
 double

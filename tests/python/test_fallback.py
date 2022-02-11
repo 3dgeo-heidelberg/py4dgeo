@@ -1,6 +1,7 @@
 from py4dgeo.fallback import *
 from py4dgeo._py4dgeo import (
     cylinder_workingset_finder as cxx_cylinder_workingset_finder,
+    mean_distance as cxx_mean_distance,
     no_uncertainty as cxx_no_uncertainty,
     radius_workingset_finder as cxx_radius_workingset_finder,
     standard_deviation_uncertainty as cxx_standard_deviation_uncertainty,
@@ -20,14 +21,25 @@ import pytest
     ],
 )
 @pytest.mark.parametrize(
+    "distance_callback",
+    [
+        (cxx_mean_distance, mean_distance),
+    ],
+)
+@pytest.mark.parametrize(
     "workingset_callback",
     [
         (cxx_radius_workingset_finder, radius_workingset_finder),
         (cxx_cylinder_workingset_finder, cylinder_workingset_finder),
     ],
 )
-def test_fallback_implementations(epochs, uncertainty_callback, workingset_callback):
+def test_fallback_implementations(
+    epochs, distance_callback, uncertainty_callback, workingset_callback
+):
     class CxxTestM3C2(M3C2):
+        def callback_distance_calculation(self):
+            return distance_callback[0]
+
         def callback_uncertainty_calculation(self):
             return uncertainty_callback[0]
 
@@ -35,6 +47,9 @@ def test_fallback_implementations(epochs, uncertainty_callback, workingset_callb
             return workingset_callback[0]
 
     class PythonTestM3C2(M3C2):
+        def callback_distance_calculation(self):
+            return distance_callback[1]
+
         def callback_uncertainty_calculation(self):
             return uncertainty_callback[1]
 
