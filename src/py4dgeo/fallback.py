@@ -96,9 +96,9 @@ def standard_deviation_uncertainty(
             )
             + params.registration_error
         ),
-        stddev1=np.sqrt(variance1),
+        spread1=np.sqrt(variance1),
         num_samples1=params.workingset1.shape[0],
-        stddev2=np.sqrt(variance2),
+        spread2=np.sqrt(variance2),
         num_samples2=params.workingset2.shape[0],
     )
 

@@ -51,15 +51,15 @@ using IndexType = Eigen::Index;
  *
  * This structured type is used to describe the uncertainty of point cloud
  * distance at a single corepoint. It contains the level of detection,
- * the standard deviations within both point clouds and the number of sampled
- * points.
+ * the spread within both point clouds (e.g. the standard deviation of the
+ * distance measure) and the number of sampled points.
  */
 struct DistanceUncertainty
 {
   double lodetection;
-  double stddev1;
+  double spread1;
   IndexType num_samples1;
-  double stddev2;
+  double spread2;
   IndexType num_samples2;
 };
 

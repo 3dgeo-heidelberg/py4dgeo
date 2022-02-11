@@ -39,9 +39,9 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Python. The given names will be usable in Python.
   PYBIND11_NUMPY_DTYPE(DistanceUncertainty,
                        lodetection,
-                       stddev1,
+                       spread1,
                        num_samples1,
-                       stddev2,
+                       spread2,
                        num_samples2);
 
   // Also expose the DistanceUncertainty data structure in Python, so that
@@ -49,9 +49,9 @@ PYBIND11_MODULE(_py4dgeo, m)
   py::class_<DistanceUncertainty> unc(m, "DistanceUncertainty");
   unc.def(py::init<double, double, IndexType, double, IndexType>(),
           py::arg("lodetection") = 0.0,
-          py::arg("stddev1") = 0.0,
+          py::arg("spread1") = 0.0,
           py::arg("num_samples1") = 0,
-          py::arg("stddev2") = 0.0,
+          py::arg("spread2") = 0.0,
           py::arg("num_samples2") = 0);
 
   // The epoch class
