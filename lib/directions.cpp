@@ -15,7 +15,7 @@ namespace py4dgeo {
 void
 compute_multiscale_directions(const Epoch& epoch,
                               EigenPointCloudConstRef corepoints,
-                              const std::vector<double>& scales,
+                              const std::vector<double>& normal_radii,
                               EigenNormalSetConstRef orientation,
                               EigenNormalSetRef result)
 {
@@ -28,11 +28,11 @@ compute_multiscale_directions(const Epoch& epoch,
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
-      for (auto scale : scales) {
+      for (auto radius : normal_radii) {
         // Find the working set on this scale
         KDTree::RadiusSearchResult points;
         auto qp = corepoints.row(i).eval();
-        epoch.kdtree.radius_search(&(qp(0, 0)), scale, points);
+        epoch.kdtree.radius_search(&(qp(0, 0)), radius, points);
         auto subset = epoch.cloud(points, Eigen::all).cast<double>();
 
         // Calculate covariance matrix

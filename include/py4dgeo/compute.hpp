@@ -22,7 +22,7 @@ struct WorkingSetFinderParameters
   /** @brief The cylinder axis direction */
   EigenNormalSetConstRef cylinder_axis;
   /** @brief The maximum cylinder (half) length*/
-  double cylinder_length;
+  double max_distance;
 };
 
 /** @brief The callback type that determines the point cloud working subset in

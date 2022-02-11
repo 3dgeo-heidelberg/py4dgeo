@@ -124,7 +124,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        const Epoch& epoch1,
        const Epoch& epoch2,
        EigenNormalSetConstRef directions,
-       double max_cylinder_length,
+       double max_distance,
        const WorkingSetFinderCallback& workingsetfinder,
        const UncertaintyMeasureCallback& uncertaintycalculator) {
       // Allocate memory for the return types
@@ -142,7 +142,7 @@ PYBIND11_MODULE(_py4dgeo, m)
                           epoch1,
                           epoch2,
                           directions,
-                          max_cylinder_length,
+                          max_distance,
                           distances,
                           uncertainties,
                           workingsetfinder,
@@ -173,10 +173,9 @@ PYBIND11_MODULE(_py4dgeo, m)
   ws_params.def_property_readonly(
     "cylinder_axis",
     [](const WorkingSetFinderParameters& self) { return self.cylinder_axis; });
-  ws_params.def_property_readonly("cylinder_length",
-                                  [](const WorkingSetFinderParameters& self) {
-                                    return self.cylinder_length;
-                                  });
+  ws_params.def_property_readonly(
+    "max_distance",
+    [](const WorkingSetFinderParameters& self) { return self.max_distance; });
 
   py::class_<UncertaintyMeasureParameters> uc_params(
     m, "UncertaintyMeasureParameters");

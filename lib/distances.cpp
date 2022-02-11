@@ -13,7 +13,7 @@ compute_distances(EigenPointCloudConstRef corepoints,
                   const Epoch& epoch1,
                   const Epoch& epoch2,
                   EigenNormalSetConstRef directions,
-                  double max_cylinder_length,
+                  double max_distance,
                   DistanceVector& distances,
                   UncertaintyVector& uncertainties,
                   const WorkingSetFinderCallback& workingsetfinder,
@@ -36,11 +36,11 @@ compute_distances(EigenPointCloudConstRef corepoints,
       auto dir = directions.row(directions.rows() > 1 ? i : 0);
 
       WorkingSetFinderParameters params1{
-        epoch1, scale, corepoints.row(i), dir, max_cylinder_length
+        epoch1, scale, corepoints.row(i), dir, max_distance
       };
       auto subset1 = workingsetfinder(params1);
       WorkingSetFinderParameters params2{
-        epoch2, scale, corepoints.row(i), dir, max_cylinder_length
+        epoch2, scale, corepoints.row(i), dir, max_distance
       };
       auto subset2 = workingsetfinder(params2);
 
@@ -77,7 +77,7 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
 
   // The number of segments - later cast to int
   double N = 1.0;
-  double cylinder_length = params.cylinder_length;
+  double cylinder_length = params.max_distance;
   if (cylinder_length > params.radius)
     N = std::ceil(cylinder_length / params.radius);
   else

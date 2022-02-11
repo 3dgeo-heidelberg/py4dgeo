@@ -45,18 +45,18 @@ def test_fallback_implementations(epochs, uncertainty_callback, workingset_callb
     pym3c2 = CxxTestM3C2(
         epochs=epochs,
         corepoints=epochs[0].cloud,
-        radii=(3.0,),
-        scales=(2.0,),
-        max_cylinder_length=6.0,
+        cyl_radii=(3.0,),
+        normal_radii=(2.0,),
+        max_distance=6.0,
     )
 
     # And a regular C++ based one
     m3c2 = PythonTestM3C2(
         epochs=epochs,
         corepoints=epochs[0].cloud,
-        radii=(3.0,),
-        scales=(2.0,),
-        max_cylinder_length=6.0,
+        cyl_radii=(3.0,),
+        normal_radii=(2.0,),
+        max_distance=6.0,
     )
 
     # The results should match
@@ -74,11 +74,13 @@ def test_fallback_implementations(epochs, uncertainty_callback, workingset_callb
 def test_python_fallback_m3c2(epochs):
     # Instantiate a fallback M3C2 instance
     pym3c2 = PythonFallbackM3C2(
-        epochs=epochs, corepoints=epochs[0].cloud, radii=(3.0,), scales=(2.0,)
+        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
     )
 
     # And a regular C++ based one
-    m3c2 = M3C2(epochs=epochs, corepoints=epochs[0].cloud, radii=(3.0,), scales=(2.0,))
+    m3c2 = M3C2(
+        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
+    )
 
     # The results should match
     distances, uncertainties = m3c2.run()
@@ -103,7 +105,7 @@ def test_python_exception_in_callback(epochs):
 
     # Instantiate it
     m3c2 = ExcM3C2(
-        epochs=epochs, corepoints=epochs[0].cloud, radii=(3.0,), scales=(2.0,)
+        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
     )
 
     # Running it should throw the proper exception despite taking a detour
