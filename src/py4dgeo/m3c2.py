@@ -23,13 +23,13 @@ class M3C2LikeAlgorithm(abc.ABC):
         epochs: typing.Tuple[Epoch, ...],
         corepoints: np.ndarray = None,
         cyl_radii: typing.List[float] = None,
-        max_cylinder_length: float = 0.0,
+        max_distance: float = 0.0,
         calculate_uncertainty: bool = True,
     ):
         self.epochs = epochs
         self.corepoints = as_single_precision(make_contiguous(corepoints))
         self.cyl_radii = cyl_radii
-        self.max_cylinder_length = max_cylinder_length
+        self.max_distance = max_distance
         self.calculate_uncertainty = calculate_uncertainty
 
         # Check the given array shapes
@@ -79,7 +79,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             epoch1,
             epoch2,
             self.directions(),
-            self.max_cylinder_length,
+            self.max_distance,
             self.callback_workingset_finder(),
             uncertainty_callback,
         )

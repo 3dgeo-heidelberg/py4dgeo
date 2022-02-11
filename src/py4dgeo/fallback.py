@@ -18,7 +18,7 @@ def cylinder_workingset_finder(
     # Cut the cylinder into N segments, perform radius searches around the
     # segment midpoints and create the union of indices
     N = 1
-    max_cylinder_length = params.cylinder_length
+    max_cylinder_length = params.max_distance
     if max_cylinder_length >= params.radius:
         N = int(np.ceil(max_cylinder_length / params.radius))
     else:

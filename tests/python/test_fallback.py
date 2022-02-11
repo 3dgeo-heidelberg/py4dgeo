@@ -47,7 +47,7 @@ def test_fallback_implementations(epochs, uncertainty_callback, workingset_callb
         corepoints=epochs[0].cloud,
         cyl_radii=(3.0,),
         normal_radii=(2.0,),
-        max_cylinder_length=6.0,
+        max_distance=6.0,
     )
 
     # And a regular C++ based one
@@ -56,7 +56,7 @@ def test_fallback_implementations(epochs, uncertainty_callback, workingset_callb
         corepoints=epochs[0].cloud,
         cyl_radii=(3.0,),
         normal_radii=(2.0,),
-        max_cylinder_length=6.0,
+        max_distance=6.0,
     )
 
     # The results should match
