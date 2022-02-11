@@ -39,6 +39,8 @@ struct UncertaintyMeasureParameters
   EigenPointCloudConstRef workingset2;
   /** @brief The surface normal at the current core point */
   EigenNormalSetConstRef normal;
+  /** @brief The registration error */
+  double registration_error;
 };
 
 /** @brief The callback type for calculating uncertainty measures */
@@ -89,6 +91,7 @@ compute_distances(EigenPointCloudConstRef,
                   const Epoch&,
                   const Epoch&,
                   EigenNormalSetConstRef,
+                  double,
                   double,
                   DistanceVector&,
                   UncertaintyVector&,

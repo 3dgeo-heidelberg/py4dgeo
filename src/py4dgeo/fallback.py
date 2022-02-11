@@ -82,9 +82,12 @@ def standard_deviation_uncertainty(
     # The structured array that describes the full uncertainty
     return _py4dgeo.DistanceUncertainty(
         lodetection=1.96
-        * np.sqrt(
-            variance1 / params.workingset1.shape[0]
-            + variance2 / params.workingset2.shape[0]
+        * (
+            np.sqrt(
+                variance1 / params.workingset1.shape[0]
+                + variance2 / params.workingset2.shape[0]
+            )
+            + params.registration_error
         ),
         stddev1=np.sqrt(variance1),
         num_samples1=params.workingset1.shape[0],
