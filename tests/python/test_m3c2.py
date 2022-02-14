@@ -1,8 +1,6 @@
 from py4dgeo.m3c2 import *
 from py4dgeo.util import Py4DGeoError, set_memory_policy, MemoryPolicy
 
-from . import epochs
-
 import pytest
 
 

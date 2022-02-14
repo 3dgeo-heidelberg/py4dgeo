@@ -1,7 +1,7 @@
 from py4dgeo.cloudcompare import CloudCompareM3C2
 from py4dgeo.m3c2 import M3C2
 
-from . import compare_algorithms, epochs
+from .helpers import compare_algorithms
 
 
 def test_cloudcompare_m3c2(epochs):

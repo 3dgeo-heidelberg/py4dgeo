@@ -6,8 +6,6 @@ import os
 import pytest
 import tempfile
 
-from . import epochs
-
 
 def test_epoch_pickle(epochs):
     epoch1, _ = epochs
