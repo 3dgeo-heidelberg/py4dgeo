@@ -11,8 +11,8 @@ def test_cloudcompare_m3c2(epochs):
     m3c2 = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        cyl_radii=(3.0,),
-        normal_radii=(2.0,),
+        cyl_radii=(1.5,),
+        normal_radii=(1.0,),
     )
 
     # Instantiate Cloud compare variant
