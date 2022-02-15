@@ -31,7 +31,6 @@ class M3C2LikeAlgorithm(abc.ABC):
         self.corepoints = as_single_precision(make_contiguous(corepoints))
         self.cyl_radii = cyl_radii
         self.max_distance = max_distance
-        self.calculate_uncertainty = calculate_uncertainty
         self.registration_error = registration_error
 
         # Check the given array shapes
@@ -70,11 +69,6 @@ class M3C2LikeAlgorithm(abc.ABC):
         epoch1.build_kdtree()
         epoch2.build_kdtree()
 
-        # Extract the uncertainty callback
-        uncertainty_callback = self.callback_uncertainty_calculation()
-        if not self.calculate_uncertainty:
-            uncertainty_callback = _py4dgeo.no_uncertainty
-
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
             self.cyl_radii[0],
@@ -85,7 +79,6 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.registration_error,
             self.callback_workingset_finder(),
             self.callback_distance_calculation(),
-            uncertainty_callback,
         )
 
         return distances, uncertainties
@@ -100,11 +93,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_distance_calculation(self):
         """The callback used to calculate the distance between two point clouds"""
-        return _py4dgeo.mean_distance
-
-    def callback_uncertainty_calculation(self):
-        """The callback used to calculate the uncertainty"""
-        return _py4dgeo.standard_deviation_uncertainty
+        return _py4dgeo.mean_stddev_distance
 
 
 class M3C2(M3C2LikeAlgorithm):

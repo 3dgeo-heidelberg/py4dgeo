@@ -10,18 +10,18 @@
 namespace py4dgeo {
 
 void
-compute_distances(EigenPointCloudConstRef corepoints,
-                  double scale,
-                  const Epoch& epoch1,
-                  const Epoch& epoch2,
-                  EigenNormalSetConstRef directions,
-                  double max_distance,
-                  double registration_error,
-                  DistanceVector& distances,
-                  UncertaintyVector& uncertainties,
-                  const WorkingSetFinderCallback& workingsetfinder,
-                  const DistanceCalculationCallback& distancecalculator,
-                  const UncertaintyMeasureCallback& uncertaintycalculator)
+compute_distances(
+  EigenPointCloudConstRef corepoints,
+  double scale,
+  const Epoch& epoch1,
+  const Epoch& epoch2,
+  EigenNormalSetConstRef directions,
+  double max_distance,
+  double registration_error,
+  DistanceVector& distances,
+  UncertaintyVector& uncertainties,
+  const WorkingSetFinderCallback& workingsetfinder,
+  const DistanceUncertaintyCalculationCallback& distancecalculator)
 {
   // Resize the output data structures
   distances.resize(corepoints.rows());
@@ -49,16 +49,10 @@ compute_distances(EigenPointCloudConstRef corepoints,
       auto subset2 = workingsetfinder(params2);
 
       // Distance calculation
-      DistanceCalculationParameters d_params{
-        subset1, subset2, corepoints.row(i), dir
+      DistanceUncertaintyCalculationParameters d_params{
+        subset1, subset2, corepoints.row(i), dir, registration_error
       };
-      distances[i] = distancecalculator(d_params);
-
-      // Uncertainty calculation
-      UncertaintyMeasureParameters uc_params{
-        subset1, subset2, dir, registration_error
-      };
-      uncertainties[i] = uncertaintycalculator(uc_params);
+      distancecalculator(d_params, distances[i], uncertainties[i]);
     });
   }
 
@@ -134,11 +128,44 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
 }
 
 double
-mean_distance(const DistanceCalculationParameters& params)
+variance(EigenPointCloudConstRef subset,
+         const Eigen::Matrix<double, 1, 3>& mean,
+         EigenNormalSetConstRef direction)
 {
-  return params.normal.row(0).dot(
-    params.workingset2.cast<double>().colwise().mean() -
-    params.workingset1.cast<double>().colwise().mean());
+  auto centered = subset.cast<double>().rowwise() - mean;
+  auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
+  auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
+  return multiplied.eval()(0, 0);
+}
+
+void
+mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params,
+                     double& distance,
+                     DistanceUncertainty& uncertainty)
+{
+  auto mean1 = params.workingset1.cast<double>().colwise().mean().eval();
+  auto mean2 = params.workingset2.cast<double>().colwise().mean().eval();
+  distance = params.normal.row(0).dot(mean2 - mean1);
+
+  double variance1 = variance(params.workingset1, mean1, params.normal);
+  double variance2 = variance(params.workingset2, mean2, params.normal);
+
+  // Calculate the standard deviations for both point clouds
+  double stddev1 = std::sqrt(variance1);
+  double stddev2 = std::sqrt(variance2);
+
+  // Calculate the level of  from above variances
+  double lodetection =
+    1.96 *
+    (std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
+               variance2 / static_cast<double>(params.workingset2.rows())) +
+     params.registration_error);
+
+  uncertainty.lodetection = lodetection;
+  uncertainty.spread1 = stddev1;
+  uncertainty.num_samples1 = params.workingset1.rows();
+  uncertainty.spread2 = stddev2;
+  uncertainty.num_samples2 = params.workingset2.rows();
 }
 
 double
@@ -162,8 +189,10 @@ median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
   return med;
 }
 
-double
-median_distance(const DistanceCalculationParameters& params)
+void
+median_iqr_distance(const DistanceUncertaintyCalculationParameters& params,
+                    double& distance,
+                    DistanceUncertainty& uncertainty)
 {
   auto dist1 =
     (params.workingset1.cast<double>() * params.normal.row(0).transpose())
@@ -171,41 +200,7 @@ median_distance(const DistanceCalculationParameters& params)
   auto dist2 =
     (params.workingset2.cast<double>() * params.normal.row(0).transpose())
       .eval();
-  return median(dist2) - median(dist1);
-}
-
-double
-variance(EigenPointCloudConstRef subset, EigenNormalSetConstRef direction)
-{
-  auto centered =
-    subset.cast<double>().rowwise() - subset.cast<double>().colwise().mean();
-  auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
-  auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
-  return multiplied.eval()(0, 0);
-}
-
-DistanceUncertainty
-standard_deviation_uncertainty(const UncertaintyMeasureParameters& params)
-{
-  double variance1 = variance(params.workingset1, params.normal);
-  double variance2 = variance(params.workingset2, params.normal);
-
-  // Calculate the standard deviations for both point clouds
-  double stddev1 = std::sqrt(variance1);
-  double stddev2 = std::sqrt(variance2);
-
-  // Calculate the level of  from above variances
-  double lodetection =
-    1.96 *
-    (std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
-               variance2 / static_cast<double>(params.workingset2.rows())) +
-     params.registration_error);
-
-  return DistanceUncertainty{ lodetection,
-                              stddev1,
-                              params.workingset1.rows(),
-                              stddev2,
-                              params.workingset2.rows() };
+  distance = median(dist2) - median(dist1);
 }
 
 } // namespace py4dgeo

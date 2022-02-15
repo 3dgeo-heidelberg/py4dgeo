@@ -1,11 +1,9 @@
 from py4dgeo.fallback import *
 from py4dgeo._py4dgeo import (
     cylinder_workingset_finder as cxx_cylinder_workingset_finder,
-    mean_distance as cxx_mean_distance,
-    median_distance as cxx_median_distance,
-    no_uncertainty as cxx_no_uncertainty,
+    mean_stddev_distance as cxx_mean_stddev_distance,
+    median_iqr_distance as cxx_median_iqr_distance,
     radius_workingset_finder as cxx_radius_workingset_finder,
-    standard_deviation_uncertainty as cxx_standard_deviation_uncertainty,
 )
 from py4dgeo.m3c2 import M3C2
 
@@ -15,17 +13,10 @@ import pytest
 
 
 @pytest.mark.parametrize(
-    "uncertainty_callback",
-    [
-        (cxx_standard_deviation_uncertainty, standard_deviation_uncertainty),
-        (cxx_no_uncertainty, no_uncertainty),
-    ],
-)
-@pytest.mark.parametrize(
     "distance_callback",
     [
-        (cxx_mean_distance, mean_distance),
-        (cxx_median_distance, median_distance),
+        (cxx_mean_stddev_distance, mean_stddev_distance),
+        (cxx_median_iqr_distance, median_iqr_distance),
     ],
 )
 @pytest.mark.parametrize(
@@ -35,15 +26,10 @@ import pytest
         (cxx_cylinder_workingset_finder, cylinder_workingset_finder),
     ],
 )
-def test_fallback_implementations(
-    epochs, distance_callback, uncertainty_callback, workingset_callback
-):
+def test_fallback_implementations(epochs, distance_callback, workingset_callback):
     class CxxTestM3C2(M3C2):
         def callback_distance_calculation(self):
             return distance_callback[0]
-
-        def callback_uncertainty_calculation(self):
-            return uncertainty_callback[0]
 
         def callback_workingset_finder(self):
             return workingset_callback[0]
@@ -51,9 +37,6 @@ def test_fallback_implementations(
     class PythonTestM3C2(M3C2):
         def callback_distance_calculation(self):
             return distance_callback[1]
-
-        def callback_uncertainty_calculation(self):
-            return uncertainty_callback[1]
 
         def callback_workingset_finder(self):
             return workingset_callback[1]

@@ -66,15 +66,41 @@ def cylinder_workingset_finder(
     return np.concatenate(tuple(slabs))
 
 
-def mean_distance(params: _py4dgeo.DistanceCalculationParameters) -> np.float64:
-    return params.normal[0, :].dot(
+def mean_stddev_distance(
+    params: _py4dgeo.DistanceUncertaintyCalculationParameters,
+    distance: np.float32,
+    uncertainty: _py4dgeo.DistanceUncertainty,
+) -> None:
+    # Calculate distance
+    distance = params.normal[0, :].dot(
         params.workingset2.astype("d").mean(axis=0)
         - params.workingset1.astype("d").mean(axis=0)
     )
 
+    # Calculate variances
+    variance1 = params.normal @ np.cov(params.workingset1.T) @ params.normal.T
+    variance2 = params.normal @ np.cov(params.workingset2.T) @ params.normal.T
 
-def median_distance(params: _py4dgeo.DistanceCalculationParameters) -> np.float64:
-    return np.median(
+    # The structured array that describes the full uncertainty
+    uncertainty.lodetection = 1.96 * (
+        np.sqrt(
+            variance1 / params.workingset1.shape[0]
+            + variance2 / params.workingset2.shape[0]
+        )
+        + params.registration_error
+    )
+    uncertainty.spread1 = np.sqrt(variance1)
+    uncertainty.num_samples1 = params.workingset1.shape[0]
+    uncertainty.spread2 = np.sqrt(variance2)
+    uncertainty.num_samples2 = params.workingset2.shape[0]
+
+
+def median_iqr_distance(
+    params: _py4dgeo.DistanceUncertaintyCalculationParameters,
+    distance: np.float32,
+    uncertainty: _py4dgeo.DistanceUncertainty,
+) -> None:
+    distnace = np.median(
         (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
             params.normal[0, :]
         )
@@ -82,36 +108,6 @@ def median_distance(params: _py4dgeo.DistanceCalculationParameters) -> np.float6
         (params.workingset1.astype("d") - params.corepoint.astype("d")[0, :]).dot(
             params.normal[0, :]
         )
-    )
-
-
-def no_uncertainty(
-    params: _py4dgeo.UncertaintyMeasureParameters,
-) -> _py4dgeo.DistanceUncertainty:
-    return _py4dgeo.DistanceUncertainty()
-
-
-def standard_deviation_uncertainty(
-    params: _py4dgeo.UncertaintyMeasureParameters,
-) -> _py4dgeo.DistanceUncertainty:
-    # Calculate variances
-    variance1 = params.normal @ np.cov(params.workingset1.T) @ params.normal.T
-    variance2 = params.normal @ np.cov(params.workingset2.T) @ params.normal.T
-
-    # The structured array that describes the full uncertainty
-    return _py4dgeo.DistanceUncertainty(
-        lodetection=1.96
-        * (
-            np.sqrt(
-                variance1 / params.workingset1.shape[0]
-                + variance2 / params.workingset2.shape[0]
-            )
-            + params.registration_error
-        ),
-        spread1=np.sqrt(variance1),
-        num_samples1=params.workingset1.shape[0],
-        spread2=np.sqrt(variance2),
-        num_samples2=params.workingset2.shape[0],
     )
 
 
@@ -126,7 +122,4 @@ class PythonFallbackM3C2(M3C2):
         return cylinder_workingset_finder
 
     def callback_distance_calculation(self):
-        return mean_distance
-
-    def callback_uncertainty_calculation(self):
-        return standard_deviation_uncertainty
+        return mean_stddev_distance

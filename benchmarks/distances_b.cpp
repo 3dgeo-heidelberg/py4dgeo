@@ -24,8 +24,7 @@ distances_benchmark(benchmark::State& state)
 
   // We try to test all callback combinations
   auto wsfinder = radius_workingset_finder;
-  auto distancecalc = mean_distance;
-  auto uncertaintymeasure = standard_deviation_uncertainty;
+  auto distancecalc = mean_stddev_distance;
 
   for (auto _ : state) {
     // Calculate the distances
@@ -42,8 +41,7 @@ distances_benchmark(benchmark::State& state)
                       distances,
                       uncertainties,
                       wsfinder,
-                      distancecalc,
-                      uncertaintymeasure);
+                      distancecalc);
   }
 }
 
