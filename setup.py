@@ -38,7 +38,7 @@ class CMakeBuild(build_ext):
     def build_extension(self, ext):
         extdir = os.path.abspath(os.path.dirname(self.get_ext_fullpath(ext.name)))
         cmake_args = [
-            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir,
+            "-DCMAKE_LIBRARY_OUTPUT_DIRECTORY=" + extdir + "/py4dgeo",
             "-DPYTHON_EXECUTABLE=" + sys.executable,
             "-DCMAKE_GENERATOR='Unix Makefiles'",
             "-DBUILD_DOCS=OFF",
@@ -55,8 +55,6 @@ class CMakeBuild(build_ext):
         env["CXXFLAGS"] = '{} -DVERSION_INFO=\\"{}\\"'.format(
             env.get("CXXFLAGS", ""), self.distribution.get_version()
         )
-        # export source code directory as ccache base dir
-        os.environ["CCACHE_BASEDIR"] = ext.sourcedir
         if not os.path.exists(self.build_temp):
             os.makedirs(self.build_temp)
         subprocess.check_call(
@@ -90,5 +88,4 @@ setup(
     ext_modules=[CMakeExtension("py4dgeo")],
     cmdclass=dict(build_ext=CMakeBuild),
     package_dir={"": "src"},
-    cmake_install_dir="src/py4dgeo",
 )
