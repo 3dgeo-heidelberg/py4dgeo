@@ -23,6 +23,7 @@ setup(
     cmake_args=[
         "-DBUILD_DOCS=OFF",
         "-DBUILD_TESTING=OFF",
+        "-DCMAKE_GENERATOR='Unix Makefiles'",
     ],
     package_dir={"": "src"},
     cmake_install_dir="src/py4dgeo",
