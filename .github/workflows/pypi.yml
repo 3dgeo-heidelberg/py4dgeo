@@ -67,6 +67,7 @@ jobs:
         PYDIR=$(ls -d /c/hostedtoolcache/windows/Python/3.9.*)
         export PATH="$PYDIR/x64:$PYDIR/x64/Scripts:$PATH"
         echo "PATH=$PATH"
+        export CIBW_BUILD="*-win_amd64"
         python -m pip install cibuildwheel
         python -m cibuildwheel --output-dir wheelhouse
 

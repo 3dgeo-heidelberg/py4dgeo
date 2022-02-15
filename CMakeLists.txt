@@ -31,7 +31,7 @@ set(BUILD_BENCHMARKS
     OFF
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
-    ON
+    OFF
     CACHE BOOL "Enable OpenMP parallelization")
 
 # Check that the repository was clone recursively
@@ -45,6 +45,9 @@ endif()
 # Compile the library
 add_library(py4dgeo lib/directions.cpp lib/distances.cpp lib/epoch.cpp
                     lib/kdtree.cpp)
+
+target_compile_definitions(py4dgeo PUBLIC _hypot=hypot;MS_WIN64)
+
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
