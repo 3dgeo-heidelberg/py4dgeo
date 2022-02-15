@@ -63,10 +63,12 @@ jobs:
         update: true
         install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make
 
-    - name: Build wheels (arch=${{ matrix.arch }})
-      uses: pypa/cibuildwheel@v2.2.2
-      env:
-        CIBW_ARCHS: "auto64"
+    - run: |
+        PYDIR=$(ls -d /c/hostedtoolcache/windows/Python/3.9.*)
+        export PATH="$PYDIR/x64:$PYDIR/x64/Scripts:$PATH"
+        echo "PATH=$PATH"
+        python -m pip install cibuildwheel
+        python -m cibuildwheel --output-dir wheelhouse
 
     - uses: actions/upload-artifact@v2
       with:
