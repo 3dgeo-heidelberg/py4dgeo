@@ -7,7 +7,7 @@ from py4dgeo._py4dgeo import (
 )
 from py4dgeo.m3c2 import M3C2
 
-from . import epochs, compare_algorithms
+from .helpers import compare_algorithms
 
 import pytest
 

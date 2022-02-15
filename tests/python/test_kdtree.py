@@ -6,12 +6,6 @@ import pickle
 import pytest
 import tempfile
 
-from . import epochs
-
-_test_files = [
-    os.path.join(os.path.split(__file__)[0], "../data/plane_horizontal_t1.xyz")
-]
-
 
 def test_kdtree(epochs):
     epoch1, _ = epochs
