@@ -52,7 +52,11 @@ compute_distances(
       DistanceUncertaintyCalculationParameters d_params{
         subset1, subset2, corepoints.row(i), dir, registration_error
       };
-      distancecalculator(d_params, distances[i], uncertainties[i]);
+      auto dist = distancecalculator(d_params);
+
+      // Write distances into the resulting array
+      distances[i] = std::get<0>(dist);
+      uncertainties[i] = std::get<1>(dist);
     });
   }
 
@@ -138,14 +142,14 @@ variance(EigenPointCloudConstRef subset,
   return multiplied.eval()(0, 0);
 }
 
-void
-mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params,
-                     double& distance,
-                     DistanceUncertainty& uncertainty)
+std::tuple<double, DistanceUncertainty>
+mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params)
 {
+  std::tuple<double, DistanceUncertainty> ret;
+
   auto mean1 = params.workingset1.cast<double>().colwise().mean().eval();
   auto mean2 = params.workingset2.cast<double>().colwise().mean().eval();
-  distance = params.normal.row(0).dot(mean2 - mean1);
+  std::get<0>(ret) = params.normal.row(0).dot(mean2 - mean1);
 
   double variance1 = variance(params.workingset1, mean1, params.normal);
   double variance2 = variance(params.workingset2, mean2, params.normal);
@@ -161,11 +165,13 @@ mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params,
                variance2 / static_cast<double>(params.workingset2.rows())) +
      params.registration_error);
 
-  uncertainty.lodetection = lodetection;
-  uncertainty.spread1 = stddev1;
-  uncertainty.num_samples1 = params.workingset1.rows();
-  uncertainty.spread2 = stddev2;
-  uncertainty.num_samples2 = params.workingset2.rows();
+  std::get<1>(ret).lodetection = lodetection;
+  std::get<1>(ret).spread1 = stddev1;
+  std::get<1>(ret).num_samples1 = params.workingset1.rows();
+  std::get<1>(ret).spread2 = stddev2;
+  std::get<1>(ret).num_samples2 = params.workingset2.rows();
+
+  return ret;
 }
 
 double
@@ -189,18 +195,19 @@ median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
   return med;
 }
 
-void
-median_iqr_distance(const DistanceUncertaintyCalculationParameters& params,
-                    double& distance,
-                    DistanceUncertainty& uncertainty)
+std::tuple<double, DistanceUncertainty>
+median_iqr_distance(const DistanceUncertaintyCalculationParameters& params)
 {
+  std::tuple<double, DistanceUncertainty> ret;
   auto dist1 =
     (params.workingset1.cast<double>() * params.normal.row(0).transpose())
       .eval();
   auto dist2 =
     (params.workingset2.cast<double>() * params.normal.row(0).transpose())
       .eval();
-  distance = median(dist2) - median(dist1);
+  std::get<0>(ret) = median(dist2) - median(dist1);
+
+  return ret;
 }
 
 } // namespace py4dgeo

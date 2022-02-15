@@ -53,11 +53,6 @@ PYBIND11_MODULE(_py4dgeo, m)
           py::arg("num_samples1") = 0,
           py::arg("spread2") = 0.0,
           py::arg("num_samples2") = 0);
-  unc.def_readwrite("lodetection", &DistanceUncertainty::lodetection);
-  unc.def_readwrite("spread1", &DistanceUncertainty::spread1);
-  unc.def_readwrite("num_samples1", &DistanceUncertainty::num_samples1);
-  unc.def_readwrite("spread2", &DistanceUncertainty::spread2);
-  unc.def_readwrite("num_samples2", &DistanceUncertainty::num_samples2);
 
   // The epoch class
   py::class_<Epoch> epoch(m, "Epoch");

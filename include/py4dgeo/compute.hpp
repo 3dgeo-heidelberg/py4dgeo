@@ -48,9 +48,8 @@ struct DistanceUncertaintyCalculationParameters
 /** @brief The callback type for calculating the distance between two point
  * clouds */
 using DistanceUncertaintyCalculationCallback =
-  std::function<void(const DistanceUncertaintyCalculationParameters&,
-                     double&,
-                     DistanceUncertainty&)>;
+  std::function<std::tuple<double, DistanceUncertainty>(
+    const DistanceUncertaintyCalculationParameters&)>;
 
 /* Variety of callback declarations usable in M3C2 algorithms */
 
@@ -70,20 +69,16 @@ cylinder_workingset_finder(const WorkingSetFinderParameters&);
  * the mean of both point clouds (center of mass), projects it onto the
  * cylinder axis and calculates the distance.
  */
-void
-mean_stddev_distance(const DistanceUncertaintyCalculationParameters&,
-                     double&,
-                     DistanceUncertainty&);
+std::tuple<double, DistanceUncertainty>
+mean_stddev_distance(const DistanceUncertaintyCalculationParameters&);
 
 /** @brief Median-based implementation of point cloud distance
  *
  * Use median of distances in pointcloud instead of mean. This
  * results in a more expensive but more robust distance measure.
  */
-void
-median_iqr_distance(const DistanceUncertaintyCalculationParameters&,
-                    double&,
-                    DistanceUncertainty&);
+std::tuple<double, DistanceUncertainty>
+median_iqr_distance(const DistanceUncertaintyCalculationParameters&);
 
 /* Compute interfaces used in the M3C2 main algorithm */
 

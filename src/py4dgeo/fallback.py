@@ -68,9 +68,7 @@ def cylinder_workingset_finder(
 
 def mean_stddev_distance(
     params: _py4dgeo.DistanceUncertaintyCalculationParameters,
-    distance: np.float32,
-    uncertainty: _py4dgeo.DistanceUncertainty,
-) -> None:
+) -> tuple:
     # Calculate distance
     distance = params.normal[0, :].dot(
         params.workingset2.astype("d").mean(axis=0)
@@ -82,25 +80,28 @@ def mean_stddev_distance(
     variance2 = params.normal @ np.cov(params.workingset2.T) @ params.normal.T
 
     # The structured array that describes the full uncertainty
-    uncertainty.lodetection = 1.96 * (
-        np.sqrt(
-            variance1 / params.workingset1.shape[0]
-            + variance2 / params.workingset2.shape[0]
-        )
-        + params.registration_error
+    uncertainty = _py4dgeo.DistanceUncertainty(
+        lodetection=1.96
+        * (
+            np.sqrt(
+                variance1 / params.workingset1.shape[0]
+                + variance2 / params.workingset2.shape[0]
+            )
+            + params.registration_error
+        ),
+        spread1=np.sqrt(variance1),
+        num_samples1=params.workingset1.shape[0],
+        spread2=np.sqrt(variance2),
+        num_samples2=params.workingset2.shape[0],
     )
-    uncertainty.spread1 = np.sqrt(variance1)
-    uncertainty.num_samples1 = params.workingset1.shape[0]
-    uncertainty.spread2 = np.sqrt(variance2)
-    uncertainty.num_samples2 = params.workingset2.shape[0]
+
+    return distance, uncertainty
 
 
 def median_iqr_distance(
     params: _py4dgeo.DistanceUncertaintyCalculationParameters,
-    distance: np.float32,
-    uncertainty: _py4dgeo.DistanceUncertainty,
-) -> None:
-    distnace = np.median(
+) -> tuple:
+    distance = np.median(
         (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
             params.normal[0, :]
         )
@@ -109,6 +110,8 @@ def median_iqr_distance(
             params.normal[0, :]
         )
     )
+
+    return distance, _py4dgeo.DistanceUncertainty()
 
 
 class PythonFallbackM3C2(M3C2):
