@@ -98,20 +98,52 @@ def mean_stddev_distance(
     return distance, uncertainty
 
 
+def average_pos(a, pos, div):
+    # This is an unfortunate helper, but numpy.percentile does not do
+    # the correct thing. It sometimes averages although we have an exact
+    # match for the position we are searching.
+    if len(a) % div == 0:
+        return (
+            a[int(np.floor(pos * len(a)))] + a[int(np.floor(pos * len(a))) - 1]
+        ) / 2.0
+    else:
+        return a[int(np.floor(pos * len(a)))]
+
+
 def median_iqr_distance(
     params: _py4dgeo.DistanceUncertaintyCalculationParameters,
 ) -> tuple:
-    distance = np.median(
-        (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
-            params.normal[0, :]
-        )
-    ) - np.median(
-        (params.workingset1.astype("d") - params.corepoint.astype("d")[0, :]).dot(
-            params.normal[0, :]
-        )
+    # Calculate distributions
+    dist1 = (params.workingset1.astype("d") - params.corepoint.astype("d")[0, :]).dot(
+        params.normal[0, :]
+    )
+    dist2 = (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
+        params.normal[0, :]
+    )
+    dist1.sort()
+    dist2.sort()
+
+    median1 = average_pos(dist1, 0.5, 2)
+    median2 = average_pos(dist2, 0.5, 2)
+    iqr1 = average_pos(dist1, 0.75, 4) - average_pos(dist1, 0.25, 4)
+    iqr2 = average_pos(dist2, 0.75, 4) - average_pos(dist2, 0.25, 4)
+
+    # The structured array that describes the full uncertainty
+    uncertainty = _py4dgeo.DistanceUncertainty(
+        lodetection=1.96
+        * (
+            np.sqrt(
+                iqr1 / params.workingset1.shape[0] + iqr2 / params.workingset2.shape[0]
+            )
+            + params.registration_error
+        ),
+        spread1=iqr1,
+        num_samples1=params.workingset1.shape[0],
+        spread2=iqr2,
+        num_samples2=params.workingset2.shape[0],
     )
 
-    return distance, _py4dgeo.DistanceUncertainty()
+    return median2 - median1, uncertainty
 
 
 class PythonFallbackM3C2(M3C2):

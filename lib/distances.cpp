@@ -158,7 +158,7 @@ mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params)
   double stddev1 = std::sqrt(variance1);
   double stddev2 = std::sqrt(variance2);
 
-  // Calculate the level of  from above variances
+  // Calculate the level of detection from above variances
   double lodetection =
     1.96 *
     (std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
@@ -175,39 +175,71 @@ mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params)
 }
 
 double
-median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
+find_element_with_averaging(Eigen::Matrix<double, Eigen::Dynamic, 1>& v,
+                            std::size_t start,
+                            std::size_t pos,
+                            bool average)
 {
-  if (v.size() == 0)
-    return std::numeric_limits<double>::quiet_NaN();
-
   // ADL-friendly version of using STL algorithms
   using std::max_element;
   using std::nth_element;
 
-  // https://stackoverflow.com/a/34077478
-  auto n = v.size() / 2;
-  nth_element(v.begin(), v.begin() + n, v.end());
-  auto med = v[n];
-  if (v.size() % 2 == 0) {
-    auto max_it = max_element(v.begin(), v.begin() + n);
+  // Perform a partial sorting
+  nth_element(v.begin() + start, v.begin() + pos, v.end());
+  auto med = v[pos];
+
+  if (average) {
+    auto max_it = max_element(v.begin() + start, v.begin() + pos);
     med = (*max_it + med) / 2.0;
   }
+
   return med;
+}
+
+std::array<double, 2>
+median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
+{
+  if (v.size() == 0)
+    return { std::numeric_limits<double>::quiet_NaN(),
+             std::numeric_limits<double>::quiet_NaN() };
+
+  // General implementation idea taken from the followins posts
+  // * https://stackoverflow.com/a/34077478
+  // * https://stackoverflow.com/a/11965377
+  auto q1 = find_element_with_averaging(v, 0, v.size() / 4, v.size() % 4 == 0);
+  auto q2 = find_element_with_averaging(
+    v, v.size() / 4, v.size() / 2, v.size() % 2 == 0);
+  auto q3 = find_element_with_averaging(
+    v, v.size() / 2, 3 * v.size() / 4, v.size() % 4 == 0);
+
+  return { q2, q3 - q1 };
 }
 
 std::tuple<double, DistanceUncertainty>
 median_iqr_distance(const DistanceUncertaintyCalculationParameters& params)
 {
-  std::tuple<double, DistanceUncertainty> ret;
+  // Calculate distributions across the cylinder axis
   auto dist1 =
     (params.workingset1.cast<double>() * params.normal.row(0).transpose())
       .eval();
   auto dist2 =
     (params.workingset2.cast<double>() * params.normal.row(0).transpose())
       .eval();
-  std::get<0>(ret) = median(dist2) - median(dist1);
 
-  return ret;
+  // Find median and interquartile range of that distribution
+  auto [med1, iqr1] = median(dist1);
+  auto [med2, iqr2] = median(dist2);
+
+  return std::make_tuple(
+    med2 - med1,
+    DistanceUncertainty{
+      1.96 * (std::sqrt(iqr1 / static_cast<double>(params.workingset1.rows()) +
+                        iqr2 / static_cast<double>(params.workingset2.rows())) +
+              params.registration_error),
+      iqr1,
+      params.workingset1.rows(),
+      iqr2,
+      params.workingset2.rows() });
 }
 
 } // namespace py4dgeo
