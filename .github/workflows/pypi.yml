@@ -22,12 +22,14 @@ jobs:
         include:
           - os: ubuntu-20.04
             arch: "x86_64"
-          - os: windows-2016
+          - os: windows-2019
             arch: "x86"
-          - os: windows-2016
+          - os: windows-2019
             arch: "AMD64"
           - os: macos-10.15
             arch: "x86_64"
+          - os: windows-2019
+
 
     steps:
     - uses: actions/checkout@v2
@@ -38,6 +40,30 @@ jobs:
       uses: pypa/cibuildwheel@v2.2.2
       env:
         CIBW_ARCHS: "${{ matrix.arch }}"
+
+    - uses: actions/upload-artifact@v2
+      with:
+        path: ./wheelhouse/*.whl
+
+  build-msys:
+    name: Build msys2 wheels
+    runs-on: windows-2019
+
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: 'recursive'
+
+    - uses: msys2/setup-msys2@v2
+      with:
+        msystem: MINGW64
+        update: true
+        install: mingw-w64-x86_64-gcc mingw-w64-x86_64-cmake make
+
+    - name: Build wheels (arch=${{ matrix.arch }})
+      uses: pypa/cibuildwheel@v2.2.2
+      env:
+        CIBW_ARCHS: "auto64"
 
     - uses: actions/upload-artifact@v2
       with:
@@ -68,7 +94,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - windows-2016
+          - windows-2019
           - macos-10.15
 
     steps:
