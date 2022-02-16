@@ -82,14 +82,16 @@ class Epoch(_py4dgeo.Epoch):
         # Ensure that we have a file extension
         filename = append_file_extension(filename, "zip")
 
-        # Create the final archive
-        with zipfile.ZipFile(filename, mode="w", compression=zipfile.ZIP_BZIP2) as zf:
+        # Use a temporary directory when creating files
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Create the final archive
+            with zipfile.ZipFile(
+                filename, mode="w", compression=zipfile.ZIP_BZIP2
+            ) as zf:
 
-            # Write the epoch file format version number
-            zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
+                # Write the epoch file format version number
+                zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
 
-            # Use a temporary directory when creating files
-            with tempfile.TemporaryDirectory() as tmp_dir:
                 # Write the metadata dictionary into a json file
                 metadatafile = os.path.join(tmp_dir, "metadata.json")
                 with open(metadatafile, "w") as f:
@@ -124,16 +126,15 @@ class Epoch(_py4dgeo.Epoch):
         # Ensure that we have a file extension
         filename = append_file_extension(filename, "zip")
 
-        # Open the ZIP archive
-        with zipfile.ZipFile(filename, mode="r") as zf:
+        # Use temporary directory for extraction of files
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Open the ZIP archive
+            with zipfile.ZipFile(filename, mode="r") as zf:
 
-            # Read the epoch file version number and compare to current
-            version = int(zf.read("EPOCH_FILE_FORMAT").decode())
-            if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
-                raise Py4DGeoError("Epoch file format is out of date!")
-
-            # Use temporary directory for extraction of files
-            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Read the epoch file version number and compare to current
+                version = int(zf.read("EPOCH_FILE_FORMAT").decode())
+                if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
+                    raise Py4DGeoError("Epoch file format is out of date!")
 
                 # Read the metadata JSON file
                 metadatafile = zf.extract("metadata.json", path=tmp_dir)
