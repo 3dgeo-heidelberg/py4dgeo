@@ -24,14 +24,15 @@ class M3C2LikeAlgorithm(abc.ABC):
         corepoints: np.ndarray = None,
         cyl_radii: typing.List[float] = None,
         max_distance: float = 0.0,
-        calculate_uncertainty: bool = True,
         registration_error: float = 0.0,
+        robust_aggr: bool = False,
     ):
         self.epochs = epochs
         self.corepoints = as_single_precision(make_contiguous(corepoints))
         self.cyl_radii = cyl_radii
         self.max_distance = max_distance
         self.registration_error = registration_error
+        self.robust_aggr = robust_aggr
 
         # Check the given array shapes
         if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
@@ -93,7 +94,10 @@ class M3C2LikeAlgorithm(abc.ABC):
 
     def callback_distance_calculation(self):
         """The callback used to calculate the distance between two point clouds"""
-        return _py4dgeo.mean_stddev_distance
+        if self.robust_aggr:
+            return _py4dgeo.median_iqr_distance
+        else:
+            return _py4dgeo.mean_stddev_distance
 
 
 class M3C2(M3C2LikeAlgorithm):

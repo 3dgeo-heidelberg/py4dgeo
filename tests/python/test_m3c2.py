@@ -4,7 +4,8 @@ from py4dgeo.util import Py4DGeoError, set_memory_policy, MemoryPolicy
 import pytest
 
 
-def test_m3c2(epochs):
+@pytest.mark.parametrize("robust_aggr", (True, False))
+def test_m3c2(epochs, robust_aggr):
     epoch1, epoch2 = epochs
 
     # Try with wrong number of epochs
@@ -17,6 +18,7 @@ def test_m3c2(epochs):
         corepoints=epoch1.cloud,
         cyl_radii=(3.0,),
         normal_radii=(2.0,),
+        robust_aggr=robust_aggr,
     )
 
     # Run it
@@ -28,6 +30,7 @@ def test_m3c2(epochs):
         corepoints=epoch1.cloud,
         cyl_radii=(3.0,),
         normal_radii=(2.0,),
+        robust_aggr=robust_aggr,
     ).run()
     assert (distances == 0).all()
 

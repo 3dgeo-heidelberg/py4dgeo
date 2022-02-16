@@ -157,4 +157,7 @@ class PythonFallbackM3C2(M3C2):
         return cylinder_workingset_finder
 
     def callback_distance_calculation(self):
-        return mean_stddev_distance
+        if self.robust_aggr:
+            return median_iqr_distance
+        else:
+            return mean_stddev_distance
