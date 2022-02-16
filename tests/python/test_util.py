@@ -87,5 +87,9 @@ def test_as_double_precision_strict():
 
 
 def test_set_num_threads():
-    set_num_threads(42)
-    assert get_num_threads() == 42
+    try:
+        set_num_threads(42)
+        assert get_num_threads() == 42
+    except Py4DGeoError as e:
+        assert str(e) == "py4dgeo was built without threading support!"
+        assert get_num_threads() == 1
