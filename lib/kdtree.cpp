@@ -26,6 +26,32 @@ KDTree::build_tree(int leaf)
   leaf_parameter = leaf;
 }
 
+std::ostream&
+KDTree::saveIndex(std::ostream& stream) const
+{
+  stream.write(reinterpret_cast<const char*>(&leaf_parameter), sizeof(int));
+
+  if (leaf_parameter != 0)
+    search->saveIndex(stream);
+
+  return stream;
+}
+
+std::istream&
+KDTree::loadIndex(std::istream& stream)
+{
+  // Read the leaf parameter
+  stream.read(reinterpret_cast<char*>(&leaf_parameter), sizeof(int));
+
+  if (leaf_parameter != 0) {
+    search = std::make_shared<KDTree::KDTreeImpl>(
+      3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(leaf_parameter));
+    search->loadIndex(stream);
+  }
+
+  return stream;
+}
+
 std::size_t
 KDTree::radius_search(const float* query,
                       double radius,

@@ -1,12 +1,18 @@
 from py4dgeo.util import (
     Py4DGeoError,
+    append_file_extension,
     as_single_precision,
     make_contiguous,
 )
 
+import json
 import laspy
 import numpy as np
+import os
 import pickle
+import tempfile
+import zipfile
+
 import py4dgeo._py4dgeo as _py4dgeo
 
 
@@ -39,10 +45,15 @@ class Epoch(_py4dgeo.Epoch):
         # Apply defaults to metadata
         if geographic_offset is None:
             geographic_offset = np.array([0, 0, 0], dtype=np.float32)
-        self.geographic_offset = geographic_offset
+        self.geographic_offset = np.asarray(geographic_offset)
 
         # Call base class constructor
         super().__init__(cloud)
+
+    @property
+    def metadata(self):
+        """Provide metadata of this epoch."""
+        return {"geographic_offset": tuple(self.geographic_offset)}
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
         """Build the search tree index
@@ -67,8 +78,39 @@ class Epoch(_py4dgeo.Epoch):
             The filename to save the epoch in.
         :type filename: str
         """
-        with open(filename, "wb") as f:
-            pickle.dump(self, f)
+
+        # Ensure that we have a file extension
+        filename = append_file_extension(filename, "zip")
+
+        # Create the final archive
+        with zipfile.ZipFile(filename, mode="w", compression=zipfile.ZIP_BZIP2) as zf:
+
+            # Write the epoch file format version number
+            zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
+
+            # Use a temporary directory when creating files
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                # Write the metadata dictionary into a json file
+                metadatafile = os.path.join(tmp_dir, "metadata.json")
+                with open(metadatafile, "w") as f:
+                    json.dump(self.metadata, f)
+                zf.write(metadatafile, arcname="metadata.json")
+
+                # Write the actual point cloud array using laspy - LAZ compression
+                # is far better than any compression numpy + zipfile can do.
+                cloudfile = os.path.join(tmp_dir, "cloud.laz")
+                header = laspy.LasHeader(version="1.4", point_format=6)
+                lasfile = laspy.LasData(header)
+                lasfile.x = self.cloud[:, 0]
+                lasfile.y = self.cloud[:, 1]
+                lasfile.z = self.cloud[:, 2]
+                lasfile.write(cloudfile)
+                zf.write(cloudfile, arcname="cloud.laz")
+
+                kdtreefile = os.path.join(tmp_dir, "kdtree")
+                with open(kdtreefile, "w") as f:
+                    self.kdtree.save_index(kdtreefile)
+                zf.write(kdtreefile, arcname="kdtree")
 
     @staticmethod
     def load(filename):
@@ -78,13 +120,46 @@ class Epoch(_py4dgeo.Epoch):
             The filename to load the epoch from.
         :type filename: str
         """
-        with open(filename, "rb") as f:
-            return pickle.load(f)
+
+        # Ensure that we have a file extension
+        filename = append_file_extension(filename, "zip")
+
+        # Open the ZIP archive
+        with zipfile.ZipFile(filename, mode="r") as zf:
+
+            # Read the epoch file version number and compare to current
+            version = int(zf.read("EPOCH_FILE_FORMAT").decode())
+            if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
+                raise Py4DGeoError("Epoch file format is out of date!")
+
+            # Use temporary directory for extraction of files
+            with tempfile.TemporaryDirectory() as tmp_dir:
+
+                # Read the metadata JSON file
+                metadatafile = zf.extract("metadata.json", path=tmp_dir)
+                with open(metadatafile, "r") as f:
+                    metadata = json.load(f)
+
+                # Restore the point cloud itself
+                cloudfile = zf.extract("cloud.laz", path=tmp_dir)
+                lasfile = laspy.read(cloudfile)
+                cloud = (
+                    np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose()
+                )
+
+                # Construct the epoch object
+                epoch = Epoch(cloud, **metadata)
+
+                # Restore the KDTree object
+                kdtreefile = zf.extract("kdtree", path=tmp_dir)
+                epoch.kdtree.load_index(kdtreefile)
+
+        return epoch
 
     def __getstate__(self):
         return (
             PY4DGEO_EPOCH_FILE_FORMAT_VERSION,
-            self.__dict__,
+            self.metadata,
             _py4dgeo.Epoch.__getstate__(self),
         )
 
@@ -94,8 +169,11 @@ class Epoch(_py4dgeo.Epoch):
         if v != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
             raise Py4DGeoError("Epoch file format is out of date!")
 
-        # Restore metadata and base class object
-        self.__dict__ = metadata
+        # Restore metadata
+        for k, v in metadata:
+            setattr(self, k, v)
+
+        # Set the base class object
         _py4dgeo.Epoch.__setstate__(self, base)
 
 

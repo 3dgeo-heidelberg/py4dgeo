@@ -198,3 +198,13 @@ def get_num_threads():
     except AttributeError:
         # The C++ library was built without OpenMP!
         return 1
+
+
+def append_file_extension(filename, extension):
+    """Append a file extension if and only if the original filename has none"""
+
+    _, ext = os.path.splitext(filename)
+    if ext == "":
+        return f"{filename}.{extension}"
+    else:
+        return filename

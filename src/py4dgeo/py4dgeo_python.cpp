@@ -14,6 +14,7 @@
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 
+#include <fstream>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -84,6 +85,18 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Map __init__ to constructor
   kdtree.def(py::init<>(&KDTree::create));
 
+  // Allow updating KDTree from a given file
+  kdtree.def("load_index", [](KDTree& self, std::string filename) {
+    std::ifstream stream(filename);
+    self.loadIndex(stream);
+  });
+
+  // Allow dumping KDTree to a file
+  kdtree.def("save_index", [](const KDTree& self, std::string filename) {
+    std::ofstream stream(filename);
+    self.saveIndex(stream);
+  });
+
   // Allow building the KDTree structure
   kdtree.def(
     "build_tree", &KDTree::build_tree, "Trigger building the search tree");
@@ -113,7 +126,10 @@ PYBIND11_MODULE(_py4dgeo, m)
     // the point cloud itself, because the KDTree is only usable with the
     // cloud (scipy does exactly the same). We solve the problem by asking
     // users to pickle Epoch instead, which is the much cleaner solution.
-    throw std::runtime_error{ "Please pickle Epoch instead of KDTree" };
+    throw std::runtime_error{
+      "Please pickle Epoch instead of KDTree. Otherwise unpickled KDTree does "
+      "not know the point cloud."
+    };
   });
 
   // The main distance computation function that is the main entry point of M3C2
