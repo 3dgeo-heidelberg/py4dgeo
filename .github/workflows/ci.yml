@@ -19,6 +19,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04, macos-10.15, windows-2019]
+        openmp: ['ON', 'OFF']
 
     steps:
     - uses: actions/checkout@v2
@@ -31,7 +32,7 @@ jobs:
         python-version: 3.7
 
     - name: Install OpenMP
-      if: runner.os == 'macOS'
+      if: runner.os == 'macOS' && matrix.openmp == 'ON'
       run: brew install libomp
 
     - name: make build directory
@@ -40,7 +41,7 @@ jobs:
     - name: configure cmake
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF -DBUILD_BENCHMARKS=ON
+      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF -DBUILD_BENCHMARKS=ON -DPY4DGEO_WITH_OPENMP=${{matrix.openmp}}
 
     - name: build
       shell: bash
