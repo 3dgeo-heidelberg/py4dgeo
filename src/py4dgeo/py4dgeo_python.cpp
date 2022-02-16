@@ -87,13 +87,13 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   // Allow updating KDTree from a given file
   kdtree.def("load_index", [](KDTree& self, std::string filename) {
-    std::ifstream stream(filename);
+    std::ifstream stream(filename, std::ios::binary | std::ios::in);
     self.loadIndex(stream);
   });
 
   // Allow dumping KDTree to a file
   kdtree.def("save_index", [](const KDTree& self, std::string filename) {
-    std::ofstream stream(filename);
+    std::ofstream stream(filename, std::ios::binary | std::ios::out);
     self.saveIndex(stream);
   });
 
