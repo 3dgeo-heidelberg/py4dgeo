@@ -14,7 +14,7 @@ on:
 
 jobs:
   build-and-test:
-    name: Testing on ${{matrix.os}}
+    name: Testing on ${{matrix.os}} - OpenMP ${{matrix.openmp}}
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
