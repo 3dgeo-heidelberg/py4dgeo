@@ -21,7 +21,7 @@ import py4dgeo._py4dgeo as _py4dgeo
 # about incompatibilities of py4dgeo with loaded data. This version is intentionally
 # different from py4dgeo's version, because not all releases of py4dgeo necessarily
 # change the epoch file format and we want to be as compatible as possible.
-PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 0
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 1
 
 
 class Epoch(_py4dgeo.Epoch):
