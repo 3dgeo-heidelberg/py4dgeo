@@ -10,8 +10,8 @@ build-verbosity = 3
 skip = "pp* *p27-* cp35-* *musllinux*"
 
 # Testing commands for our wheels
-test-command = "pytest {package}/tests/python"
-test-requires = ["pytest"]
+#test-command = "pytest {package}/tests/python"
+#test-requires = ["pytest"]
 
 [tool.cibuildwheel.macos]
 before-all = "brew install libomp"
