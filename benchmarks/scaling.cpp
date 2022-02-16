@@ -1,3 +1,5 @@
+#include <benchmark/benchmark.h>
+
 #ifdef PY4DGEO_WITH_OPENMP
 
 #include "testsetup.hpp"
@@ -6,8 +8,6 @@
 
 #include <py4dgeo/compute.hpp>
 #include <py4dgeo/epoch.hpp>
-
-#include <benchmark/benchmark.h>
 
 using namespace py4dgeo;
 
