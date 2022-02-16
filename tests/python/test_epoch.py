@@ -3,6 +3,7 @@ from py4dgeo.util import Py4DGeoError
 
 import numpy as np
 import os
+import pickle
 import pytest
 import tempfile
 
@@ -13,12 +14,34 @@ def test_epoch_pickle(epochs):
 
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
-        # Pickle the given KDTree
-        fn = os.path.join(dir, "saved-epoch")
-        save_epoch(epoch1, fn)
+        # Pickle the given epoch
+        filename = os.path.join(dir, "epoch.pickle")
+        with open(filename, "wb") as f:
+            pickle.dump(epoch1, f)
 
         # Unpickle it
-        loaded = load_epoch(fn)
+        with open(filename, "rb") as f:
+            loaded = pickle.load(f)
+
+        # Assert that the two object behave the same
+        assert loaded.cloud.shape[0] == epoch1.cloud.shape[0]
+        assert np.allclose(loaded.geographic_offset, epoch1.geographic_offset)
+        assert np.allclose(
+            loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
+            epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+        )
+
+
+def test_epoch_saveload(epochs):
+    epoch1, _ = epochs
+    epoch1.build_kdtree()
+
+    # Operate in a temporary directory
+    with tempfile.TemporaryDirectory() as dir:
+        # Save and load it
+        filename = os.path.join(dir, "epoch")
+        save_epoch(epoch1, filename)
+        loaded = load_epoch(filename)
 
         # Assert that the two object behave the same
         assert loaded.cloud.shape[0] == epoch1.cloud.shape[0]

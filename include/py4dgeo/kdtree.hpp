@@ -98,6 +98,12 @@ public:
    */
   static KDTree create(const EigenPointCloudRef& cloud);
 
+  /** @brief Save the index to a (file) stream */
+  std::ostream& saveIndex(std::ostream& stream) const;
+
+  /** @brief Load the index from a (file) stream */
+  std::istream& loadIndex(std::istream& stream);
+
   /** @brief Build the KDTree index
    *
    * This initializes the KDTree search index. Calling this method is required
