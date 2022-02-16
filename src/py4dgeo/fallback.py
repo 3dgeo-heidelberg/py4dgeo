@@ -133,7 +133,8 @@ def median_iqr_distance(
         lodetection=1.96
         * (
             np.sqrt(
-                iqr1 / params.workingset1.shape[0] + iqr2 / params.workingset2.shape[0]
+                iqr1 * iqr1 / params.workingset1.shape[0]
+                + iqr2 * iqr2 / params.workingset2.shape[0]
             )
             + params.registration_error
         ),

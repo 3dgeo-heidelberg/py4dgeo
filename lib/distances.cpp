@@ -233,8 +233,9 @@ median_iqr_distance(const DistanceUncertaintyCalculationParameters& params)
   return std::make_tuple(
     med2 - med1,
     DistanceUncertainty{
-      1.96 * (std::sqrt(iqr1 / static_cast<double>(params.workingset1.rows()) +
-                        iqr2 / static_cast<double>(params.workingset2.rows())) +
+      1.96 * (std::sqrt(
+                iqr1 * iqr1 / static_cast<double>(params.workingset1.rows()) +
+                iqr2 * iqr2 / static_cast<double>(params.workingset2.rows())) +
               params.registration_error),
       iqr1,
       params.workingset1.rows(),
