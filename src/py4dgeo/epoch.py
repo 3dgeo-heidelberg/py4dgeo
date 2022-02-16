@@ -171,7 +171,7 @@ class Epoch(_py4dgeo.Epoch):
             raise Py4DGeoError("Epoch file format is out of date!")
 
         # Restore metadata
-        for k, v in metadata:
+        for k, v in metadata.items():
             setattr(self, k, v)
 
         # Set the base class object
