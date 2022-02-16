@@ -66,21 +66,21 @@ def cylinder_workingset_finder(
     return np.concatenate(tuple(slabs))
 
 
-def no_uncertainty(
-    params: _py4dgeo.UncertaintyMeasureParameters,
-) -> _py4dgeo.DistanceUncertainty:
-    return _py4dgeo.DistanceUncertainty()
+def mean_stddev_distance(
+    params: _py4dgeo.DistanceUncertaintyCalculationParameters,
+) -> tuple:
+    # Calculate distance
+    distance = params.normal[0, :].dot(
+        params.workingset2.astype("d").mean(axis=0)
+        - params.workingset1.astype("d").mean(axis=0)
+    )
 
-
-def standard_deviation_uncertainty(
-    params: _py4dgeo.UncertaintyMeasureParameters,
-) -> _py4dgeo.DistanceUncertainty:
     # Calculate variances
     variance1 = params.normal @ np.cov(params.workingset1.T) @ params.normal.T
     variance2 = params.normal @ np.cov(params.workingset2.T) @ params.normal.T
 
     # The structured array that describes the full uncertainty
-    return _py4dgeo.DistanceUncertainty(
+    uncertainty = _py4dgeo.DistanceUncertainty(
         lodetection=1.96
         * (
             np.sqrt(
@@ -89,11 +89,62 @@ def standard_deviation_uncertainty(
             )
             + params.registration_error
         ),
-        stddev1=np.sqrt(variance1),
+        spread1=np.sqrt(variance1),
         num_samples1=params.workingset1.shape[0],
-        stddev2=np.sqrt(variance2),
+        spread2=np.sqrt(variance2),
         num_samples2=params.workingset2.shape[0],
     )
+
+    return distance, uncertainty
+
+
+def average_pos(a, pos, div):
+    # This is an unfortunate helper, but numpy.percentile does not do
+    # the correct thing. It sometimes averages although we have an exact
+    # match for the position we are searching.
+    if len(a) % div == 0:
+        return (
+            a[int(np.floor(pos * len(a)))] + a[int(np.floor(pos * len(a))) - 1]
+        ) / 2.0
+    else:
+        return a[int(np.floor(pos * len(a)))]
+
+
+def median_iqr_distance(
+    params: _py4dgeo.DistanceUncertaintyCalculationParameters,
+) -> tuple:
+    # Calculate distributions
+    dist1 = (params.workingset1.astype("d") - params.corepoint.astype("d")[0, :]).dot(
+        params.normal[0, :]
+    )
+    dist2 = (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
+        params.normal[0, :]
+    )
+    dist1.sort()
+    dist2.sort()
+
+    median1 = average_pos(dist1, 0.5, 2)
+    median2 = average_pos(dist2, 0.5, 2)
+    iqr1 = average_pos(dist1, 0.75, 4) - average_pos(dist1, 0.25, 4)
+    iqr2 = average_pos(dist2, 0.75, 4) - average_pos(dist2, 0.25, 4)
+
+    # The structured array that describes the full uncertainty
+    uncertainty = _py4dgeo.DistanceUncertainty(
+        lodetection=1.96
+        * (
+            np.sqrt(
+                iqr1 * iqr1 / params.workingset1.shape[0]
+                + iqr2 * iqr2 / params.workingset2.shape[0]
+            )
+            + params.registration_error
+        ),
+        spread1=iqr1,
+        num_samples1=params.workingset1.shape[0],
+        spread2=iqr2,
+        num_samples2=params.workingset2.shape[0],
+    )
+
+    return median2 - median1, uncertainty
 
 
 class PythonFallbackM3C2(M3C2):
@@ -106,5 +157,8 @@ class PythonFallbackM3C2(M3C2):
     def callback_workingset_finder(self):
         return cylinder_workingset_finder
 
-    def callback_uncertainty_calculation(self):
-        return standard_deviation_uncertainty
+    def callback_distance_calculation(self):
+        if self.robust_aggr:
+            return median_iqr_distance
+        else:
+            return mean_stddev_distance

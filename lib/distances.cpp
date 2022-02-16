@@ -5,20 +5,23 @@
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
+#include <algorithm>
+
 namespace py4dgeo {
 
 void
-compute_distances(EigenPointCloudConstRef corepoints,
-                  double scale,
-                  const Epoch& epoch1,
-                  const Epoch& epoch2,
-                  EigenNormalSetConstRef directions,
-                  double max_distance,
-                  double registration_error,
-                  DistanceVector& distances,
-                  UncertaintyVector& uncertainties,
-                  const WorkingSetFinderCallback& workingsetfinder,
-                  const UncertaintyMeasureCallback& uncertaintycalculator)
+compute_distances(
+  EigenPointCloudConstRef corepoints,
+  double scale,
+  const Epoch& epoch1,
+  const Epoch& epoch2,
+  EigenNormalSetConstRef directions,
+  double max_distance,
+  double registration_error,
+  DistanceVector& distances,
+  UncertaintyVector& uncertainties,
+  const WorkingSetFinderCallback& workingsetfinder,
+  const DistanceUncertaintyCalculationCallback& distancecalculator)
 {
   // Resize the output data structures
   distances.resize(corepoints.rows());
@@ -46,14 +49,14 @@ compute_distances(EigenPointCloudConstRef corepoints,
       auto subset2 = workingsetfinder(params2);
 
       // Distance calculation
-      distances[i] = dir.dot(subset2.cast<double>().colwise().mean() -
-                             subset1.cast<double>().colwise().mean());
-
-      // Uncertainty calculation
-      UncertaintyMeasureParameters uc_params{
-        subset1, subset2, dir, registration_error
+      DistanceUncertaintyCalculationParameters d_params{
+        subset1, subset2, corepoints.row(i), dir, registration_error
       };
-      uncertainties[i] = uncertaintycalculator(uc_params);
+      auto dist = distancecalculator(d_params);
+
+      // Write distances into the resulting array
+      distances[i] = std::get<0>(dist);
+      uncertainties[i] = std::get<1>(dist);
     });
   }
 
@@ -129,37 +132,115 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
 }
 
 double
-variance(EigenPointCloudConstRef subset, EigenNormalSetConstRef direction)
+variance(EigenPointCloudConstRef subset,
+         const Eigen::Matrix<double, 1, 3>& mean,
+         EigenNormalSetConstRef direction)
 {
-  auto centered =
-    subset.cast<double>().rowwise() - subset.cast<double>().colwise().mean();
+  auto centered = subset.cast<double>().rowwise() - mean;
   auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
   auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
   return multiplied.eval()(0, 0);
 }
 
-DistanceUncertainty
-standard_deviation_uncertainty(const UncertaintyMeasureParameters& params)
+std::tuple<double, DistanceUncertainty>
+mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params)
 {
-  double variance1 = variance(params.workingset1, params.normal);
-  double variance2 = variance(params.workingset2, params.normal);
+  std::tuple<double, DistanceUncertainty> ret;
+
+  auto mean1 = params.workingset1.cast<double>().colwise().mean().eval();
+  auto mean2 = params.workingset2.cast<double>().colwise().mean().eval();
+  std::get<0>(ret) = params.normal.row(0).dot(mean2 - mean1);
+
+  double variance1 = variance(params.workingset1, mean1, params.normal);
+  double variance2 = variance(params.workingset2, mean2, params.normal);
 
   // Calculate the standard deviations for both point clouds
   double stddev1 = std::sqrt(variance1);
   double stddev2 = std::sqrt(variance2);
 
-  // Calculate the level of  from above variances
+  // Calculate the level of detection from above variances
   double lodetection =
     1.96 *
     (std::sqrt(variance1 / static_cast<double>(params.workingset1.rows()) +
                variance2 / static_cast<double>(params.workingset2.rows())) +
      params.registration_error);
 
-  return DistanceUncertainty{ lodetection,
-                              stddev1,
-                              params.workingset1.rows(),
-                              stddev2,
-                              params.workingset2.rows() };
+  std::get<1>(ret).lodetection = lodetection;
+  std::get<1>(ret).spread1 = stddev1;
+  std::get<1>(ret).num_samples1 = params.workingset1.rows();
+  std::get<1>(ret).spread2 = stddev2;
+  std::get<1>(ret).num_samples2 = params.workingset2.rows();
+
+  return ret;
+}
+
+double
+find_element_with_averaging(Eigen::Matrix<double, Eigen::Dynamic, 1>& v,
+                            std::size_t start,
+                            std::size_t pos,
+                            bool average)
+{
+  // ADL-friendly version of using STL algorithms
+  using std::max_element;
+  using std::nth_element;
+
+  // Perform a partial sorting
+  nth_element(v.begin() + start, v.begin() + pos, v.end());
+  auto med = v[pos];
+
+  if (average) {
+    auto max_it = max_element(v.begin() + start, v.begin() + pos);
+    med = (*max_it + med) / 2.0;
+  }
+
+  return med;
+}
+
+std::array<double, 2>
+median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
+{
+  if (v.size() == 0)
+    return { std::numeric_limits<double>::quiet_NaN(),
+             std::numeric_limits<double>::quiet_NaN() };
+
+  // General implementation idea taken from the followins posts
+  // * https://stackoverflow.com/a/34077478
+  // * https://stackoverflow.com/a/11965377
+  auto q1 = find_element_with_averaging(v, 0, v.size() / 4, v.size() % 4 == 0);
+  auto q2 = find_element_with_averaging(
+    v, v.size() / 4, v.size() / 2, v.size() % 2 == 0);
+  auto q3 = find_element_with_averaging(
+    v, v.size() / 2, 3 * v.size() / 4, v.size() % 4 == 0);
+
+  return { q2, q3 - q1 };
+}
+
+std::tuple<double, DistanceUncertainty>
+median_iqr_distance(const DistanceUncertaintyCalculationParameters& params)
+{
+  // Calculate distributions across the cylinder axis
+  auto dist1 =
+    (params.workingset1.cast<double>() * params.normal.row(0).transpose())
+      .eval();
+  auto dist2 =
+    (params.workingset2.cast<double>() * params.normal.row(0).transpose())
+      .eval();
+
+  // Find median and interquartile range of that distribution
+  auto [med1, iqr1] = median(dist1);
+  auto [med2, iqr2] = median(dist2);
+
+  return std::make_tuple(
+    med2 - med1,
+    DistanceUncertainty{
+      1.96 * (std::sqrt(
+                iqr1 * iqr1 / static_cast<double>(params.workingset1.rows()) +
+                iqr2 * iqr2 / static_cast<double>(params.workingset2.rows())) +
+              params.registration_error),
+      iqr1,
+      params.workingset1.rows(),
+      iqr2,
+      params.workingset2.rows() });
 }
 
 } // namespace py4dgeo

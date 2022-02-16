@@ -31,8 +31,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   // We try to test all callback combinations
   auto wsfinder =
     GENERATE(radius_workingset_finder, cylinder_workingset_finder);
-  auto uncertaintymeasure =
-    GENERATE(no_uncertainty, standard_deviation_uncertainty);
+  auto distancecalc = GENERATE(mean_stddev_distance, median_iqr_distance);
 
   compute_distances(epoch.cloud,
                     2.0,
@@ -44,7 +43,7 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
                     distances,
                     uncertainties,
                     wsfinder,
-                    uncertaintymeasure);
+                    distancecalc);
 
   REQUIRE(distances.size() == epoch.cloud.rows());
   REQUIRE(uncertainties.size() == epoch.cloud.rows());
@@ -71,8 +70,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   // We try to test all callback combinations
   auto wsfinder =
     GENERATE(radius_workingset_finder, cylinder_workingset_finder);
-  auto uncertaintymeasure =
-    GENERATE(no_uncertainty, standard_deviation_uncertainty);
+  auto distancecalc = GENERATE(mean_stddev_distance, median_iqr_distance);
 
   compute_distances(*corepoints,
                     2.0,
@@ -84,7 +82,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
                     distances,
                     uncertainties,
                     wsfinder,
-                    uncertaintymeasure);
+                    distancecalc);
 
   for (std::size_t i = 0; i < distances.size(); ++i)
     REQUIRE(std::abs(distances[i]) < 1e-8);

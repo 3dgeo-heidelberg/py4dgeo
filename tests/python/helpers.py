@@ -9,7 +9,7 @@ def compare_algorithms(alg1, alg2):
 
     assert np.allclose(distances1, distances2)
     assert np.allclose(uncertainties1["lodetection"], uncertainties2["lodetection"])
-    assert np.allclose(uncertainties1["stddev1"], uncertainties2["stddev1"])
-    assert np.allclose(uncertainties1["stddev2"], uncertainties2["stddev2"])
+    assert np.allclose(uncertainties1["spread1"], uncertainties2["spread1"])
+    assert np.allclose(uncertainties1["spread2"], uncertainties2["spread2"])
     assert np.allclose(uncertainties1["num_samples1"], uncertainties2["num_samples1"])
     assert np.allclose(uncertainties1["num_samples2"], uncertainties2["num_samples2"])

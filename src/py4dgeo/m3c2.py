@@ -24,15 +24,15 @@ class M3C2LikeAlgorithm(abc.ABC):
         corepoints: np.ndarray = None,
         cyl_radii: typing.List[float] = None,
         max_distance: float = 0.0,
-        calculate_uncertainty: bool = True,
         registration_error: float = 0.0,
+        robust_aggr: bool = False,
     ):
         self.epochs = epochs
         self.corepoints = as_single_precision(make_contiguous(corepoints))
         self.cyl_radii = cyl_radii
         self.max_distance = max_distance
-        self.calculate_uncertainty = calculate_uncertainty
         self.registration_error = registration_error
+        self.robust_aggr = robust_aggr
 
         # Check the given array shapes
         if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
@@ -70,11 +70,6 @@ class M3C2LikeAlgorithm(abc.ABC):
         epoch1.build_kdtree()
         epoch2.build_kdtree()
 
-        # Extract the uncertainty callback
-        uncertainty_callback = self.callback_uncertainty_calculation()
-        if not self.calculate_uncertainty:
-            uncertainty_callback = _py4dgeo.no_uncertainty
-
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
             self.cyl_radii[0],
@@ -84,7 +79,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             self.max_distance,
             self.registration_error,
             self.callback_workingset_finder(),
-            uncertainty_callback,
+            self.callback_distance_calculation(),
         )
 
         return distances, uncertainties
@@ -97,9 +92,12 @@ class M3C2LikeAlgorithm(abc.ABC):
         """The callback used to determine the point cloud subset around a corepoint"""
         return _py4dgeo.cylinder_workingset_finder
 
-    def callback_uncertainty_calculation(self):
-        """The callback used to calculate the uncertainty"""
-        return _py4dgeo.standard_deviation_uncertainty
+    def callback_distance_calculation(self):
+        """The callback used to calculate the distance between two point clouds"""
+        if self.robust_aggr:
+            return _py4dgeo.median_iqr_distance
+        else:
+            return _py4dgeo.mean_stddev_distance
 
 
 class M3C2(M3C2LikeAlgorithm):

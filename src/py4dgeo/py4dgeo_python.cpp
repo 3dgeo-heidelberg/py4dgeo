@@ -39,9 +39,9 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Python. The given names will be usable in Python.
   PYBIND11_NUMPY_DTYPE(DistanceUncertainty,
                        lodetection,
-                       stddev1,
+                       spread1,
                        num_samples1,
-                       stddev2,
+                       spread2,
                        num_samples2);
 
   // Also expose the DistanceUncertainty data structure in Python, so that
@@ -49,9 +49,9 @@ PYBIND11_MODULE(_py4dgeo, m)
   py::class_<DistanceUncertainty> unc(m, "DistanceUncertainty");
   unc.def(py::init<double, double, IndexType, double, IndexType>(),
           py::arg("lodetection") = 0.0,
-          py::arg("stddev1") = 0.0,
+          py::arg("spread1") = 0.0,
           py::arg("num_samples1") = 0,
-          py::arg("stddev2") = 0.0,
+          py::arg("spread2") = 0.0,
           py::arg("num_samples2") = 0);
 
   // The epoch class
@@ -127,7 +127,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        double max_distance,
        double registration_error,
        const WorkingSetFinderCallback& workingsetfinder,
-       const UncertaintyMeasureCallback& uncertaintycalculator) {
+       const DistanceUncertaintyCalculationCallback& distancecalculator) {
       // Allocate memory for the return types
       DistanceVector distances;
       UncertaintyVector uncertainties;
@@ -148,7 +148,7 @@ PYBIND11_MODULE(_py4dgeo, m)
                           distances,
                           uncertainties,
                           workingsetfinder,
-                          uncertaintycalculator);
+                          distancecalculator);
       }
 
       return std::make_tuple(as_pyarray(std::move(distances)),
@@ -179,27 +179,35 @@ PYBIND11_MODULE(_py4dgeo, m)
     "max_distance",
     [](const WorkingSetFinderParameters& self) { return self.max_distance; });
 
-  py::class_<UncertaintyMeasureParameters> uc_params(
-    m, "UncertaintyMeasureParameters");
-  uc_params.def_property_readonly(
-    "workingset1",
-    [](const UncertaintyMeasureParameters& self) { return self.workingset1; });
-  uc_params.def_property_readonly(
-    "workingset2",
-    [](const UncertaintyMeasureParameters& self) { return self.workingset2; });
-  uc_params.def_property_readonly(
-    "normal",
-    [](const UncertaintyMeasureParameters& self) { return self.normal; });
-  uc_params.def_property_readonly("registration_error",
-                                  [](const UncertaintyMeasureParameters& self) {
-                                    return self.registration_error;
-                                  });
+  py::class_<DistanceUncertaintyCalculationParameters> d_params(
+    m, "DistanceUncertaintyCalculationParameters");
+  d_params.def_property_readonly(
+    "workingset1", [](const DistanceUncertaintyCalculationParameters& self) {
+      return self.workingset1;
+    });
+  d_params.def_property_readonly(
+    "workingset2", [](const DistanceUncertaintyCalculationParameters& self) {
+      return self.workingset2;
+    });
+  d_params.def_property_readonly(
+    "corepoint", [](const DistanceUncertaintyCalculationParameters& self) {
+      return self.corepoint;
+    });
+  d_params.def_property_readonly(
+    "normal", [](const DistanceUncertaintyCalculationParameters& self) {
+      return self.normal;
+    });
+  d_params.def_property_readonly(
+    "registration_error",
+    [](const DistanceUncertaintyCalculationParameters& self) {
+      return self.registration_error;
+    });
 
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
-  m.def("no_uncertainty", &no_uncertainty);
-  m.def("standard_deviation_uncertainty", &standard_deviation_uncertainty);
+  m.def("mean_stddev_distance", &mean_stddev_distance);
+  m.def("median_iqr_distance", &median_iqr_distance);
 
   // Expose OpenMP threading control
 #ifdef PY4DGEO_WITH_OPENMP
