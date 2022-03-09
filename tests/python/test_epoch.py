@@ -1,6 +1,7 @@
 from py4dgeo.epoch import *
 from py4dgeo.util import Py4DGeoError
 
+import datetime
 import numpy as np
 import os
 import pickle
@@ -112,3 +113,34 @@ def test_read_from_xyz_header(tmp_path):
 
     epoch = read_from_xyz(filename, header_lines=2)
     assert epoch.cloud.shape[0] == 2
+
+
+def test_normalize_timestamp():
+    assert normalize_timestamp(None) is None
+
+    now = datetime.datetime.utcnow()
+    assert normalize_timestamp(now) == now
+
+    now = datetime.date.today()
+    nnow = normalize_timestamp(now)
+    assert nnow.year == now.year
+    assert nnow.month == now.month
+    assert nnow.day == now.day
+
+    ts = normalize_timestamp((2010, 34))
+    assert ts.year == 2010
+    assert ts.month == 2
+    assert ts.day == 3
+
+    ts = normalize_timestamp("February 3rd, 2010, 9:27AM")
+    assert ts.year == 2010
+    assert ts.month == 2
+    assert ts.day == 3
+    assert ts.hour == 9
+    assert ts.minute == 27
+
+    with pytest.raises(Py4DGeoError):
+        normalize_timestamp("foo")
+
+    with pytest.raises(Py4DGeoError):
+        normalize_timestamp(42)

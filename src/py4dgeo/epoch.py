@@ -3,13 +3,15 @@ from py4dgeo.util import (
     append_file_extension,
     as_single_precision,
     make_contiguous,
+    is_iterable,
 )
 
+import dateparser
+import datetime
 import json
 import laspy
 import numpy as np
 import os
-import pickle
 import tempfile
 import zipfile
 
@@ -25,7 +27,7 @@ PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 1
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, geographic_offset=None):
+    def __init__(self, cloud: np.ndarray, geographic_offset=None, timestamp=None):
         """
 
         :param cloud:
@@ -47,13 +49,25 @@ class Epoch(_py4dgeo.Epoch):
             geographic_offset = np.array([0, 0, 0], dtype=np.float32)
         self.geographic_offset = np.asarray(geographic_offset)
 
+        self.timestamp = normalize_timestamp(timestamp)
+
         # Call base class constructor
         super().__init__(cloud)
 
     @property
     def metadata(self):
-        """Provide metadata of this epoch."""
-        return {"geographic_offset": tuple(self.geographic_offset)}
+        """Provide the metadata of this epoch as a Python dictionary
+
+        The return value of this property only makes use of Python built-in
+        data structures such that it can e.g. be serialized using the JSON
+        module. Also, the returned values are understood by :ref:`Epoch.__init__`
+        such that you can do :code:`Epoch(cloud, **other.metadata)`.
+        """
+
+        return {
+            "geographic_offset": tuple(self.geographic_offset),
+            "timestamp": None if self.timestamp is None else str(self.timestamp),
+        }
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
         """Build the search tree index
@@ -313,6 +327,7 @@ def read_from_las(*filenames, other_epoch=None):
         .astype("f")
         .transpose(),
         geographic_offset=geographic_offset,
+        timestamp=lasfile.header.creation_date,
     )
 
     if len(filenames) == 1:
@@ -324,3 +339,34 @@ def read_from_las(*filenames, other_epoch=None):
         return (new_epoch,) + _as_tuple(
             read_from_las(*filenames[1:], other_epoch=new_epoch)
         )
+
+
+def normalize_timestamp(timestamp):
+    """Bring a given timestamp into a standardized Python format"""
+
+    # This might be normalized already or non-existing
+    if isinstance(timestamp, datetime.datetime) or timestamp is None:
+        return timestamp
+
+    # This might be a date without time information e.g. from laspy
+    if isinstance(timestamp, datetime.date):
+        return datetime.datetime(timestamp.year, timestamp.month, timestamp.day)
+
+    # If this is a tuple of (year, day of year) as used in the LAS
+    # file header, we convert it.
+    if is_iterable(timestamp):
+        if len(timestamp) == 2:
+            return datetime.datetime(timestamp[0], 1, 1) + datetime.timedelta(
+                timestamp[1] - 1
+            )
+
+    # If this is a string we use the dateparser library that understands
+    # all sorts of human-readable timestamps
+    if isinstance(timestamp, str):
+        parsed = dateparser.parse(timestamp)
+
+        # dateparser returns None for anything it does not understand
+        if parsed is not None:
+            return parsed
+
+    raise Py4DGeoError(f"The timestamp '{timestamp}' was not understood by py4dgeo.")
