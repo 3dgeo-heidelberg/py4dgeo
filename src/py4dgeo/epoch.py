@@ -44,15 +44,30 @@ class Epoch(_py4dgeo.Epoch):
         cloud = as_single_precision(cloud)
         cloud = make_contiguous(cloud)
 
-        # Apply defaults to metadata
-        if geographic_offset is None:
-            geographic_offset = np.array([0, 0, 0], dtype=np.float32)
-        self.geographic_offset = np.asarray(geographic_offset)
-
-        self.timestamp = normalize_timestamp(timestamp)
+        # Set metadata properties
+        self.geographic_offset = geographic_offset
+        self.timestamp = timestamp
 
         # Call base class constructor
         super().__init__(cloud)
+
+    @property
+    def geographic_offset(self):
+        return self._geographic_offset
+
+    @geographic_offset.setter
+    def geographic_offset(self, geographic_offset):
+        if geographic_offset is None:
+            geographic_offset = np.array([0, 0, 0], dtype=np.float32)
+        self._geographic_offset = np.asarray(geographic_offset)
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    @timestamp.setter
+    def timestamp(self, timestamp):
+        self._timestamp = normalize_timestamp(timestamp)
 
     @property
     def metadata(self):

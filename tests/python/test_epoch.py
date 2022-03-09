@@ -53,6 +53,21 @@ def test_epoch_saveload(epochs):
         )
 
 
+@pytest.mark.parametrize("geographic_offset", [None, np.array([1, 0, 0])])
+@pytest.mark.parametrize("timestamp", [datetime.datetime.utcnow(), "25. November 1986"])
+def test_epoch_metadata_setters(epochs, geographic_offset, timestamp):
+    epoch, _ = epochs
+
+    # Use all the property setters
+    epoch.geographic_offset = geographic_offset
+    epoch.timestamp = timestamp
+
+    # Test reconstruction of an Epoch from exported metadata
+    epoch2 = Epoch(epoch.cloud, **epoch.metadata)
+    assert np.allclose(epoch.geographic_offset, epoch2.geographic_offset)
+    assert epoch.timestamp - epoch2.timestamp == datetime.timedelta()
+
+
 def test_as_epoch(epochs):
     epoch1, _ = epochs
     assert epoch1 is as_epoch(epoch1)
