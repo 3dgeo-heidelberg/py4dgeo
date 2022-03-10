@@ -1,5 +1,5 @@
 breathe
-lcov_cobertura==1.6
+lcov_cobertura
 m2r2
 matplotlib
 nbclick
