@@ -1,20 +1,22 @@
 from py4dgeo.segmentation import *
-from py4dgeo.m3c2 import M3C2
+
+import os
+import tempfile
+
+from .helpers import compare_segmentations
 
 
-def test_segmentation(epochs):
-    ref_epoch, epoch1 = epochs
+def test_segmentation(segmentation):
+    # Basic assertions about the segmentation generated in fixture
+    assert segmentation.distances.shape[0] == 1
 
-    ref_epoch.timestamp = "March 9th 2022, 16:32"
-    epoch1.timestamp = "March 9th 2022, 16:33"
 
-    # TODO M3C2 should be refactored to not necessarily take epochs
-    m3c2 = M3C2(
-        epochs=(ref_epoch, epoch1),
-        corepoints=ref_epoch.cloud,
-        cyl_radii=[2.0],
-        normal_radii=[2.0],
-    )
+def test_save_load_segmentation(segmentation):
+    # Write and read the segmentation
+    with tempfile.TemporaryDirectory() as dir:
+        filename = os.path.join(dir, "bla")
+        segmentation.save(os.path.join(dir, "bla"))
+        loaded = SpatiotemporalSegmentation.load(filename, segmentation._m3c2)
 
-    seg = SpatiotemporalSegmentation(m3c2=m3c2, reference_epoch=ref_epoch)
-    seg.add_epoch(epoch1)
+    # Assert segmentations are the same
+    compare_segmentations(segmentation, loaded)

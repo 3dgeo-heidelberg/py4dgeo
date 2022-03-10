@@ -1,6 +1,12 @@
-from py4dgeo.util import Py4DGeoError
+from py4dgeo.epoch import Epoch
+from py4dgeo.util import Py4DGeoError, append_file_extension
 
+import datetime
+import json
 import numpy as np
+import os
+import tempfile
+import zipfile
 
 
 # This integer controls the versioning of the segmentation file format. Whenever the
@@ -12,7 +18,7 @@ PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION = 0
 
 
 class SpatiotemporalSegmentation:
-    def __init__(self, reference_epoch=None, epochs=None, m3c2=None):
+    def __init__(self, reference_epoch=None, m3c2=None):
         """Construct a spatiotemporal segmentation object
 
         This is the basic data structure for the 4D objects by change algorithm
@@ -37,6 +43,7 @@ class SpatiotemporalSegmentation:
         self._m3c2 = m3c2
 
         # This is the data structure that holds the distances
+        self.timedeltas = []
         self.distances = np.empty((0, self._m3c2.corepoints.shape[0]), dtype=np.float64)
         self.uncertainties = np.empty(
             (0, self._m3c2.corepoints.shape[0]),
@@ -54,13 +61,90 @@ class SpatiotemporalSegmentation:
     def save(self, filename):
         """Save segmentation to a file"""
 
-        raise NotImplementedError
+        # Ensure that we have a file extension
+        filename = append_file_extension(filename, "zip")
+
+        # Use a temporary directory when creating files
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Create the final archive
+            with zipfile.ZipFile(
+                filename, mode="w", compression=zipfile.ZIP_BZIP2
+            ) as zf:
+                # Write the epoch file format version number
+                zf.writestr(
+                    "SEGMENTATION_FILE_FORMAT",
+                    str(PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION),
+                )
+
+                # Write the metadata dictionary into a json file
+                timestampsfile = os.path.join(tmp_dir, "timestamps.json")
+                with open(timestampsfile, "w") as f:
+                    json.dump(
+                        [
+                            {
+                                "days": td.days,
+                                "seconds": td.seconds,
+                                "microseconds": td.microseconds,
+                            }
+                            for td in self.timedeltas
+                        ],
+                        f,
+                    )
+                zf.write(timestampsfile, arcname="timestamps.json")
+
+                # Write distances and uncertainties
+                distance_file = os.path.join(tmp_dir, "distances.npy")
+                np.save(distance_file, self.distances)
+                zf.write(distance_file, arcname="distances.npy")
+
+                uncertainty_file = os.path.join(tmp_dir, "uncertainty.npy")
+                np.save(uncertainty_file, self.uncertainties)
+                zf.write(uncertainty_file, arcname="uncertainty.npy")
+
+                # Write reference epoch
+                refepoch_file = os.path.join(tmp_dir, "reference_epoch.zip")
+                self._reference_epoch.save(refepoch_file)
+                zf.write(refepoch_file, arcname="reference_epoch.zip")
 
     @classmethod
-    def load(cls, filename):
+    def load(cls, filename, m3c2):
         """Load a segmentation object from a file"""
 
-        raise NotImplementedError
+        # Ensure that we have a file extension
+        filename = append_file_extension(filename, "zip")
+
+        # Use temporary directory for extraction of files
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            # Open the ZIP archive
+            with zipfile.ZipFile(filename, mode="r") as zf:
+
+                # Read the segmentation file version number and compare to current
+                version = int(zf.read("SEGMENTATION_FILE_FORMAT").decode())
+                if version != PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION:
+                    raise Py4DGeoError("Segmentation file format is out of date!")
+
+                # Read the reference epoch
+                ref_epochfile = zf.extract("reference_epoch.zip", path=tmp_dir)
+                refepoch = Epoch.load(ref_epochfile)
+
+                # Create the segmentation object
+                segmentation = cls(reference_epoch=refepoch, m3c2=m3c2)
+
+                # Read the distances and uncertainties
+                distancefile = zf.extract("distances.npy", path=tmp_dir)
+                segmentation.distances = np.load(distancefile)
+                uncertaintyfile = zf.extract("uncertainty.npy", path=tmp_dir)
+                segmentation.uncertainties = np.load(uncertaintyfile)
+
+                # Read timedeltas
+                timestampsfile = zf.extract("timestamps.json")
+                with open(timestampsfile) as f:
+                    timedeltas = json.load(f)
+                segmentation.timedeltas = [
+                    datetime.timedelta(**data) for data in timedeltas
+                ]
+
+        return segmentation
 
     def add_epoch(self, epoch):
         """Adds an epoch to the existing segmentation"""
@@ -73,6 +157,7 @@ class SpatiotemporalSegmentation:
         # Append them to our existing infrastructure
         self.distances = np.vstack((self.distances, np.expand_dims(d, axis=0)))
         self.uncertainties = np.vstack((self.uncertainties, np.expand_dims(u, axis=0)))
+        self.timedeltas.append(epoch.timestamp - self._reference_epoch.timestamp)
 
 
 def check_epoch_timestamp(epoch):
