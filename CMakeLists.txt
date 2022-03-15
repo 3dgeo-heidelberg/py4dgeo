@@ -44,7 +44,7 @@ endif()
 
 # Compile the library
 add_library(py4dgeo lib/directions.cpp lib/distances.cpp lib/epoch.cpp
-                    lib/kdtree.cpp)
+                    lib/kdtree.cpp lib/segmentation.cpp)
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)

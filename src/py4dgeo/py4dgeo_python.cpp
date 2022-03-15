@@ -13,6 +13,7 @@
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
+#include "py4dgeo/segmentation.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -224,6 +225,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
   m.def("mean_stddev_distance", &mean_stddev_distance);
   m.def("median_iqr_distance", &median_iqr_distance);
+  m.def("dtw_distance", &dtw_distance);
 
   // Expose OpenMP threading control
 #ifdef PY4DGEO_WITH_OPENMP
