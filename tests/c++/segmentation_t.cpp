@@ -10,7 +10,8 @@ TEST_CASE("DTW distance calculation", "[segmentation]")
   EigenSpatiotemporalArray arr(2, 4);
   arr << 1, 5, 4, 2, 1, 2, 4, 1;
 
-  auto dist = dtw_distance(arr.row(0), arr.row(1));
+  TimeseriesDistanceFunctionData data{ arr.row(0), arr.row(1) };
+  auto dist = dtw_distance(data);
 
   REQUIRE(dist > 0);
   REQUIRE(std::abs(dist - 3) < 1e-8);

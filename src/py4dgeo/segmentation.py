@@ -1,4 +1,4 @@
-from py4dgeo.epoch import Epoch
+from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import Py4DGeoError, append_file_extension
 
 import datetime
@@ -7,6 +7,8 @@ import numpy as np
 import os
 import tempfile
 import zipfile
+
+import py4dgeo._py4dgeo as _py4dgeo
 
 
 # This integer controls the versioning of the segmentation file format. Whenever the
@@ -160,8 +162,79 @@ class SpatiotemporalSegmentation:
         self.timedeltas.append(epoch.timestamp - self._reference_epoch.timestamp)
 
 
+class RegionGrowingAlgorithm:
+    def __init__(self):
+        """Construct a spatiotemporal segmentation algorithm.
+
+        This class can be derived from to customize the algorithm behaviour.
+        """
+        pass
+
+    def temporal_averaging(self, distances):
+        """Smoothen a space-time array of distance change"""
+
+        # We use no-op smooting as the default implementation here
+        return distances
+
+    def distance_measure(self):
+        """Distance measure between two time series
+
+        Expected to return a function that accepts two time series and returns
+        the distance.
+        """
+
+        return _py4dgeo.dtw_distance
+
+    def construct_sorted_seedpoints(self):
+        """Calculate seedpoints for the region growing algorithm
+
+        They are expected to be sorted by priority.
+        """
+
+        return [_py4dgeo.RegionGrowingSeed(0, 0, 1)]
+
+    def run(self, segmentation):
+        """Calculate the segmentation"""
+
+        # Smooth the distance array
+        smoothed = self.temporal_averaging(segmentation.distances)
+
+        # Get corepoints from M3C2 class and build a KDTree on them
+        corepoints = as_epoch(segmentation.m3c2.corepoints)
+        corepoints.build_kdtree()
+
+        # Calculate the list of seed points
+        seeds = self.construct_sorted_seedpoints()
+        objects = []
+
+        # Iterate over the seeds to maybe turn them into objects
+        for seed in seeds:
+            # Check all already calculated objects whether they overlap with this seed.
+            found = False
+            (seed_index,) = seed.indices
+            for obj in objects:
+                if seed_index in obj.indices and (
+                    obj.end_epoch > seed.start_epoch or seed.end_epoch > obj.start_epoch
+                ):
+                    found = True
+                    break
+
+            # If we found an overlap, we skip this seed
+            if found:
+                break
+
+            data = _py4dgeo.RegionGrowingAlgorithmData(
+                smoothed, corepoints, 2.0, seed, [0.5]
+            )
+
+            # Perform the region growing
+            objects.append(_py4dgeo.region_growing(data))
+
+        return objects
+
+
 def check_epoch_timestamp(epoch):
-    """Validate an epoch to be used with SpatiotemporalSegmnetation"""
+    """Validate an epoch to be used with SpatiotemporalSegmentation"""
     if epoch.timestamp is None:
         raise Py4DGeoError(
             "Epochs need to define a timestamp to be usable in SpatiotemporalSegmentation"
