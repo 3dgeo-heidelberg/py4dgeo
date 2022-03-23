@@ -1,22 +1,16 @@
 from py4dgeo.segmentation import *
+from py4dgeo.util import Py4DGeoError
 
-import os
-import tempfile
+import pytest
 
 from .helpers import compare_segmentations
 
 
-def test_segmentation(segmentation):
-    # Basic assertions about the segmentation generated in fixture
-    assert segmentation.distances.shape[0] == 1
+def test_segmentation(spatiotemporal):
+    # Basic assertions about the analysis generated in fixture
+    assert spatiotemporal.distances.shape[0] == 1
+    assert spatiotemporal.uncertainties.shape[0] == 1
+    assert len(spatiotemporal.timedeltas) == 1
 
-
-def test_save_load_segmentation(segmentation):
-    # Write and read the segmentation
-    with tempfile.TemporaryDirectory() as dir:
-        filename = os.path.join(dir, "bla")
-        segmentation.save(os.path.join(dir, "bla"))
-        loaded = SpatiotemporalSegmentation.load(filename, segmentation._m3c2)
-
-    # Assert segmentations are the same
-    compare_segmentations(segmentation, loaded)
+    with pytest.raises(Py4DGeoError):
+        spatiotemporal.reference_epoch = spatiotemporal.reference_epoch

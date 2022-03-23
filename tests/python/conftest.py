@@ -1,14 +1,16 @@
 from py4dgeo.epoch import read_from_xyz
 from py4dgeo.m3c2 import M3C2
-from py4dgeo.segmentation import SpatiotemporalSegmentation
+from py4dgeo.segmentation import SpatiotemporalAnalysis
 from py4dgeo.util import MemoryPolicy, set_memory_policy
 
 import os
 import pytest
+import tempfile
 
 
 # The path to our data directory
 data_dir = os.path.join(os.path.split(__file__)[0], "..", "data")
+analysis_dir = tempfile.TemporaryDirectory()
 
 
 def find_data_file(filename):
@@ -30,7 +32,7 @@ epochs = epoch_fixture("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
 
 
 @pytest.fixture
-def segmentation(epochs):
+def spatiotemporal(epochs):
     ref_epoch, epoch1 = epochs
 
     ref_epoch.timestamp = "March 9th 2022, 16:32"
@@ -44,11 +46,12 @@ def segmentation(epochs):
         normal_radii=[2.0],
     )
 
-    seg = SpatiotemporalSegmentation(m3c2=m3c2, reference_epoch=ref_epoch)
+    analysis = SpatiotemporalAnalysis(os.path.join(analysis_dir.name, "testanalysis"))
+    analysis.m3c2 = m3c2
+    analysis.reference_epoch = ref_epoch
+    analysis.add_epochs(epoch1)
 
-    seg.add_epoch(epoch1)
-
-    return seg
+    return analysis
 
 
 @pytest.fixture(autouse=True)
