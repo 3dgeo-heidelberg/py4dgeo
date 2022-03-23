@@ -250,7 +250,7 @@ def _as_tuple(x):
     return (x,)
 
 
-def read_from_xyz(*filenames, other_epoch=None, delimiter=" ", header_lines=0):
+def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
     """Create an epoch from an xyz file
 
     :param filename:
@@ -260,23 +260,16 @@ def read_from_xyz(*filenames, other_epoch=None, delimiter=" ", header_lines=0):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
-    :param delimiter:
-        The delimiter used between x, y and z coordinates in the file (defaults to a space)
-    :type delimited: str
-    :param header_lines:
-        The number of header lines in the XYZ files. These will be skipped
-        and ignored when reading the file.
-    :type header_lines: int
+    :param parse_opts:
+        Additional options forwarded to numpy.genfromtxt. This can be used
+        to e.g. change the delimiter character, remove header_lines or manually
+        specify which columns of the input contain the XYZ coordinates.
+    :type parse_opts: dict
     """
 
     # Read the first cloud
     try:
-        cloud = np.genfromtxt(
-            filenames[0],
-            dtype=np.float64,
-            delimiter=delimiter,
-            skip_header=header_lines,
-        )
+        cloud = np.genfromtxt(filenames[0], dtype=np.float64, **parse_opts)
     except ValueError:
         raise Py4DGeoError(
             "Malformed XYZ file - all rows are expected to have exactly three columns"
@@ -303,7 +296,7 @@ def read_from_xyz(*filenames, other_epoch=None, delimiter=" ", header_lines=0):
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_xyz(*filenames[1:], other_epoch=new_epoch)
+            read_from_xyz(*filenames[1:], other_epoch=new_epoch, **parse_opts)
         )
 
 
