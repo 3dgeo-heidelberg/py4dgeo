@@ -80,7 +80,7 @@ class Epoch(_py4dgeo.Epoch):
         """
 
         return {
-            "geographic_offset": tuple(self.geographic_offset),
+            "geographic_offset": tuple(float(i) for i in self.geographic_offset),
             "timestamp": None if self.timestamp is None else str(self.timestamp),
         }
 

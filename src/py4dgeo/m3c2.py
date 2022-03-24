@@ -20,7 +20,7 @@ import py4dgeo._py4dgeo as _py4dgeo
 class M3C2LikeAlgorithm(abc.ABC):
     def __init__(
         self,
-        epochs: typing.Tuple[Epoch, ...],
+        epochs: typing.Tuple[Epoch, ...] = None,
         corepoints: np.ndarray = None,
         cyl_radii: typing.List[float] = None,
         max_distance: float = 0.0,
@@ -28,22 +28,26 @@ class M3C2LikeAlgorithm(abc.ABC):
         robust_aggr: bool = False,
     ):
         self.epochs = epochs
-        self.corepoints = as_single_precision(make_contiguous(corepoints))
+        self.corepoints = corepoints
         self.cyl_radii = cyl_radii
         self.max_distance = max_distance
         self.registration_error = registration_error
         self.robust_aggr = robust_aggr
 
-        # Check the given array shapes
-        if len(self.corepoints.shape) != 2 or self.corepoints.shape[1] != 3:
-            raise Py4DGeoError("Corepoints need to be given as an array of shape nx3")
+    @property
+    def corepoints(self):
+        return self._corepoints
 
-        # Check the given cylinder radii
-        if self.cyl_radii is None or len(self.cyl_radii) == 0:
-            raise Py4DGeoError(f"{self.name} requires at least one radius to be given")
-
-        # Check the given number of epochs
-        self.check_number_of_epochs()
+    @corepoints.setter
+    def corepoints(self, _corepoints):
+        if _corepoints is None:
+            self._corepoints = None
+        else:
+            if len(_corepoints.shape) != 2 or _corepoints.shape[1] != 3:
+                raise Py4DGeoError(
+                    "Corepoints need to be given as an array of shape nx3"
+                )
+            self._corepoints = as_single_precision(make_contiguous(_corepoints))
 
     @property
     def name(self):
@@ -53,16 +57,13 @@ class M3C2LikeAlgorithm(abc.ABC):
         """The normal direction(s) to use for this algorithm."""
         raise NotImplementedError
 
-    def check_number_of_epochs(self):
-        if len(self.epochs) != 2:
-            raise Py4DGeoError(
-                f"{self.name} only operates on exactly 2 epochs, {len(self.epochs)} given!"
-            )
-
     def calculate_distances(self, epoch1, epoch2):
         """Calculate the distances between two epochs"""
 
-        assert len(self.cyl_radii) == 1
+        if self.cyl_radii is None or len(self.cyl_radii) != 1:
+            raise Py4DGeoError(
+                f"{self.name} requires exactly one cylinder radius to be given"
+            )
 
         # Ensure that the KDTree data structures have been built. This is no-op
         # if it has already been triggered before - e.g. by a user with a custom

@@ -1,5 +1,6 @@
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import Py4DGeoError, append_file_extension
+from py4dgeo.zipfile import UpdateableZipFile
 
 import datetime
 import json
@@ -20,7 +21,7 @@ PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION = 0
 
 
 class SpatiotemporalAnalysis:
-    def __init__(self, filename):
+    def __init__(self, filename, compress=True):
         """Construct a spatiotemporal segmentation object
 
         This is the basic data structure for the 4D objects by change algorithm
@@ -35,40 +36,48 @@ class SpatiotemporalAnalysis:
             The filename used for this analysis. If it does not exist on the file
             system, a new analysis is created. Otherwise, the data is loaded.
         :type filename: str
+        :param compress:
+            Whether to compress the stored data. This is a tradeoff decision between
+            disk space and runtime. Especially appending new epochs to an existing
+            analysis is an operation whose runtime can easily be dominated by
+            decompression/compression of data.
+        :type compress: bool
         """
 
-        # Store the filename
+        # Store the given parameters
         self.filename = append_file_extension(filename, "zip")
+        self.compress = compress
 
         # Instantiate some properties used later on
         self._m3c2 = None
+        self._corepoints = None
 
         # If the filename does not already exist, we create a new archive
         if not os.path.exists(self.filename):
-            with zipfile.ZipFile(
-                self.filename, mode="w", compression=zipfile.ZIP_BZIP2
-            ) as zf:
-                # Write the epoch file format version number
+            with zipfile.ZipFile(self.filename, mode="w") as zf:
+                # Write the segmentation file format version number
                 zf.writestr(
                     "SEGMENTATION_FILE_FORMAT",
                     str(PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION),
                 )
 
+                # Write the compression algorithm used for all suboperations
+                zf.writestr("USE_COMPRESSION", str(self.compress))
+
         # Assert that the segmentation file format is still valid
-        with zipfile.ZipFile(
-            self.filename, mode="r", compression=zipfile.ZIP_BZIP2
-        ) as zf:
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
             # Read the segmentation file version number and compare to current
             version = int(zf.read("SEGMENTATION_FILE_FORMAT").decode())
             if version != PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION:
                 raise Py4DGeoError("Segmentation file format is out of date!")
 
+            # Read the compression algorithm
+            self.compress = eval(zf.read("USE_COMPRESSION").decode())
+
     @property
     def reference_epoch(self):
         """Access the reference epoch of this analysis"""
-        with zipfile.ZipFile(
-            self.filename, mode="a", compression=zipfile.ZIP_BZIP2
-        ) as zf:
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
             # Double check that the reference has already been set
             if "reference_epoch.zip" not in zf.namelist():
                 raise Py4DGeoError("Reference epoch for analysis not yet set")
@@ -81,9 +90,7 @@ class SpatiotemporalAnalysis:
     @reference_epoch.setter
     def reference_epoch(self, epoch):
         """Set the reference epoch of this analysis (only possible once)"""
-        with zipfile.ZipFile(
-            self.filename, mode="a", compression=zipfile.ZIP_BZIP2
-        ) as zf:
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
             # If we already have a reference epoch, the user should start a
             # new analysis instead
             if "reference_epoch.zip" in zf.namelist():
@@ -104,11 +111,46 @@ class SpatiotemporalAnalysis:
                 zf.write(epochfilename, arcname="reference_epoch.zip")
 
     @property
+    def corepoints(self):
+        """Access the corepoints of this analysis"""
+        if self._corepoints is None:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
+                # Double check that the reference has already been set
+                if "corepoints.zip" not in zf.namelist():
+                    raise Py4DGeoError("Corepoints for analysis not yet set")
+
+                # Extract it from the archive
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    cpfile = zf.extract("corepoints.zip", path=tmp_dir)
+                    return Epoch.load(cpfile)
+
+        return self._corepoints
+
+    @corepoints.setter
+    def corepoints(self, _corepoints):
+        """Set the corepoints for this analysis (only possible once)"""
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
+            # If we already have corepoints in the archive, the user should start a
+            # new analysis instead
+            if "corepoints.zip" in zf.namelist():
+                raise Py4DGeoError(
+                    "Corepoints cannot be changed - please start a new analysis"
+                )
+
+            # Ensure that the corepoints are stored as an epoch and build its KDTree
+            self._corepoints = as_epoch(_corepoints)
+            self._corepoints.build_kdtree()
+
+            # Write the corepoints into the archive
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                cpfilename = os.path.join(tmp_dir, "corepoints.zip")
+                self._corepoints.save(cpfilename)
+                zf.write(cpfilename, arcname="corepoints.zip")
+
+    @property
     def m3c2(self):
         """Access the M3C2 algorithm of this analysis"""
-        # If M3C2 has not been set,
-        if self._m3c2 is None:
-            raise Py4DGeoError("M3C2 algorithm has not been set")
+        # If M3C2 has not been set, we use a default constructed one
         return self._m3c2
 
     @m3c2.setter
@@ -119,9 +161,7 @@ class SpatiotemporalAnalysis:
     @property
     def timedeltas(self):
         """Access the sequence of time stamp deltas for the time series"""
-        with zipfile.ZipFile(
-            self.filename, mode="r", compression=zipfile.ZIP_BZIP2
-        ) as zf:
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
             if "timestamps.json" not in zf.namelist():
                 return []
 
@@ -137,25 +177,26 @@ class SpatiotemporalAnalysis:
     @property
     def distances(self):
         """Access the M3C2 distances of this analysis"""
-        with zipfile.ZipFile(
-            self.filename, mode="r", compression=zipfile.ZIP_BZIP2
-        ) as zf:
-            if "distances.npy" not in zf.namelist():
-                return np.empty((0, self.m3c2.corepoints.shape[0]), dtype=np.float64)
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
+            filename = "distances.npz" if self.compress else "distances.npy"
+            if filename not in zf.namelist():
+                return np.empty((self.corepoints.cloud.shape[0], 0), dtype=np.float64)
 
             with tempfile.TemporaryDirectory() as tmp_dir:
-                distancefile = zf.extract("distances.npy", path=tmp_dir)
-                return np.load(distancefile)
+                distancefile = zf.extract(filename, path=tmp_dir)
+                read_func = (
+                    (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
+                )
+                return read_func(distancefile)
 
     @property
     def uncertainties(self):
         """Access the M3C2 uncertainties of this analysis"""
-        with zipfile.ZipFile(
-            self.filename, mode="r", compression=zipfile.ZIP_BZIP2
-        ) as zf:
-            if "uncertainties.npy" not in zf.namelist():
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
+            filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+            if filename not in zf.namelist():
                 return np.empty(
-                    (0, self._m3c2.corepoints.shape[0]),
+                    (self.corepoints.cloud.shape[0], 0),
                     dtype=np.dtype(
                         [
                             ("lodetection", "<f8"),
@@ -168,8 +209,11 @@ class SpatiotemporalAnalysis:
                 )
 
             with tempfile.TemporaryDirectory() as tmp_dir:
-                uncertaintyfile = zf.extract("uncertainties.npy", path=tmp_dir)
-                return np.load(uncertaintyfile)
+                uncertaintyfile = zf.extract(filename, path=tmp_dir)
+                read_func = (
+                    (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
+                )
+                return read_func(uncertaintyfile)
 
     def add_epochs(self, *epochs):
         """Add a numbers of epochs to the existing analysis"""
@@ -188,6 +232,10 @@ class SpatiotemporalAnalysis:
 
         # Iterate over the given epochs
         for epoch in sorted(epochs, key=lambda e: e.timestamp):
+            # Prepare the M3C2 instance
+            self.m3c2.corepoints = self.corepoints.cloud
+            self.m3c2.epochs = (reference_epoch, epoch)
+
             # Calculate the M3C2 distances
             d, u = self.m3c2.calculate_distances(reference_epoch, epoch)
             new_distances.append(d)
@@ -214,33 +262,43 @@ class SpatiotemporalAnalysis:
             # We do not need the reference_epoch at this point
             del reference_epoch
 
+            # Depending on whether we compress, we use different numpy functionality
+            write_func = np.savez_compressed if self.compress else np.save
+            distance_filename = "distances.npz" if self.compress else "distances.npy"
+            uncertainty_filename = (
+                "uncertainties.npz" if self.compress else "uncertainties.npy"
+            )
+
             # Load the distance array and append new data
-            distance_file = os.path.join(tmp_dir, "distances.npy")
-            np.save(
+            distance_file = os.path.join(tmp_dir, distance_filename)
+            write_func(
                 distance_file,
-                np.vstack(
-                    (self.distances,)
-                    + tuple(np.expand_dims(d, axis=0) for d in new_distances)
+                np.concatenate(
+                    (self.distances, np.column_stack(tuple(new_distances))), axis=1
                 ),
             )
 
             # Load the uncertainty array and append new data
-            uncertainty_file = os.path.join(tmp_dir, "uncertainties.npy")
-            np.save(
+            uncertainty_file = os.path.join(tmp_dir, uncertainty_filename)
+            write_func(
                 uncertainty_file,
-                np.vstack(
-                    (self.uncertainties,)
-                    + tuple(np.expand_dims(u, axis=0) for u in new_uncertainties)
+                np.concatenate(
+                    (self.uncertainties, np.column_stack(tuple(new_uncertainties))),
+                    axis=1,
                 ),
             )
 
             # Dump the updated files into the archive
-            with zipfile.ZipFile(
-                self.filename, mode="a", compression=zipfile.ZIP_BZIP2
-            ) as zf:
+            with UpdateableZipFile(self.filename, mode="a") as zf:
+                if "timestamps.json" in zf.namelist():
+                    zf.remove("timestamps.json")
                 zf.write(timestampsfile, arcname="timestamps.json")
-                zf.write(distance_file, arcname="distances.npy")
-                zf.write(uncertainty_file, arcname="uncertainties.npy")
+                if distance_filename in zf.namelist():
+                    zf.remove(distance_filename)
+                zf.write(distance_file, arcname=distance_filename)
+                if uncertainty_filename in zf.namelist():
+                    zf.remove(uncertainty_filename)
+                zf.write(uncertainty_file, arcname=uncertainty_filename)
 
 
 class RegionGrowingAlgorithm:

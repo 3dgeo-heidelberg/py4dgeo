@@ -126,7 +126,7 @@ def test_read_from_xyz_header(tmp_path):
     with pytest.raises(Py4DGeoError):
         epoch = read_from_xyz(filename)
 
-    epoch = read_from_xyz(filename, header_lines=2)
+    epoch = read_from_xyz(filename, skip_header=2)
     assert epoch.cloud.shape[0] == 2
 
 
