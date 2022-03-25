@@ -58,7 +58,8 @@ struct RegionGrowingAlgorithmData
 
 /** @brief The main region growing algorithm */
 ObjectByChange
-region_growing(const RegionGrowingAlgorithmData&);
+region_growing(const RegionGrowingAlgorithmData&,
+               const TimeseriesDistanceFunction&);
 
 /** @brief The DTW distance measure implementation used in 4DOBC */
 double

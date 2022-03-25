@@ -13,6 +13,7 @@ setup(
         "dateparser",
         "laspy[lazrs]",
         "numpy",
+        "ruptures",
         "xdg",
     ],
     zip_safe=False,

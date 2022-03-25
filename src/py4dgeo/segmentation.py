@@ -6,6 +6,7 @@ import datetime
 import json
 import numpy as np
 import os
+import ruptures
 import tempfile
 import zipfile
 
@@ -329,6 +330,7 @@ class RegionGrowingAlgorithm:
 
         They are expected to be sorted by priority.
         """
+        algo = ruptures.Window(width=24, model="l1", min_size=12, jump=1)
 
         return [_py4dgeo.RegionGrowingSeed(0, 0, 1)]
 

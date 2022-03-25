@@ -1,55 +1,115 @@
 #include "py4dgeo/segmentation.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <limits>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
 namespace py4dgeo {
 
 ObjectByChange
-region_growing(const RegionGrowingAlgorithmData& data)
+region_growing(const RegionGrowingAlgorithmData& data,
+               const TimeseriesDistanceFunction& distance_function)
 {
+  // Ensure that we have a sorted list of thresholds
+  std::vector<double> sorted_thresholds(data.thresholds);
+  std::sort(sorted_thresholds.begin(), sorted_thresholds.end());
+
   // Instantiate a set of candidates to check
   std::unordered_set<IndexType> candidates;
-  candidates.insert(data.seed.index);
+
+  // Keep a list of calculated distances that we did not need so far
+  // as we might need them for later threshold levels
+  std::unordered_map<IndexType, double> calculated_distances;
+
+  // We throw the initial seed into the calculated distances
+  // to kick off the calculation in below loop
+  calculated_distances[data.seed.index] = 0.0;
 
   // Create the return object
   ObjectByChange obj;
   obj.start_epoch = data.seed.start_epoch;
   obj.end_epoch = data.seed.end_epoch;
 
-  // Grow while we have candidates
-  while (!candidates.empty()) {
-    // Get one element to process and remove it from the candidates
-    auto candidate = *candidates.begin();
-    candidates.erase(candidates.begin());
+  // Store a ratio value to comapare against for premature termination
+  double last_ratio = 0.0;
 
-    // Calculate distance
-    TimeseriesDistanceFunctionData distance_data{
-      data.distances.row(data.seed.index), data.distances.row(candidate)
-    };
-    double distance = dtw_distance(distance_data);
+  for (auto threshold : sorted_thresholds) {
+    // The additional points found at this threshold level. These will
+    // be added to return object after deciding whether the adaptive
+    // procedure should continue.
+    std::unordered_set<IndexType> additional_points;
 
-    // Apply thresholding
-    if (distance < data.thresholds[0]) {
-      // Use this point in the grown region
-      obj.indices.insert(candidate);
+    // Make all already calculated distances below our threshold
+    // candidates and start the candidate loop
+    auto distit = calculated_distances.begin();
+    while (distit != calculated_distances.end()) {
+      if (distit->second < threshold) {
+        candidates.insert(distit->first);
+        distit = calculated_distances.erase(distit);
+      } else
+        ++distit;
+    }
 
-      // Add neighboring corepoints to list of candidates
-      KDTree::RadiusSearchResult neighbors;
-      data.corepoints.kdtree.radius_search(
-        &data.corepoints.cloud(candidate, 0), data.radius, neighbors);
-      for (auto n : neighbors) {
-        // Check whether the corepoint is already present among candidates or
-        // result. If not this is a new candidate
-        if ((candidates.find(n) == candidates.end()) &&
-            (obj.indices.find(n) == obj.indices.end()))
-          candidates.insert(n);
+    // Grow while we have candidates
+    while (!candidates.empty()) {
+      // Get one element to process and remove it from the candidates
+      auto candidate = *candidates.begin();
+      candidates.erase(candidates.begin());
+
+      // Calculate distance - may already be calculated
+      auto distit = calculated_distances.find(candidate);
+      double distance;
+      if (distit == calculated_distances.end()) {
+        TimeseriesDistanceFunctionData distance_data{
+          data.distances.row(data.seed.index), data.distances.row(candidate)
+        };
+        distance = distance_function(distance_data);
+      } else {
+        distance = distit->second;
+        calculated_distances.erase(distit);
       }
+
+      // Apply thresholding
+      if (distance < threshold) {
+        // Use this point in the grown region
+        additional_points.insert(candidate);
+
+        // Add neighboring corepoints to list of candidates
+        KDTree::RadiusSearchResult neighbors;
+        data.corepoints.kdtree.radius_search(
+          &data.corepoints.cloud(candidate, 0), data.radius, neighbors);
+        for (auto n : neighbors) {
+          // Check whether the corepoint is already present among candidates,
+          // the final result or the points added at this threshold level.
+          // If none of that match, this is a new candidate
+          if ((candidates.find(n) == candidates.end()) &&
+              (additional_points.find(n) == additional_points.end()) &&
+              (obj.indices.find(n) == obj.indices.end()))
+            candidates.insert(n);
+        }
+      } else {
+        // Store the calculated distance in case we need it again
+        calculated_distances[candidate] = distance;
+      }
+
+      // Determine whether this is the final threshold level or we need
+      // to continue to the next threshold level
+      double new_ratio =
+        static_cast<double>(obj.indices.size() + additional_points.size()) /
+        static_cast<double>(obj.indices.size());
+      if ((!obj.indices.empty()) && (new_ratio < last_ratio))
+        return obj;
+
+      // If not, we now need to move all additional points into obj
+      last_ratio = new_ratio;
+      obj.indices.merge(additional_points);
     }
   }
 
+  // If we came up to here, a local maximum was not produced.
   return obj;
 }
 
