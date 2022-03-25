@@ -64,4 +64,8 @@ region_growing(const RegionGrowingAlgorithmData&);
 double
 dtw_distance(const TimeseriesDistanceFunctionData&);
 
+/** @brief Normalized DTW distance measure for 4DOBC */
+double
+normalized_dtw_distance(const TimeseriesDistanceFunctionData&);
+
 } // namespace py4dgeo

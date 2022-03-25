@@ -2,6 +2,8 @@
 #include "py4dgeo/segmentation.hpp"
 #include "testsetup.hpp"
 
+#include <limits>
+
 using namespace py4dgeo;
 
 TEST_CASE("DTW distance calculation", "[segmentation]")
@@ -15,4 +17,35 @@ TEST_CASE("DTW distance calculation", "[segmentation]")
 
   REQUIRE(dist > 0);
   REQUIRE(std::abs(dist - 3) < 1e-8);
+}
+
+TEST_CASE("DTW distance with NaN Values", "[segmentation]")
+{
+  const auto nan = std::numeric_limits<double>::quiet_NaN();
+  EigenSpatiotemporalArray arr(2, 6);
+  arr << nan, 1, 42, 5, 4, 2, 42, 1, nan, 2, 4, 1;
+  TimeseriesDistanceFunctionData data{ arr.row(0), arr.row(1) };
+  auto dist = dtw_distance(data);
+  REQUIRE(std::abs(dist - 3) < 1e-8);
+}
+
+TEST_CASE("DTW distance with all NaN Values", "[segmentation]")
+{
+  const auto nan = std::numeric_limits<double>::quiet_NaN();
+  EigenSpatiotemporalArray arr(2, 2);
+  arr << nan, nan, nan, nan;
+  TimeseriesDistanceFunctionData data{ arr.row(0), arr.row(1) };
+  auto dist = dtw_distance(data);
+  REQUIRE(std::isnan(dist));
+}
+
+TEST_CASE("Normalized DTW Distances", "[segmentation]")
+{
+  const auto nan = std::numeric_limits<double>::quiet_NaN();
+  EigenSpatiotemporalArray arr(2, 6);
+  arr << nan, 1, 42, 5, 4, 2, 42, 1, nan, 2, 4, 1;
+  TimeseriesDistanceFunctionData data{ arr.row(0), arr.row(1) };
+  auto dist = normalized_dtw_distance(data);
+  REQUIRE(dist >= 0.0);
+  REQUIRE(dist <= 1.0);
 }

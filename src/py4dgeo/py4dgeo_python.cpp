@@ -263,6 +263,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("mean_stddev_distance", &mean_stddev_distance);
   m.def("median_iqr_distance", &median_iqr_distance);
   m.def("dtw_distance", &dtw_distance);
+  m.def("normalized_dtw_distance", &normalized_dtw_distance);
 
   // Expose OpenMP threading control
 #ifdef PY4DGEO_WITH_OPENMP
