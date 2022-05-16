@@ -10,7 +10,7 @@ setup(
     long_description="",
     packages=["py4dgeo"],
     install_requires=[
-        "laspy[lazrs]",
+        "laspy[lazrs]>2",
         "numpy",
         "xdg",
     ],
