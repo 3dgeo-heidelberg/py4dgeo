@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-18.04, macos-10.15, windows-2019]
+        os: [ubuntu-20.04, macos-11, windows-2022]
         openmp: ['ON', 'OFF']
 
     steps:
@@ -64,7 +64,7 @@ jobs:
 
   coverage-test:
     name: Coverage Testing
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v2
