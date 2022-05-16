@@ -10,13 +10,15 @@ Epoch::Epoch(const EigenPointCloudRef& cloud_)
   : owned_cloud(nullptr)
   , cloud(cloud_)
   , kdtree(cloud_)
-{}
+{
+}
 
 Epoch::Epoch(std::shared_ptr<EigenPointCloud> cloud_)
   : owned_cloud(cloud_)
   , cloud(*cloud_)
   , kdtree(*cloud_)
-{}
+{
+}
 
 std::ostream&
 Epoch::to_stream(std::ostream& stream) const
