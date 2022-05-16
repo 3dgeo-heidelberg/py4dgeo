@@ -9,7 +9,8 @@ namespace py4dgeo {
 
 KDTree::KDTree(const EigenPointCloudRef& cloud)
   : adaptor{ cloud }
-{}
+{
+}
 
 KDTree
 KDTree::create(const EigenPointCloudRef& cloud)
