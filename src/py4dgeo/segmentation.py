@@ -175,6 +175,36 @@ class SpatiotemporalAnalysis:
                 # Convert the serialized deltas to datetime.timedelta
                 return [datetime.timedelta(**data) for data in timedeltas]
 
+    @timedeltas.setter
+    def timedeltas(self, _timedeltas):
+        """Set the timedeltas manually
+
+        This is only possible exactly once and mutually exclusive with adding
+        epochs via the :ref:`add_epochs` method.
+        """
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
+            # If we already have timestamps in the archive, this is not possible
+            if "timestamps.json" in zf.namelist():
+                raise Py4DGeoError(
+                    "Timestamps can only be set on freshly created analysis instances"
+                )
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                timestampsfile = os.path.join(tmp_dir, "timestamps.json")
+                with open(timestampsfile) as f:
+                    json.dump(
+                        [
+                            {
+                                "days": td.days,
+                                "seconds": td.seconds,
+                                "microseconds": td.microseconds,
+                            }
+                            for td in _timedeltas
+                        ],
+                        f,
+                    )
+                zf.write(timestampsfile, arcname="timestamps.json")
+
     @property
     def distances(self):
         """Access the M3C2 distances of this analysis"""
@@ -189,6 +219,28 @@ class SpatiotemporalAnalysis:
                     (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
                 )
                 return read_func(distancefile)
+
+    @distances.setter
+    def distances(self, _distances):
+        """Set the distances manually
+
+        This is only possible exactly once and mutually exclusive with adding
+        epochs via the :ref:`add_epochs` method.
+        """
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
+            filename = "distances.npz" if self.compress else "distances.npy"
+            write_func = np.savez_compressed if self.compress else np.save
+
+            # If we already have distacces in the archive, this is not possible
+            if filename in zf.namelist():
+                raise Py4DGeoError(
+                    "Distances can only be set on freshly created analysis instances, use add_epochs instead."
+                )
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                distancesfile = os.path.join(tmp_dir, filename)
+                write_func(distancesfile, _distances)
+                zf.write(distancesfile, arcname=filename)
 
     @property
     def uncertainties(self):
@@ -215,6 +267,28 @@ class SpatiotemporalAnalysis:
                     (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
                 )
                 return read_func(uncertaintyfile)
+
+    @uncertainties.setter
+    def uncertainties(self, _uncertainties):
+        """Set the uncertainties manually
+
+        This is only possible exactly once and mutually exclusive with adding
+        epochs via the :ref:`add_epochs` method.
+        """
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
+            filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+            write_func = np.savez_compressed if self.compress else np.save
+
+            # If we already have distacces in the archive, this is not possible
+            if filename in zf.namelist():
+                raise Py4DGeoError(
+                    "Uncertainties can only be set on freshly created analysis instances, use add_epochs instead."
+                )
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                uncertaintiesfile = os.path.join(tmp_dir, filename)
+                write_func(uncertaintiesfile, _uncertainties)
+                zf.write(uncertaintiesfile, arcname=filename)
 
     def add_epochs(self, *epochs):
         """Add a numbers of epochs to the existing analysis"""
