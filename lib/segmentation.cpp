@@ -33,7 +33,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
   obj.start_epoch = data.seed.start_epoch;
   obj.end_epoch = data.seed.end_epoch;
 
-  // Store a ratio value to comapare against for premature termination
+  // Store a ratio value to compare against for premature termination
   double last_ratio = 0.0;
 
   for (auto threshold : sorted_thresholds) {
@@ -94,19 +94,19 @@ region_growing(const RegionGrowingAlgorithmData& data,
         // Store the calculated distance in case we need it again
         calculated_distances[candidate] = distance;
       }
-
-      // Determine whether this is the final threshold level or we need
-      // to continue to the next threshold level
-      double new_ratio =
-        static_cast<double>(obj.indices.size() + additional_points.size()) /
-        static_cast<double>(obj.indices.size());
-      if ((!obj.indices.empty()) && (new_ratio < last_ratio))
-        return obj;
-
-      // If not, we now need to move all additional points into obj
-      last_ratio = new_ratio;
-      obj.indices.merge(additional_points);
     }
+
+    // Determine whether this is the final threshold level or we need
+    // to continue to the next threshold level
+    double new_ratio =
+      static_cast<double>(obj.indices.size() + additional_points.size()) /
+      static_cast<double>(std::max(obj.indices.size(), 1ul));
+    if ((!obj.indices.empty()) && (new_ratio < last_ratio))
+      return obj;
+
+    // If not, we now need to move all additional points into obj
+    last_ratio = new_ratio;
+    obj.indices.merge(additional_points);
   }
 
   // If we came up to here, a local maximum was not produced.

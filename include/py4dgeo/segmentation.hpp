@@ -14,12 +14,12 @@ using EigenSpatiotemporalArray =
   Eigen::Matrix<double, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 using EigenSpatiotemporalArrayRef = Eigen::Ref<EigenSpatiotemporalArray>;
 using EigenSpatiotemporalArrayConstRef =
-  const Eigen::Ref<const EigenSpatiotemporalArray>&;
+  Eigen::Ref<const EigenSpatiotemporalArray>;
 
 /** @brief The type to use for a TimeSeries */
 using EigenTimeSeries = Eigen::Vector<double, Eigen::Dynamic>;
 using EigenTimeSeriesRef = Eigen::Ref<EigenTimeSeries>;
-using EigenTimeSeriesConstRef = const Eigen::Ref<const EigenTimeSeries>&;
+using EigenTimeSeriesConstRef = Eigen::Ref<const EigenTimeSeries>;
 
 /** @brief The data object passed to time series distance functions */
 struct TimeseriesDistanceFunctionData

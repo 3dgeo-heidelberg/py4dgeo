@@ -397,7 +397,7 @@ class RegionGrowingAlgorithm:
         the distance.
         """
 
-        return _py4dgeo.dtw_distance
+        return _py4dgeo.normalized_dtw_distance
 
     def construct_sorted_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm
@@ -415,7 +415,7 @@ class RegionGrowingAlgorithm:
         smoothed = self.temporal_averaging(segmentation.distances)
 
         # Get corepoints from M3C2 class and build a KDTree on them
-        corepoints = as_epoch(segmentation.m3c2.corepoints)
+        corepoints = as_epoch(segmentation.corepoints)
         corepoints.build_kdtree()
 
         # Calculate the list of seed points
@@ -426,9 +426,8 @@ class RegionGrowingAlgorithm:
         for seed in seeds:
             # Check all already calculated objects whether they overlap with this seed.
             found = False
-            (seed_index,) = seed.indices
             for obj in objects:
-                if seed_index in obj.indices and (
+                if seed.index in obj.indices and (
                     obj.end_epoch > seed.start_epoch or seed.end_epoch > obj.start_epoch
                 ):
                     found = True
@@ -443,7 +442,7 @@ class RegionGrowingAlgorithm:
             )
 
             # Perform the region growing
-            objects.append(_py4dgeo.region_growing(data))
+            objects.append(_py4dgeo.region_growing(data, self.distance_measure()))
 
         return objects
 
