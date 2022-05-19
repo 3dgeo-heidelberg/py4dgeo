@@ -50,6 +50,16 @@ class M3C2LikeAlgorithm(abc.ABC):
             self._corepoints = as_single_precision(make_contiguous(_corepoints))
 
     @property
+    def epochs(self):
+        return self._epochs
+
+    @epochs.setter
+    def epochs(self, _epochs):
+        if _epochs is not None and len(_epochs) != 2:
+            raise Py4DGeoError("Exactly two epochs need to be given!")
+        self._epochs = _epochs
+
+    @property
     def name(self):
         raise NotImplementedError
 

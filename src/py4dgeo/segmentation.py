@@ -191,7 +191,7 @@ class SpatiotemporalAnalysis:
 
             with tempfile.TemporaryDirectory() as tmp_dir:
                 timestampsfile = os.path.join(tmp_dir, "timestamps.json")
-                with open(timestampsfile) as f:
+                with open(timestampsfile, "w") as f:
                     json.dump(
                         [
                             {

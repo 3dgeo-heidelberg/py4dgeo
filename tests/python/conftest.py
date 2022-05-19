@@ -48,9 +48,12 @@ def spatiotemporal(epochs):
 
     analysis = SpatiotemporalAnalysis(os.path.join(analysis_dir.name, "testanalysis"))
     analysis.m3c2 = m3c2
-    analysis.reference_epoch = ref_epoch
-    analysis.corepoints = ref_epoch.cloud
-    analysis.add_epochs(epoch1)
+
+    # Only run this part once
+    if len(analysis.timedeltas) == 0:
+        analysis.reference_epoch = ref_epoch
+        analysis.corepoints = ref_epoch.cloud
+        analysis.add_epochs(epoch1)
 
     return analysis
 
