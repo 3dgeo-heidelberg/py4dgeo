@@ -1,6 +1,7 @@
 from py4dgeo.epoch import *
 from py4dgeo.util import Py4DGeoError
 
+import datetime
 import numpy as np
 import os
 import pickle
@@ -50,6 +51,21 @@ def test_epoch_saveload(epochs):
             loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
         )
+
+
+@pytest.mark.parametrize("geographic_offset", [None, np.array([1, 0, 0])])
+@pytest.mark.parametrize("timestamp", [datetime.datetime.utcnow(), "25. November 1986"])
+def test_epoch_metadata_setters(epochs, geographic_offset, timestamp):
+    epoch, _ = epochs
+
+    # Use all the property setters
+    epoch.geographic_offset = geographic_offset
+    epoch.timestamp = timestamp
+
+    # Test reconstruction of an Epoch from exported metadata
+    epoch2 = Epoch(epoch.cloud, **epoch.metadata)
+    assert np.allclose(epoch.geographic_offset, epoch2.geographic_offset)
+    assert epoch.timestamp - epoch2.timestamp == datetime.timedelta()
 
 
 def test_as_epoch(epochs):
@@ -110,5 +126,36 @@ def test_read_from_xyz_header(tmp_path):
     with pytest.raises(Py4DGeoError):
         epoch = read_from_xyz(filename)
 
-    epoch = read_from_xyz(filename, header_lines=2)
+    epoch = read_from_xyz(filename, skip_header=2)
     assert epoch.cloud.shape[0] == 2
+
+
+def test_normalize_timestamp():
+    assert normalize_timestamp(None) is None
+
+    now = datetime.datetime.utcnow()
+    assert normalize_timestamp(now) == now
+
+    now = datetime.date.today()
+    nnow = normalize_timestamp(now)
+    assert nnow.year == now.year
+    assert nnow.month == now.month
+    assert nnow.day == now.day
+
+    ts = normalize_timestamp((2010, 34))
+    assert ts.year == 2010
+    assert ts.month == 2
+    assert ts.day == 3
+
+    ts = normalize_timestamp("February 3rd, 2010, 9:27AM")
+    assert ts.year == 2010
+    assert ts.month == 2
+    assert ts.day == 3
+    assert ts.hour == 9
+    assert ts.minute == 27
+
+    with pytest.raises(Py4DGeoError):
+        normalize_timestamp("foo")
+
+    with pytest.raises(Py4DGeoError):
+        normalize_timestamp(42)

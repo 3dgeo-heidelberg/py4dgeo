@@ -1,3 +1,4 @@
+import collections
 import numpy as np
 import os
 import platform
@@ -208,3 +209,8 @@ def append_file_extension(filename, extension):
         return f"{filename}.{extension}"
     else:
         return filename
+
+
+def is_iterable(obj):
+    """Whether the object is an iterable (excluding a string)"""
+    return isinstance(obj, collections.abc.Iterable) and not isinstance(obj, str)

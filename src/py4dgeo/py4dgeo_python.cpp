@@ -13,6 +13,7 @@
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
+#include "py4dgeo/segmentation.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -219,11 +220,57 @@ PYBIND11_MODULE(_py4dgeo, m)
       return self.registration_error;
     });
 
+  // The ObjectByChange class is used as the return type for spatiotemporal
+  // segmentations
+  py::class_<ObjectByChange> obc(m, "ObjectByChange");
+  obc.def_property_readonly(
+    "indices", [](const ObjectByChange& self) { return self.indices; });
+  obc.def_property_readonly(
+    "start_epoch", [](const ObjectByChange& self) { return self.start_epoch; });
+  obc.def_property_readonly(
+    "end_epoch", [](const ObjectByChange& self) { return self.end_epoch; });
+
+  py::class_<RegionGrowingSeed> rgs(m, "RegionGrowingSeed");
+  rgs.def(py::init<IndexType, IndexType, IndexType>(),
+          py::arg("index"),
+          py::arg("start_epoch"),
+          py::arg("end_epoch"));
+  rgs.def_property_readonly(
+    "index", [](const RegionGrowingSeed& self) { return self.index; });
+  rgs.def_property_readonly("start_epoch", [](const RegionGrowingSeed& self) {
+    return self.start_epoch;
+  });
+  rgs.def_property_readonly(
+    "end_epoch", [](const RegionGrowingSeed& self) { return self.end_epoch; });
+
+  py::class_<RegionGrowingAlgorithmData> rgwd(m, "RegionGrowingAlgorithmData");
+  rgwd.def(py::init<EigenSpatiotemporalArrayConstRef,
+                    const Epoch&,
+                    double,
+                    RegionGrowingSeed,
+                    std::vector<double>>(),
+           py::arg("data"),
+           py::arg("epoch"),
+           py::arg("radius"),
+           py::arg("seed"),
+           py::arg("thresholds"));
+
+  py::class_<TimeseriesDistanceFunctionData> tdfd(
+    m, "TimeseriesDistanceFunctionData");
+  tdfd.def(py::init<EigenTimeSeriesConstRef, EigenTimeSeriesConstRef>(),
+           py::arg("ts1"),
+           py::arg("ts2"));
+
+  // The main algorithms for the spatiotemporal segmentations
+  m.def("region_growing", &region_growing);
+
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);
   m.def("cylinder_workingset_finder", &cylinder_workingset_finder);
   m.def("mean_stddev_distance", &mean_stddev_distance);
   m.def("median_iqr_distance", &median_iqr_distance);
+  m.def("dtw_distance", &dtw_distance);
+  m.def("normalized_dtw_distance", &normalized_dtw_distance);
 
   // Expose OpenMP threading control
 #ifdef PY4DGEO_WITH_OPENMP

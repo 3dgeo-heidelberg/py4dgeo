@@ -10,8 +10,10 @@ setup(
     long_description="",
     packages=["py4dgeo"],
     install_requires=[
+        "dateparser",
         "laspy[lazrs]>=2.0,<3.0",
         "numpy",
+        "ruptures",
         "xdg",
     ],
     zip_safe=False,

@@ -140,7 +140,7 @@ jobs:
 
     - name: Install Python development requirements
       run: |
-        python -m pip install "laspy[lazrs]>=2.0,<3.0" numpy xdg
+        python -m pip install "laspy[lazrs]>=2.0,<3.0" numpy xdg ruptures dateparser
         python -m pip install -r requirements-dev.txt
 
     - name: make build directory

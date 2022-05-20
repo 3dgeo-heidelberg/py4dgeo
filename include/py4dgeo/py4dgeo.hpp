@@ -29,7 +29,7 @@ using EigenPointCloudRef = Eigen::Ref<EigenPointCloud>;
  * You should use this in function signatures that accept a read-only
  * point cloud.
  */
-using EigenPointCloudConstRef = const Eigen::Ref<const EigenPointCloud>&;
+using EigenPointCloudConstRef = Eigen::Ref<const EigenPointCloud>;
 
 /** @brief The C++ type to represent a set of normal vectors on a point cloud
  *
@@ -42,7 +42,7 @@ using EigenNormalSet =
 using EigenNormalSetRef = Eigen::Ref<EigenNormalSet>;
 
 /** @brief An immutable reference to a set of normal vectors on a point cloud */
-using EigenNormalSetConstRef = const Eigen::Ref<const EigenNormalSet>&;
+using EigenNormalSetConstRef = Eigen::Ref<const EigenNormalSet>;
 
 /** @brief The type used for point cloud indices */
 using IndexType = Eigen::Index;
