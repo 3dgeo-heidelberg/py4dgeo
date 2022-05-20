@@ -235,6 +235,13 @@ PYBIND11_MODULE(_py4dgeo, m)
           py::arg("index"),
           py::arg("start_epoch"),
           py::arg("end_epoch"));
+  rgs.def_property_readonly(
+    "index", [](const RegionGrowingSeed& self) { return self.index; });
+  rgs.def_property_readonly("start_epoch", [](const RegionGrowingSeed& self) {
+    return self.start_epoch;
+  });
+  rgs.def_property_readonly(
+    "end_epoch", [](const RegionGrowingSeed& self) { return self.end_epoch; });
 
   py::class_<RegionGrowingAlgorithmData> rgwd(m, "RegionGrowingAlgorithmData");
   rgwd.def(py::init<EigenSpatiotemporalArrayConstRef,

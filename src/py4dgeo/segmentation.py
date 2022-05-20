@@ -399,27 +399,43 @@ class RegionGrowingAlgorithm:
 
         return _py4dgeo.normalized_dtw_distance
 
-    def construct_sorted_seedpoints(self):
-        """Calculate seedpoints for the region growing algorithm
+    def find_seedpoints(self, distances):
+        """Calculate seedpoints for the region growing algorithm"""
 
-        They are expected to be sorted by priority.
-        """
         algo = ruptures.Window(width=24, model="l1", min_size=12, jump=1)
+        seeds = []
 
-        return [_py4dgeo.RegionGrowingSeed(0, 0, 1)]
+        # Iterate over all time series to analyse their change points
+        for i in range(distances.shape[0]):
+            # Run detection of change points
+            changepoints = algo.fit_predict(distances[i, :], pen=1.0)
 
-    def run(self, segmentation):
+            # Iterate over the start/end pairs only covering signals that
+            # have both a start and end point.
+            for start, end in zip(changepoints[::2], changepoints[1::2]):
+                seeds.append(_py4dgeo.RegionGrowingSeed(i, start, end))
+
+        return seeds
+
+    def sort_seedpoints(self, seeds):
+        """Sort seed points by priority"""
+
+        # Here, we simply sort by length of the change event
+        return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
+
+    def run(self, analysis):
         """Calculate the segmentation"""
 
         # Smooth the distance array
-        smoothed = self.temporal_averaging(segmentation.distances)
+        smoothed = self.temporal_averaging(analysis.distances)
 
         # Get corepoints from M3C2 class and build a KDTree on them
-        corepoints = as_epoch(segmentation.corepoints)
+        corepoints = as_epoch(analysis.corepoints)
         corepoints.build_kdtree()
 
         # Calculate the list of seed points
-        seeds = self.construct_sorted_seedpoints()
+        seeds = self.find_seedpoints(smoothed)
+        seeds = self.sort_seedpoints(seeds)
         objects = []
 
         # Iterate over the seeds to maybe turn them into objects
@@ -435,10 +451,10 @@ class RegionGrowingAlgorithm:
 
             # If we found an overlap, we skip this seed
             if found:
-                break
+                continue
 
             data = _py4dgeo.RegionGrowingAlgorithmData(
-                smoothed, corepoints, 2.0, seed, [0.5]
+                smoothed, corepoints, 2.0, seed, [0.05, 0.1, 0.15, 0.2]
             )
 
             # Perform the region growing
