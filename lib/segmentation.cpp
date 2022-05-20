@@ -100,7 +100,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
     // to continue to the next threshold level
     double new_ratio =
       static_cast<double>(obj.indices.size() + additional_points.size()) /
-      static_cast<double>(std::max(obj.indices.size(), 1ul));
+      static_cast<double>(std::max(obj.indices.size(), std::size_t{ 1 }));
     if ((!obj.indices.empty()) && (new_ratio < last_ratio))
       return obj;
 
