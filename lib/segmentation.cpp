@@ -106,6 +106,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
 
     // If not, we now need to move all additional points into obj
     last_ratio = new_ratio;
+    obj.threshold = threshold;
     obj.indices.merge(additional_points);
   }
 

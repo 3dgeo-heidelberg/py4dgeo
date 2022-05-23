@@ -229,6 +229,8 @@ PYBIND11_MODULE(_py4dgeo, m)
     "start_epoch", [](const ObjectByChange& self) { return self.start_epoch; });
   obc.def_property_readonly(
     "end_epoch", [](const ObjectByChange& self) { return self.end_epoch; });
+  obc.def_property_readonly(
+    "threshold", [](const ObjectByChange& self) { return self.threshold; });
 
   py::class_<RegionGrowingSeed> rgs(m, "RegionGrowingSeed");
   rgs.def(py::init<IndexType, IndexType, IndexType>(),

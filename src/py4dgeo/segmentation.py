@@ -485,6 +485,11 @@ class ObjectByChange:
         """The index of the end epoch of the change object"""
         return self._data.end_epoch
 
+    @property
+    def threshold(self):
+        """The distance threshold that produced this object"""
+        return self._data.threshold
+
 
 def check_epoch_timestamp(epoch):
     """Validate an epoch to be used with SpatiotemporalSegmentation"""

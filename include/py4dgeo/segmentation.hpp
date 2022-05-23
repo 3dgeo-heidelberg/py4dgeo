@@ -38,6 +38,7 @@ struct ObjectByChange
   std::unordered_set<IndexType> indices;
   IndexType start_epoch;
   IndexType end_epoch;
+  double threshold;
 };
 
 struct RegionGrowingSeed
