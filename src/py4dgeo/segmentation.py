@@ -410,9 +410,9 @@ class RegionGrowingAlgorithm:
         eps = self.smoothing_window // 2
 
         for i in range(distances.shape[1]):
-            smoothed[i, :] = np.nanmedian(
-                distances[max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
-                axis=0,
+            smoothed[:, i] = np.nanmedian(
+                distances[:, max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
+                axis=1,
             )
 
         # We use no-op smooting as the default implementation here
