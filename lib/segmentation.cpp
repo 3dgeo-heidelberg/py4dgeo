@@ -32,9 +32,10 @@ region_growing(const RegionGrowingAlgorithmData& data,
   ObjectByChange obj;
   obj.start_epoch = data.seed.start_epoch;
   obj.end_epoch = data.seed.end_epoch;
+  obj.threshold = sorted_thresholds[0];
 
   // Store a ratio value to compare against for premature termination
-  double last_ratio = 0.0;
+  double last_ratio = 0.5;
 
   for (auto threshold : sorted_thresholds) {
     // The additional points found at this threshold level. These will
@@ -101,8 +102,14 @@ region_growing(const RegionGrowingAlgorithmData& data,
     double new_ratio =
       static_cast<double>(obj.indices.size() + additional_points.size()) /
       static_cast<double>(std::max(obj.indices.size(), std::size_t{ 1 }));
-    if ((!obj.indices.empty()) && (new_ratio < last_ratio))
+    if (new_ratio < last_ratio) {
+      // If this is using the strictest of all thresholds, we need to
+      // add the points here.
+      if (obj.indices.empty())
+        obj.indices.merge(additional_points);
+
       return obj;
+    }
 
     // If not, we now need to move all additional points into obj
     last_ratio = new_ratio;
