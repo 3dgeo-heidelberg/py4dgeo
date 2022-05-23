@@ -377,7 +377,12 @@ class SpatiotemporalAnalysis:
 
 
 class RegionGrowingAlgorithm:
-    def __init__(self, neighborhood_radius=1.0, thresholds=[0.1, 0.2, 0.3, 0.4, 0.5]):
+    def __init__(
+        self,
+        smoothing_window=24,
+        neighborhood_radius=1.0,
+        thresholds=[0.1, 0.2, 0.3, 0.4, 0.5],
+    ):
         """Construct a spatiotemporal segmentation algorithm.
 
         This class can be derived from to customize the algorithm behaviour.
@@ -394,14 +399,24 @@ class RegionGrowingAlgorithm:
         """
 
         # Store the given parameters
+        self.smoothing_window = smoothing_window
         self.neighborhood_radius = neighborhood_radius
         self.thresholds = thresholds
 
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
 
+        smoothed = np.empty_like(distances)
+        eps = self.smoothing_window // 2
+
+        for i in range(distances.shape[1]):
+            smoothed[i, :] = np.nanmedian(
+                distances[max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
+                axis=0,
+            )
+
         # We use no-op smooting as the default implementation here
-        return distances
+        return smoothed
 
     def distance_measure(self):
         """Distance measure between two time series
