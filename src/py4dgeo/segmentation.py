@@ -377,12 +377,25 @@ class SpatiotemporalAnalysis:
 
 
 class RegionGrowingAlgorithm:
-    def __init__(self):
+    def __init__(self, neighborhood_radius=1.0, thresholds=[0.1, 0.2, 0.3, 0.4, 0.5]):
         """Construct a spatiotemporal segmentation algorithm.
 
         This class can be derived from to customize the algorithm behaviour.
+
+        :param neighborhood_radius:
+            The size of the neighborhood of a corepoint. All corepoints within
+            this radius are considered adjacent and are therefore considered as
+            candidates for inclusion in the region growing algorithm.
+        :type neighborhood_radius: float
+        :param thresholds:
+            A list of thresholds to use as candidates in 4D-OBC's adaptive
+            thresholding procedure.
+        :type thresholds: list
         """
-        pass
+
+        # Store the given parameters
+        self.neighborhood_radius = neighborhood_radius
+        self.thresholds = thresholds
 
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
@@ -413,7 +426,7 @@ class RegionGrowingAlgorithm:
             # Iterate over the start/end pairs only covering signals that
             # have both a start and end point.
             for start, end in zip(changepoints[::2], changepoints[1::2]):
-                seeds.append(_py4dgeo.RegionGrowingSeed(i, start, end))
+                seeds.append(RegionGrowingSeed(i, start, end))
 
         return seeds
 
@@ -454,7 +467,11 @@ class RegionGrowingAlgorithm:
                 continue
 
             data = _py4dgeo.RegionGrowingAlgorithmData(
-                smoothed, corepoints, 2.0, seed, [0.05, 0.1, 0.15, 0.2]
+                smoothed,
+                corepoints,
+                self.neighborhood_radius,
+                seed._seed,
+                self.thresholds,
             )
 
             # Perform the region growing
@@ -462,6 +479,23 @@ class RegionGrowingAlgorithm:
             objects.append(ObjectByChange(objdata))
 
         return objects
+
+
+class RegionGrowingSeed:
+    def __init__(self, index, start_epoch, end_epoch):
+        self._seed = _py4dgeo.RegionGrowingSeed(index, start_epoch, end_epoch)
+
+    @property
+    def index(self):
+        return self._seed.index
+
+    @property
+    def start_epoch(self):
+        return self._seed.start_epoch
+
+    @property
+    def end_epoch(self):
+        return self._seed.end_epoch
 
 
 class ObjectByChange:
