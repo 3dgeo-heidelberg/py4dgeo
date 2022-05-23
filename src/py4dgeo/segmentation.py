@@ -458,9 +458,32 @@ class RegionGrowingAlgorithm:
             )
 
             # Perform the region growing
-            objects.append(_py4dgeo.region_growing(data, self.distance_measure()))
+            objdata = _py4dgeo.region_growing(data, self.distance_measure())
+            objects.append(ObjectByChange(objdata))
 
         return objects
+
+
+class ObjectByChange:
+    """Representation a change object in the spatiotemporal domain"""
+
+    def __init__(self, data):
+        self._data = data
+
+    @property
+    def indices(self):
+        """The set of corepoint indices that compose the object by change"""
+        return self._data.indices
+
+    @property
+    def start_epoch(self):
+        """The index of the start epoch of the change object"""
+        return self._data.start_epoch
+
+    @property
+    def end_epoch(self):
+        """The index of the end epoch of the change object"""
+        return self._data.end_epoch
 
 
 def check_epoch_timestamp(epoch):
