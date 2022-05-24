@@ -424,12 +424,38 @@ class SpatiotemporalAnalysis:
     @property
     def objects(self):
         """The list of objects by change for this analysis"""
-        if self._objects is None:
-            raise Py4DGeoError(
-                "Objects not yet calculated using a region growing algorithm instance"
-            )
 
-        return self._objects
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
+            if "objects.pickle" not in zf.namelist():
+                return None
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                zf.extract("objects.pickle", path=tmp_dir)
+                with open(os.path.join(tmp_dir, "objects.pickle"), "rb") as f:
+                    return pickle.load(f)
+
+    @objects.setter
+    def objects(self, _objects):
+        # Assert that we received the correct type
+        for seed in _objects:
+            if not isinstance(seed, ObjectByChange):
+                raise Py4DGeoError(
+                    "Objects are expected to inherit from ObjectByChange"
+                )
+
+        if not self.allow_pickle:
+            return
+
+        with UpdateableZipFile(self.filename, mode="a") as zf:
+            if "objects.pickle" in zf.namelist():
+                zf.remove("objects.pickle")
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                objectsfile = os.path.join(tmp_dir, "objects.pickle")
+                with open(objectsfile, "wb") as f:
+                    pickle.dump(_objects, f)
+
+                zf.write(objectsfile, arcname="objects.pickle")
 
     def invalidate_results(self):
         """Invalidate (and remove) calculated results
@@ -576,6 +602,9 @@ class RegionGrowingAlgorithm:
             # Perform the region growing
             objdata = _py4dgeo.region_growing(data, self.distance_measure())
             objects.append(ObjectByChange(objdata))
+
+        # Store the results in the analysis object
+        analysis.objects = objects
 
         return objects
 
