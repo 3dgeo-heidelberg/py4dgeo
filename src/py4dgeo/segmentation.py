@@ -468,6 +468,9 @@ class SpatiotemporalAnalysis:
             if "seeds.pickle" in zf.namelist():
                 zf.remove("seeds.pickle")
 
+            if "objects.pickle" in zf.namelist():
+                zf.remove("objects.pickle")
+
 
 class RegionGrowingAlgorithm:
     def __init__(
