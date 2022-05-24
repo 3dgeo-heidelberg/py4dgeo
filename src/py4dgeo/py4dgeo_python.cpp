@@ -244,6 +244,25 @@ PYBIND11_MODULE(_py4dgeo, m)
   });
   rgs.def_property_readonly(
     "end_epoch", [](const RegionGrowingSeed& self) { return self.end_epoch; });
+  rgs.def(py::pickle(
+    [](const RegionGrowingSeed& self) {
+      // Serialize into in-memory stream
+      std::stringstream buf;
+      buf.write(reinterpret_cast<const char*>(&self.index), sizeof(IndexType));
+      buf.write(reinterpret_cast<const char*>(&self.start_epoch),
+                sizeof(IndexType));
+      buf.write(reinterpret_cast<const char*>(&self.end_epoch),
+                sizeof(IndexType));
+      return py::bytes(buf.str());
+    },
+    [](const py::bytes& data) {
+      std::stringstream buf(data.cast<std::string>());
+      IndexType index, start_epoch, end_epoch;
+      buf.read(reinterpret_cast<char*>(&index), sizeof(IndexType));
+      buf.read(reinterpret_cast<char*>(&start_epoch), sizeof(IndexType));
+      buf.read(reinterpret_cast<char*>(&end_epoch), sizeof(IndexType));
+      return RegionGrowingSeed{ index, start_epoch, end_epoch };
+    }));
 
   py::class_<RegionGrowingAlgorithmData> rgwd(m, "RegionGrowingAlgorithmData");
   rgwd.def(py::init<EigenSpatiotemporalArrayConstRef,
