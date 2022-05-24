@@ -231,6 +231,41 @@ PYBIND11_MODULE(_py4dgeo, m)
     "end_epoch", [](const ObjectByChange& self) { return self.end_epoch; });
   obc.def_property_readonly(
     "threshold", [](const ObjectByChange& self) { return self.threshold; });
+  obc.def(py::pickle(
+    [](const ObjectByChange& self) {
+      // Serialize into in-memory stream
+      std::stringstream buf;
+
+      // Write indices
+      std::size_t size = self.indices.size();
+      buf.write(reinterpret_cast<const char*>(&size), sizeof(std::size_t));
+      for (auto i : self.indices)
+        buf.write(reinterpret_cast<const char*>(&i), sizeof(IndexType));
+
+      // Write other data
+      buf.write(reinterpret_cast<const char*>(&self.start_epoch),
+                sizeof(IndexType));
+      buf.write(reinterpret_cast<const char*>(&self.end_epoch),
+                sizeof(IndexType));
+      buf.write(reinterpret_cast<const char*>(&self.threshold), sizeof(double));
+      return py::bytes(buf.str());
+    },
+    [](const py::bytes& data) {
+      std::stringstream buf(data.cast<std::string>());
+      ObjectByChange obj;
+
+      std::size_t size;
+      buf.read(reinterpret_cast<char*>(&size), sizeof(std::size_t));
+      IndexType index_buffer;
+      for (std::size_t i = 0; i < size; ++i) {
+        buf.read(reinterpret_cast<char*>(&index_buffer), sizeof(IndexType));
+        obj.indices.insert(index_buffer);
+      }
+      buf.read(reinterpret_cast<char*>(&obj.start_epoch), sizeof(IndexType));
+      buf.read(reinterpret_cast<char*>(&obj.end_epoch), sizeof(IndexType));
+      buf.read(reinterpret_cast<char*>(&obj.threshold), sizeof(double));
+      return obj;
+    }));
 
   py::class_<RegionGrowingSeed> rgs(m, "RegionGrowingSeed");
   rgs.def(py::init<IndexType, IndexType, IndexType>(),
@@ -244,6 +279,25 @@ PYBIND11_MODULE(_py4dgeo, m)
   });
   rgs.def_property_readonly(
     "end_epoch", [](const RegionGrowingSeed& self) { return self.end_epoch; });
+  rgs.def(py::pickle(
+    [](const RegionGrowingSeed& self) {
+      // Serialize into in-memory stream
+      std::stringstream buf;
+      buf.write(reinterpret_cast<const char*>(&self.index), sizeof(IndexType));
+      buf.write(reinterpret_cast<const char*>(&self.start_epoch),
+                sizeof(IndexType));
+      buf.write(reinterpret_cast<const char*>(&self.end_epoch),
+                sizeof(IndexType));
+      return py::bytes(buf.str());
+    },
+    [](const py::bytes& data) {
+      std::stringstream buf(data.cast<std::string>());
+      IndexType index, start_epoch, end_epoch;
+      buf.read(reinterpret_cast<char*>(&index), sizeof(IndexType));
+      buf.read(reinterpret_cast<char*>(&start_epoch), sizeof(IndexType));
+      buf.read(reinterpret_cast<char*>(&end_epoch), sizeof(IndexType));
+      return RegionGrowingSeed{ index, start_epoch, end_epoch };
+    }));
 
   py::class_<RegionGrowingAlgorithmData> rgwd(m, "RegionGrowingAlgorithmData");
   rgwd.def(py::init<EigenSpatiotemporalArrayConstRef,

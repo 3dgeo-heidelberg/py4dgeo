@@ -6,6 +6,7 @@ import datetime
 import json
 import numpy as np
 import os
+import pickle
 import ruptures
 import tempfile
 import zipfile
@@ -22,7 +23,7 @@ PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION = 0
 
 
 class SpatiotemporalAnalysis:
-    def __init__(self, filename, compress=True):
+    def __init__(self, filename, compress=True, allow_pickle=True):
         """Construct a spatiotemporal segmentation object
 
         This is the basic data structure for the 4D objects by change algorithm
@@ -43,11 +44,17 @@ class SpatiotemporalAnalysis:
             analysis is an operation whose runtime can easily be dominated by
             decompression/compression of data.
         :type compress: bool
+        :param allow_pickle:
+            Whether py4dgeo is allowed to use the pickle module to store some data
+            in the file representation of the analysis. If set to false, some data
+            may not be stored and needs to be recomputed instead.
+        :type allow_pickle: bool
         """
 
         # Store the given parameters
         self.filename = append_file_extension(filename, "zip")
         self.compress = compress
+        self.allow_pickle = allow_pickle
 
         # Instantiate some properties used later on
         self._m3c2 = None
@@ -293,6 +300,9 @@ class SpatiotemporalAnalysis:
     def add_epochs(self, *epochs):
         """Add a numbers of epochs to the existing analysis"""
 
+        # Remove intermediate results from the archive
+        self.invalidate_results()
+
         # Assert that all epochs have a timestamp
         for epoch in epochs:
             check_epoch_timestamp(epoch)
@@ -375,6 +385,92 @@ class SpatiotemporalAnalysis:
                     zf.remove(uncertainty_filename)
                 zf.write(uncertainty_file, arcname=uncertainty_filename)
 
+    @property
+    def seeds(self):
+        """The list of seed candidates for this analysis"""
+
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
+            if "seeds.pickle" not in zf.namelist():
+                return None
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                zf.extract("seeds.pickle", path=tmp_dir)
+                with open(os.path.join(tmp_dir, "seeds.pickle"), "rb") as f:
+                    return pickle.load(f)
+
+    @seeds.setter
+    def seeds(self, _seeds):
+        # Assert that we received the correct type
+        for seed in _seeds:
+            if not isinstance(seed, RegionGrowingSeed):
+                raise Py4DGeoError(
+                    "Seeds are expected to inherit from RegionGrowingSeed"
+                )
+
+        if not self.allow_pickle:
+            return
+
+        with UpdateableZipFile(self.filename, mode="a") as zf:
+            if "seeds.pickle" in zf.namelist():
+                zf.remove("seeds.pickle")
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                seedsfile = os.path.join(tmp_dir, "seeds.pickle")
+                with open(seedsfile, "wb") as f:
+                    pickle.dump(_seeds, f)
+
+                zf.write(seedsfile, arcname="seeds.pickle")
+
+    @property
+    def objects(self):
+        """The list of objects by change for this analysis"""
+
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
+            if "objects.pickle" not in zf.namelist():
+                return None
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                zf.extract("objects.pickle", path=tmp_dir)
+                with open(os.path.join(tmp_dir, "objects.pickle"), "rb") as f:
+                    return pickle.load(f)
+
+    @objects.setter
+    def objects(self, _objects):
+        # Assert that we received the correct type
+        for seed in _objects:
+            if not isinstance(seed, ObjectByChange):
+                raise Py4DGeoError(
+                    "Objects are expected to inherit from ObjectByChange"
+                )
+
+        if not self.allow_pickle:
+            return
+
+        with UpdateableZipFile(self.filename, mode="a") as zf:
+            if "objects.pickle" in zf.namelist():
+                zf.remove("objects.pickle")
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                objectsfile = os.path.join(tmp_dir, "objects.pickle")
+                with open(objectsfile, "wb") as f:
+                    pickle.dump(_objects, f)
+
+                zf.write(objectsfile, arcname="objects.pickle")
+
+    def invalidate_results(self):
+        """Invalidate (and remove) calculated results
+
+        This is automatically called when new epochs are added or when
+        an algorithm sets the :code:`force` option.
+        """
+
+        with UpdateableZipFile(self.filename, mode="a") as zf:
+            if "seeds.pickle" in zf.namelist():
+                zf.remove("seeds.pickle")
+
+            if "objects.pickle" in zf.namelist():
+                zf.remove("objects.pickle")
+
 
 class RegionGrowingAlgorithm:
     def __init__(
@@ -451,8 +547,20 @@ class RegionGrowingAlgorithm:
         # Here, we simply sort by length of the change event
         return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
 
-    def run(self, analysis):
-        """Calculate the segmentation"""
+    def run(self, analysis, force=False):
+        """Calculate the segmentation
+
+        :param analysis:
+            The analysis object we are working with
+        :type analysis: py4dgeo.segmentation.SpatiotemporalAnalysis
+        :param force:
+            Force recalculation of results. If false, some intermediate results will be
+            restored from the analysis object instead of being recalculated
+        """
+
+        # Enforce the removal of intermediate results
+        if force:
+            analysis.invalidate_results()
 
         # Smooth the distance array
         smoothed = self.temporal_averaging(analysis.distances)
@@ -462,7 +570,12 @@ class RegionGrowingAlgorithm:
         corepoints.build_kdtree()
 
         # Calculate the list of seed points
-        seeds = self.find_seedpoints(smoothed)
+        seeds = analysis.seeds
+        if seeds is None:
+            seeds = self.find_seedpoints(smoothed)
+            analysis.seeds = seeds
+
+        # Sort the seed points
         seeds = self.sort_seedpoints(seeds)
         objects = []
 
@@ -492,6 +605,9 @@ class RegionGrowingAlgorithm:
             # Perform the region growing
             objdata = _py4dgeo.region_growing(data, self.distance_measure())
             objects.append(ObjectByChange(objdata))
+
+        # Store the results in the analysis object
+        analysis.objects = objects
 
         return objects
 
