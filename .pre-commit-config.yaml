@@ -54,8 +54,3 @@ repos:
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs
-      - id: check-jsonschema
-        name: "Check CodeCov configuration file"
-        files: codecov.yml
-        types: [yaml]
-        args: ["--schemafile", "https://json.schemastore.org/codecov.json"]
