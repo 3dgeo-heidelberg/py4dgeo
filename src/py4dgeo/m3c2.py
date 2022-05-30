@@ -11,10 +11,14 @@ from py4dgeo.util import (
 )
 
 import abc
+import logging
 import numpy as np
 import typing
 
 import py4dgeo._py4dgeo as _py4dgeo
+
+
+logger = logging.getLogger("py4dgeo")
 
 
 class M3C2LikeAlgorithm(abc.ABC):

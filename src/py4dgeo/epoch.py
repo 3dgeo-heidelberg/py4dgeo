@@ -10,12 +10,16 @@ import dateparser
 import datetime
 import json
 import laspy
+import logging
 import numpy as np
 import os
 import tempfile
 import zipfile
 
 import py4dgeo._py4dgeo as _py4dgeo
+
+
+logger = logging.getLogger("py4dgeo")
 
 
 # This integer controls the versioning of the epoch file format. Whenever the
@@ -98,6 +102,7 @@ class Epoch(_py4dgeo.Epoch):
         :type force_rebuild: bool
         """
         if self.kdtree.leaf_parameter() == 0 or force_rebuild:
+            logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
     def save(self, filename):
@@ -110,6 +115,7 @@ class Epoch(_py4dgeo.Epoch):
 
         # Ensure that we have a file extension
         filename = append_file_extension(filename, "zip")
+        logger.info(f"Saving epoch to file '{filename}'")
 
         # Use a temporary directory when creating files
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -154,6 +160,7 @@ class Epoch(_py4dgeo.Epoch):
 
         # Ensure that we have a file extension
         filename = append_file_extension(filename, "zip")
+        logger.info(f"Restoring epoch from file '{filename}'")
 
         # Use temporary directory for extraction of files
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -241,6 +248,7 @@ def as_epoch(cloud):
         return cloud
 
     # Initialize an epoch from the given cloud
+    logger.info("Initializing Epoch object from given point cloud")
     return Epoch(cloud)
 
 
@@ -269,6 +277,7 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
 
     # Read the first cloud
     try:
+        logger.info(f"Reading point cloud from file '{filenames[0]}'")
         cloud = np.genfromtxt(filenames[0], dtype=np.float64, **parse_opts)
     except ValueError:
         raise Py4DGeoError(
@@ -280,6 +289,7 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
     # compatible.s
     if other_epoch is None:
         offset = cloud.mean(axis=0)
+        logger.info(f"Determined coordinate offset as {offset}")
     else:
         offset = other_epoch.geographic_offset
 
@@ -313,6 +323,7 @@ def read_from_las(*filenames, other_epoch=None):
     """
 
     # Read the lasfile using laspy
+    logger.info(f"Reading point cloud from file '{filenames[0]}'")
     lasfile = laspy.read(filenames[0])
 
     # Determine the offset to use. If no epoch to be compatible with has been
@@ -320,6 +331,7 @@ def read_from_las(*filenames, other_epoch=None):
     # compatible.s
     if other_epoch is None:
         geographic_offset = lasfile.header.mins
+        logger.info(f"Determined coordinate offset as {geographic_offset}")
     else:
         geographic_offset = other_epoch.geographic_offset
 
