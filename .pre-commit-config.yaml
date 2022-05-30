@@ -31,6 +31,15 @@ repos:
       - id: check-yaml
       # Trim trailing whitespace of all sorts
       - id: trailing-whitespace
+      # Sort lines in requirements files
+      - id: requirements-txt-fixer
+      # Apply a file size limit of 500kB
+      - id: check-added-large-files
+      # Simple parser validation of e.g. pyproject.toml
+      - id: check-toml
+      # Unify file endings
+      - id: end-of-file-fixer
+
 
   # CMake Formatting/Linting Utility
   - repo: https://github.com/cheshirekow/cmake-format-precommit
@@ -38,3 +47,10 @@ repos:
     hooks:
       - id: cmake-format
       - id: cmake-lint
+
+  # Check Configuration as Code files for integrations
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.15.1
+    hooks:
+      - id: check-github-workflows
+      - id: check-readthedocs
