@@ -1,4 +1,5 @@
 import collections
+import logging
 import numpy as np
 import os
 import platform
@@ -8,7 +9,13 @@ import py4dgeo._py4dgeo as _py4dgeo
 
 
 class Py4DGeoError(Exception):
-    pass
+    def __init__(self, msg, loggername="py4dgeo"):
+        # Initialize the base class
+        super().__init__(msg)
+
+        # Also write the message to the error stream
+        logger = logging.getLogger(loggername)
+        logger.error(self)
 
 
 def find_file(filename):

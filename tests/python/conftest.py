@@ -1,4 +1,5 @@
 from py4dgeo.epoch import read_from_xyz
+from py4dgeo.logger import set_py4dgeo_logfile
 from py4dgeo.m3c2 import M3C2
 from py4dgeo.segmentation import SpatiotemporalAnalysis
 from py4dgeo.util import MemoryPolicy, set_memory_policy
@@ -11,6 +12,7 @@ import tempfile
 # The path to our data directory
 data_dir = os.path.join(os.path.split(__file__)[0], "..", "data")
 analysis_dir = tempfile.TemporaryDirectory()
+log_dir = tempfile.TemporaryDirectory()
 
 
 def find_data_file(filename):
@@ -56,6 +58,11 @@ def spatiotemporal(epochs):
         analysis.add_epochs(epoch1)
 
     return analysis
+
+
+@pytest.fixture(autouse=True)
+def log_into_temporary_directory():
+    set_py4dgeo_logfile(os.path.join((log_dir.name), "py4dgeo.log"))
 
 
 @pytest.fixture(autouse=True)
