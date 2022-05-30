@@ -28,3 +28,6 @@ ignore:
   - "**/Catch2"
   - "**/eigen"
   - "**/nanoflann"
+
+fixes:
+  - "py4dgeo/::"
