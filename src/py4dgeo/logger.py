@@ -1,5 +1,7 @@
+import contextlib
 import logging
 import sys
+import time
 
 
 def create_default_logger(filename=None):
@@ -59,3 +61,17 @@ def set_py4dgeo_logfile(filename):
     """
     global _logger
     _logger = create_default_logger(filename)
+
+
+@contextlib.contextmanager
+def logger_context(msg, level=logging.INFO):
+    # Log a message that we started the task described by message
+    logger = logging.getLogger("py4dgeo")
+    logger.log(level, f"Starting: {msg}")
+
+    # Measure time
+    start = time.perf_counter()
+    yield
+    duration = time.perf_counter() - start
+
+    logger.log(level, f"Finished in {duration:.4f}s: {msg}")

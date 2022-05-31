@@ -1,9 +1,11 @@
 from py4dgeo.epoch import Epoch, as_epoch
+from py4dgeo.logger import logger_context
 from py4dgeo.util import Py4DGeoError, append_file_extension
 from py4dgeo.zipfile import UpdateableZipFile
 
 import datetime
 import json
+import logging
 import numpy as np
 import os
 import pickle
@@ -12,6 +14,10 @@ import tempfile
 import zipfile
 
 import py4dgeo._py4dgeo as _py4dgeo
+
+
+# Get the py4dgeo logger instance
+logger = logging.getLogger("py4dgeo")
 
 
 # This integer controls the versioning of the segmentation file format. Whenever the
@@ -62,6 +68,7 @@ class SpatiotemporalAnalysis:
 
         # If the filename does not already exist, we create a new archive
         if not os.path.exists(self.filename):
+            logger.info(f"Creating analysis file {self.filename}")
             with zipfile.ZipFile(self.filename, mode="w") as zf:
                 # Write the segmentation file format version number
                 zf.writestr(
@@ -316,16 +323,17 @@ class SpatiotemporalAnalysis:
         new_uncertainties = []
 
         # Iterate over the given epochs
-        for epoch in sorted(epochs, key=lambda e: e.timestamp):
-            # Prepare the M3C2 instance
-            self.m3c2.corepoints = self.corepoints.cloud
-            self.m3c2.epochs = (reference_epoch, epoch)
+        for i, epoch in enumerate(sorted(epochs, key=lambda e: e.timestamp)):
+            with logger_context(f"Adding epoch {i+1}/{len(epochs)} to analysis object"):
+                # Prepare the M3C2 instance
+                self.m3c2.corepoints = self.corepoints.cloud
+                self.m3c2.epochs = (reference_epoch, epoch)
 
-            # Calculate the M3C2 distances
-            d, u = self.m3c2.calculate_distances(reference_epoch, epoch)
-            new_distances.append(d)
-            new_uncertainties.append(u)
-            timedeltas.append(epoch.timestamp - reference_epoch.timestamp)
+                # Calculate the M3C2 distances
+                d, u = self.m3c2.calculate_distances(reference_epoch, epoch)
+                new_distances.append(d)
+                new_uncertainties.append(u)
+                timedeltas.append(epoch.timestamp - reference_epoch.timestamp)
 
         # Prepare all archive data in a temporary directory
         with tempfile.TemporaryDirectory() as tmp_dir:
@@ -354,36 +362,38 @@ class SpatiotemporalAnalysis:
                 "uncertainties.npz" if self.compress else "uncertainties.npy"
             )
 
-            # Load the distance array and append new data
-            distance_file = os.path.join(tmp_dir, distance_filename)
-            write_func(
-                distance_file,
-                np.concatenate(
-                    (self.distances, np.column_stack(tuple(new_distances))), axis=1
-                ),
-            )
+            with logger_context("Rearranging space-time array in memory"):
+                # Load the distance array and append new data
+                distance_file = os.path.join(tmp_dir, distance_filename)
+                write_func(
+                    distance_file,
+                    np.concatenate(
+                        (self.distances, np.column_stack(tuple(new_distances))), axis=1
+                    ),
+                )
 
-            # Load the uncertainty array and append new data
-            uncertainty_file = os.path.join(tmp_dir, uncertainty_filename)
-            write_func(
-                uncertainty_file,
-                np.concatenate(
-                    (self.uncertainties, np.column_stack(tuple(new_uncertainties))),
-                    axis=1,
-                ),
-            )
+                # Load the uncertainty array and append new data
+                uncertainty_file = os.path.join(tmp_dir, uncertainty_filename)
+                write_func(
+                    uncertainty_file,
+                    np.concatenate(
+                        (self.uncertainties, np.column_stack(tuple(new_uncertainties))),
+                        axis=1,
+                    ),
+                )
 
             # Dump the updated files into the archive
-            with UpdateableZipFile(self.filename, mode="a") as zf:
-                if "timestamps.json" in zf.namelist():
-                    zf.remove("timestamps.json")
-                zf.write(timestampsfile, arcname="timestamps.json")
-                if distance_filename in zf.namelist():
-                    zf.remove(distance_filename)
-                zf.write(distance_file, arcname=distance_filename)
-                if uncertainty_filename in zf.namelist():
-                    zf.remove(uncertainty_filename)
-                zf.write(uncertainty_file, arcname=uncertainty_filename)
+            with logger_context("Updating disk-based analysis archive with new epochs"):
+                with UpdateableZipFile(self.filename, mode="a") as zf:
+                    if "timestamps.json" in zf.namelist():
+                        zf.remove("timestamps.json")
+                    zf.write(timestampsfile, arcname="timestamps.json")
+                    if distance_filename in zf.namelist():
+                        zf.remove(distance_filename)
+                    zf.write(distance_file, arcname=distance_filename)
+                    if uncertainty_filename in zf.namelist():
+                        zf.remove(uncertainty_filename)
+                    zf.write(uncertainty_file, arcname=uncertainty_filename)
 
     @property
     def seeds(self):
@@ -464,6 +474,9 @@ class SpatiotemporalAnalysis:
         an algorithm sets the :code:`force` option.
         """
 
+        logger.info(
+            f"Removing intermediate results from the analysis file {self.filename}"
+        )
         with UpdateableZipFile(self.filename, mode="a") as zf:
             if "seeds.pickle" in zf.namelist():
                 zf.remove("seeds.pickle")
@@ -562,8 +575,15 @@ class RegionGrowingAlgorithm:
         if force:
             analysis.invalidate_results()
 
+        # Return pre-calculated objects if they are available
+        precalculated = analysis.objects
+        if precalculated is not None:
+            logger.info("Reusing objects by change stored in analysis object")
+            return precalculated
+
         # Smooth the distance array
-        smoothed = self.temporal_averaging(analysis.distances)
+        with logger_context("Smoothing temporal data"):
+            smoothed = self.temporal_averaging(analysis.distances)
 
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
@@ -572,15 +592,18 @@ class RegionGrowingAlgorithm:
         # Calculate the list of seed points
         seeds = analysis.seeds
         if seeds is None:
-            seeds = self.find_seedpoints(smoothed)
-            analysis.seeds = seeds
+            with logger_context("Find seed candidates in time series"):
+                seeds = self.find_seedpoints(smoothed)
+                analysis.seeds = seeds
+        else:
+            logger.info("Reusing seed candidates stored in analysis object")
 
         # Sort the seed points
         seeds = self.sort_seedpoints(seeds)
         objects = []
 
         # Iterate over the seeds to maybe turn them into objects
-        for seed in seeds:
+        for i, seed in enumerate(seeds):
             # Check all already calculated objects whether they overlap with this seed.
             found = False
             for obj in objects:
@@ -603,8 +626,11 @@ class RegionGrowingAlgorithm:
             )
 
             # Perform the region growing
-            objdata = _py4dgeo.region_growing(data, self.distance_measure())
-            objects.append(ObjectByChange(objdata))
+            with logger_context(
+                f"Performing region growing on seed candidate {i+1}/{len(seeds)}"
+            ):
+                objdata = _py4dgeo.region_growing(data, self.distance_measure())
+                objects.append(ObjectByChange(objdata))
 
         # Store the results in the analysis object
         analysis.objects = objects
