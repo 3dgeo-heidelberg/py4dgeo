@@ -2,8 +2,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
-#include <unordered_map>
+#include <map>
+#include <set>
 #include <unordered_set>
 #include <vector>
 
@@ -19,14 +21,13 @@ region_growing(const RegionGrowingAlgorithmData& data,
 
   // Instantiate a set of candidates to check
   std::unordered_set<IndexType> candidates;
+  std::multimap<double, IndexType> calculated_distances;
+  std::set<double, std::greater<double>> used_distances;
 
-  // Keep a list of calculated distances that we did not need so far
-  // as we might need them for later threshold levels
-  std::unordered_map<IndexType, double> calculated_distances;
-
-  // We throw the initial seed into the calculated distances
-  // to kick off the calculation in below loop
-  calculated_distances[data.seed.index] = 0.0;
+  // We add the initial seed to the candidates in order to kick off
+  // the calculation in the loop below
+  candidates.insert(data.seed.index);
+  calculated_distances.insert({ 0.0, data.seed.index });
 
   // Create the return object
   ObjectByChange obj;
@@ -42,58 +43,47 @@ region_growing(const RegionGrowingAlgorithmData& data,
     // be added to return object after deciding whether the adaptive
     // procedure should continue.
     std::unordered_set<IndexType> additional_points;
-
-    // Make all already calculated distances below our threshold
-    // candidates and start the candidate loop
-    auto distit = calculated_distances.begin();
-    while (distit != calculated_distances.end()) {
-      if (distit->second < threshold) {
-        candidates.insert(distit->first);
-        distit = calculated_distances.erase(distit);
-      } else
-        ++distit;
-    }
+    std::set<double, std::greater<double>> with_additional_distances(
+      used_distances);
 
     // Grow while we have candidates
-    while (!candidates.empty()) {
+    while ((!candidates.empty()) &&
+           (calculated_distances.begin()->first < threshold)) {
       // Get one element to process and remove it from the candidates
-      auto candidate = *candidates.begin();
-      candidates.erase(candidates.begin());
+      auto [distance, candidate] = *calculated_distances.begin();
+      calculated_distances.erase(calculated_distances.begin());
+      candidates.erase(candidate);
 
-      // Calculate distance - may already be calculated
-      auto distit = calculated_distances.find(candidate);
-      double distance;
-      if (distit == calculated_distances.end()) {
-        TimeseriesDistanceFunctionData distance_data{
-          data.distances.row(data.seed.index), data.distances.row(candidate)
-        };
-        distance = distance_function(distance_data);
-      } else {
-        distance = distit->second;
-        calculated_distances.erase(distit);
+      // Use this point in the grown region
+      additional_points.insert(candidate);
+      with_additional_distances.insert(distance);
+
+      // Maybe adapt the threshold to a percentile criterium
+      if (with_additional_distances.size() >= data.min_segments) {
+        auto it = with_additional_distances.begin();
+        std::advance(
+          it,
+          static_cast<std::size_t>(0.05 * with_additional_distances.size()));
+        threshold = *it;
       }
 
-      // Apply thresholding
-      if (distance < threshold) {
-        // Use this point in the grown region
-        additional_points.insert(candidate);
-
-        // Add neighboring corepoints to list of candidates
-        KDTree::RadiusSearchResult neighbors;
-        data.corepoints.kdtree.radius_search(
-          &data.corepoints.cloud(candidate, 0), data.radius, neighbors);
-        for (auto n : neighbors) {
-          // Check whether the corepoint is already present among candidates,
-          // the final result or the points added at this threshold level.
-          // If none of that match, this is a new candidate
-          if ((candidates.find(n) == candidates.end()) &&
-              (additional_points.find(n) == additional_points.end()) &&
-              (obj.indices.find(n) == obj.indices.end()))
-            candidates.insert(n);
+      // Add neighboring corepoints to list of candidates
+      KDTree::RadiusSearchResult neighbors;
+      data.corepoints.kdtree.radius_search(
+        &data.corepoints.cloud(candidate, 0), data.radius, neighbors);
+      for (auto n : neighbors) {
+        // Check whether the corepoint is already present among candidates,
+        // the final result or the points added at this threshold level.
+        // If none of that match, this is a new candidate
+        if ((candidates.find(n) == candidates.end()) &&
+            (additional_points.find(n) == additional_points.end()) &&
+            (obj.indices.find(n) == obj.indices.end())) {
+          TimeseriesDistanceFunctionData distance_data{
+            data.distances.row(data.seed.index), data.distances.row(candidate)
+          };
+          calculated_distances.insert({ distance_function(distance_data), n });
+          candidates.insert(n);
         }
-      } else {
-        // Store the calculated distance in case we need it again
-        calculated_distances[candidate] = distance;
       }
     }
 
@@ -119,6 +109,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
     last_ratio = new_ratio;
     obj.threshold = threshold;
     obj.indices.merge(additional_points);
+    std::swap(used_distances, with_additional_distances);
 
     // If the object is too large, we return it immediately
     // TODO: This does not actually cut the return object to max_segments,

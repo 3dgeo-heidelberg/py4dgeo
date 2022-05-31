@@ -467,7 +467,7 @@ class SpatiotemporalAnalysis:
 
                 zf.write(objectsfile, arcname="objects.pickle")
 
-    def invalidate_results(self):
+    def invalidate_results(self, seeds=True, objects=True):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
@@ -478,10 +478,10 @@ class SpatiotemporalAnalysis:
             f"Removing intermediate results from the analysis file {self.filename}"
         )
         with UpdateableZipFile(self.filename, mode="a") as zf:
-            if "seeds.pickle" in zf.namelist():
+            if seeds and "seeds.pickle" in zf.namelist():
                 zf.remove("seeds.pickle")
 
-            if "objects.pickle" in zf.namelist():
+            if objects and "objects.pickle" in zf.namelist():
                 zf.remove("objects.pickle")
 
 
