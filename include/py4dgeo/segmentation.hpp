@@ -55,6 +55,8 @@ struct RegionGrowingAlgorithmData
   double radius;
   RegionGrowingSeed seed;
   std::vector<double> thresholds;
+  std::size_t min_segments;
+  std::size_t max_segments;
 };
 
 /** @brief The main region growing algorithm */

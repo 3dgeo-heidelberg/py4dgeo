@@ -304,12 +304,16 @@ PYBIND11_MODULE(_py4dgeo, m)
                     const Epoch&,
                     double,
                     RegionGrowingSeed,
-                    std::vector<double>>(),
+                    std::vector<double>,
+                    std::size_t,
+                    std::size_t>(),
            py::arg("data"),
            py::arg("epoch"),
            py::arg("radius"),
            py::arg("seed"),
-           py::arg("thresholds"));
+           py::arg("thresholds"),
+           py::arg("min_segments"),
+           py::arg("max_segments"));
 
   py::class_<TimeseriesDistanceFunctionData> tdfd(
     m, "TimeseriesDistanceFunctionData");

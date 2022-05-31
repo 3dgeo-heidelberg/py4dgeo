@@ -108,6 +108,10 @@ region_growing(const RegionGrowingAlgorithmData& data,
       if (obj.indices.empty())
         obj.indices.merge(additional_points);
 
+      // Apply minimum segment threshold
+      if (obj.indices.size() < data.min_segments)
+        return ObjectByChange();
+
       return obj;
     }
 
@@ -115,7 +119,17 @@ region_growing(const RegionGrowingAlgorithmData& data,
     last_ratio = new_ratio;
     obj.threshold = threshold;
     obj.indices.merge(additional_points);
+
+    // If the object is too large, we return it immediately
+    // TODO: This does not actually cut the return object to max_segments,
+    //       but the interplay with adaptive thresholding is non-trivial.
+    if (obj.indices.size() >= data.max_segments)
+      return obj;
   }
+
+  // Apply minimum segment threshold
+  if (obj.indices.size() < data.min_segments)
+    return ObjectByChange();
 
   // If we came up to here, a local maximum was not produced.
   return obj;
