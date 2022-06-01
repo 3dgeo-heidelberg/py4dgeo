@@ -467,7 +467,7 @@ class SpatiotemporalAnalysis:
 
                 zf.write(objectsfile, arcname="objects.pickle")
 
-    def invalidate_results(self):
+    def invalidate_results(self, seeds=True, objects=True):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
@@ -478,10 +478,10 @@ class SpatiotemporalAnalysis:
             f"Removing intermediate results from the analysis file {self.filename}"
         )
         with UpdateableZipFile(self.filename, mode="a") as zf:
-            if "seeds.pickle" in zf.namelist():
+            if seeds and "seeds.pickle" in zf.namelist():
                 zf.remove("seeds.pickle")
 
-            if "objects.pickle" in zf.namelist():
+            if objects and "objects.pickle" in zf.namelist():
                 zf.remove("objects.pickle")
 
 
@@ -491,6 +491,8 @@ class RegionGrowingAlgorithm:
         smoothing_window=24,
         neighborhood_radius=1.0,
         thresholds=[0.1, 0.2, 0.3, 0.4, 0.5],
+        min_segments=20,
+        max_segments=None,
     ):
         """Construct a spatiotemporal segmentation algorithm.
 
@@ -505,12 +507,23 @@ class RegionGrowingAlgorithm:
             A list of thresholds to use as candidates in 4D-OBC's adaptive
             thresholding procedure.
         :type thresholds: list
+        :param min_segments:
+            The minimum number of core points in an object by change. Defaults to
+            20.
+        :type min_segments: int
+        :param max_segments:
+            The maximum number of core points in an object by change. This is mainly
+            used to bound the runtime of expensive region growing. By default, no
+            maximum is applied.
+        :type max_segments: int
         """
 
         # Store the given parameters
         self.smoothing_window = smoothing_window
         self.neighborhood_radius = neighborhood_radius
         self.thresholds = thresholds
+        self.min_segments = min_segments
+        self.max_segments = max_segments
 
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
@@ -617,12 +630,19 @@ class RegionGrowingAlgorithm:
             if found:
                 continue
 
+            # Apply a numeric default to the max_segments parameter
+            max_segments = self.max_segments
+            if max_segments is None:
+                max_segments = corepoints.cloud.shape[0] + 1
+
             data = _py4dgeo.RegionGrowingAlgorithmData(
                 smoothed,
                 corepoints,
                 self.neighborhood_radius,
                 seed._seed,
                 self.thresholds,
+                self.min_segments,
+                max_segments,
             )
 
             # Perform the region growing
@@ -630,7 +650,16 @@ class RegionGrowingAlgorithm:
                 f"Performing region growing on seed candidate {i+1}/{len(seeds)}"
             ):
                 objdata = _py4dgeo.region_growing(data, self.distance_measure())
-                objects.append(ObjectByChange(objdata))
+
+                # If the returned object has 0 indices, the min_segments threshold was violated
+                if objdata.indices:
+                    objects.append(ObjectByChange(objdata))
+
+                # If the returned object is larger than max_segments we issue a warning
+                if len(objdata.indices) >= max_segments:
+                    logger.warning(
+                        f"An object by change exceeded the given maximum size of {max_segments}"
+                    )
 
         # Store the results in the analysis object
         analysis.objects = objects

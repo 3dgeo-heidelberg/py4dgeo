@@ -26,6 +26,8 @@ struct TimeseriesDistanceFunctionData
 {
   EigenTimeSeriesConstRef ts1;
   EigenTimeSeriesConstRef ts2;
+  double norm1;
+  double norm2;
 };
 
 /** @brief The signature to use for a distance function */
@@ -55,6 +57,8 @@ struct RegionGrowingAlgorithmData
   double radius;
   RegionGrowingSeed seed;
   std::vector<double> thresholds;
+  std::size_t min_segments;
+  std::size_t max_segments;
 };
 
 /** @brief The main region growing algorithm */
