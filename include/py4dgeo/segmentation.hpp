@@ -26,6 +26,8 @@ struct TimeseriesDistanceFunctionData
 {
   EigenTimeSeriesConstRef ts1;
   EigenTimeSeriesConstRef ts2;
+  double norm1;
+  double norm2;
 };
 
 /** @brief The signature to use for a distance function */

@@ -79,7 +79,10 @@ region_growing(const RegionGrowingAlgorithmData& data,
             (additional_points.find(n) == additional_points.end()) &&
             (obj.indices.find(n) == obj.indices.end())) {
           TimeseriesDistanceFunctionData distance_data{
-            data.distances.row(data.seed.index), data.distances.row(candidate)
+            data.distances.row(data.seed.index),
+            data.distances.row(candidate),
+            data.distances(data.seed.index, 0),
+            data.distances(candidate, 0)
           };
           calculated_distances.insert({ distance_function(distance_data), n });
           candidates.insert(n);
@@ -127,9 +130,9 @@ region_growing(const RegionGrowingAlgorithmData& data,
 }
 
 inline double
-distance(double x, double y)
+distance(double x, double y, double norm1, double norm2)
 {
-  return std::fabs(x - y);
+  return std::fabs(x - norm1 - (y - norm2));
 }
 
 double
@@ -150,21 +153,28 @@ dtw_distance(const TimeseriesDistanceFunctionData& data)
   std::vector<std::vector<double>> d(n, std::vector<double>(n));
 
   // Upper left corner
-  d[0][0] = distance(data.ts1[indices[0]], data.ts2[indices[0]]);
+  d[0][0] = distance(
+    data.ts1[indices[0]], data.ts2[indices[0]], data.norm1, data.norm2);
 
   // Upper row and left-most column
   for (std::size_t i = 1; i < n; ++i) {
     d[i][0] =
-      distance(data.ts1[indices[i]], data.ts2[indices[0]]) + d[i - 1][0];
+      distance(
+        data.ts1[indices[i]], data.ts2[indices[0]], data.norm1, data.norm2) +
+      d[i - 1][0];
     d[0][i] =
-      distance(data.ts1[indices[0]], data.ts2[indices[i]]) + d[0][i - 1];
+      distance(
+        data.ts1[indices[0]], data.ts2[indices[i]], data.norm1, data.norm2) +
+      d[0][i - 1];
   }
 
   // Rest of the distance matrix
   for (std::size_t i = 1; i < n; ++i)
     for (std::size_t j = 1; j < n; ++j)
-      d[i][j] = distance(data.ts1[indices[i]], data.ts2[indices[j]]) +
-                std::fmin(std::fmin(d[i - 1][j], d[i][j - 1]), d[i - 1][j - 1]);
+      d[i][j] =
+        distance(
+          data.ts1[indices[i]], data.ts2[indices[j]], data.norm1, data.norm2) +
+        std::fmin(std::fmin(d[i - 1][j], d[i][j - 1]), d[i - 1][j - 1]);
 
   return d[n - 1][n - 1];
 }
