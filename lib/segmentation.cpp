@@ -20,14 +20,13 @@ region_growing(const RegionGrowingAlgorithmData& data,
   std::sort(sorted_thresholds.begin(), sorted_thresholds.end());
 
   // Instantiate a set of candidates to check
-  std::unordered_set<IndexType> candidates;
-  std::multimap<double, IndexType> calculated_distances;
+  std::unordered_set<IndexType> rejected;
+  std::multimap<double, IndexType> candidates_distances;
   std::set<double, std::greater<double>> used_distances;
 
   // We add the initial seed to the candidates in order to kick off
   // the calculation in the loop below
-  candidates.insert(data.seed.index);
-  calculated_distances.insert({ 0.0, data.seed.index });
+  candidates_distances.insert({ 0.0, data.seed.index });
 
   // Create the return object
   ObjectByChange obj;
@@ -35,10 +34,16 @@ region_growing(const RegionGrowingAlgorithmData& data,
   obj.end_epoch = data.seed.end_epoch;
   obj.threshold = sorted_thresholds[0];
 
+  // The seed is included in the final object for sure
+  obj.indices.insert(data.seed.index);
+  used_distances.insert(0.0);
+
   // Store a ratio value to compare against for premature termination
   double last_ratio = 0.5;
 
   for (auto threshold : sorted_thresholds) {
+    double residual = threshold;
+
     // The additional points found at this threshold level. These will
     // be added to return object after deciding whether the adaptive
     // procedure should continue.
@@ -47,25 +52,10 @@ region_growing(const RegionGrowingAlgorithmData& data,
       used_distances);
 
     // Grow while we have candidates
-    while ((!candidates.empty()) &&
-           (calculated_distances.begin()->first < threshold)) {
+    while (!candidates_distances.empty()) {
       // Get one element to process and remove it from the candidates
-      auto [distance, candidate] = *calculated_distances.begin();
-      calculated_distances.erase(calculated_distances.begin());
-      candidates.erase(candidate);
-
-      // Use this point in the grown region
-      additional_points.insert(candidate);
-      with_additional_distances.insert(distance);
-
-      // Maybe adapt the threshold to a percentile criterium
-      if (with_additional_distances.size() >= data.min_segments) {
-        auto it = with_additional_distances.begin();
-        std::advance(
-          it,
-          static_cast<std::size_t>(0.05 * with_additional_distances.size()));
-        threshold = *it;
-      }
+      auto [distance, candidate] = *candidates_distances.begin();
+      candidates_distances.erase(candidates_distances.begin());
 
       // Add neighboring corepoints to list of candidates
       KDTree::RadiusSearchResult neighbors;
@@ -75,17 +65,43 @@ region_growing(const RegionGrowingAlgorithmData& data,
         // Check whether the corepoint is already present among candidates,
         // the final result or the points added at this threshold level.
         // If none of that match, this is a new candidate
-        if ((candidates.find(n) == candidates.end()) &&
+        if ((rejected.find(n) == rejected.end()) &&
             (additional_points.find(n) == additional_points.end()) &&
             (obj.indices.find(n) == obj.indices.end())) {
+          // Calculate the distance for this neighbor
           TimeseriesDistanceFunctionData distance_data{
             data.distances.row(data.seed.index),
             data.distances.row(candidate),
             data.distances(data.seed.index, 0),
             data.distances(candidate, 0)
           };
-          calculated_distances.insert({ distance_function(distance_data), n });
-          candidates.insert(n);
+          auto d = distance_function(distance_data);
+
+          // If it is smaller than the threshold, add it to the object (or
+          // rather: maybe do so if adaptive thresholding wants you to)
+          if (d < threshold) {
+            additional_points.insert(n);
+            with_additional_distances.insert(d);
+          } else {
+            rejected.insert(n);
+          }
+
+          // Decide whether this neighbor should also be used as a candidate
+          // for further neighbor selection. We do not do this with *all*
+          // neighbors added to the grown region, but only with those under the
+          // 95th percentile.
+          if (d < residual) {
+            candidates_distances.insert({ d, n });
+          }
+
+          // Update the residual parameter for above criterion
+          if (with_additional_distances.size() >= data.min_segments) {
+            auto it = with_additional_distances.begin();
+            std::advance(it,
+                         static_cast<std::size_t>(
+                           0.05 * with_additional_distances.size()));
+            residual = *it;
+          }
         }
       }
     }
@@ -98,7 +114,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
     if (new_ratio < last_ratio) {
       // If this is using the strictest of all thresholds, we need to
       // add the points here.
-      if (obj.indices.empty())
+      if (obj.indices.size() == 1)
         obj.indices.merge(additional_points);
 
       // Apply minimum segment threshold
