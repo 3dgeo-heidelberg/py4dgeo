@@ -550,6 +550,15 @@ class RegionGrowingAlgorithmBase:
         # The base class does not perform sorting.
         return seeds
 
+    def filter_objects(self, obj):
+        """A filter for objects produced by the region growing algorithm
+
+        Objects are discarded if this method returns False.
+        """
+
+        # The base class does not perform filtering
+        return True
+
     def run(self, analysis, force=False):
         """Calculate the segmentation
 
@@ -630,7 +639,9 @@ class RegionGrowingAlgorithmBase:
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
                 if objdata.indices_distances:
-                    objects.append(ObjectByChange(objdata, seed, analysis))
+                    obj = ObjectByChange(objdata, seed, analysis)
+                    if self.filter_objects(obj):
+                        objects.append(obj)
 
                 # If the returned object is larger than max_segments we issue a warning
                 if len(objdata.indices_distances) >= max_segments:
@@ -697,6 +708,16 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # Here, we simply sort by length of the change event
         return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
+
+    def filter_objects(self, obj):
+        """A filter for objects produced by the region growing algorithm"""
+
+        # Filter based on coefficient of variation
+        distarray = np.fromiter(obj._data.indices_distances.values(), np.float64)
+        cv = np.std(distarray) / np.mean(distarray)
+
+        # TODO: Make this threshold configurable?
+        return cv <= 0.8
 
 
 class RegionGrowingSeed:
