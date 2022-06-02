@@ -485,10 +485,9 @@ class SpatiotemporalAnalysis:
                 zf.remove("objects.pickle")
 
 
-class RegionGrowingAlgorithm:
+class RegionGrowingAlgorithmBase:
     def __init__(
         self,
-        smoothing_window=24,
         neighborhood_radius=1.0,
         thresholds=[0.1, 0.2, 0.3, 0.4, 0.5],
         min_segments=20,
@@ -518,8 +517,6 @@ class RegionGrowingAlgorithm:
         :type max_segments: int
         """
 
-        # Store the given parameters
-        self.smoothing_window = smoothing_window
         self.neighborhood_radius = neighborhood_radius
         self.thresholds = thresholds
         self.min_segments = min_segments
@@ -528,17 +525,8 @@ class RegionGrowingAlgorithm:
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
 
-        smoothed = np.empty_like(distances)
-        eps = self.smoothing_window // 2
-
-        for i in range(distances.shape[1]):
-            smoothed[:, i] = np.nanmedian(
-                distances[:, max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
-                axis=1,
-            )
-
-        # We use no-op smooting as the default implementation here
-        return smoothed
+        # This base class implements no-op smoothing
+        return distances
 
     def distance_measure(self):
         """Distance measure between two time series
@@ -552,26 +540,13 @@ class RegionGrowingAlgorithm:
     def find_seedpoints(self, distances):
         """Calculate seedpoints for the region growing algorithm"""
 
-        algo = ruptures.Window(width=24, model="l1", min_size=12, jump=1)
-        seeds = []
-
-        # Iterate over all time series to analyse their change points
-        for i in range(distances.shape[0]):
-            # Run detection of change points
-            changepoints = algo.fit_predict(distances[i, :], pen=1.0)
-
-            # Iterate over the start/end pairs only covering signals that
-            # have both a start and end point.
-            for start, end in zip(changepoints[::2], changepoints[1::2]):
-                seeds.append(RegionGrowingSeed(i, start, end))
-
-        return seeds
+        raise NotImplementedError
 
     def sort_seedpoints(self, seeds):
         """Sort seed points by priority"""
 
-        # Here, we simply sort by length of the change event
-        return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
+        # The base class does not perform sorting.
+        return seeds
 
     def run(self, analysis, force=False):
         """Calculate the segmentation
@@ -665,6 +640,61 @@ class RegionGrowingAlgorithm:
         analysis.objects = objects
 
         return objects
+
+
+class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
+    def __init__(self, smoothing_window=24, **kwargs):
+        """Construct the 4D-OBC algorithm.
+
+        :param smoothing_window:
+            The size of the sliding window used in smoothing the data.
+        :type smooting_window: int
+        """
+
+        # Initialize base class
+        super().__init__(**kwargs)
+
+        # Store the given parameters
+        self.smoothing_window = smoothing_window
+
+    def temporal_averaging(self, distances):
+        """Smoothen a space-time array of distance change"""
+
+        smoothed = np.empty_like(distances)
+        eps = self.smoothing_window // 2
+
+        for i in range(distances.shape[1]):
+            smoothed[:, i] = np.nanmedian(
+                distances[:, max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
+                axis=1,
+            )
+
+        # We use no-op smooting as the default implementation here
+        return smoothed
+
+    def find_seedpoints(self, distances):
+        """Calculate seedpoints for the region growing algorithm"""
+
+        algo = ruptures.Window(width=24, model="l1", min_size=12, jump=1)
+        seeds = []
+
+        # Iterate over all time series to analyse their change points
+        for i in range(distances.shape[0]):
+            # Run detection of change points
+            changepoints = algo.fit_predict(distances[i, :], pen=1.0)
+
+            # Iterate over the start/end pairs only covering signals that
+            # have both a start and end point.
+            for start, end in zip(changepoints[::2], changepoints[1::2]):
+                seeds.append(RegionGrowingSeed(i, start, end))
+
+        return seeds
+
+    def sort_seedpoints(self, seeds):
+        """Sort seed points by priority"""
+
+        # Here, we simply sort by length of the change event
+        return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
 
 
 class RegionGrowingSeed:
