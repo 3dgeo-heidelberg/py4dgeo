@@ -36,6 +36,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
 
   // The seed is included in the final object for sure
   obj.indices.insert(data.seed.index);
+  obj.distances[data.seed.index] = 0.0;
   used_distances.insert(0.0);
 
   // Store a ratio value to compare against for premature termination
@@ -48,6 +49,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
     // be added to return object after deciding whether the adaptive
     // procedure should continue.
     std::unordered_set<IndexType> additional_points;
+    std::unordered_map<IndexType, double> additional_distances;
     std::set<double, std::greater<double>> with_additional_distances(
       used_distances);
 
@@ -81,6 +83,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
           // rather: maybe do so if adaptive thresholding wants you to)
           if (d < threshold) {
             additional_points.insert(n);
+            additional_distances[n] = d;
             with_additional_distances.insert(d);
           } else {
             rejected.insert(n);
@@ -114,8 +117,10 @@ region_growing(const RegionGrowingAlgorithmData& data,
     if (new_ratio < last_ratio) {
       // If this is using the strictest of all thresholds, we need to
       // add the points here.
-      if (obj.indices.size() == 1)
+      if (obj.indices.size() == 1) {
         obj.indices.merge(additional_points);
+        obj.distances.merge(additional_distances);
+      }
 
       // Apply minimum segment threshold
       if (obj.indices.size() < data.min_segments)
@@ -128,6 +133,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
     last_ratio = new_ratio;
     obj.threshold = threshold;
     obj.indices.merge(additional_points);
+    obj.distances.merge(additional_distances);
     std::swap(used_distances, with_additional_distances);
 
     // If the object is too large, we return it immediately

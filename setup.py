@@ -15,6 +15,7 @@ setup(
         "matplotlib",
         "numpy",
         "ruptures",
+        "seaborn",
         "xdg",
     ],
     zip_safe=False,

@@ -226,6 +226,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   obc.def_property_readonly(
     "indices", [](const ObjectByChange& self) { return self.indices; });
   obc.def_property_readonly(
+    "distances", [](const ObjectByChange& self) { return self.distances; });
+  obc.def_property_readonly(
     "start_epoch", [](const ObjectByChange& self) { return self.start_epoch; });
   obc.def_property_readonly(
     "end_epoch", [](const ObjectByChange& self) { return self.end_epoch; });

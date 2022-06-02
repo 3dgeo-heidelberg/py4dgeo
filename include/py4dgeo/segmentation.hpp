@@ -4,6 +4,7 @@
 #include "py4dgeo/py4dgeo.hpp"
 
 #include <functional>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -38,6 +39,7 @@ using TimeseriesDistanceFunction =
 struct ObjectByChange
 {
   std::unordered_set<IndexType> indices;
+  std::unordered_map<IndexType, double> distances;
   IndexType start_epoch;
   IndexType end_epoch;
   double threshold;

@@ -11,6 +11,7 @@ import numpy as np
 import os
 import pickle
 import ruptures
+import seaborn
 import tempfile
 import zipfile
 
@@ -728,6 +729,9 @@ class ObjectByChange:
         """The set of corepoint indices that compose the object by change"""
         return self._data.indices
 
+    def distance(self, index):
+        return self._data.distances[index]
+
     @property
     def start_epoch(self):
         """The index of the start epoch of the change object"""
@@ -752,8 +756,12 @@ class ObjectByChange:
         :type filename: str
         """
 
-        # Lazily fetch distances
+        # Lazily fetch *all* distances
         distances = self._analysis.distances
+
+        # Extract DTW distances from this object
+        indexarray = np.fromiter(self.indices, np.int32)
+        distarray = np.fromiter((self.distance(i) for i in indexarray), np.float64)
 
         # Intitialize the figure and all of its subfigures
         fig = plt.figure(figsize=plt.figaspect(0.3))
@@ -776,15 +784,39 @@ class ObjectByChange:
         seed_ts = distances[self.seed.index, start_epoch:end_epoch]
         tsax.set_ylim(np.nanmin(seed_ts) * 0.5, np.nanmax(seed_ts) * 1.5)
 
+        # Create a colormap with distance for this object
+        cmap = plt.cm.get_cmap("viridis")
+        maxdist = np.nanmax(distarray)
+
         # Plot each time series individually
         for index in self.indices:
-            tsax.plot(distances[index, start_epoch:end_epoch], linewidth=0.7, alpha=0.3)
+            tsax.plot(
+                distances[index, start_epoch:end_epoch],
+                linewidth=0.7,
+                alpha=0.3,
+                color=cmap(self.distance(index) / maxdist),
+            )
 
         # Plot the seed timeseries again, but with a thicker line
         tsax.plot(seed_ts, linewidth=2.0, zorder=10, color="blue")
 
+        # Next, we add a histogram plot with the distance values (using seaborn)
+        seaborn.histplot(distarray, ax=histax, kde=True, color="r")
+
+        # Add labels to the histogram plot
+        histax.set_title(f"Segment size: {distarray.shape[0]}")
+        histax.set_xlabel("DTW distance")
+
+        # Create a 2D view of the segment
+        locations = self._analysis.corepoints.cloud[indexarray, 0:2]
+        mapax.scatter(locations[:, 0], locations[:, 1], c=distarray)
+
+        # Some global settings of the generated figure
         fig.tight_layout()
-        return fig
+
+        # Maybe save to file
+        if filename is not None:
+            plt.savefig(filename)
 
 
 def check_epoch_timestamp(epoch):
