@@ -629,11 +629,11 @@ class RegionGrowingAlgorithmBase:
                 objdata = _py4dgeo.region_growing(data, self.distance_measure())
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
-                if objdata.indices:
+                if objdata.indices_distances:
                     objects.append(ObjectByChange(objdata, seed, analysis))
 
                 # If the returned object is larger than max_segments we issue a warning
-                if len(objdata.indices) >= max_segments:
+                if len(objdata.indices_distances) >= max_segments:
                     logger.warning(
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
@@ -727,10 +727,10 @@ class ObjectByChange:
     @property
     def indices(self):
         """The set of corepoint indices that compose the object by change"""
-        return self._data.indices
+        return list(self._data.indices_distances.keys())
 
     def distance(self, index):
-        return self._data.distances[index]
+        return self._data.indices_distances[index]
 
     @property
     def start_epoch(self):

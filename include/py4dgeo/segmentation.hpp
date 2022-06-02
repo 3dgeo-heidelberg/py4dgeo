@@ -38,8 +38,7 @@ using TimeseriesDistanceFunction =
 /** @brief Basic data structure for 4D change object */
 struct ObjectByChange
 {
-  std::unordered_set<IndexType> indices;
-  std::unordered_map<IndexType, double> distances;
+  std::unordered_map<IndexType, double> indices_distances;
   IndexType start_epoch;
   IndexType end_epoch;
   double threshold;

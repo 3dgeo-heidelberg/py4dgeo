@@ -35,8 +35,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
   obj.threshold = sorted_thresholds[0];
 
   // The seed is included in the final object for sure
-  obj.indices.insert(data.seed.index);
-  obj.distances[data.seed.index] = 0.0;
+  obj.indices_distances[data.seed.index] = 0.0;
   used_distances.insert(0.0);
 
   // Store a ratio value to compare against for premature termination
@@ -48,8 +47,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
     // The additional points found at this threshold level. These will
     // be added to return object after deciding whether the adaptive
     // procedure should continue.
-    std::unordered_set<IndexType> additional_points;
-    std::unordered_map<IndexType, double> additional_distances;
+    std::unordered_map<IndexType, double> additional_points_with_distances;
     std::set<double, std::greater<double>> with_additional_distances(
       used_distances);
 
@@ -68,8 +66,9 @@ region_growing(const RegionGrowingAlgorithmData& data,
         // the final result or the points added at this threshold level.
         // If none of that match, this is a new candidate
         if ((rejected.find(n) == rejected.end()) &&
-            (additional_points.find(n) == additional_points.end()) &&
-            (obj.indices.find(n) == obj.indices.end())) {
+            (additional_points_with_distances.find(n) ==
+             additional_points_with_distances.end()) &&
+            (obj.indices_distances.find(n) == obj.indices_distances.end())) {
           // Calculate the distance for this neighbor
           TimeseriesDistanceFunctionData distance_data{
             data.distances.row(data.seed.index),
@@ -82,8 +81,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
           // If it is smaller than the threshold, add it to the object (or
           // rather: maybe do so if adaptive thresholding wants you to)
           if (d < threshold) {
-            additional_points.insert(n);
-            additional_distances[n] = d;
+            additional_points_with_distances[n] = d;
             with_additional_distances.insert(d);
           } else {
             rejected.insert(n);
@@ -112,18 +110,18 @@ region_growing(const RegionGrowingAlgorithmData& data,
     // Determine whether this is the final threshold level or we need
     // to continue to the next threshold level
     double new_ratio =
-      static_cast<double>(obj.indices.size()) /
-      static_cast<double>(obj.indices.size() + additional_points.size());
+      static_cast<double>(obj.indices_distances.size()) /
+      static_cast<double>(obj.indices_distances.size() +
+                          additional_points_with_distances.size());
     if (new_ratio < last_ratio) {
       // If this is using the strictest of all thresholds, we need to
       // add the points here.
-      if (obj.indices.size() == 1) {
-        obj.indices.merge(additional_points);
-        obj.distances.merge(additional_distances);
+      if (obj.indices_distances.size() == 1) {
+        obj.indices_distances.merge(additional_points_with_distances);
       }
 
       // Apply minimum segment threshold
-      if (obj.indices.size() < data.min_segments)
+      if (obj.indices_distances.size() < data.min_segments)
         return ObjectByChange();
 
       return obj;
@@ -132,19 +130,18 @@ region_growing(const RegionGrowingAlgorithmData& data,
     // If not, we now need to move all additional points into obj
     last_ratio = new_ratio;
     obj.threshold = threshold;
-    obj.indices.merge(additional_points);
-    obj.distances.merge(additional_distances);
+    obj.indices_distances.merge(additional_points_with_distances);
     std::swap(used_distances, with_additional_distances);
 
     // If the object is too large, we return it immediately
     // TODO: This does not actually cut the return object to max_segments,
     //       but the interplay with adaptive thresholding is non-trivial.
-    if (obj.indices.size() >= data.max_segments)
+    if (obj.indices_distances.size() >= data.max_segments)
       return obj;
   }
 
   // Apply minimum segment threshold
-  if (obj.indices.size() < data.min_segments)
+  if (obj.indices_distances.size() < data.min_segments)
     return ObjectByChange();
 
   // If we came up to here, a local maximum was not produced.
