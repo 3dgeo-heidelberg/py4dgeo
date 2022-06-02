@@ -75,3 +75,8 @@ def test_region_growing_seed():
     assert seed.index == restored.index
     assert seed.start_epoch == restored.start_epoch
     assert seed.end_epoch == restored.end_epoch
+
+
+def test_regular_corepoint_grid():
+    grid = regular_corepoint_grid((0, 0), (1, 1), (4, 4))
+    assert grid.shape == (16, 3)

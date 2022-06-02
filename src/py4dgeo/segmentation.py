@@ -760,3 +760,37 @@ def check_epoch_timestamp(epoch):
         )
 
     return epoch
+
+
+def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
+    """A helper function to create a regularly spaced grid for the analysis
+
+    :param lowerleft:
+        The lower left corner of the grid. Given as a 2D coordinate.
+    :type lowerleft: np.ndarray
+    :param upperright:
+        The upper right corner of the grid. Given as a 2D coordinate.
+    :type upperright: nd.ndarray
+    :param num_points:
+        A tuple with two entries denoting the number of points to be used in
+        x and y direction
+    :type num_points: tuple
+    :param zval:
+        The value to fill for the z-direction.
+    :type zval: double
+    """
+    xspace = np.linspace(
+        lowerleft[0], upperright[0], num=num_points[0], dtype=np.float32
+    )
+    yspace = np.linspace(
+        lowerleft[1], upperright[1], num=num_points[1], dtype=np.float32
+    )
+
+    grid = np.empty(shape=(num_points[0] * num_points[1], 3), dtype=np.float32)
+    for i, x in enumerate(xspace):
+        for j, y in enumerate(yspace):
+            grid[i * num_points[0] + j, 0] = x
+            grid[i * num_points[0] + j, 1] = y
+            grid[i * num_points[0] + j, 2] = zval
+
+    return grid
