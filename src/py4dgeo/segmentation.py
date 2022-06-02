@@ -6,6 +6,7 @@ from py4dgeo.zipfile import UpdateableZipFile
 import datetime
 import json
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
@@ -628,7 +629,7 @@ class RegionGrowingAlgorithmBase:
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
                 if objdata.indices:
-                    objects.append(ObjectByChange(objdata))
+                    objects.append(ObjectByChange(objdata, seed, analysis))
 
                 # If the returned object is larger than max_segments we issue a warning
                 if len(objdata.indices) >= max_segments:
@@ -717,8 +718,10 @@ class RegionGrowingSeed:
 class ObjectByChange:
     """Representation a change object in the spatiotemporal domain"""
 
-    def __init__(self, data):
+    def __init__(self, data, seed, analysis=None):
         self._data = data
+        self._analysis = analysis
+        self.seed = seed
 
     @property
     def indices(self):
@@ -749,7 +752,39 @@ class ObjectByChange:
         :type filename: str
         """
 
-        raise NotImplementedError
+        # Lazily fetch distances
+        distances = self._analysis.distances
+
+        # Intitialize the figure and all of its subfigures
+        fig = plt.figure(figsize=plt.figaspect(0.3))
+        tsax = fig.add_subplot(1, 3, 1)
+        histax = fig.add_subplot(1, 3, 2)
+        mapax = fig.add_subplot(1, 3, 3)
+
+        # The first plot (tsax) prints all time series of chosen corepoints
+        # and colors them according to distance.
+        tsax.set_ylabel("Height change [m]")
+        tsax.set_xlabel("Time [h]")
+
+        # We pad the time series visualization with a number of data
+        # points on both sides. TODO: Expose as argument to plot?
+        timeseries_padding = 10
+        start_epoch = max(self.start_epoch - timeseries_padding, 0)
+        end_epoch = min(self.end_epoch + timeseries_padding, distances.shape[1])
+
+        # We use the seed's timeseries to set good axis limits
+        seed_ts = distances[self.seed.index, start_epoch:end_epoch]
+        tsax.set_ylim(np.nanmin(seed_ts) * 0.5, np.nanmax(seed_ts) * 1.5)
+
+        # Plot each time series individually
+        for index in self.indices:
+            tsax.plot(distances[index, start_epoch:end_epoch], linewidth=0.7, alpha=0.3)
+
+        # Plot the seed timeseries again, but with a thicker line
+        tsax.plot(seed_ts, linewidth=2.0, zorder=10, color="blue")
+
+        fig.tight_layout()
+        return fig
 
 
 def check_epoch_timestamp(epoch):

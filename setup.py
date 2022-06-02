@@ -12,6 +12,7 @@ setup(
     install_requires=[
         "dateparser",
         "laspy[lazrs]>=2.0,<3.0",
+        "matplotlib",
         "numpy",
         "ruptures",
         "xdg",
