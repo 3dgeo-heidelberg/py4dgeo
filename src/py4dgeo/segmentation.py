@@ -740,6 +740,17 @@ class ObjectByChange:
         """The distance threshold that produced this object"""
         return self._data.threshold
 
+    def plot(self, filename=None):
+        """Create an informative visualization of the Object By Change
+
+        :param filename:
+            The filename to use to store the plot. Can be omitted to only show
+            plot in a Jupyter notebook session.
+        :type filename: str
+        """
+
+        raise NotImplementedError
+
 
 def check_epoch_timestamp(epoch):
     """Validate an epoch to be used with SpatiotemporalSegmentation"""
