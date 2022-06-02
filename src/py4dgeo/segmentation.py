@@ -491,7 +491,7 @@ class RegionGrowingAlgorithmBase:
     def __init__(
         self,
         neighborhood_radius=1.0,
-        thresholds=[0.1, 0.2, 0.3, 0.4, 0.5],
+        thresholds=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         min_segments=20,
         max_segments=None,
     ):
