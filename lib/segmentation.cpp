@@ -110,7 +110,7 @@ region_growing(const RegionGrowingAlgorithmData& data,
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for
 #endif
-  for (std::size_t i = 0; i < sorted_thresholds.size(); ++i)
+  for (int i = 0; i < sorted_thresholds.size(); ++i)
     vault.run([&]() {
       fixed_threshold_region_growing(
         data, distance_function, sorted_thresholds[i], objects[i]);
