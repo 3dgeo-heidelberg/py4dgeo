@@ -546,11 +546,14 @@ class RegionGrowingAlgorithmBase:
 
         raise NotImplementedError
 
-    def sort_seedpoints(self, seeds):
-        """Sort seed points by priority"""
+    def seed_sorting_scorefunction(self):
+        """A function that computes a score for a seed candidate
+
+        This function is used to prioritize seed candidates.
+        """
 
         # The base class does not perform sorting.
-        return seeds
+        return lambda seed: 0.0
 
     def filter_objects(self, obj):
         """A filter for objects produced by the region growing algorithm
@@ -616,7 +619,7 @@ class RegionGrowingAlgorithmBase:
 
         # Sort the seed points
         with logger_context("Sort seed candidates by priority"):
-            seeds = self.sort_seedpoints(seeds)
+            seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
 
         objects = []
 
@@ -722,8 +725,8 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         return seeds
 
-    def sort_seedpoints(self, seeds):
-        """Sort seed points by priority"""
+    def seed_sorting_scorefunction(self):
+        """Neighborhood similarity sorting function"""
 
         cp = self.analysis.corepoints
         distances = self.analysis.distances
@@ -744,8 +747,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
             return sum(similarities, 0.0) / (len(neighbors) - 1)
 
-        # Here, we simply sort by length of the change event
-        return list(sorted(seeds, key=neighborhood_similarity))
+        return neighborhood_similarity
 
     def filter_objects(self, obj):
         """A filter for objects produced by the region growing algorithm"""
