@@ -524,6 +524,8 @@ class RegionGrowingAlgorithmBase:
         self.min_segments = min_segments
         self.max_segments = max_segments
 
+        self._analysis = None
+
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
 
@@ -559,6 +561,18 @@ class RegionGrowingAlgorithmBase:
         # The base class does not perform filtering
         return True
 
+    @property
+    def analysis(self):
+        """Access the analysis object that the algorithm operates on
+
+        This is only available after :ref:`run` has been called.
+        """
+        if self._analysis is None:
+            raise Py4DGeoError(
+                "Analysis object is only available when the algorithm is run"
+            )
+        return self._analysis
+
     def run(self, analysis, force=False):
         """Calculate the segmentation
 
@@ -569,6 +583,9 @@ class RegionGrowingAlgorithmBase:
             Force recalculation of results. If false, some intermediate results will be
             restored from the analysis object instead of being recalculated
         """
+
+        # Make the analysis object known to all members
+        self._analysis = analysis
 
         # Enforce the removal of intermediate results
         if force:
@@ -598,7 +615,9 @@ class RegionGrowingAlgorithmBase:
             logger.info("Reusing seed candidates stored in analysis object")
 
         # Sort the seed points
-        seeds = self.sort_seedpoints(seeds)
+        with logger_context("Sort seed candidates by priority"):
+            seeds = self.sort_seedpoints(seeds)
+
         objects = []
 
         # Iterate over the seeds to maybe turn them into objects
@@ -706,8 +725,27 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
     def sort_seedpoints(self, seeds):
         """Sort seed points by priority"""
 
+        cp = self.analysis.corepoints
+        distances = self.analysis.distances
+
+        # The 4D-OBC algorithm sorts by similarity in the neighborhood
+        # of the seed.
+        def neighborhood_similarity(seed):
+            neighbors = cp.kdtree.radius_search(
+                cp.cloud[seed.index, :], self.neighborhood_radius
+            )
+            similarities = []
+            for n in neighbors:
+                data = _py4dgeo.TimeseriesDistanceFunctionData(
+                    distances[seed.index, seed.start_epoch : seed.end_epoch + 1],
+                    distances[n, seed.start_epoch : seed.end_epoch + 1],
+                )
+                similarities.append(self.distance_measure()(data))
+
+            return sum(similarities, 0.0) / (len(neighbors) - 1)
+
         # Here, we simply sort by length of the change event
-        return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
+        return list(sorted(seeds, key=neighborhood_similarity))
 
     def filter_objects(self, obj):
         """A filter for objects produced by the region growing algorithm"""
