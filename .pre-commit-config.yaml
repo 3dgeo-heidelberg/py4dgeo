@@ -50,7 +50,7 @@ repos:
 
   # Check Configuration as Code files for integrations
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.15.1
+    rev: 0.16.0
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs
