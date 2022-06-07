@@ -710,18 +710,102 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
     def find_seedpoints(self, distances):
         """Calculate seedpoints for the region growing algorithm"""
 
-        algo = ruptures.Window(width=24, model="l1", min_size=12, jump=1)
+        # These are some arguments used below that we might consider
+        # exposing to the user
+        window_width = 24
+        window_costmodel = "l1"
+        window_min_size = 12
+        window_jump = 1
+        window_penalty = 1.0
+        minperiod = 24
+        height_threshold = 0.0
+
+        # The chang point detection algorithm we use
+        algo = ruptures.Window(
+            width=window_width,
+            model=window_costmodel,
+            min_size=window_min_size,
+            jump=window_jump,
+        )
+
+        # The list of generated seeds
         seeds = []
 
         # Iterate over all time series to analyse their change points
         for i in range(distances.shape[0]):
-            # Run detection of change points
-            changepoints = algo.fit_predict(distances[i, :], pen=1.0)
+            # Extract the time series and interpolate its nan values
+            timeseries = distances[i, :]
+            bad_indices = np.isnan(timeseries)
+            num_nans = np.count_nonzero(bad_indices)
 
-            # Iterate over the start/end pairs only covering signals that
-            # have both a start and end point.
-            for start, end in zip(changepoints[::2], changepoints[1::2]):
-                seeds.append(RegionGrowingSeed(i, start, end))
+            # If we too many nans, this timeseries does not make sense
+            if num_nans > timeseries.shape[0] - 3:
+                continue
+
+            # If there are nan values, we try fixing things by interpolation
+            if num_nans > 0:
+                good_indices = np.logical_nor(bad_indices)
+                timeseries[bad_indices] = np.interp(
+                    bad_indices.nonzero()[0],
+                    good_indices.nonzero()[0],
+                    timeseries[good_indices],
+                )
+
+            # Run detection of change points
+            changepoints = algo.fit_predict(timeseries, pen=window_penalty)[:-1]
+
+            # Shift the time series to positive values
+            timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)
+            timeseries_flipped = timeseries * -1.0 + abs(np.nanmax(timeseries)) + 0.1
+
+            # Create seeds for this timeseries
+            corepoint_seeds = []
+            for start_idx in changepoints:
+                # Skip this changepoint if it was included into a previous seed
+                if corepoint_seeds and start_idx <= corepoint_seeds[-1].end_epoch:
+                    continue
+
+                # Skip this changepoint if this to close to the end
+                if start_idx >= timeseries.shape[0] - minperiod:
+                    break
+
+                # Decide whether we need use the flipped timeseries
+                used_timeseries = timeseries
+                if timeseries[start_idx] >= timeseries[start_idx + minperiod]:
+                    used_timeseries = timeseries_flipped
+
+                previous_volume = -999.9
+
+                for target_idx in range(start_idx + 1, timeseries.shape[0] - minperiod):
+
+                    # Calculate the change volume
+                    height = used_timeseries[start_idx] + height_threshold
+                    volume = np.nansum(
+                        used_timeseries[start_idx : target_idx + 1] - height
+                    )
+                    if volume < 0.0:
+                        height = used_timeseries[start_idx]
+                        volume = np.nansum(
+                            used_timeseries[start_idx : target_idx + 1] - height
+                        )
+
+                    # Check whether the volume started decreasing
+                    # TODO: Didn't we explicitly enforce positivity of the series?
+                    if previous_volume > volume:
+                        corepoint_seeds.append(
+                            RegionGrowingSeed(i, start_idx, target_idx)
+                        )
+                        break
+                    else:
+                        previous_volume = volume
+
+                # We reached the present and add a seed based on it
+                corepoint_seeds.append(
+                    RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
+                )
+
+            # Add all the seeds found for this corepoint to the full list
+            seeds.extend(corepoint_seeds)
 
         return seeds
 
