@@ -6,10 +6,12 @@ from py4dgeo.zipfile import UpdateableZipFile
 import datetime
 import json
 import logging
+import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
 import ruptures
+import seaborn
 import tempfile
 import zipfile
 
@@ -485,12 +487,11 @@ class SpatiotemporalAnalysis:
                 zf.remove("objects.pickle")
 
 
-class RegionGrowingAlgorithm:
+class RegionGrowingAlgorithmBase:
     def __init__(
         self,
-        smoothing_window=24,
         neighborhood_radius=1.0,
-        thresholds=[0.1, 0.2, 0.3, 0.4, 0.5],
+        thresholds=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         min_segments=20,
         max_segments=None,
     ):
@@ -518,27 +519,18 @@ class RegionGrowingAlgorithm:
         :type max_segments: int
         """
 
-        # Store the given parameters
-        self.smoothing_window = smoothing_window
         self.neighborhood_radius = neighborhood_radius
         self.thresholds = thresholds
         self.min_segments = min_segments
         self.max_segments = max_segments
 
+        self._analysis = None
+
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
 
-        smoothed = np.empty_like(distances)
-        eps = self.smoothing_window // 2
-
-        for i in range(distances.shape[1]):
-            smoothed[:, i] = np.nanmedian(
-                distances[:, max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
-                axis=1,
-            )
-
-        # We use no-op smooting as the default implementation here
-        return smoothed
+        # This base class implements no-op smoothing
+        return distances
 
     def distance_measure(self):
         """Distance measure between two time series
@@ -552,26 +544,37 @@ class RegionGrowingAlgorithm:
     def find_seedpoints(self, distances):
         """Calculate seedpoints for the region growing algorithm"""
 
-        algo = ruptures.Window(width=24, model="l1", min_size=12, jump=1)
-        seeds = []
+        raise NotImplementedError
 
-        # Iterate over all time series to analyse their change points
-        for i in range(distances.shape[0]):
-            # Run detection of change points
-            changepoints = algo.fit_predict(distances[i, :], pen=1.0)
+    def seed_sorting_scorefunction(self):
+        """A function that computes a score for a seed candidate
 
-            # Iterate over the start/end pairs only covering signals that
-            # have both a start and end point.
-            for start, end in zip(changepoints[::2], changepoints[1::2]):
-                seeds.append(RegionGrowingSeed(i, start, end))
+        This function is used to prioritize seed candidates.
+        """
 
-        return seeds
+        # The base class does not perform sorting.
+        return lambda seed: 0.0
 
-    def sort_seedpoints(self, seeds):
-        """Sort seed points by priority"""
+    def filter_objects(self, obj):
+        """A filter for objects produced by the region growing algorithm
 
-        # Here, we simply sort by length of the change event
-        return list(reversed(sorted(seeds, key=lambda x: x.end_epoch - x.start_epoch)))
+        Objects are discarded if this method returns False.
+        """
+
+        # The base class does not perform filtering
+        return True
+
+    @property
+    def analysis(self):
+        """Access the analysis object that the algorithm operates on
+
+        This is only available after :ref:`run` has been called.
+        """
+        if self._analysis is None:
+            raise Py4DGeoError(
+                "Analysis object is only available when the algorithm is run"
+            )
+        return self._analysis
 
     def run(self, analysis, force=False):
         """Calculate the segmentation
@@ -583,6 +586,9 @@ class RegionGrowingAlgorithm:
             Force recalculation of results. If false, some intermediate results will be
             restored from the analysis object instead of being recalculated
         """
+
+        # Make the analysis object known to all members
+        self._analysis = analysis
 
         # Enforce the removal of intermediate results
         if force:
@@ -612,7 +618,9 @@ class RegionGrowingAlgorithm:
             logger.info("Reusing seed candidates stored in analysis object")
 
         # Sort the seed points
-        seeds = self.sort_seedpoints(seeds)
+        with logger_context("Sort seed candidates by priority"):
+            seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
+
         objects = []
 
         # Iterate over the seeds to maybe turn them into objects
@@ -652,11 +660,13 @@ class RegionGrowingAlgorithm:
                 objdata = _py4dgeo.region_growing(data, self.distance_measure())
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
-                if objdata.indices:
-                    objects.append(ObjectByChange(objdata))
+                if objdata.indices_distances:
+                    obj = ObjectByChange(objdata, seed, analysis)
+                    if self.filter_objects(obj):
+                        objects.append(obj)
 
                 # If the returned object is larger than max_segments we issue a warning
-                if len(objdata.indices) >= max_segments:
+                if len(objdata.indices_distances) >= max_segments:
                     logger.warning(
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
@@ -665,6 +675,173 @@ class RegionGrowingAlgorithm:
         analysis.objects = objects
 
         return objects
+
+
+class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
+    def __init__(self, smoothing_window=24, **kwargs):
+        """Construct the 4D-OBC algorithm.
+
+        :param smoothing_window:
+            The size of the sliding window used in smoothing the data.
+        :type smooting_window: int
+        """
+
+        # Initialize base class
+        super().__init__(**kwargs)
+
+        # Store the given parameters
+        self.smoothing_window = smoothing_window
+
+    def temporal_averaging(self, distances):
+        """Smoothen a space-time array of distance change"""
+
+        smoothed = np.empty_like(distances)
+        eps = self.smoothing_window // 2
+
+        for i in range(distances.shape[1]):
+            smoothed[:, i] = np.nanmedian(
+                distances[:, max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
+                axis=1,
+            )
+
+        # We use no-op smooting as the default implementation here
+        return smoothed
+
+    def find_seedpoints(self, distances):
+        """Calculate seedpoints for the region growing algorithm"""
+
+        # These are some arguments used below that we might consider
+        # exposing to the user
+        window_width = 24
+        window_costmodel = "l1"
+        window_min_size = 12
+        window_jump = 1
+        window_penalty = 1.0
+        minperiod = 24
+        height_threshold = 0.0
+
+        # The chang point detection algorithm we use
+        algo = ruptures.Window(
+            width=window_width,
+            model=window_costmodel,
+            min_size=window_min_size,
+            jump=window_jump,
+        )
+
+        # The list of generated seeds
+        seeds = []
+
+        # Iterate over all time series to analyse their change points
+        for i in range(distances.shape[0]):
+            # Extract the time series and interpolate its nan values
+            timeseries = distances[i, :]
+            bad_indices = np.isnan(timeseries)
+            num_nans = np.count_nonzero(bad_indices)
+
+            # If we too many nans, this timeseries does not make sense
+            if num_nans > timeseries.shape[0] - 3:
+                continue
+
+            # If there are nan values, we try fixing things by interpolation
+            if num_nans > 0:
+                good_indices = np.logical_nor(bad_indices)
+                timeseries[bad_indices] = np.interp(
+                    bad_indices.nonzero()[0],
+                    good_indices.nonzero()[0],
+                    timeseries[good_indices],
+                )
+
+            # Run detection of change points
+            changepoints = algo.fit_predict(timeseries, pen=window_penalty)[:-1]
+
+            # Shift the time series to positive values
+            timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)
+            timeseries_flipped = timeseries * -1.0 + abs(np.nanmax(timeseries)) + 0.1
+
+            # Create seeds for this timeseries
+            corepoint_seeds = []
+            for start_idx in changepoints:
+                # Skip this changepoint if it was included into a previous seed
+                if corepoint_seeds and start_idx <= corepoint_seeds[-1].end_epoch:
+                    continue
+
+                # Skip this changepoint if this to close to the end
+                if start_idx >= timeseries.shape[0] - minperiod:
+                    break
+
+                # Decide whether we need use the flipped timeseries
+                used_timeseries = timeseries
+                if timeseries[start_idx] >= timeseries[start_idx + minperiod]:
+                    used_timeseries = timeseries_flipped
+
+                previous_volume = -999.9
+
+                for target_idx in range(start_idx + 1, timeseries.shape[0] - minperiod):
+
+                    # Calculate the change volume
+                    height = used_timeseries[start_idx] + height_threshold
+                    volume = np.nansum(
+                        used_timeseries[start_idx : target_idx + 1] - height
+                    )
+                    if volume < 0.0:
+                        height = used_timeseries[start_idx]
+                        volume = np.nansum(
+                            used_timeseries[start_idx : target_idx + 1] - height
+                        )
+
+                    # Check whether the volume started decreasing
+                    # TODO: Didn't we explicitly enforce positivity of the series?
+                    if previous_volume > volume:
+                        corepoint_seeds.append(
+                            RegionGrowingSeed(i, start_idx, target_idx)
+                        )
+                        break
+                    else:
+                        previous_volume = volume
+
+                # We reached the present and add a seed based on it
+                corepoint_seeds.append(
+                    RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
+                )
+
+            # Add all the seeds found for this corepoint to the full list
+            seeds.extend(corepoint_seeds)
+
+        return seeds
+
+    def seed_sorting_scorefunction(self):
+        """Neighborhood similarity sorting function"""
+
+        cp = self.analysis.corepoints
+        distances = self.analysis.distances
+
+        # The 4D-OBC algorithm sorts by similarity in the neighborhood
+        # of the seed.
+        def neighborhood_similarity(seed):
+            neighbors = cp.kdtree.radius_search(
+                cp.cloud[seed.index, :], self.neighborhood_radius
+            )
+            similarities = []
+            for n in neighbors:
+                data = _py4dgeo.TimeseriesDistanceFunctionData(
+                    distances[seed.index, seed.start_epoch : seed.end_epoch + 1],
+                    distances[n, seed.start_epoch : seed.end_epoch + 1],
+                )
+                similarities.append(self.distance_measure()(data))
+
+            return sum(similarities, 0.0) / (len(neighbors) - 1)
+
+        return neighborhood_similarity
+
+    def filter_objects(self, obj):
+        """A filter for objects produced by the region growing algorithm"""
+
+        # Filter based on coefficient of variation
+        distarray = np.fromiter(obj._data.indices_distances.values(), np.float64)
+        cv = np.std(distarray) / np.mean(distarray)
+
+        # TODO: Make this threshold configurable?
+        return cv <= 0.8
 
 
 class RegionGrowingSeed:
@@ -687,13 +864,18 @@ class RegionGrowingSeed:
 class ObjectByChange:
     """Representation a change object in the spatiotemporal domain"""
 
-    def __init__(self, data):
+    def __init__(self, data, seed, analysis=None):
         self._data = data
+        self._analysis = analysis
+        self.seed = seed
 
     @property
     def indices(self):
         """The set of corepoint indices that compose the object by change"""
-        return self._data.indices
+        return list(self._data.indices_distances.keys())
+
+    def distance(self, index):
+        return self._data.indices_distances[index]
 
     @property
     def start_epoch(self):
@@ -710,6 +892,77 @@ class ObjectByChange:
         """The distance threshold that produced this object"""
         return self._data.threshold
 
+    def plot(self, filename=None):
+        """Create an informative visualization of the Object By Change
+
+        :param filename:
+            The filename to use to store the plot. Can be omitted to only show
+            plot in a Jupyter notebook session.
+        :type filename: str
+        """
+
+        # Lazily fetch *all* distances
+        distances = self._analysis.distances
+
+        # Extract DTW distances from this object
+        indexarray = np.fromiter(self.indices, np.int32)
+        distarray = np.fromiter((self.distance(i) for i in indexarray), np.float64)
+
+        # Intitialize the figure and all of its subfigures
+        fig = plt.figure(figsize=plt.figaspect(0.3))
+        tsax = fig.add_subplot(1, 3, 1)
+        histax = fig.add_subplot(1, 3, 2)
+        mapax = fig.add_subplot(1, 3, 3)
+
+        # The first plot (tsax) prints all time series of chosen corepoints
+        # and colors them according to distance.
+        tsax.set_ylabel("Height change [m]")
+        tsax.set_xlabel("Time [h]")
+
+        # We pad the time series visualization with a number of data
+        # points on both sides. TODO: Expose as argument to plot?
+        timeseries_padding = 10
+        start_epoch = max(self.start_epoch - timeseries_padding, 0)
+        end_epoch = min(self.end_epoch + timeseries_padding, distances.shape[1])
+
+        # We use the seed's timeseries to set good axis limits
+        seed_ts = distances[self.seed.index, start_epoch:end_epoch]
+        tsax.set_ylim(np.nanmin(seed_ts) * 0.5, np.nanmax(seed_ts) * 1.5)
+
+        # Create a colormap with distance for this object
+        cmap = plt.cm.get_cmap("viridis")
+        maxdist = np.nanmax(distarray)
+
+        # Plot each time series individually
+        for index in self.indices:
+            tsax.plot(
+                distances[index, start_epoch:end_epoch],
+                linewidth=0.7,
+                alpha=0.3,
+                color=cmap(self.distance(index) / maxdist),
+            )
+
+        # Plot the seed timeseries again, but with a thicker line
+        tsax.plot(seed_ts, linewidth=2.0, zorder=10, color="blue")
+
+        # Next, we add a histogram plot with the distance values (using seaborn)
+        seaborn.histplot(distarray, ax=histax, kde=True, color="r")
+
+        # Add labels to the histogram plot
+        histax.set_title(f"Segment size: {distarray.shape[0]}")
+        histax.set_xlabel("DTW distance")
+
+        # Create a 2D view of the segment
+        locations = self._analysis.corepoints.cloud[indexarray, 0:2]
+        mapax.scatter(locations[:, 0], locations[:, 1], c=distarray)
+
+        # Some global settings of the generated figure
+        fig.tight_layout()
+
+        # Maybe save to file
+        if filename is not None:
+            plt.savefig(filename)
+
 
 def check_epoch_timestamp(epoch):
     """Validate an epoch to be used with SpatiotemporalSegmentation"""
@@ -719,3 +972,37 @@ def check_epoch_timestamp(epoch):
         )
 
     return epoch
+
+
+def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
+    """A helper function to create a regularly spaced grid for the analysis
+
+    :param lowerleft:
+        The lower left corner of the grid. Given as a 2D coordinate.
+    :type lowerleft: np.ndarray
+    :param upperright:
+        The upper right corner of the grid. Given as a 2D coordinate.
+    :type upperright: nd.ndarray
+    :param num_points:
+        A tuple with two entries denoting the number of points to be used in
+        x and y direction
+    :type num_points: tuple
+    :param zval:
+        The value to fill for the z-direction.
+    :type zval: double
+    """
+    xspace = np.linspace(
+        lowerleft[0], upperright[0], num=num_points[0], dtype=np.float32
+    )
+    yspace = np.linspace(
+        lowerleft[1], upperright[1], num=num_points[1], dtype=np.float32
+    )
+
+    grid = np.empty(shape=(num_points[0] * num_points[1], 3), dtype=np.float32)
+    for i, x in enumerate(xspace):
+        for j, y in enumerate(yspace):
+            grid[i * num_points[0] + j, 0] = x
+            grid[i * num_points[0] + j, 1] = y
+            grid[i * num_points[0] + j, 2] = zval
+
+    return grid

@@ -224,7 +224,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   // segmentations
   py::class_<ObjectByChange> obc(m, "ObjectByChange");
   obc.def_property_readonly(
-    "indices", [](const ObjectByChange& self) { return self.indices; });
+    "indices_distances",
+    [](const ObjectByChange& self) { return self.indices_distances; });
   obc.def_property_readonly(
     "start_epoch", [](const ObjectByChange& self) { return self.start_epoch; });
   obc.def_property_readonly(
@@ -237,10 +238,11 @@ PYBIND11_MODULE(_py4dgeo, m)
       std::stringstream buf;
 
       // Write indices
-      std::size_t size = self.indices.size();
+      std::size_t size = self.indices_distances.size();
       buf.write(reinterpret_cast<const char*>(&size), sizeof(std::size_t));
-      for (auto i : self.indices)
-        buf.write(reinterpret_cast<const char*>(&i), sizeof(IndexType));
+      for (auto p : self.indices_distances)
+        buf.write(reinterpret_cast<const char*>(&p),
+                  sizeof(std::pair<IndexType, double>));
 
       // Write other data
       buf.write(reinterpret_cast<const char*>(&self.start_epoch),
@@ -256,10 +258,11 @@ PYBIND11_MODULE(_py4dgeo, m)
 
       std::size_t size;
       buf.read(reinterpret_cast<char*>(&size), sizeof(std::size_t));
-      IndexType index_buffer;
+      std::pair<IndexType, double> buffer;
       for (std::size_t i = 0; i < size; ++i) {
-        buf.read(reinterpret_cast<char*>(&index_buffer), sizeof(IndexType));
-        obj.indices.insert(index_buffer);
+        buf.read(reinterpret_cast<char*>(&buffer),
+                 sizeof(std::pair<IndexType, double>));
+        obj.indices_distances.insert(buffer);
       }
       buf.read(reinterpret_cast<char*>(&obj.start_epoch), sizeof(IndexType));
       buf.read(reinterpret_cast<char*>(&obj.end_epoch), sizeof(IndexType));
