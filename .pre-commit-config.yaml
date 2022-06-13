@@ -15,7 +15,7 @@ repos:
 
   # Format C++ code with Clang-Format - automatically applying the changes
   - repo: https://github.com/ssciwr/clang-format-precommit
-    rev: v14.0.1
+    rev: v14.0.5
     hooks:
       - id: clang-format
         args:
@@ -25,7 +25,7 @@ repos:
 
   # Add some general purpose useful hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.2.0
+    rev: v4.3.0
     hooks:
       # Make sure that contained YAML files are well-formed
       - id: check-yaml
