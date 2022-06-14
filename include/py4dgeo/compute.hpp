@@ -30,7 +30,8 @@ struct WorkingSetFinderParameters
 using WorkingSetFinderCallback =
   std::function<EigenPointCloud(const WorkingSetFinderParameters&)>;
 
-/** @brief The parameter struct for @ref DistanceCalculationCallback */
+/** @brief The parameter struct for @ref DistanceUncertaintyCalculationCallback
+ */
 struct DistanceUncertaintyCalculationParameters
 {
   /** @brief The point cloud in the first epoch to operate on */

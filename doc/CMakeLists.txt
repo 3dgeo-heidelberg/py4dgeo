@@ -5,7 +5,7 @@ set(DOXYGEN_SHORT_NAMES YES)
 set(DOXYGEN_GENERATE_XML YES)
 
 doxygen_add_docs(
-  doxygen ${CMAKE_SOURCE_DIR}
+  doxygen ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/lib
   WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
   COMMENT Building doxygen documentation...)
 
