@@ -678,11 +678,12 @@ class RegionGrowingAlgorithmBase:
 
 
 class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
-    def __init__(self, smoothing_window=24, **kwargs):
+    def __init__(self, smoothing_window=0, **kwargs):
         """Construct the 4D-OBC algorithm.
 
         :param smoothing_window:
-            The size of the sliding window used in smoothing the data.
+            The size of the sliding window used in smoothing the data. The
+            default value of 0 does not perform any smooting.
         :type smooting_window: int
         """
 
@@ -694,6 +695,10 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
+
+        # If the smoothing_window parameter is set to 0, this is no-op
+        if self.smoothing_window == 0:
+            return distances
 
         smoothed = np.empty_like(distances)
         eps = self.smoothing_window // 2
