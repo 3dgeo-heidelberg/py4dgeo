@@ -678,12 +678,20 @@ class RegionGrowingAlgorithmBase:
 
 
 class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
-    def __init__(self, smoothing_window=24, **kwargs):
+    def __init__(self, smoothing_window=0, seed_subsampling=1, **kwargs):
         """Construct the 4D-OBC algorithm.
 
         :param smoothing_window:
-            The size of the sliding window used in smoothing the data.
+            The size of the sliding window used in smoothing the data. The
+            default value of 0 does not perform any smooting.
         :type smooting_window: int
+        :param seed_subsampling:
+            A subsampling factor for the set of corepoints for the generation
+            of region growing seed candidates. This can be used to speed up
+            the generation of seeds. The default of 1 does not perform any
+            subsampling, a value of e.g. 10 would only consider every 10th
+            corepoint for adding seeds.
+        :type seed_subsampling: int
         """
 
         # Initialize base class
@@ -691,9 +699,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # Store the given parameters
         self.smoothing_window = smoothing_window
+        self.seed_subsampling = seed_subsampling
 
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
+
+        # If the smoothing_window parameter is set to 0, this is no-op
+        if self.smoothing_window == 0:
+            return distances
 
         smoothed = np.empty_like(distances)
         eps = self.smoothing_window // 2
@@ -732,7 +745,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         seeds = []
 
         # Iterate over all time series to analyse their change points
-        for i in range(distances.shape[0]):
+        for i in range(0, distances.shape[0], self.seed_subsampling):
             # Extract the time series and interpolate its nan values
             timeseries = distances[i, :]
             bad_indices = np.isnan(timeseries)
