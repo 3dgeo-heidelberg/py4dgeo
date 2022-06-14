@@ -14,10 +14,14 @@ setup(
         "laspy[lazrs]>=2.0,<3.0",
         "matplotlib",
         "numpy",
+        "requests",
         "ruptures",
         "seaborn",
         "xdg",
     ],
+    entry_points={
+        "console_scripts": ["copy_py4dgeo_test_data=py4dgeo.util:copy_test_data"]
+    },
     zip_safe=False,
     classifiers=[
         "Programming Language :: Python :: 3",

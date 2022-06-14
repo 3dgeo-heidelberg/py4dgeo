@@ -1,3 +1,6 @@
+# Ignore our test directory, it is automatically populated
+tests/data
+
 # scikit-build editable directory
 _skbuild
 
