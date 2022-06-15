@@ -31,7 +31,7 @@ PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION = 0
 
 
 class SpatiotemporalAnalysis:
-    def __init__(self, filename, compress=True, allow_pickle=True):
+    def __init__(self, filename, compress=True, allow_pickle=True, force=True):
         """Construct a spatiotemporal segmentation object
 
         This is the basic data structure for the 4D objects by change algorithm
@@ -57,6 +57,9 @@ class SpatiotemporalAnalysis:
             in the file representation of the analysis. If set to false, some data
             may not be stored and needs to be recomputed instead.
         :type allow_pickle: bool
+        :param force:
+            Force creation of a new analysis object, even if a file of this name
+            already exists.
         """
 
         # Store the given parameters
@@ -69,7 +72,7 @@ class SpatiotemporalAnalysis:
         self._corepoints = None
 
         # If the filename does not already exist, we create a new archive
-        if not os.path.exists(self.filename):
+        if force or not os.path.exists(self.filename):
             logger.info(f"Creating analysis file {self.filename}")
             with zipfile.ZipFile(self.filename, mode="w") as zf:
                 # Write the segmentation file format version number
