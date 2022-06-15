@@ -6,6 +6,7 @@ from py4dgeo.util import MemoryPolicy, set_memory_policy
 
 import os
 import pytest
+import shutil
 import subprocess
 import tempfile
 
@@ -39,8 +40,9 @@ epochs = epoch_fixture("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
 
 
 @pytest.fixture
-def spatiotemporal():
-    return SpatiotemporalAnalysis(os.path.join(data_dir, "synthetic.zip"))
+def analysis(tmp_path):
+    shutil.copy(os.path.join(data_dir, "synthetic.zip"), tmp_path)
+    return SpatiotemporalAnalysis(os.path.join(tmp_path, "synthetic.zip"))
 
 
 @pytest.fixture(autouse=True)
