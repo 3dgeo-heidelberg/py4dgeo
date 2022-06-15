@@ -31,7 +31,7 @@ PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION = 0
 
 
 class SpatiotemporalAnalysis:
-    def __init__(self, filename, compress=True, allow_pickle=True, force=True):
+    def __init__(self, filename, compress=True, allow_pickle=True, force=False):
         """Construct a spatiotemporal segmentation object
 
         This is the basic data structure for the 4D objects by change algorithm
