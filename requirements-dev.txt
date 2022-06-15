@@ -2,7 +2,6 @@ breathe
 lcov_cobertura
 m2r2
 matplotlib
-nbclick
 nbsphinx
 nbsphinx-link
 nbval

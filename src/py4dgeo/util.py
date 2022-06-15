@@ -1,11 +1,21 @@
 import collections
+import hashlib
 import logging
 import numpy as np
 import os
 import platform
+import requests
+import sys
+import tarfile
+import tempfile
 import xdg
 
 import py4dgeo._py4dgeo as _py4dgeo
+
+
+# The current data archive URL
+TEST_DATA_ARCHIVE = "https://github.com/ssciwr/py4dgeo-test-data/releases/download/2022-06-14/data.tar.gz"
+TEST_DATA_CHECKSUM = "eb09c9b834808fd80bac6cdb4f3770ae3e14be798479bbfecb68bd6e44141755"
 
 
 class Py4DGeoError(Exception):
@@ -221,3 +231,26 @@ def append_file_extension(filename, extension):
 def is_iterable(obj):
     """Whether the object is an iterable (excluding a string)"""
     return isinstance(obj, collections.abc.Iterable) and not isinstance(obj, str)
+
+
+def copy_test_data():
+    """Download test data and copy it into the working directory"""
+
+    # Define the target directory
+    target = os.getcwd()
+    if len(sys.argv) > 1:
+        target = sys.argv[1]
+
+    # Create temporary directory for the download
+    with tempfile.TemporaryDirectory() as tmp:
+        archive = requests.get(TEST_DATA_ARCHIVE).content
+        checksum = hashlib.sha256(archive).hexdigest()
+        if checksum != TEST_DATA_CHECKSUM:
+            raise ValueError("Checksum for test data archive failed.")
+
+        archive_file = os.path.join(tmp, "data.tar.gz")
+        with open(archive_file, "wb") as tar:
+            tar.write(archive)
+
+        with tarfile.open(archive_file, "r:gz") as tar:
+            tar.extractall(path=target)

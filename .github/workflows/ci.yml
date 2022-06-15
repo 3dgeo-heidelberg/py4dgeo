@@ -48,15 +48,21 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: cmake --build .
 
-    - name: run tests
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: ctest --output-on-failure
-
     - name: Install Python package and development requirements
       run: |
         python -m pip install -r requirements-dev.txt
         python -m pip install .
+
+    - name: Install py4dgeo test data
+      shell: bash
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/tests/data
+        copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
+
+    - name: run tests
+      shell: bash
+      working-directory: ${{runner.workspace}}/build
+      run: ctest --output-on-failure
 
     - name: Run Python tests
       run: |
@@ -84,6 +90,12 @@ jobs:
       run: |
         python -m pip install -r requirements-dev.txt
         python -m pip install --editable .
+
+    - name: Install py4dgeo test data
+      shell: bash
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/tests/data
+        copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
@@ -142,6 +154,12 @@ jobs:
       run: |
         python -m pip install -r requirements-dev.txt
         python -m pip install .
+
+    - name: Install py4dgeo test data
+      shell: bash
+      run: |
+        mkdir -p $GITHUB_WORKSPACE/tests/data
+        copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
