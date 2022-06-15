@@ -20,7 +20,9 @@ setup(
         "xdg",
     ],
     entry_points={
-        "console_scripts": ["copy_py4dgeo_test_data=py4dgeo.util:copy_test_data"]
+        "console_scripts": [
+            "copy_py4dgeo_test_data=py4dgeo.util:copy_test_data_entrypoint"
+        ]
     },
     zip_safe=False,
     classifiers=[

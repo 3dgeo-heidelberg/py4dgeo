@@ -8,7 +8,7 @@ from py4dgeo.segmentation import (
     regular_corepoint_grid,
 )
 from py4dgeo.util import (
-    find_file,
+    ensure_test_data_availability,
     MemoryPolicy,
     set_memory_policy,
     get_num_threads,

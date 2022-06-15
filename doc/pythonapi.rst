@@ -44,8 +44,6 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autoclass:: py4dgeo.MemoryPolicy
 
-.. autofunction:: py4dgeo.find_file
-
 .. autofunction:: py4dgeo.get_num_threads
 
 .. autofunction:: py4dgeo.set_num_threads
@@ -77,6 +75,8 @@ Developer API reference
 .. autofunction:: py4dgeo.segmentation.check_epoch_timestamp
 
 .. autoclass:: py4dgeo.util.Py4DGeoError
+
+.. autofunction:: py4dgeo.find_file
 
 .. autofunction:: py4dgeo.util.as_double_precision
 

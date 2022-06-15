@@ -17,6 +17,9 @@ import py4dgeo._py4dgeo as _py4dgeo
 TEST_DATA_ARCHIVE = "https://github.com/ssciwr/py4dgeo-test-data/releases/download/2022-06-14/data.tar.gz"
 TEST_DATA_CHECKSUM = "eb09c9b834808fd80bac6cdb4f3770ae3e14be798479bbfecb68bd6e44141755"
 
+# The directory where to place
+_test_data_dir = tempfile.TemporaryDirectory()
+
 
 class Py4DGeoError(Exception):
     def __init__(self, msg, loggername="py4dgeo"):
@@ -28,7 +31,7 @@ class Py4DGeoError(Exception):
         logger.error(self)
 
 
-def find_file(filename):
+def find_file(filename, fatal=True):
     """Find a file of given name on the file system.
 
     This function is intended to use in tests and demo applications
@@ -40,10 +43,14 @@ def find_file(filename):
     * If an absolute filename is given, it is used
     * Check whether the given relative path exists with respect to the current working directory
     * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable :code:`XDG_DATA_DIRS`).
+    * Check whether the given relative path exists in downloaded test data.
 
     :param filename:
         The (relative) filename to search for
     :type filename: str
+    :param fatal:
+        Whether not finding the file should be a fatal error
+    :type fatal: bool
     :return: An absolute filename
     """
 
@@ -62,14 +69,21 @@ def find_file(filename):
         for xdg_dir in xdg.xdg_data_dirs():
             candidates.append(os.path.join(xdg_dir, filename))
 
+    # Use the temporary directory with test data (only contains something)
+    # iff ensure_test_data_availability was called.
+    candidates.append(os.path.join(_test_data_dir.name, filename))
+
     # Iterate through the list to check for file existence
     for candidate in candidates:
         if os.path.exists(candidate):
             return candidate
 
-    raise FileNotFoundError(
-        f"Cannot locate file {filename}. Tried the following locations: {', '.join(candidates)}"
-    )
+    if fatal:
+        raise FileNotFoundError(
+            f"Cannot locate file {filename}. Tried the following locations: {', '.join(candidates)}"
+        )
+
+    return filename
 
 
 class MemoryPolicy(_py4dgeo.MemoryPolicy):
@@ -233,13 +247,8 @@ def is_iterable(obj):
     return isinstance(obj, collections.abc.Iterable) and not isinstance(obj, str)
 
 
-def copy_test_data():
+def copy_test_data(target):
     """Download test data and copy it into the working directory"""
-
-    # Define the target directory
-    target = os.getcwd()
-    if len(sys.argv) > 1:
-        target = sys.argv[1]
 
     # Create temporary directory for the download
     with tempfile.TemporaryDirectory() as tmp:
@@ -254,3 +263,17 @@ def copy_test_data():
 
         with tarfile.open(archive_file, "r:gz") as tar:
             tar.extractall(path=target)
+
+
+def copy_test_data_entrypoint():
+    # Define the target directory
+    target = os.getcwd()
+    if len(sys.argv) > 1:
+        target = sys.argv[1]
+
+    copy_test_data(target)
+
+
+def ensure_test_data_availability():
+    """Ensure the availability of test data for notebooks etc."""
+    copy_test_data(_test_data_dir.name)

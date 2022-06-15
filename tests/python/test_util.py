@@ -95,6 +95,5 @@ def test_set_num_threads():
         assert get_num_threads() == 1
 
 
-def test_data_copy(tmp_path, monkeypatch):
-    monkeypatch.chdir(tmp_path)
-    copy_test_data()
+def test_data_copy(tmp_path):
+    copy_test_data(tmp_path.name)
