@@ -2,6 +2,7 @@ from py4dgeo.util import (
     Py4DGeoError,
     append_file_extension,
     as_single_precision,
+    find_file,
     make_contiguous,
     is_iterable,
 )
@@ -275,10 +276,13 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
     :type parse_opts: dict
     """
 
+    # Resolve the given path
+    filename = find_file(filenames[0])
+
     # Read the first cloud
     try:
-        logger.info(f"Reading point cloud from file '{filenames[0]}'")
-        cloud = np.genfromtxt(filenames[0], dtype=np.float64, **parse_opts)
+        logger.info(f"Reading point cloud from file '{filename}'")
+        cloud = np.genfromtxt(filename, dtype=np.float64, **parse_opts)
     except ValueError:
         raise Py4DGeoError(
             "Malformed XYZ file - all rows are expected to have exactly three columns"
@@ -322,9 +326,12 @@ def read_from_las(*filenames, other_epoch=None):
     :type other_epoch: py4dgeo.Epoch
     """
 
+    # Resolve the given path
+    filename = find_file(filenames[0])
+
     # Read the lasfile using laspy
-    logger.info(f"Reading point cloud from file '{filenames[0]}'")
-    lasfile = laspy.read(filenames[0])
+    logger.info(f"Reading point cloud from file '{filename}'")
+    lasfile = laspy.read(filename)
 
     # Determine the offset to use. If no epoch to be compatible with has been
     # given, we calculate one. Otherwise, we take the same offset to be

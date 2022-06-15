@@ -1,6 +1,6 @@
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
-from py4dgeo.util import Py4DGeoError, append_file_extension
+from py4dgeo.util import Py4DGeoError, find_file
 from py4dgeo.zipfile import UpdateableZipFile
 
 import datetime
@@ -60,7 +60,7 @@ class SpatiotemporalAnalysis:
         """
 
         # Store the given parameters
-        self.filename = append_file_extension(filename, "zip")
+        self.filename = find_file(filename, fatal=False)
         self.compress = compress
         self.allow_pickle = allow_pickle
 
