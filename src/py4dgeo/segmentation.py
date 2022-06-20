@@ -681,7 +681,15 @@ class RegionGrowingAlgorithmBase:
 
 
 class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
-    def __init__(self, smoothing_window=0, seed_subsampling=1, **kwargs):
+    def __init__(
+        self,
+        smoothing_window=0,
+        seed_subsampling=1,
+        window_width=24,
+        minperiod=24,
+        height_threshold=0.0,
+        **kwargs,
+    ):
         """Construct the 4D-OBC algorithm.
 
         :param smoothing_window:
@@ -695,6 +703,15 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             subsampling, a value of e.g. 10 would only consider every 10th
             corepoint for adding seeds.
         :type seed_subsampling: int
+        :param window_width:
+            TODO
+        :type window_width: int
+        :param minperiod:
+            TODO
+        :type minperiod: int
+        :param height_threshold:
+            TODO
+        :type height_threshold: float
         """
 
         # Initialize base class
@@ -703,6 +720,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # Store the given parameters
         self.smoothing_window = smoothing_window
         self.seed_subsampling = seed_subsampling
+        self.window_width = window_width
+        self.minperiod = minperiod
+        self.height_threshold = height_threshold
 
     def temporal_averaging(self, distances):
         """Smoothen a space-time array of distance change"""
@@ -727,18 +747,16 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         """Calculate seedpoints for the region growing algorithm"""
 
         # These are some arguments used below that we might consider
-        # exposing to the user
-        window_width = 24
+        # exposing to the user in the future. For now, they are considered
+        # internal, but they are still defined here for readability.
         window_costmodel = "l1"
         window_min_size = 12
         window_jump = 1
         window_penalty = 1.0
-        minperiod = 24
-        height_threshold = 0.0
 
         # The chang point detection algorithm we use
         algo = ruptures.Window(
-            width=window_width,
+            width=self.window_width,
             model=window_costmodel,
             min_size=window_min_size,
             jump=window_jump,
@@ -782,20 +800,22 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     continue
 
                 # Skip this changepoint if this to close to the end
-                if start_idx >= timeseries.shape[0] - minperiod:
+                if start_idx >= timeseries.shape[0] - self.minperiod:
                     break
 
                 # Decide whether we need use the flipped timeseries
                 used_timeseries = timeseries
-                if timeseries[start_idx] >= timeseries[start_idx + minperiod]:
+                if timeseries[start_idx] >= timeseries[start_idx + self.minperiod]:
                     used_timeseries = timeseries_flipped
 
                 previous_volume = -999.9
 
-                for target_idx in range(start_idx + 1, timeseries.shape[0] - minperiod):
+                for target_idx in range(
+                    start_idx + 1, timeseries.shape[0] - self.minperiod
+                ):
 
                     # Calculate the change volume
-                    height = used_timeseries[start_idx] + height_threshold
+                    height = used_timeseries[start_idx] + self.height_threshold
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
