@@ -69,7 +69,12 @@ class SpatiotemporalAnalysis:
 
         # Instantiate some properties used later on
         self._m3c2 = None
+
+        # This is the cache for lazily loaded data
         self._corepoints = None
+        self._distances = None
+        self._uncertainties = None
+        self._reference_epoch = None
 
         # If the filename does not already exist, we create a new archive
         if force or not os.path.exists(self.filename):
@@ -97,15 +102,19 @@ class SpatiotemporalAnalysis:
     @property
     def reference_epoch(self):
         """Access the reference epoch of this analysis"""
-        with zipfile.ZipFile(self.filename, mode="r") as zf:
-            # Double check that the reference has already been set
-            if "reference_epoch.zip" not in zf.namelist():
-                raise Py4DGeoError("Reference epoch for analysis not yet set")
 
-            # Extract it from the archive
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                ref_epochfile = zf.extract("reference_epoch.zip", path=tmp_dir)
-                return Epoch.load(ref_epochfile)
+        if self._reference_epoch is None:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
+                # Double check that the reference has already been set
+                if "reference_epoch.zip" not in zf.namelist():
+                    raise Py4DGeoError("Reference epoch for analysis not yet set")
+
+                # Extract it from the archive
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    ref_epochfile = zf.extract("reference_epoch.zip", path=tmp_dir)
+                    self._reference_epoch = Epoch.load(ref_epochfile)
+
+        return self._reference_epoch
 
     @reference_epoch.setter
     def reference_epoch(self, epoch):
@@ -129,6 +138,13 @@ class SpatiotemporalAnalysis:
                 epochfilename = os.path.join(tmp_dir, "reference_epoch.zip")
                 epoch.save(epochfilename)
                 zf.write(epochfilename, arcname="reference_epoch.zip")
+
+        # Also cache it directly
+        self._reference_epoch = epoch
+
+    @reference_epoch.deleter
+    def reference_epoch(self):
+        self._reference_epoch = None
 
     @property
     def corepoints(self):
@@ -166,6 +182,10 @@ class SpatiotemporalAnalysis:
                 cpfilename = os.path.join(tmp_dir, "corepoints.zip")
                 self._corepoints.save(cpfilename)
                 zf.write(cpfilename, arcname="corepoints.zip")
+
+    @corepoints.deleter
+    def corepoints(self):
+        self._corepoints = None
 
     @property
     def m3c2(self):
@@ -227,17 +247,24 @@ class SpatiotemporalAnalysis:
     @property
     def distances(self):
         """Access the M3C2 distances of this analysis"""
-        with zipfile.ZipFile(self.filename, mode="r") as zf:
-            filename = "distances.npz" if self.compress else "distances.npy"
-            if filename not in zf.namelist():
-                return np.empty((self.corepoints.cloud.shape[0], 0), dtype=np.float64)
 
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                distancefile = zf.extract(filename, path=tmp_dir)
-                read_func = (
-                    (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
-                )
-                return read_func(distancefile)
+        if self._distances is None:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
+                filename = "distances.npz" if self.compress else "distances.npy"
+                if filename not in zf.namelist():
+                    self.distances = np.empty(
+                        (self.corepoints.cloud.shape[0], 0), dtype=np.float64
+                    )
+                    return self._distances
+
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    distancefile = zf.extract(filename, path=tmp_dir)
+                    read_func = (
+                        (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
+                    )
+                    self._distances = read_func(distancefile)
+
+        return self._distances
 
     @distances.setter
     def distances(self, _distances):
@@ -261,31 +288,42 @@ class SpatiotemporalAnalysis:
                 write_func(distancesfile, _distances)
                 zf.write(distancesfile, arcname=filename)
 
+        self._distances = _distances
+
+    @distances.deleter
+    def distances(self):
+        self._distances = None
+
     @property
     def uncertainties(self):
         """Access the M3C2 uncertainties of this analysis"""
-        with zipfile.ZipFile(self.filename, mode="r") as zf:
-            filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
-            if filename not in zf.namelist():
-                return np.empty(
-                    (self.corepoints.cloud.shape[0], 0),
-                    dtype=np.dtype(
-                        [
-                            ("lodetection", "<f8"),
-                            ("spread1", "<f8"),
-                            ("num_samples1", "<i8"),
-                            ("spread2", "<f8"),
-                            ("num_samples2", "<i8"),
-                        ]
-                    ),
-                )
 
-            with tempfile.TemporaryDirectory() as tmp_dir:
-                uncertaintyfile = zf.extract(filename, path=tmp_dir)
-                read_func = (
-                    (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
-                )
-                return read_func(uncertaintyfile)
+        if self._uncertainties is None:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
+                filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+                if filename not in zf.namelist():
+                    self.uncertainties = np.empty(
+                        (self.corepoints.cloud.shape[0], 0),
+                        dtype=np.dtype(
+                            [
+                                ("lodetection", "<f8"),
+                                ("spread1", "<f8"),
+                                ("num_samples1", "<i8"),
+                                ("spread2", "<f8"),
+                                ("num_samples2", "<i8"),
+                            ]
+                        ),
+                    )
+                    return self._uncertainties
+
+                with tempfile.TemporaryDirectory() as tmp_dir:
+                    uncertaintyfile = zf.extract(filename, path=tmp_dir)
+                    read_func = (
+                        (lambda f: np.load(f)["arr_0"]) if self.compress else np.load
+                    )
+                    self._uncertainties = read_func(uncertaintyfile)
+
+        return self._uncertainties
 
     @uncertainties.setter
     def uncertainties(self, _uncertainties):
@@ -308,6 +346,12 @@ class SpatiotemporalAnalysis:
                 uncertaintiesfile = os.path.join(tmp_dir, filename)
                 write_func(uncertaintiesfile, _uncertainties)
                 zf.write(uncertaintiesfile, arcname=filename)
+
+        self._uncertainties = _uncertainties
+
+    @uncertainties.deleter
+    def uncertainties(self):
+        self._uncertainties = None
 
     def add_epochs(self, *epochs):
         """Add a numbers of epochs to the existing analysis"""
@@ -340,6 +384,9 @@ class SpatiotemporalAnalysis:
                 new_uncertainties.append(u)
                 timedeltas.append(epoch.timestamp - reference_epoch.timestamp)
 
+        # We do not need the reference_epoch at this point
+        del self.reference_epoch
+
         # Prepare all archive data in a temporary directory
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Write a new timestamps file
@@ -356,9 +403,6 @@ class SpatiotemporalAnalysis:
                     ],
                     f,
                 )
-
-            # We do not need the reference_epoch at this point
-            del reference_epoch
 
             # Depending on whether we compress, we use different numpy functionality
             write_func = np.savez_compressed if self.compress else np.save
@@ -387,6 +431,10 @@ class SpatiotemporalAnalysis:
                     ),
                 )
 
+            # Invalidate potential caches for distances/uncertainties
+            self._distances = None
+            self._uncertainties = None
+
             # Dump the updated files into the archive
             with logger_context("Updating disk-based analysis archive with new epochs"):
                 with UpdateableZipFile(self.filename, mode="a") as zf:
@@ -399,6 +447,10 @@ class SpatiotemporalAnalysis:
                     if uncertainty_filename in zf.namelist():
                         zf.remove(uncertainty_filename)
                     zf.write(uncertainty_file, arcname=uncertainty_filename)
+
+        # (Potentially) remove caches
+        del self.distances
+        del self.uncertainties
 
     @property
     def seeds(self):
@@ -529,11 +581,11 @@ class RegionGrowingAlgorithmBase:
 
         self._analysis = None
 
-    def temporal_averaging(self, distances):
+    def temporal_averaging(self):
         """Smoothen a space-time array of distance change"""
 
         # This base class implements no-op smoothing
-        return distances
+        return self.analysis.distances
 
     def distance_measure(self):
         """Distance measure between two time series
@@ -605,7 +657,7 @@ class RegionGrowingAlgorithmBase:
 
         # Smooth the distance array
         with logger_context("Smoothing temporal data"):
-            smoothed = self.temporal_averaging(analysis.distances)
+            smoothed = self.temporal_averaging()
 
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
@@ -677,6 +729,9 @@ class RegionGrowingAlgorithmBase:
         # Store the results in the analysis object
         analysis.objects = objects
 
+        # Potentially remove objects from memory
+        del analysis.distances
+
         return objects
 
 
@@ -704,19 +759,24 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.smoothing_window = smoothing_window
         self.seed_subsampling = seed_subsampling
 
-    def temporal_averaging(self, distances):
+    def temporal_averaging(self):
         """Smoothen a space-time array of distance change"""
 
         # If the smoothing_window parameter is set to 0, this is no-op
         if self.smoothing_window == 0:
-            return distances
+            return self.analysis.distances
 
-        smoothed = np.empty_like(distances)
+        smoothed = np.empty_like(self.analysis.distances)
         eps = self.smoothing_window // 2
 
-        for i in range(distances.shape[1]):
+        for i in range(self.analysis.distances.shape[1]):
             smoothed[:, i] = np.nanmedian(
-                distances[:, max(0, i - eps) : min(distances.shape[1] - 1, i + eps)],
+                self.analysis.distances[
+                    :,
+                    max(0, i - eps) : min(
+                        self.analysis.distances.shape[1] - 1, i + eps
+                    ),
+                ],
                 axis=1,
             )
 
@@ -828,20 +888,19 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
     def seed_sorting_scorefunction(self):
         """Neighborhood similarity sorting function"""
 
-        cp = self.analysis.corepoints
-        distances = self.analysis.distances
-
         # The 4D-OBC algorithm sorts by similarity in the neighborhood
         # of the seed.
         def neighborhood_similarity(seed):
-            neighbors = cp.kdtree.radius_search(
-                cp.cloud[seed.index, :], self.neighborhood_radius
+            neighbors = self.analysis.corepoints.kdtree.radius_search(
+                self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
             similarities = []
             for n in neighbors:
                 data = _py4dgeo.TimeseriesDistanceFunctionData(
-                    distances[seed.index, seed.start_epoch : seed.end_epoch + 1],
-                    distances[n, seed.start_epoch : seed.end_epoch + 1],
+                    self.analysis.distances[
+                        seed.index, seed.start_epoch : seed.end_epoch + 1
+                    ],
+                    self.analysis.distances[n, seed.start_epoch : seed.end_epoch + 1],
                 )
                 similarities.append(self.distance_measure()(data))
 
@@ -917,9 +976,6 @@ class ObjectByChange:
         :type filename: str
         """
 
-        # Lazily fetch *all* distances
-        distances = self._analysis.distances
-
         # Extract DTW distances from this object
         indexarray = np.fromiter(self.indices, np.int32)
         distarray = np.fromiter((self.distance(i) for i in indexarray), np.float64)
@@ -939,10 +995,12 @@ class ObjectByChange:
         # points on both sides. TODO: Expose as argument to plot?
         timeseries_padding = 10
         start_epoch = max(self.start_epoch - timeseries_padding, 0)
-        end_epoch = min(self.end_epoch + timeseries_padding, distances.shape[1])
+        end_epoch = min(
+            self.end_epoch + timeseries_padding, self._analysis.distances.shape[1]
+        )
 
         # We use the seed's timeseries to set good axis limits
-        seed_ts = distances[self.seed.index, start_epoch:end_epoch]
+        seed_ts = self._analysis.distances[self.seed.index, start_epoch:end_epoch]
         tsax.set_ylim(np.nanmin(seed_ts) * 0.5, np.nanmax(seed_ts) * 1.5)
 
         # Create a colormap with distance for this object
@@ -952,7 +1010,7 @@ class ObjectByChange:
         # Plot each time series individually
         for index in self.indices:
             tsax.plot(
-                distances[index, start_epoch:end_epoch],
+                self._analysis.distances[index, start_epoch:end_epoch],
                 linewidth=0.7,
                 alpha=0.3,
                 color=cmap(self.distance(index) / maxdist),
