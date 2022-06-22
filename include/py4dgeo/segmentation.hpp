@@ -84,7 +84,7 @@ struct ChangePointDetectionData
 };
 
 /** @brief Change point detection using sliding window approach */
-std::vector<double>
+std::vector<IndexType>
 change_point_detection(const ChangePointDetectionData&);
 
 } // namespace py4dgeo
