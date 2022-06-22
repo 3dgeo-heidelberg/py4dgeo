@@ -205,4 +205,14 @@ normalized_dtw_distance(const TimeseriesDistanceFunctionData& data)
   return std::fmin(1.0, 1.0 - (max_dist - dtw_distance(data)) / max_dist);
 }
 
+std::vector<double>
+change_point_detection(const ChangePointDetectionData& data)
+{
+  std::vector<double> changepoints;
+
+  // TODO: Implement detection here
+
+  return changepoints;
+}
+
 }

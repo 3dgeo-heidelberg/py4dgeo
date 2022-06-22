@@ -324,8 +324,19 @@ PYBIND11_MODULE(_py4dgeo, m)
            py::arg("ts1"),
            py::arg("ts2"));
 
+  py::class_<ChangePointDetectionData> cpdd(m, "ChangePointDetectionData");
+  cpdd.def(
+    py::
+      init<EigenTimeSeriesConstRef, IndexType, IndexType, IndexType, double>(),
+    py::arg("ts"),
+    py::arg("window_size"),
+    py::arg("min_size"),
+    py::arg("jump"),
+    py::arg("penalty"));
+
   // The main algorithms for the spatiotemporal segmentations
   m.def("region_growing", &region_growing);
+  m.def("change_point_detection", &change_point_detection);
 
   // Callback implementations
   m.def("radius_workingset_finder", &radius_workingset_finder);

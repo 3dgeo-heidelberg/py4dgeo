@@ -74,4 +74,17 @@ dtw_distance(const TimeseriesDistanceFunctionData&);
 double
 normalized_dtw_distance(const TimeseriesDistanceFunctionData&);
 
+struct ChangePointDetectionData
+{
+  EigenTimeSeriesConstRef ts;
+  IndexType window_width;
+  IndexType min_size;
+  IndexType jump;
+  double penalty;
+};
+
+/** @brief Change point detection using sliding window approach */
+std::vector<double>
+change_point_detection(const ChangePointDetectionData&);
+
 } // namespace py4dgeo
