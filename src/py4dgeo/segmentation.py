@@ -1066,13 +1066,13 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
     :type zval: double
     """
     xspace = np.linspace(
-        lowerleft[0], upperright[0], num=num_points[0], dtype=np.float32
+        lowerleft[0], upperright[0], num=num_points[0], dtype=np.float64
     )
     yspace = np.linspace(
-        lowerleft[1], upperright[1], num=num_points[1], dtype=np.float32
+        lowerleft[1], upperright[1], num=num_points[1], dtype=np.float64
     )
 
-    grid = np.empty(shape=(num_points[0] * num_points[1], 3), dtype=np.float32)
+    grid = np.empty(shape=(num_points[0] * num_points[1], 3), dtype=np.float64)
     for i, x in enumerate(xspace):
         for j, y in enumerate(yspace):
             grid[i * num_points[0] + j, 0] = x

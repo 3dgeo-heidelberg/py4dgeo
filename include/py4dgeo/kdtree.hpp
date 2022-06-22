@@ -38,7 +38,7 @@ private:
 
     inline std::size_t kdtree_get_point_count() const { return cloud.rows(); }
 
-    float kdtree_get_pt(const IndexType idx, const IndexType dim) const
+    double kdtree_get_pt(const IndexType idx, const IndexType dim) const
     {
       return cloud(idx, dim);
     }
@@ -77,7 +77,7 @@ private:
 
   //! The NanoFLANN index implementation that we use
   using KDTreeImpl = nanoflann::KDTreeSingleIndexAdaptor<
-    nanoflann::L2_Simple_Adaptor<float, Adaptor, double>,
+    nanoflann::L2_Simple_Adaptor<double, Adaptor, double>,
     Adaptor,
     3,
     IndexType>;
@@ -129,7 +129,7 @@ public:
    *
    * @return The amount of points in the return set
    */
-  std::size_t radius_search(const float* querypoint,
+  std::size_t radius_search(const double* querypoint,
                             double radius,
                             RadiusSearchResult& result) const;
 
@@ -149,7 +149,7 @@ public:
    * @return The amount of points in the return set
    */
   std::size_t radius_search_with_distances(
-    const float* querypoint,
+    const double* querypoint,
     double radius,
     RadiusSearchDistanceResult& result) const;
 

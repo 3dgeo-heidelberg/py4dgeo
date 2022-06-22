@@ -33,7 +33,7 @@ compute_multiscale_directions(const Epoch& epoch,
         KDTree::RadiusSearchResult points;
         auto qp = corepoints.row(i).eval();
         epoch.kdtree.radius_search(&(qp(0, 0)), radius, points);
-        auto subset = epoch.cloud(points, Eigen::all).cast<double>();
+        auto subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
         auto centered = subset.rowwise() - subset.colwise().mean();

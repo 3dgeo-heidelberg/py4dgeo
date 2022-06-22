@@ -14,8 +14,8 @@ import py4dgeo._py4dgeo as _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/ssciwr/py4dgeo-test-data/releases/download/2022-06-14/data.tar.gz"
-TEST_DATA_CHECKSUM = "eb09c9b834808fd80bac6cdb4f3770ae3e14be798479bbfecb68bd6e44141755"
+TEST_DATA_ARCHIVE = "https://github.com/ssciwr/py4dgeo-test-data/releases/download/2022-06-22/data.tar.gz"
+TEST_DATA_CHECKSUM = "7b459de25c210da3c4815b19b09647dfc73cff0c692954cd7ec29b166ec2c42a"
 
 # The directory where to place
 _test_data_dir = tempfile.TemporaryDirectory()
@@ -189,18 +189,6 @@ def as_double_precision(arr: np.ndarray, policy_check=True):
     :type arr: np.ndarray
     """
     return _as_dtype(arr, np.float64, policy_check)
-
-
-def as_single_precision(arr: np.ndarray, policy_check=True):
-    """Ensure that a numpy array is signle precision
-
-    This is a no-op if the array is already double precision and makes a copy
-    if it is not. It checks py4dgeo's memory policy before copying.
-
-    :param arr: The numpy array
-    :type arr: np.ndarray
-    """
-    return _as_dtype(arr, np.float32, policy_check)
 
 
 def set_num_threads(num_threads: int):
