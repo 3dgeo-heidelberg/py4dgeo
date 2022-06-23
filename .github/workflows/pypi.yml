@@ -106,7 +106,7 @@ jobs:
   upload_testpypi:
     needs: [build-sdist, test-sdist, build-wheels]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'ssciwr'
+    if: github.repository_owner == '3dgeo-heidelberg'
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -123,7 +123,7 @@ jobs:
   upload_pypi:
     needs: [build-sdist, build-wheels, upload_testpypi]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'ssciwr'
+    if: github.repository_owner == '3dgeo-heidelberg'
     steps:
       - uses: actions/download-artifact@v2
         with:
