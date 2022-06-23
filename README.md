@@ -1,10 +1,10 @@
 # Welcome to py4dgeo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ssciwr/py4dgeo/CI)](https://github.com/ssciwr/py4dgeo/actions?query=workflow%3ACI)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/3dgeo-heidelberg/py4dgeo/CI)](https://github.com/3dgeo-heidelberg/py4dgeo/actions?query=workflow%3ACI)
 [![PyPI Release](https://img.shields.io/pypi/v/py4dgeo.svg)](https://pypi.org/project/py4dgeo)
 [![Documentation Status](https://readthedocs.org/projects/py4dgeo/badge/)](https://py4dgeo.readthedocs.io/)
-[![codecov](https://codecov.io/gh/ssciwr/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/ssciwr/py4dgeo)
+[![codecov](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo)
 
 ![logo](py4dgeo_logo_mini.png)
 
@@ -39,7 +39,7 @@ python -m pip install py4dgeo
 The following sequence of commands is used to build `py4dgeo` from source:
 
 ```
-git clone --recursive https://github.com/ssciwr/py4dgeo.git
+git clone --recursive https://github.com/3dgeo-heidelberg/py4dgeo.git
 cd py4dgeo
 python -m pip install --editable .
 ```
