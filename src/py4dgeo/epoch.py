@@ -1,7 +1,7 @@
 from py4dgeo.util import (
     Py4DGeoError,
     append_file_extension,
-    as_single_precision,
+    as_double_precision,
     find_file,
     make_contiguous,
     is_iterable,
@@ -28,43 +28,29 @@ logger = logging.getLogger("py4dgeo")
 # about incompatibilities of py4dgeo with loaded data. This version is intentionally
 # different from py4dgeo's version, because not all releases of py4dgeo necessarily
 # change the epoch file format and we want to be as compatible as possible.
-PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 1
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, geographic_offset=None, timestamp=None):
+    def __init__(self, cloud: np.ndarray, timestamp=None):
         """
 
         :param cloud:
             The point cloud array of shape (n, 3).
-        :param geographic_offset:
-            The offset that needs to be applied to transform the given points
-            into actual geographic coordinates.
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
             raise Py4DGeoError("Clouds need to be an array of shape nx3")
 
-        # Make sure that cloud is single precision and contiguous in memory
-        cloud = as_single_precision(cloud)
+        # Make sure that cloud is double precision and contiguous in memory
+        cloud = as_double_precision(cloud)
         cloud = make_contiguous(cloud)
 
         # Set metadata properties
-        self.geographic_offset = geographic_offset
         self.timestamp = timestamp
 
         # Call base class constructor
         super().__init__(cloud)
-
-    @property
-    def geographic_offset(self):
-        return self._geographic_offset
-
-    @geographic_offset.setter
-    def geographic_offset(self, geographic_offset):
-        if geographic_offset is None:
-            geographic_offset = np.array([0, 0, 0], dtype=np.float32)
-        self._geographic_offset = np.asarray(geographic_offset)
 
     @property
     def timestamp(self):
@@ -85,7 +71,6 @@ class Epoch(_py4dgeo.Epoch):
         """
 
         return {
-            "geographic_offset": tuple(float(i) for i in self.geographic_offset),
             "timestamp": None if self.timestamp is None else str(self.timestamp),
         }
 
@@ -181,9 +166,7 @@ class Epoch(_py4dgeo.Epoch):
                 # Restore the point cloud itself
                 cloudfile = zf.extract("cloud.laz", path=tmp_dir)
                 lasfile = laspy.read(cloudfile)
-                cloud = (
-                    np.vstack((lasfile.x, lasfile.y, lasfile.z)).astype("f").transpose()
-                )
+                cloud = np.vstack((lasfile.x, lasfile.y, lasfile.z)).transpose()
 
                 # Construct the epoch object
                 epoch = Epoch(cloud, **metadata)
@@ -288,20 +271,8 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
             "Malformed XYZ file - all rows are expected to have exactly three columns"
         )
 
-    # Determine the offset to use. If no epoch to be compatible with has been
-    # given, we calculate one. Otherwise, we take the same offset to be
-    # compatible.s
-    if other_epoch is None:
-        offset = cloud.mean(axis=0)
-        logger.info(f"Determined coordinate offset as {offset}")
-    else:
-        offset = other_epoch.geographic_offset
-
-    # Apply chosen offset
-    cloud -= offset
-
     # Construct the new Epoch object
-    new_epoch = Epoch(cloud=cloud.astype("f"), geographic_offset=offset)
+    new_epoch = Epoch(cloud=cloud)
 
     if len(filenames) == 1:
         # End recursion and return non-tuple to make the case that the user
@@ -333,27 +304,15 @@ def read_from_las(*filenames, other_epoch=None):
     logger.info(f"Reading point cloud from file '{filename}'")
     lasfile = laspy.read(filename)
 
-    # Determine the offset to use. If no epoch to be compatible with has been
-    # given, we calculate one. Otherwise, we take the same offset to be
-    # compatible.s
-    if other_epoch is None:
-        geographic_offset = lasfile.header.mins
-        logger.info(f"Determined coordinate offset as {geographic_offset}")
-    else:
-        geographic_offset = other_epoch.geographic_offset
-
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
         np.vstack(
             (
-                lasfile.x - geographic_offset[0],
-                lasfile.y - geographic_offset[1],
-                lasfile.z - geographic_offset[2],
+                lasfile.x,
+                lasfile.y,
+                lasfile.z,
             )
-        )
-        .astype("f")
-        .transpose(),
-        geographic_offset=geographic_offset,
+        ).transpose(),
         timestamp=lasfile.header.creation_date,
     )
 

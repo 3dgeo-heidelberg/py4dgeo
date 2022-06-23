@@ -32,7 +32,7 @@ def test_m3c2(epochs, robust_aggr):
         normal_radii=(2.0,),
         robust_aggr=robust_aggr,
     ).run()
-    assert (distances == 0).all()
+    assert np.allclose(distances, 0)
 
 
 def test_minimal_m3c2(epochs):

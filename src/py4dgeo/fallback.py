@@ -1,6 +1,5 @@
 """Fallback implementations for C++ components of the M3C2 algorithms """
 
-from py4dgeo.epoch import Epoch
 from py4dgeo.m3c2 import M3C2
 
 import numpy as np
@@ -20,7 +19,7 @@ def cylinder_workingset_finder(
     N = 1
     max_cylinder_length = params.max_distance
     if max_cylinder_length >= params.radius:
-        N = int(np.ceil(max_cylinder_length / params.radius))
+        N = np.ceil(max_cylinder_length / params.radius)
     else:
         max_cylinder_length = params.radius
 
@@ -30,18 +29,19 @@ def cylinder_workingset_finder(
     )
 
     slabs = []
-    for i in range(N):
+    for i in range(int(N)):
         # Find indices around slab midpoint
-        qp = params.corepoint[0, :] + np.float32(2 * i - N + 1) / np.float32(
-            N
-        ) * np.float32(max_cylinder_length) * params.cylinder_axis[0, :].astype("f")
+        qp = (
+            params.corepoint[0, :]
+            + (2 * i - N + 1) / N * max_cylinder_length * params.cylinder_axis[0, :]
+        )
         indices = params.epoch.kdtree.radius_search(qp, r_cyl)
 
         # Gather the points from the point cloud
         superset = params.epoch.cloud[indices, :]
 
         # Calculate distance from the axis and the plane perpendicular to the axis
-        to_corepoint = superset.astype("d") - qp.astype("d")
+        to_corepoint = superset - qp
         to_corepoint_plane = to_corepoint.dot(params.cylinder_axis[0, :])
         to_axis2 = np.sum(
             np.square(
@@ -57,7 +57,7 @@ def cylinder_workingset_finder(
         filtered = superset[
             np.logical_and(
                 to_axis2 <= params.radius * params.radius,
-                np.abs(to_corepoint_plane) <= max_cylinder_length / N,
+                np.abs(to_corepoint_plane) < max_cylinder_length / N,
             )
         ]
 
@@ -71,8 +71,7 @@ def mean_stddev_distance(
 ) -> tuple:
     # Calculate distance
     distance = params.normal[0, :].dot(
-        params.workingset2.astype("d").mean(axis=0)
-        - params.workingset1.astype("d").mean(axis=0)
+        params.workingset2.mean(axis=0) - params.workingset1.mean(axis=0)
     )
 
     # Calculate variances
@@ -114,12 +113,8 @@ def median_iqr_distance(
     params: _py4dgeo.DistanceUncertaintyCalculationParameters,
 ) -> tuple:
     # Calculate distributions
-    dist1 = (params.workingset1.astype("d") - params.corepoint.astype("d")[0, :]).dot(
-        params.normal[0, :]
-    )
-    dist2 = (params.workingset2.astype("d") - params.corepoint.astype("d")[0, :]).dot(
-        params.normal[0, :]
-    )
+    dist1 = (params.workingset1 - params.corepoint[0, :]).dot(params.normal[0, :])
+    dist2 = (params.workingset2 - params.corepoint[0, :]).dot(params.normal[0, :])
     dist1.sort()
     dist2.sort()
 
