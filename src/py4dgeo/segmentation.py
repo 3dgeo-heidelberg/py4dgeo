@@ -73,6 +73,7 @@ class SpatiotemporalAnalysis:
         # This is the cache for lazily loaded data
         self._corepoints = None
         self._distances = None
+        self._smoothed_distances = None
         self._uncertainties = None
         self._reference_epoch = None
 
@@ -250,7 +251,7 @@ class SpatiotemporalAnalysis:
 
         if self._distances is None:
             with zipfile.ZipFile(self.filename, mode="r") as zf:
-                filename = "distances.npz" if self.compress else "distances.npy"
+                filename = self._numpy_filename("distances")
                 if filename not in zf.namelist():
                     self.distances = np.empty(
                         (self.corepoints.cloud.shape[0], 0), dtype=np.float64
@@ -274,7 +275,7 @@ class SpatiotemporalAnalysis:
         epochs via the :ref:`add_epochs` method.
         """
         with zipfile.ZipFile(self.filename, mode="a") as zf:
-            filename = "distances.npz" if self.compress else "distances.npy"
+            filename = self._numpy_filename("distances")
             write_func = np.savez_compressed if self.compress else np.save
 
             # If we already have distacces in the archive, this is not possible
@@ -295,12 +296,46 @@ class SpatiotemporalAnalysis:
         self._distances = None
 
     @property
+    def smoothed_distances(self):
+        if self._smoothed_distances is None:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
+                filename = self._numpy_filename("smoothed_distances")
+                if filename in zf.namelist():
+                    with tempfile.TemporaryDirectory() as tmp_dir:
+                        smoothedfile = zf.extract(filename, path=tmp_dir)
+                        read_func = (
+                            (lambda f: np.load(f)["arr_0"])
+                            if self.compress
+                            else np.load
+                        )
+                        self._smoothed_distances = read_func(smoothedfile)
+
+        return self._smoothed_distances
+
+    @smoothed_distances.setter
+    def smoothed_distances(self, _smoothed_distances):
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
+            filename = self._numpy_filename("smoothed_distances")
+            write_func = np.savez_compressed if self.compress else np.save
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                smoothedfile = os.path.join(tmp_dir, filename)
+                write_func(smoothedfile, _smoothed_distances)
+                zf.write(smoothedfile, arcname=filename)
+
+        self._smoothed_distances = _smoothed_distances
+
+    @smoothed_distances.deleter
+    def smoothed_distances(self):
+        self._smoothed_distances = None
+
+    @property
     def uncertainties(self):
         """Access the M3C2 uncertainties of this analysis"""
 
         if self._uncertainties is None:
             with zipfile.ZipFile(self.filename, mode="r") as zf:
-                filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+                filename = self._numpy_filename("uncertainties")
                 if filename not in zf.namelist():
                     self.uncertainties = np.empty(
                         (self.corepoints.cloud.shape[0], 0),
@@ -333,7 +368,7 @@ class SpatiotemporalAnalysis:
         epochs via the :ref:`add_epochs` method.
         """
         with zipfile.ZipFile(self.filename, mode="a") as zf:
-            filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+            filename = self._numpy_filename("uncertainties")
             write_func = np.savez_compressed if self.compress else np.save
 
             # If we already have distacces in the archive, this is not possible
@@ -406,10 +441,8 @@ class SpatiotemporalAnalysis:
 
             # Depending on whether we compress, we use different numpy functionality
             write_func = np.savez_compressed if self.compress else np.save
-            distance_filename = "distances.npz" if self.compress else "distances.npy"
-            uncertainty_filename = (
-                "uncertainties.npz" if self.compress else "uncertainties.npy"
-            )
+            distance_filename = self._numpy_filename("distances")
+            uncertainty_filename = self._numpy_filename("uncertainties")
 
             with logger_context("Rearranging space-time array in memory"):
                 # Load the distance array and append new data
@@ -524,7 +557,7 @@ class SpatiotemporalAnalysis:
 
                 zf.write(objectsfile, arcname="objects.pickle")
 
-    def invalidate_results(self, seeds=True, objects=True):
+    def invalidate_results(self, seeds=True, objects=True, smoothed_distances=True):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
@@ -540,6 +573,14 @@ class SpatiotemporalAnalysis:
 
             if objects and "objects.pickle" in zf.namelist():
                 zf.remove("objects.pickle")
+
+            smoothed_file = self._numpy_filename("smoothed_distances")
+            if smoothed_distances and smoothed_file in zf.namelist():
+                zf.remove(smoothed_file)
+
+    def _numpy_filename(self, name):
+        extension = "npz" if self.compress else "npy"
+        return f"{name}.{extension}"
 
 
 class RegionGrowingAlgorithmBase:
@@ -596,7 +637,7 @@ class RegionGrowingAlgorithmBase:
 
         return _py4dgeo.normalized_dtw_distance
 
-    def find_seedpoints(self, distances):
+    def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
         raise NotImplementedError
@@ -656,8 +697,9 @@ class RegionGrowingAlgorithmBase:
             return precalculated
 
         # Smooth the distance array
-        with logger_context("Smoothing temporal data"):
-            smoothed = self.temporal_averaging()
+        if analysis.smoothed_distances is None:
+            with logger_context("Smoothing temporal data"):
+                analysis.smoothed_distances = self.temporal_averaging()
 
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
@@ -667,7 +709,7 @@ class RegionGrowingAlgorithmBase:
         seeds = analysis.seeds
         if seeds is None:
             with logger_context("Find seed candidates in time series"):
-                seeds = self.find_seedpoints(smoothed)
+                seeds = self.find_seedpoints()
                 analysis.seeds = seeds
         else:
             logger.info("Reusing seed candidates stored in analysis object")
@@ -699,7 +741,7 @@ class RegionGrowingAlgorithmBase:
                 max_segments = corepoints.cloud.shape[0] + 1
 
             data = _py4dgeo.RegionGrowingAlgorithmData(
-                smoothed,
+                analysis.smoothed_distances,
                 corepoints,
                 self.neighborhood_radius,
                 seed._seed,
@@ -783,7 +825,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # We use no-op smooting as the default implementation here
         return smoothed
 
-    def find_seedpoints(self, distances):
+    def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
         # These are some arguments used below that we might consider
@@ -808,9 +850,11 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         seeds = []
 
         # Iterate over all time series to analyse their change points
-        for i in range(0, distances.shape[0], self.seed_subsampling):
+        for i in range(
+            0, self.analysis.smoothed_distances.shape[0], self.seed_subsampling
+        ):
             # Extract the time series and interpolate its nan values
-            timeseries = distances[i, :]
+            timeseries = self.analysis.smoothed_distances[i, :]
             bad_indices = np.isnan(timeseries)
             num_nans = np.count_nonzero(bad_indices)
 
