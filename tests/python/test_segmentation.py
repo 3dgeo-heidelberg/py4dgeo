@@ -98,9 +98,7 @@ def test_modification_raises(analysis):
 
 
 def test_region_growing_algorithm(analysis, tmp_path):
-    algo = RegionGrowingAlgorithm(
-        neighborhood_radius=2.0, seed_subsampling=20, smoothing_window=24
-    )
+    algo = RegionGrowingAlgorithm(neighborhood_radius=2.0, seed_subsampling=20)
 
     # We need better testing data for this
     objects = algo.run(analysis)

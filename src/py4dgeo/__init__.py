@@ -6,6 +6,7 @@ from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
     SpatiotemporalAnalysis,
     regular_corepoint_grid,
+    temporal_averaging,
 )
 from py4dgeo.util import (
     ensure_test_data_availability,
