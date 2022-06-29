@@ -159,7 +159,7 @@ class SpatiotemporalAnalysis:
                 # Extract it from the archive
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     cpfile = zf.extract("corepoints.zip", path=tmp_dir)
-                    return Epoch.load(cpfile)
+                    self._corepoints = Epoch.load(cpfile)
 
         return self._corepoints
 
