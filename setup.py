@@ -8,7 +8,7 @@ setup(
     author_email="ssc@iwr.uni-heidelberg.de",
     description="Library for change detection in 4D point cloud data",
     long_description="",
-    long_description_type="text/markdown",
+    long_description_content_type="text/markdown",
     packages=["py4dgeo"],
     install_requires=[
         "dateparser",
