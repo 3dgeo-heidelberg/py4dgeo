@@ -41,11 +41,13 @@ The following sequence of commands is used to build `py4dgeo` from source:
 ```
 git clone --recursive https://github.com/3dgeo-heidelberg/py4dgeo.git
 cd py4dgeo
-python -m pip install --editable .
+python -m pip install -v --editable .
 ```
 
 The `--editable` flag allows you to change the Python sources of `py4dgeo` without
-reinstalling the package. To recompile the C++ source, please run `pip install` again.
+reinstalling the package. The `-v` flag enables verbose output which gives you
+detailed information about the compilation process that you should include into
+potential bug reports. To recompile the C++ source, please run `pip install` again.
 In order to enable multi-threading on builds from source, your compiler toolchain
 needs to support `OpenMP`.
 
