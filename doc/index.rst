@@ -7,3 +7,4 @@
    pythonapi
    cppapi
    callbacks
+   faq

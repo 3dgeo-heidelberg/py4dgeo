@@ -6,8 +6,10 @@ build-backend = "setuptools.build_meta"
 # Super-verbose output for debugging purpose
 build-verbosity = 3
 
-# We restrict ourselves to recent Python versions
-skip = "pp* *p27-* cp35-* cp36-* *musllinux*"
+# We restrict ourselves to recent Python versions.
+# We temporarily skip win32 builds, because lazrs
+# does not provide Win32 wheels.
+skip = "pp* *p27-* cp35-* cp36-* *musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"

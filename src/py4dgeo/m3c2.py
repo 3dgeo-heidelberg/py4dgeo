@@ -1,11 +1,8 @@
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
-    as_single_precision,
-    get_memory_policy,
     MemoryPolicy,
     Py4DGeoError,
-    get_memory_policy,
     make_contiguous,
     memory_policy_is_minimum,
 )
@@ -51,7 +48,7 @@ class M3C2LikeAlgorithm(abc.ABC):
                 raise Py4DGeoError(
                     "Corepoints need to be given as an array of shape nx3"
                 )
-            self._corepoints = as_single_precision(make_contiguous(_corepoints))
+            self._corepoints = as_double_precision(make_contiguous(_corepoints))
 
     @property
     def epochs(self):

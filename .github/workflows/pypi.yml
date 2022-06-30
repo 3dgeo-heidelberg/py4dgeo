@@ -22,8 +22,9 @@ jobs:
         include:
           - os: ubuntu-20.04
             arch: "x86_64"
-          - os: windows-2022
-            arch: "x86"
+          # Temporarily disable 32-bit builds on Windows until lazrs provides wheels for it.
+          #- os: windows-2022
+          #  arch: "x86"
           - os: windows-2022
             arch: "AMD64"
           - os: macos-11
@@ -35,7 +36,7 @@ jobs:
         submodules: 'recursive'
 
     - name: Build wheels (arch=${{ matrix.arch }})
-      uses: pypa/cibuildwheel@v2.5.0
+      uses: pypa/cibuildwheel@v2.7.0
       env:
         CIBW_ARCHS: "${{ matrix.arch }}"
 
@@ -106,7 +107,7 @@ jobs:
   upload_testpypi:
     needs: [build-sdist, test-sdist, build-wheels]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'ssciwr'
+    if: github.repository_owner == '3dgeo-heidelberg'
     steps:
       - uses: actions/download-artifact@v2
         with:
@@ -123,7 +124,7 @@ jobs:
   upload_pypi:
     needs: [build-sdist, build-wheels, upload_testpypi]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'ssciwr'
+    if: github.repository_owner == '3dgeo-heidelberg'
     steps:
       - uses: actions/download-artifact@v2
         with:

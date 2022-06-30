@@ -3,11 +3,12 @@ from skbuild import setup
 
 setup(
     name="py4dgeo",
-    version="0.3.0",
+    version="0.4.0",
     author="Dominic Kempf",
     author_email="ssc@iwr.uni-heidelberg.de",
     description="Library for change detection in 4D point cloud data",
     long_description="",
+    long_description_content_type="text/markdown",
     packages=["py4dgeo"],
     install_requires=[
         "dateparser",
