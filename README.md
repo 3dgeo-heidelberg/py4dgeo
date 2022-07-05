@@ -1,10 +1,10 @@
 # Welcome to py4dgeo
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/ssciwr/py4dgeo/CI)](https://github.com/ssciwr/py4dgeo/actions?query=workflow%3ACI)
+[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/3dgeo-heidelberg/py4dgeo/CI)](https://github.com/3dgeo-heidelberg/py4dgeo/actions?query=workflow%3ACI)
 [![PyPI Release](https://img.shields.io/pypi/v/py4dgeo.svg)](https://pypi.org/project/py4dgeo)
 [![Documentation Status](https://readthedocs.org/projects/py4dgeo/badge/)](https://py4dgeo.readthedocs.io/)
-[![codecov](https://codecov.io/gh/ssciwr/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/ssciwr/py4dgeo)
+[![codecov](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo)
 
 ![logo](py4dgeo_logo_mini.png)
 
@@ -15,7 +15,7 @@ It is currently *under active development*.
 
 Using py4dgeo requires the following software installed:
 
-* Python `>= 3.7`
+* Python `>= 3.8`
 
 In order to build the package from source, the following tools are also needed.
 
@@ -39,13 +39,15 @@ python -m pip install py4dgeo
 The following sequence of commands is used to build `py4dgeo` from source:
 
 ```
-git clone --recursive https://github.com/ssciwr/py4dgeo.git
+git clone --recursive https://github.com/3dgeo-heidelberg/py4dgeo.git
 cd py4dgeo
-python -m pip install --editable .
+python -m pip install -v --editable .
 ```
 
 The `--editable` flag allows you to change the Python sources of `py4dgeo` without
-reinstalling the package. To recompile the C++ source, please run `pip install` again.
+reinstalling the package. The `-v` flag enables verbose output which gives you
+detailed information about the compilation process that you should include into
+potential bug reports. To recompile the C++ source, please run `pip install` again.
 In order to enable multi-threading on builds from source, your compiler toolchain
 needs to support `OpenMP`.
 

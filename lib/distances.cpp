@@ -97,9 +97,8 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
   std::vector<IndexType> merged;
   for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i) {
     auto qp = (params.corepoint.row(0) +
-               (static_cast<float>(2 * i + 1 - N) / static_cast<float>(N)) *
-                 static_cast<float>(cylinder_length) *
-                 params.cylinder_axis.cast<float>().row(0))
+               (static_cast<double>(2 * i + 1 - N) / static_cast<double>(N)) *
+                 cylinder_length * params.cylinder_axis.row(0))
                 .eval();
     KDTree::RadiusSearchResult ball_points;
     params.epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
@@ -110,8 +109,7 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
 
     // Calculate the squared distances to the cylinder axis and to the plane
     // perpendicular to the axis that contains the corepoint
-    auto to_midpoint =
-      (superset.cast<double>().rowwise() - qp.cast<double>().row(0)).eval();
+    auto to_midpoint = (superset.rowwise() - qp.row(0)).eval();
     auto to_midpoint_plane =
       (to_midpoint * params.cylinder_axis.transpose()).eval();
     auto to_axis2 = (to_midpoint - to_midpoint_plane * params.cylinder_axis)
@@ -123,7 +121,7 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
     // be a version using Eigen masks, but I could not find it.
     for (Eigen::Index i = 0; i < superset.rows(); ++i)
       if ((to_axis2(i) <= params.radius * params.radius) &&
-          (std::abs(to_midpoint_plane(i)) <= (cylinder_length / N)))
+          (std::abs(to_midpoint_plane(i)) < (cylinder_length / N)))
         merged.push_back(ball_points[i]);
   }
 
@@ -136,7 +134,7 @@ variance(EigenPointCloudConstRef subset,
          const Eigen::Matrix<double, 1, 3>& mean,
          EigenNormalSetConstRef direction)
 {
-  auto centered = subset.cast<double>().rowwise() - mean;
+  auto centered = subset.rowwise() - mean;
   auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
   auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
   return multiplied.eval()(0, 0);
@@ -147,8 +145,8 @@ mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params)
 {
   std::tuple<double, DistanceUncertainty> ret;
 
-  auto mean1 = params.workingset1.cast<double>().colwise().mean().eval();
-  auto mean2 = params.workingset2.cast<double>().colwise().mean().eval();
+  auto mean1 = params.workingset1.colwise().mean().eval();
+  auto mean2 = params.workingset2.colwise().mean().eval();
   std::get<0>(ret) = params.normal.row(0).dot(mean2 - mean1);
 
   double variance1 = variance(params.workingset1, mean1, params.normal);
@@ -219,12 +217,8 @@ std::tuple<double, DistanceUncertainty>
 median_iqr_distance(const DistanceUncertaintyCalculationParameters& params)
 {
   // Calculate distributions across the cylinder axis
-  auto dist1 =
-    (params.workingset1.cast<double>() * params.normal.row(0).transpose())
-      .eval();
-  auto dist2 =
-    (params.workingset2.cast<double>() * params.normal.row(0).transpose())
-      .eval();
+  auto dist1 = (params.workingset1 * params.normal.row(0).transpose()).eval();
+  auto dist2 = (params.workingset2 * params.normal.row(0).transpose()).eval();
 
   // Find median and interquartile range of that distribution
   auto [med1, iqr1] = median(dist1);

@@ -26,7 +26,6 @@ def test_epoch_pickle(epochs):
 
         # Assert that the two object behave the same
         assert loaded.cloud.shape[0] == epoch1.cloud.shape[0]
-        assert np.allclose(loaded.geographic_offset, epoch1.geographic_offset)
         assert np.allclose(
             loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
@@ -46,25 +45,21 @@ def test_epoch_saveload(epochs):
 
         # Assert that the two object behave the same
         assert loaded.cloud.shape[0] == epoch1.cloud.shape[0]
-        assert np.allclose(loaded.geographic_offset, epoch1.geographic_offset)
         assert np.allclose(
             loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
         )
 
 
-@pytest.mark.parametrize("geographic_offset", [None, np.array([1, 0, 0])])
 @pytest.mark.parametrize("timestamp", [datetime.datetime.utcnow(), "25. November 1986"])
-def test_epoch_metadata_setters(epochs, geographic_offset, timestamp):
+def test_epoch_metadata_setters(epochs, timestamp):
     epoch, _ = epochs
 
     # Use all the property setters
-    epoch.geographic_offset = geographic_offset
     epoch.timestamp = timestamp
 
     # Test reconstruction of an Epoch from exported metadata
     epoch2 = Epoch(epoch.cloud, **epoch.metadata)
-    assert np.allclose(epoch.geographic_offset, epoch2.geographic_offset)
     assert epoch.timestamp - epoch2.timestamp == datetime.timedelta()
 
 
