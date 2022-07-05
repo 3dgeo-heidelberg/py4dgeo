@@ -1,7 +1,60 @@
+# This section describes the requirements of the build/installation
+# process itself. Being able to do this was the original reason to
+# introduce pyproject.toml
 [build-system]
-requires = ["setuptools>=42", "wheel", "scikit-build", "cmake>=3.17"]
+requires = ["setuptools>=61", "wheel", "scikit-build", "cmake>=3.17"]
 build-backend = "setuptools.build_meta"
 
+# This section provides general project metadata that is used across
+# a variety of build tools. Notably, the version specified here is the
+# single source of truth for py4dgeo's version
+[project]
+name = "py4dgeo"
+version = "0.4.0"
+description = "Library for change detection in 4D point cloud data"
+readme = "README.md"
+maintainers = [
+    { name = "Dominic Kempf", email = "ssc@iwr.uni-heidelberg.de" },
+]
+requires-python = ">=3.8"
+license = { file = "LICENSE.md" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Intended Audience :: Science/Research",
+]
+dependencies = [
+    "dateparser",
+    "laspy[lazrs]>=2.0,<3.0",
+    "matplotlib",
+    "numpy",
+    "requests",
+    "ruptures",
+    "seaborn",
+    "xdg",
+]
+
+# Command line scripts installed as part of the installation
+[project.scripts]
+copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
+
+# The following are options specific to the setuptools build backend
+# that was selected in the build-system section. An overview of
+# available options is available in the setuptools documentation:
+# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
+[tool.setuptools]
+packages = [
+    "py4dgeo"
+]
+package-dir = {"" = "src"}
+zip-safe = false
+
+# The next section configures building wheels in Continuous Integration
+# The cibuildwheel documentation covers the available options in detail:
+# https://cibuildwheel.readthedocs.io/en/stable/options/
 [tool.cibuildwheel]
 # Super-verbose output for debugging purpose
 build-verbosity = 3
@@ -9,7 +62,7 @@ build-verbosity = 3
 # We restrict ourselves to recent Python versions.
 # We temporarily skip win32 builds, because lazrs
 # does not provide Win32 wheels.
-skip = "pp* *p27-* cp35-* cp36-* *musllinux* *-win32"
+skip = "pp* *p27-* cp35-* cp36-* cp37-* *musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
