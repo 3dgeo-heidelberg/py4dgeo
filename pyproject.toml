@@ -41,16 +41,9 @@ dependencies = [
 [project.scripts]
 copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 
-# The following are options specific to the setuptools build backend
-# that was selected in the build-system section. An overview of
-# available options is available in the setuptools documentation:
-# https://setuptools.pypa.io/en/latest/userguide/pyproject_config.html
-[tool.setuptools]
-packages = [
-    "py4dgeo"
-]
-package-dir = {"" = "src"}
-zip-safe = false
+# NB: Setuptools-specific build options are currently still stored
+#     in setup.py, as scikit-build is not (yet) supporting PEP621.
+#     Later on, these will be stored in [tool.setuptools]
 
 # The next section configures building wheels in Continuous Integration
 # The cibuildwheel documentation covers the available options in detail:
