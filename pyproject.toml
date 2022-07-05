@@ -71,3 +71,14 @@ test-requires = ["pytest"]
 [tool.cibuildwheel.macos]
 before-all = "brew install libomp"
 environment = { OpenMP_ROOT="$(brew --prefix libomp)" }
+
+# The following is the configuration for the pytest test suite
+[tool.pytest.ini_options]
+testpaths = [
+    "tests/python",
+    "jupyter",
+]
+filterwarnings = [
+    "ignore:The localize method is no longer necessary, as this time zone supports the fold attribute",
+    "ignore:distutils Version classes are deprecated. Use packaging.version instead.",
+]
