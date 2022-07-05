@@ -15,7 +15,7 @@ It is currently *under active development*.
 
 Using py4dgeo requires the following software installed:
 
-* Python `>= 3.7`
+* Python `>= 3.8`
 
 In order to build the package from source, the following tools are also needed.
 

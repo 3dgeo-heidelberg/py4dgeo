@@ -24,9 +24,6 @@ project = "py4dgeo"
 copyright = "2021, Scientific Software Center, Heidelberg University"
 author = "Dominic Kempf"
 
-# The full version, including alpha/beta/rc tags
-release = "0.4.0"
-
 # -- General configuration ---------------------------------------------------
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -80,3 +77,8 @@ if os.environ.get("READTHEDOCS", "False") == "True":
 
     # Make sure to also install the Python package on RTD
     subprocess.check_call("python -m pip install ..".split())
+
+# The full version, including alpha/beta/rc tags
+import py4dgeo
+
+release = py4dgeo.__version__

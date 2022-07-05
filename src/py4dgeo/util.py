@@ -10,6 +10,8 @@ import tarfile
 import tempfile
 import xdg
 
+from importlib import metadata
+
 import py4dgeo._py4dgeo as _py4dgeo
 
 
@@ -19,6 +21,9 @@ TEST_DATA_CHECKSUM = "7b459de25c210da3c4815b19b09647dfc73cff0c692954cd7ec29b166e
 
 # The directory where to place
 _test_data_dir = tempfile.TemporaryDirectory()
+
+# Read the version from package metadata
+__version__ = metadata.version(__package__)
 
 
 class Py4DGeoError(Exception):
