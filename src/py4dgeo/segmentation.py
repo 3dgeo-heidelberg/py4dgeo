@@ -44,7 +44,7 @@ class SpatiotemporalAnalysis:
 
         :param filename:
             The filename used for this analysis. If it does not exist on the file
-            system, a new analysis is created. Otherwise, the data is loaded.
+            system, a new analysis is created. Otherwise, the data is loaded from the existent file.
         :type filename: str
         :param compress:
             Whether to compress the stored data. This is a tradeoff decision between
@@ -608,7 +608,7 @@ class RegionGrowingAlgorithmBase:
         This class can be derived from to customize the algorithm behaviour.
 
         :param neighborhood_radius:
-            The size of the neighborhood of a corepoint. All corepoints within
+            The size of the neighborhood of a core point. All core points within
             this radius are considered adjacent and are therefore considered as
             candidates for inclusion in the region growing algorithm.
         :type neighborhood_radius: float
@@ -617,11 +617,11 @@ class RegionGrowingAlgorithmBase:
             thresholding procedure.
         :type thresholds: list
         :param min_segments:
-            The minimum number of core points in an object by change. Defaults to
+            The minimum number of core points in an object-by-change. Defaults to
             20.
         :type min_segments: int
         :param max_segments:
-            The maximum number of core points in an object by change. This is mainly
+            The maximum number of core points in an object-by-change. This is mainly
             used to bound the runtime of expensive region growing. By default, no
             maximum is applied.
         :type max_segments: int
@@ -682,11 +682,11 @@ class RegionGrowingAlgorithmBase:
         """Calculate the segmentation
 
         :param analysis:
-            The analysis object we are working with
+            The analysis object we are working with.
         :type analysis: py4dgeo.segmentation.SpatiotemporalAnalysis
         :param force:
             Force recalculation of results. If false, some intermediate results will be
-            restored from the analysis object instead of being recalculated
+            restored from the analysis object instead of being recalculated.
         """
 
         # Make the analysis object known to all members
@@ -791,20 +791,27 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         """Construct the 4D-OBC algorithm.
 
         :param seed_subsampling:
-            A subsampling factor for the set of corepoints for the generation
-            of region growing seed candidates. This can be used to speed up
+            A subsampling factor for the set of core points for the generation
+            of segmentation seed candidates. This can be used to speed up
             the generation of seeds. The default of 1 does not perform any
-            subsampling, a value of e.g. 10 would only consider every 10th
+            subsampling, a value of, e.g., 10 would only consider every 10th
             corepoint for adding seeds.
         :type seed_subsampling: int
         :param window_width:
-            TODO
+            The width of the sliding temporal window for change point detection. The sliding window
+            moves along the signal and determines the discrepancy between the first and the second
+            half of the window (i.e. subsequent time series segments within the window width). The
+            default value is 24, corresponding to one day in case of hourly data.
         :type window_width: int
         :param minperiod:
-            TODO
+            The minimum period of a detected change to be considered as seed candidate for subsequent
+            segmentation. The default is 24, corresponding to one day for hourly data.
         :type minperiod: int
         :param height_threshold:
-            TODO
+            The height threshold represents the required magnitude of a dectected change to be considered
+            as seed candidate for subsequent segmentation. The magnitude of a detected change is derived
+            as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
+            The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float
         """
 
@@ -1100,10 +1107,10 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
     :type upperright: nd.ndarray
     :param num_points:
         A tuple with two entries denoting the number of points to be used in
-        x and y direction
+        x and y direction.
     :type num_points: tuple
     :param zval:
-        The value to fill for the z-direction.
+        The value to fill for the z direction.
     :type zval: double
     """
     xspace = np.linspace(
