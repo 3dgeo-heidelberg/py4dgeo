@@ -15,7 +15,7 @@ namespace py4dgeo {
  * interoperability with numpy's multidimensional arrays.
  */
 using EigenPointCloud =
-  Eigen::Matrix<float, Eigen::Dynamic, 3, Eigen::RowMajor>;
+  Eigen::Matrix<double, Eigen::Dynamic, 3, Eigen::RowMajor>;
 
 /** @brief A non-const reference type for passing around @ref EigenPointCloud
  *

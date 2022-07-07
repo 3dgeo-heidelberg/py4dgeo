@@ -22,14 +22,14 @@ jobs:
         openmp: ['ON', 'OFF']
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.7
+        python-version: 3.8
 
     - name: Install OpenMP
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
@@ -73,14 +73,14 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.7
+        python-version: 3.8
 
     - name: Install LCov
       run: |
@@ -141,12 +141,12 @@ jobs:
       ASAN_OPTIONS: "detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
 
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: 3.9
 

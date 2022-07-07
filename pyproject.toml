@@ -1,13 +1,61 @@
+# This section describes the requirements of the build/installation
+# process itself. Being able to do this was the original reason to
+# introduce pyproject.toml
 [build-system]
-requires = ["setuptools>=42", "wheel", "scikit-build", "cmake>=3.17"]
+requires = ["setuptools>=61", "wheel", "scikit-build", "cmake>=3.17"]
 build-backend = "setuptools.build_meta"
 
+# This section provides general project metadata that is used across
+# a variety of build tools. Notably, the version specified here is the
+# single source of truth for py4dgeo's version
+[project]
+name = "py4dgeo"
+version = "0.4.0"
+description = "Library for change detection in 4D point cloud data"
+readme = "README.md"
+maintainers = [
+    { name = "Dominic Kempf", email = "ssc@iwr.uni-heidelberg.de" },
+]
+requires-python = ">=3.8"
+license = { file = "LICENSE.md" }
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
+    "Operating System :: OS Independent",
+    "License :: OSI Approved :: MIT License",
+    "Topic :: Scientific/Engineering :: GIS",
+    "Intended Audience :: Science/Research",
+]
+dependencies = [
+    "dateparser",
+    "laspy[lazrs]>=2.0,<3.0",
+    "matplotlib",
+    "numpy",
+    "requests",
+    "ruptures",
+    "seaborn",
+    "xdg",
+]
+
+# Command line scripts installed as part of the installation
+[project.scripts]
+copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
+
+# NB: Setuptools-specific build options are currently still stored
+#     in setup.py, as scikit-build is not (yet) supporting PEP621.
+#     Later on, these will be stored in [tool.setuptools]
+
+# The next section configures building wheels in Continuous Integration
+# The cibuildwheel documentation covers the available options in detail:
+# https://cibuildwheel.readthedocs.io/en/stable/options/
 [tool.cibuildwheel]
 # Super-verbose output for debugging purpose
 build-verbosity = 3
 
-# We restrict ourselves to recent Python versions
-skip = "pp* *p27-* cp35-* cp36-* *musllinux*"
+# We restrict ourselves to recent Python versions.
+# We temporarily skip win32 builds, because lazrs
+# does not provide Win32 wheels.
+skip = "pp* *p27-* cp35-* cp36-* cp37-* *musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
@@ -16,3 +64,14 @@ test-requires = ["pytest"]
 [tool.cibuildwheel.macos]
 before-all = "brew install libomp"
 environment = { OpenMP_ROOT="$(brew --prefix libomp)" }
+
+# The following is the configuration for the pytest test suite
+[tool.pytest.ini_options]
+testpaths = [
+    "tests/python",
+    "jupyter",
+]
+filterwarnings = [
+    "ignore:The localize method is no longer necessary, as this time zone supports the fold attribute",
+    "ignore:distutils Version classes are deprecated. Use packaging.version instead.",
+]
