@@ -704,13 +704,20 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             corepoint for adding seeds.
         :type seed_subsampling: int
         :param window_width:
-            The width of the sliding temporal window for change point detection. The sliding window moves along the signal and determines the discrepancy between the first and the second half of the window (i.e. subsequent time series segments within the window width). The default value is 24, corresponding to one day in case of hourly data.
+            The width of the sliding temporal window for change point detection. The sliding window
+            moves along the signal and determines the discrepancy between the first and the second
+            half of the window (i.e. subsequent time series segments within the window width). The
+            default value is 24, corresponding to one day in case of hourly data.
         :type window_width: int
         :param minperiod:
-            The minimum period of a detected change to be considered as seed candidate for subsequent segmentation. The default is 24, corresponding to one day for hourly data.
+            The minimum period of a detected change to be considered as seed candidate for subsequent
+            segmentation. The default is 24, corresponding to one day for hourly data.
         :type minperiod: int
         :param height_threshold:
-            The height threshold represents the required magnitude of a dectected change to be considered as seed candidate for subsequent segmentation. The magnitude of a detected change is derived as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude. The default is 0.0, in which case all detected changes are used as seed candidates.
+            The height threshold represents the required magnitude of a dectected change to be considered
+            as seed candidate for subsequent segmentation. The magnitude of a detected change is derived
+            as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
+            The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float
         """
 
