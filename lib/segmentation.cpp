@@ -9,6 +9,8 @@
 #include <set>
 #include <unordered_set>
 #include <vector>
+#include <numeric>
+#include <algorithm>
 
 namespace py4dgeo {
 
@@ -205,12 +207,266 @@ normalized_dtw_distance(const TimeseriesDistanceFunctionData& data)
   return std::fmin(1.0, 1.0 - (max_dist - dtw_distance(data)) / max_dist);
 }
 
+IndexType median_calculation(std::vector<IndexType> &signal) // the function change the vector
+{
+  if(signal.empty()) {//what we should return, exeption or 0?
+    return 0.0; 
+  }
+  auto n = signal.size() / 2;
+  nth_element(signal.begin(), signal.begin()+n, signal.end());
+  auto med = signal[n];
+  if(!(signal.size() & 1)) { //If the set size is even
+    auto max_it = max_element(signal.begin(), signal.begin()+n);
+    med = (*max_it + med) / 2.0;
+  }
+  return med;    
+}
+
+
+std::vector<IndexType> local_maxima_calculation(std::vector<IndexType> &signal, IndexType order)
+{
+    std::vector<IndexType> result;
+
+    if (signal.empty())
+    { // what we should return, exeption or 0?
+        // cout<<"The signal is empty";
+        return result;
+    }
+    if (order < 1)
+    { // what we should return, exeption or 0?
+        // cout<<"Order in local_maxima_calculation function should be >= 1";
+        return result;
+    }
+    auto n = signal.size();
+    if (n == 1)
+    {
+        // cout<<"The signal contains only one element";
+        return result;
+    }
+    
+    bool first_is_max = false;
+    bool last_is_max = false;
+    bool find_max = false;
+
+    auto current = signal.begin();
+
+    auto right_array_left_index = signal.begin() + 1;
+    auto right_array_right_index = signal.begin() + order + 1;
+
+    auto left_array_left_index = signal.begin();
+    auto left_array_right_index = signal.begin();
+
+    // std::vector<double>::const_iterator right_array_left_index = signal.begin() + 1;
+    // std::vector<double>::const_iterator right_array_right_index = signal.begin() + order;
+
+    auto max_right_array = std::max_element(right_array_left_index, right_array_right_index);
+    auto max_left_array = std::max_element(left_array_left_index, left_array_right_index);
+
+    auto distance_range = 0;
+    auto max_right_array_num = 0.0;
+    auto max_left_array_num = 0.0;
+    auto second_max = 0.0;
+
+    while (current < signal.end()) // check main part of signal
+    {
+        max_left_array = std::max_element(left_array_left_index, left_array_right_index);
+        max_right_array = std::max_element(right_array_left_index, right_array_right_index);
+        max_left_array_num = *max_left_array;
+        max_right_array_num = *max_right_array;
+
+        if (current < signal.begin() + order)
+        {
+            distance_range = order - distance(left_array_left_index, left_array_right_index);
+            if (distance_range == order)
+                max_left_array_num = *(std::max_element((signal.end() - distance_range), signal.end()));
+            else
+                max_left_array_num = max(*max_left_array, *(std::max_element((signal.end() - distance_range), signal.end())));
+        }
+
+        else if (current > signal.end() - order - 1)
+        {
+            distance_range = order - distance(right_array_left_index, right_array_right_index);
+            if (distance_range == order)
+                max_right_array_num = *(std::max_element(signal.begin(), signal.begin() + distance_range));
+            else
+                max_right_array_num = max(*max_right_array, *(std::max_element(signal.begin(), signal.begin() + distance_range)));
+        }
+
+        else
+        {
+        }
+
+        if (*current > max_left_array_num && *current > max_right_array_num)
+        {
+            auto item_index = current - signal.begin();
+            result.push_back(item_index);
+            // find_max = true;
+            current = current + order + 1;
+        }
+
+        else
+        {
+            // find_max = false;
+            current++;
+        }
+
+        right_array_left_index = current + 1;
+        if (current > signal.end() - order - 1)
+            right_array_right_index = signal.end();
+        else
+            right_array_right_index = current + order + 1;
+        left_array_right_index = current;
+        if (current < signal.begin() + order)
+            left_array_left_index = signal.begin();
+        else
+            left_array_left_index = current - order;
+    }
+
+    return result;
+}
+
+
+IndexType cost_L1_error(std::vector<IndexType> &signal, int start, int end, IndexType min_size)
+{
+  if (end - start < min_size){
+    //cout << "End - Start < min_size"<<endl;
+  }
+  std::vector<IndexType> signal_subvector(signal.begin() + start, signal.begin() + end);
+  
+  IndexType median = median_calculation(signal_subvector);
+  IndexType sum_result = 0;
+
+  for(auto& element : signal_subvector){
+    element = abs(element - median);
+    sum_result +=element;
+  } 
+
+  return sum_result;    
+}
+
+std::vector<IndexType> fit_change_point_detection(std::vector<IndexType> &signal, IndexType width, IndexType jump, IndexType min_size)
+{
+    std::vector<IndexType> score;
+    score.reserve(signal.size());
+    IndexType gain;
+    int half_of_width = width / 2; 
+    
+    for (int i = half_of_width; i < (signal.size() - half_of_width); i+=jump){
+        //cout << i << endl;
+        int start = i - half_of_width;
+        int end = i + half_of_width;
+        gain = cost_L1_error(signal, start, end,min_size);
+        if (gain < 0){
+            score.push_back(0);
+        }
+        gain -= cost_L1_error(signal, start, i, min_size) + cost_L1_error(signal, i, end, min_size);
+        score.push_back(gain);
+    }
+  return score;
+}
+
+IndexType sum_of_costs(std::vector<IndexType> &signal, std::vector<IndexType> &bkps, IndexType min_size)
+{
+  IndexType result = 0;
+  int start = 0;
+  int end = 0;
+  for (auto i : bkps){
+      end = i;
+      result += cost_L1_error(signal,start,end, min_size);
+      start = end;
+  } 
+  return result;    
+}
+
+std::vector<IndexType> predict_change_point_detection(
+    std::vector<IndexType> &signal, std::vector<IndexType> &score, 
+    IndexType width, IndexType jump, IndexType min_size, IndexType pen)
+{
+    std::vector<IndexType> bkps;
+    bkps.reserve(100);
+    int bkp;
+    IndexType gain;
+    int n_samples = signal.size();
+    bkps.push_back(n_samples);
+    bool stop = false;
+    IndexType error = sum_of_costs(signal,bkps,min_size);
+    
+    //forcing order to be above one in case jump is too large
+    int order = max(max(width, 2 * min_size) / (2 * jump), 1);
+
+    std::vector<int> inds;
+    inds.reserve(signal.size());
+    
+    int half_of_width = width / 2; 
+    for (int i = half_of_width; i < (signal.size() - half_of_width); i+=jump){
+        inds.push_back(i);
+        //cout<<"inds:"<<i<<endl;
+    }
+    
+    std::vector<IndexType> peak_inds_shifted_indx;
+    
+    peak_inds_shifted_indx = local_maxima_calculation(score,order);
+    
+    std::vector<IndexType> gains;
+    std::vector<IndexType> peak_inds_arr;
+    std::vector<IndexType> peak_inds;
+
+    for(auto i : peak_inds_shifted_indx){
+        gains.push_back(score[i]);
+        //cout<<"i:"<<score[i]<<endl;
+        peak_inds_arr.push_back(inds[i]);
+        //cout<<"p:"<<inds[i]<<endl;
+    }
+
+    std::vector<int> index_vec (peak_inds_arr.size());
+    std::iota(index_vec.begin(), index_vec.end(), 0);
+    std::sort(index_vec.begin(), index_vec.end(), [&](int a, int b) { return gains[a] < gains[b]; });
+
+    for (auto i : index_vec) {
+        peak_inds.push_back(peak_inds_arr[i]);        
+        //std::cout << "peak_inds_arr:" << peak_inds_arr[i] << "\n";
+    }
+
+    while (!stop)
+    {
+        stop = true;
+        if(peak_inds.size()!=0){
+            bkp = peak_inds.back();
+            peak_inds.pop_back();
+        }
+        else{
+            break;
+        }
+        
+        if (pen > 0){
+            std::vector<IndexType> temp_bkps = bkps;
+            temp_bkps.push_back(bkp);
+            sort(temp_bkps.begin(), temp_bkps.end());
+            gain = error - sum_of_costs(signal,temp_bkps, min_size);
+            if (gain > pen){
+                stop = false;
+            }
+        }
+
+        if(!stop){
+            bkps.push_back(bkp);
+            sort(bkps.begin(), bkps.end());
+            error = sum_of_costs(signal,bkps,min_size);
+        }
+
+    }
+  return bkps;
+}
+
 std::vector<IndexType>
 change_point_detection(const ChangePointDetectionData& data)
 {
   std::vector<IndexType> changepoints;
 
-  // TODO: Implement detection here
+  std::vector<IndexType> score;
+  score.reserve(data.ts.size());
+  score = fit_change_point_detection(data.ts, data.window_width,data.jump,data.min_size);
+  changepoints = predict_change_point_detection(data.ts,score,data.window_width,data.jump,data.min_size,data.penalty);
 
   return changepoints;
 }
