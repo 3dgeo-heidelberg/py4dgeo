@@ -206,206 +206,230 @@ normalized_dtw_distance(const TimeseriesDistanceFunctionData& data)
   return std::fmin(1.0, 1.0 - (max_dist - dtw_distance(data)) / max_dist);
 }
 
-IndexType median_calculation(std::vector <IndexType>& subsignal) 
-{// function calculate median of the vector
- // the function change the vector
-  if(subsignal.empty()) {//what we should return, exeption or 0?
-    return 0.0; 
+IndexType
+median_calculation(std::vector<IndexType>& subsignal)
+{                          // function calculate median of the vector
+                           // the function change the vector
+  if (subsignal.empty()) { // what we should return, exeption or 0?
+    return 0.0;
   }
   auto n = subsignal.size() / 2;
-  std::nth_element(subsignal.begin(), subsignal.begin()+n, subsignal.end());
+  std::nth_element(subsignal.begin(), subsignal.begin() + n, subsignal.end());
   auto med = subsignal[n];
-  if(!(subsignal.size() & 1)) { //If the set size is even
-    auto max_it = std::max_element(subsignal.begin(), subsignal.begin()+n);
+  if (!(subsignal.size() & 1)) { // If the set size is even
+    auto max_it = std::max_element(subsignal.begin(), subsignal.begin() + n);
     med = (*max_it + med) / 2.0;
   }
   return med;
 }
 
-
-std::vector<IndexType> local_maxima_calculation(std::vector<IndexType> &score, IndexType order)
+std::vector<IndexType>
+local_maxima_calculation(std::vector<IndexType>& score, IndexType order)
 {
-    std::vector<IndexType> result;
-    //Exceptions
-    if (score.empty())
-    { // what we should return, exeption or 0?
-        // cout<<"The score is empty";
-        return result;
+  std::vector<IndexType> result;
+  // Exceptions
+  if (score.empty()) { // what we should return, exeption or 0?
+    // cout<<"The score is empty";
+    return result;
+  }
+  if (order < 1) { // what we should return, exeption or 0?
+    // cout<<"Order in local_maxima_calculation function should be >= 1";
+    return result;
+  }
+  auto n = score.size();
+  if (n == 1) {
+    // cout<<"The score contains only one element";
+    return result;
+  }
+  //
+
+  bool first_is_max = false;
+  bool last_is_max = false;
+  bool find_max = false;
+
+  auto current = score.begin();
+
+  auto right_array_left_index = score.begin() + 1;
+  auto right_array_right_index = score.begin() + order + 1;
+
+  auto left_array_left_index = score.begin();
+  auto left_array_right_index = score.begin();
+
+  // std::vector<double>::const_iterator right_array_left_index = score.begin()
+  // + 1; std::vector<double>::const_iterator right_array_right_index =
+  // score.begin() + order;
+
+  auto max_right_array =
+    std::max_element(right_array_left_index, right_array_right_index);
+  auto max_left_array =
+    std::max_element(left_array_left_index, left_array_right_index);
+
+  auto distance_range = 0;
+  auto max_right_array_num = 0.0;
+  auto max_left_array_num = 0.0;
+  auto second_max = 0.0;
+
+  while (current < score.end()) // check main part of score
+  {
+    max_left_array =
+      std::max_element(left_array_left_index, left_array_right_index);
+    max_right_array =
+      std::max_element(right_array_left_index, right_array_right_index);
+    max_left_array_num = *max_left_array;
+    max_right_array_num = *max_right_array;
+
+    if (current < score.begin() + order) {
+      distance_range =
+        order - std::distance(left_array_left_index, left_array_right_index);
+      if (distance_range == order)
+        max_left_array_num =
+          *(std::max_element((score.end() - distance_range), score.end()));
+      else
+        max_left_array_num = std::max(
+          *max_left_array,
+          *(std::max_element((score.end() - distance_range), score.end())));
     }
-    if (order < 1)
-    { // what we should return, exeption or 0?
-        // cout<<"Order in local_maxima_calculation function should be >= 1";
-        return result;
+
+    else if (current > score.end() - order - 1) {
+      distance_range =
+        order - std::distance(right_array_left_index, right_array_right_index);
+      if (distance_range == order)
+        max_right_array_num =
+          *(std::max_element(score.begin(), score.begin() + distance_range));
+      else
+        max_right_array_num = std::max(
+          *max_right_array,
+          *(std::max_element(score.begin(), score.begin() + distance_range)));
     }
-    auto n = score.size();
-    if (n == 1)
-    {
-        // cout<<"The score contains only one element";
-        return result;
+
+    if (*current > max_left_array_num && *current > max_right_array_num) {
+      auto item_index = current - score.begin();
+      result.push_back(item_index);
+      // find_max = true;
+      current = current + order + 1;
     }
-    //
-    
-    bool first_is_max = false;
-    bool last_is_max = false;
-    bool find_max = false;
 
-    auto current = score.begin();
-
-    auto right_array_left_index = score.begin() + 1;
-    auto right_array_right_index = score.begin() + order + 1;
-
-    auto left_array_left_index = score.begin();
-    auto left_array_right_index = score.begin();
-
-    // std::vector<double>::const_iterator right_array_left_index = score.begin() + 1;
-    // std::vector<double>::const_iterator right_array_right_index = score.begin() + order;
-
-    auto max_right_array = std::max_element(right_array_left_index, right_array_right_index);
-    auto max_left_array = std::max_element(left_array_left_index, left_array_right_index);
-
-    auto distance_range = 0;
-    auto max_right_array_num = 0.0;
-    auto max_left_array_num = 0.0;
-    auto second_max = 0.0;
-
-    while (current < score.end()) // check main part of score
-    {
-        max_left_array = std::max_element(left_array_left_index, left_array_right_index);
-        max_right_array = std::max_element(right_array_left_index, right_array_right_index);
-        max_left_array_num = *max_left_array;
-        max_right_array_num = *max_right_array;
-
-        if (current < score.begin() + order)
-        {
-            distance_range = order - std::distance(left_array_left_index, left_array_right_index);
-            if (distance_range == order)
-                max_left_array_num = *(std::max_element((score.end() - distance_range), score.end()));
-            else
-                max_left_array_num = std::max(*max_left_array, *(std::max_element((score.end() - distance_range), score.end())));
-        }
-
-        else if (current > score.end() - order - 1)
-        {
-            distance_range = order - std::distance(right_array_left_index, right_array_right_index);
-            if (distance_range == order)
-                max_right_array_num = *(std::max_element(score.begin(), score.begin() + distance_range));
-            else
-                max_right_array_num = std::max(*max_right_array, *(std::max_element(score.begin(), score.begin() + distance_range)));
-        }
-
-        if (*current > max_left_array_num && *current > max_right_array_num)
-        {
-            auto item_index = current - score.begin();
-            result.push_back(item_index);
-            // find_max = true;
-            current = current + order + 1;
-        }
-
-        else
-        {
-            // find_max = false;
-            current++;
-        }
-
-        right_array_left_index = current + 1;
-        if (current > score.end() - order - 1)
-            right_array_right_index = score.end();
-        else
-            right_array_right_index = current + order + 1;
-        left_array_right_index = current;
-        if (current < score.begin() + order)
-            left_array_left_index = score.begin();
-        else
-            left_array_left_index = current - order;
+    else {
+      // find_max = false;
+      current++;
     }
+
+    right_array_left_index = current + 1;
+    if (current > score.end() - order - 1)
+      right_array_right_index = score.end();
+    else
+      right_array_right_index = current + order + 1;
+    left_array_right_index = current;
+    if (current < score.begin() + order)
+      left_array_left_index = score.begin();
+    else
+      left_array_left_index = current - order;
+  }
   return result;
 }
 
-IndexType cost_L1_error(EigenTimeSeriesConstRef signal, int start, int end, IndexType min_size)
-{ // the function calculate error with cost function "l1" 
- 
-  //if (end - start < min_size){ // exeption
-  //  //std::cout << "End - Start < min_size"<<endl;
-  //}
-  std::vector<IndexType> signal_subvector(signal.begin() + start, signal.begin() + end);
-  
+IndexType
+cost_L1_error(EigenTimeSeriesConstRef signal,
+              int start,
+              int end,
+              IndexType min_size)
+{ // the function calculate error with cost function "l1"
+
+  // if (end - start < min_size){ // exeption
+  //   //std::cout << "End - Start < min_size"<<endl;
+  // }
+  std::vector<IndexType> signal_subvector(signal.begin() + start,
+                                          signal.begin() + end);
+
   IndexType median = median_calculation(signal_subvector);
   IndexType sum_result = 0;
 
-  for(auto& element : signal_subvector){
-    element = std::abs(element - median); // todo we can delete writing to vector
-    sum_result +=element;
-  } 
-  return sum_result;    
+  for (auto& element : signal_subvector) {
+    element =
+      std::abs(element - median); // todo we can delete writing to vector
+    sum_result += element;
+  }
+  return sum_result;
 }
 
-std::vector<IndexType> fit_change_point_detection(EigenTimeSeriesConstRef signal, IndexType width, IndexType jump, IndexType min_size)
+std::vector<IndexType>
+fit_change_point_detection(EigenTimeSeriesConstRef signal,
+                           IndexType width,
+                           IndexType jump,
+                           IndexType min_size)
 {
-    std::vector<IndexType> score;
-    score.reserve(signal.size());
-    IndexType gain;
-    auto half_of_width = width / 2; 
-    
-    for (auto i = half_of_width; i < (signal.size() - half_of_width); i += jump){
-        auto start = i - half_of_width;
-        auto end = i + half_of_width;
-        gain = cost_L1_error(signal, start, end, min_size);
-        if (gain < 0){
-            score.push_back(0);
-        }
-        gain -= cost_L1_error(signal, start, i, min_size) + cost_L1_error(signal, i, end, min_size);
-        score.push_back(gain);
-    }
-    score.push_back(gain);
-    return score;
-}
-  
+  std::vector<IndexType> score;
+  score.reserve(signal.size());
+  IndexType gain;
+  auto half_of_width = width / 2;
 
-IndexType sum_of_costs(EigenTimeSeriesConstRef signal, std::vector<IndexType> &bkps, IndexType min_size)
-{ //input bkps array should be sorted!!! 
+  for (auto i = half_of_width; i < (signal.size() - half_of_width); i += jump) {
+    auto start = i - half_of_width;
+    auto end = i + half_of_width;
+    gain = cost_L1_error(signal, start, end, min_size);
+    if (gain < 0) {
+      score.push_back(0);
+    }
+    gain -= cost_L1_error(signal, start, i, min_size) +
+            cost_L1_error(signal, i, end, min_size);
+    score.push_back(gain);
+  }
+  score.push_back(gain);
+  return score;
+}
+
+IndexType
+sum_of_costs(EigenTimeSeriesConstRef signal,
+             std::vector<IndexType>& bkps,
+             IndexType min_size)
+{ // input bkps array should be sorted!!!
   IndexType result = 0;
   int start = 0;
   int end = 0;
-  for (auto i : bkps){
-      end = i;
-      result += cost_L1_error(signal, start, end, min_size);
-      start = end;
-  } 
-  return result;    
+  for (auto i : bkps) {
+    end = i;
+    result += cost_L1_error(signal, start, end, min_size);
+    start = end;
+  }
+  return result;
 }
 
-std::vector<IndexType> predict_change_point_detection(
-    EigenTimeSeriesConstRef signal, std::vector<IndexType> &score, 
-    IndexType width, IndexType jump, IndexType min_size, IndexType pen)
+std::vector<IndexType>
+predict_change_point_detection(EigenTimeSeriesConstRef signal,
+                               std::vector<IndexType>& score,
+                               IndexType width,
+                               IndexType jump,
+                               IndexType min_size,
+                               IndexType pen)
 {
-    int n_samples = signal.size();
-    std::vector<IndexType> bkps;
-    bkps.reserve(n_samples/width);
-    int bkp;
-    IndexType gain;
-    bkps.push_back(n_samples);
-    bool stop = false;
-    IndexType error = sum_of_costs(signal,bkps,min_size);
-    
-    //forcing order to be above one in case jump is too large
-    int preorder = std::max(width, 2 * min_size) / (2 * jump);
-    int order = std::max(preorder, 1);
+  int n_samples = signal.size();
+  std::vector<IndexType> bkps;
+  bkps.reserve(n_samples / width);
+  int bkp;
+  IndexType gain;
+  bkps.push_back(n_samples);
+  bool stop = false;
+  IndexType error = sum_of_costs(signal, bkps, min_size);
 
-    std::vector<int> inds;
-    inds.reserve(signal.size()); // todo: I can make it faster
-    
-    int half_of_width = width / 2; 
-    for (int i = half_of_width; i < (signal.size() - half_of_width); i+=jump){
-        inds.push_back(i);
-    }
-    
-    std::vector<IndexType> peak_inds_shifted_indx;
-    
-    peak_inds_shifted_indx = local_maxima_calculation(score, order);
-    
-    std::vector<IndexType> gains;
-    std::vector<IndexType> peak_inds_arr;
-    std::vector<IndexType> peak_inds;
+  // forcing order to be above one in case jump is too large
+  int preorder = std::max(width, 2 * min_size) / (2 * jump);
+  int order = std::max(preorder, 1);
+
+  std::vector<int> inds;
+  inds.reserve(signal.size()); // todo: I can make it faster
+
+  int half_of_width = width / 2;
+  for (int i = half_of_width; i < (signal.size() - half_of_width); i += jump) {
+    inds.push_back(i);
+  }
+
+  std::vector<IndexType> peak_inds_shifted_indx;
+
+  peak_inds_shifted_indx = local_maxima_calculation(score, order);
+
+  std::vector<IndexType> gains;
+  std::vector<IndexType> peak_inds_arr;
+  std::vector<IndexType> peak_inds;
 
   for (auto i : peak_inds_shifted_indx) {
     gains.push_back(score[i]);
