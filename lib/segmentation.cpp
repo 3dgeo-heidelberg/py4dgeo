@@ -6,11 +6,10 @@
 #include <functional>
 #include <limits>
 #include <map>
+#include <numeric>
 #include <set>
 #include <unordered_set>
 #include <vector>
-#include <numeric>
-#include <algorithm>
 
 namespace py4dgeo {
 
@@ -319,10 +318,8 @@ std::vector<IndexType> local_maxima_calculation(std::vector<IndexType> &score, I
         else
             left_array_left_index = current - order;
     }
-
-    return result;
+  return result;
 }
-
 
 IndexType cost_L1_error(EigenTimeSeriesConstRef signal, int start, int end, IndexType min_size)
 { // the function calculate error with cost function "l1" 
@@ -359,8 +356,10 @@ std::vector<IndexType> fit_change_point_detection(EigenTimeSeriesConstRef signal
         gain -= cost_L1_error(signal, start, i, min_size) + cost_L1_error(signal, i, end, min_size);
         score.push_back(gain);
     }
-  return score;
+    score.push_back(gain);
+    return score;
 }
+  
 
 IndexType sum_of_costs(EigenTimeSeriesConstRef signal, std::vector<IndexType> &bkps, IndexType min_size)
 { //input bkps array should be sorted!!! 
@@ -408,50 +407,49 @@ std::vector<IndexType> predict_change_point_detection(
     std::vector<IndexType> peak_inds_arr;
     std::vector<IndexType> peak_inds;
 
-    for(auto i : peak_inds_shifted_indx){
-        gains.push_back(score[i]);
-        //cout<<"i:"<<score[i]<<endl;
-        peak_inds_arr.push_back(inds[i]);
-        //cout<<"p:"<<inds[i]<<endl;
+  for (auto i : peak_inds_shifted_indx) {
+    gains.push_back(score[i]);
+    // cout<<"i:"<<score[i]<<endl;
+    peak_inds_arr.push_back(inds[i]);
+    // cout<<"p:"<<inds[i]<<endl;
+  }
+
+  std::vector<int> index_vec(peak_inds_arr.size());
+  std::iota(index_vec.begin(), index_vec.end(), 0);
+  std::sort(index_vec.begin(), index_vec.end(), [&](int a, int b) {
+    return gains[a] < gains[b];
+  });
+
+  for (auto i : index_vec) {
+    peak_inds.push_back(peak_inds_arr[i]);
+    // std::cout << "peak_inds_arr:" << peak_inds_arr[i] << "\n";
+  }
+
+  while (!stop) {
+    stop = true;
+    if (peak_inds.size() != 0) {
+      bkp = peak_inds.back();
+      peak_inds.pop_back();
+    } else {
+      break;
     }
 
-    std::vector<int> index_vec (peak_inds_arr.size());
-    std::iota(index_vec.begin(), index_vec.end(), 0);
-    std::sort(index_vec.begin(), index_vec.end(), [&](int a, int b) { return gains[a] < gains[b]; });
-
-    for (auto i : index_vec) {
-        peak_inds.push_back(peak_inds_arr[i]);        
-        //std::cout << "peak_inds_arr:" << peak_inds_arr[i] << "\n";
+    if (pen > 0) {
+      std::vector<IndexType> temp_bkps = bkps;
+      temp_bkps.push_back(bkp);
+      sort(temp_bkps.begin(), temp_bkps.end());
+      gain = error - sum_of_costs(signal, temp_bkps, min_size);
+      if (gain > pen) {
+        stop = false;
+      }
     }
 
-    while (!stop)
-    {
-        stop = true;
-        if(peak_inds.size()!=0){
-            bkp = peak_inds.back();
-            peak_inds.pop_back();
-        }
-        else{
-            break;
-        }
-        
-        if (pen > 0){
-            std::vector<IndexType> temp_bkps = bkps;
-            temp_bkps.push_back(bkp);
-            sort(temp_bkps.begin(), temp_bkps.end());
-            gain = error - sum_of_costs(signal,temp_bkps, min_size);
-            if (gain > pen){
-                stop = false;
-            }
-        }
-
-        if(!stop){
-            bkps.push_back(bkp);
-            sort(bkps.begin(), bkps.end());
-            error = sum_of_costs(signal,bkps,min_size);
-        }
-
+    if (!stop) {
+      bkps.push_back(bkp);
+      sort(bkps.begin(), bkps.end());
+      error = sum_of_costs(signal, bkps, min_size);
     }
+  }
   return bkps;
 }
 
@@ -461,8 +459,10 @@ change_point_detection(const ChangePointDetectionData& data)
   std::vector<IndexType> changepoints;
   std::vector<IndexType> score;
   score.reserve(data.ts.size());
-  score = fit_change_point_detection(data.ts, data.window_width,data.jump,data.min_size);
-  changepoints = predict_change_point_detection(data.ts,score,data.window_width,data.jump,data.min_size,data.penalty);
+  score = fit_change_point_detection(
+    data.ts, data.window_width, data.jump, data.min_size);
+  changepoints = predict_change_point_detection(
+    data.ts, score, data.window_width, data.jump, data.min_size, data.penalty);
 
   return changepoints;
 }
