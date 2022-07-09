@@ -861,7 +861,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
             # If there are nan values, we try fixing things by interpolation
             if num_nans > 0:
-                good_indices = np.logical_nor(bad_indices)
+                good_indices = np.logical_not(bad_indices)
                 timeseries[bad_indices] = np.interp(
                     bad_indices.nonzero()[0],
                     good_indices.nonzero()[0],
