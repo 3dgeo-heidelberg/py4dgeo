@@ -149,13 +149,13 @@ def test_change_point_detection():
         min_size=12,
         jump=1,
     )
-    rcp = algo.fit_predict(ts, pen=1.0)[:-1]
+    rcp = algo.fit_predict(ts, pen=1.0)
 
     # Run C++ algorithm
     from py4dgeo._py4dgeo import change_point_detection, ChangePointDetectionData
 
     data = ChangePointDetectionData(
-        ts=ts, window_width=24, min_size=12, jump=1, penalty=1.0
+        ts=ts, window_size=24, min_size=12, jump=1, penalty=1.0
     )
     cpp = change_point_detection(data)
 
