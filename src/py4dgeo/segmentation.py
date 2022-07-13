@@ -1087,6 +1087,7 @@ class ObjectByChange:
         # Maybe save to file
         if filename is not None:
             plt.savefig(filename)
+            plt.close()
 
 
 def check_epoch_timestamp(epoch):
