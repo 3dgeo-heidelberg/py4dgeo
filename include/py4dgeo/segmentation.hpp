@@ -83,39 +83,37 @@ struct ChangePointDetectionData
   double penalty;
 };
 
-/** @brief Calculate the median of double vector. The function changed the array!*/
+/** @brief Calculate the median of double vector. The function changed the
+ * array!*/
 double
 median_calculation(std::vector<double>&);
 
-/** @brief Calculate the local maxima, which more than "order" values left and right */
+/** @brief Calculate the local maxima, which more than "order" values left and
+ * right */
 std::vector<IndexType>
-local_maxima_calculation(std::vector<double>&, 
-                         IndexType);
+local_maxima_calculation(std::vector<double>&, IndexType);
 /** @brief Calculate cost error */
 double
-cost_L1_error(EigenTimeSeriesConstRef,
-              int,
-              int,
-              IndexType);
+cost_L1_error(EigenTimeSeriesConstRef, int, int, IndexType);
 
 /** @brief Calculate signal sum of costs */
 double
-sum_of_costs(EigenTimeSeriesConstRef,
-             std::vector<IndexType>&,
-             IndexType);
+sum_of_costs(EigenTimeSeriesConstRef, std::vector<IndexType>&, IndexType);
 
-/** @brief Change point detection using sliding window approach, run fit then predict function */
+/** @brief Change point detection using sliding window approach, run fit then
+ * predict function */
 std::vector<IndexType>
 change_point_detection(const ChangePointDetectionData&);
 
-/** @brief Compute parameters for change point detection function, return scores array. */
-std::vector<double>
-fit_change_point_detection(EigenTimeSeriesConstRef,
-                           IndexType,
-                           IndexType,
-                           IndexType);
+/** @brief Compute parameters for change point detection function, return scores
+ * array. */
+std::vector<double> fit_change_point_detection(EigenTimeSeriesConstRef,
+                                               IndexType,
+                                               IndexType,
+                                               IndexType);
 
-/** @brief Predict change point detection, return the optimal breackpoints, must called after fit function */
+/** @brief Predict change point detection, return the optimal breackpoints, must
+ * called after fit function */
 std::vector<IndexType>
 predict_change_point_detection(EigenTimeSeriesConstRef,
                                std::vector<double>&,
