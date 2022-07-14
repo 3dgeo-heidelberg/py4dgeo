@@ -206,8 +206,8 @@ normalized_dtw_distance(const TimeseriesDistanceFunctionData& data)
   return std::fmin(1.0, 1.0 - (max_dist - dtw_distance(data)) / max_dist);
 }
 
-IndexType
-median_calculation(std::vector<IndexType>& subsignal)
+double
+median_calculation(std::vector<double>& subsignal)
 {                          // function calculate median of the vector
                            // the function change the vector
   if (subsignal.empty()) { // what we should return, exeption or 0?
@@ -215,7 +215,7 @@ median_calculation(std::vector<IndexType>& subsignal)
   }
   auto n = subsignal.size() / 2;
   std::nth_element(subsignal.begin(), subsignal.begin() + n, subsignal.end());
-  auto med = subsignal[n];
+  double med = subsignal[n];
   if (!(subsignal.size() & 1)) { // If the set size is even
     auto max_it = std::max_element(subsignal.begin(), subsignal.begin() + n);
     med = (*max_it + med) / 2.0;
@@ -224,7 +224,7 @@ median_calculation(std::vector<IndexType>& subsignal)
 }
 
 std::vector<IndexType>
-local_maxima_calculation(std::vector<IndexType>& score, IndexType order)
+local_maxima_calculation(std::vector<double>& score, IndexType order)
 {
   std::vector<IndexType> result;
   // Exceptions
@@ -328,7 +328,7 @@ local_maxima_calculation(std::vector<IndexType>& score, IndexType order)
   return result;
 }
 
-IndexType
+double
 cost_L1_error(EigenTimeSeriesConstRef signal,
               int start,
               int end,
@@ -338,11 +338,11 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
   // if (end - start < min_size){ // exeption
   //   //std::cout << "End - Start < min_size"<<endl;
   // }
-  std::vector<IndexType> signal_subvector(signal.begin() + start,
+  std::vector<double> signal_subvector(signal.begin() + start,
                                           signal.begin() + end);
 
-  IndexType median = median_calculation(signal_subvector);
-  IndexType sum_result = 0;
+  double median = median_calculation(signal_subvector);
+  double sum_result = 0.0;
 
   for (auto& element : signal_subvector) {
     element =
@@ -352,18 +352,21 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
   return sum_result;
 }
 
-std::vector<IndexType>
+std::vector<double>
 fit_change_point_detection(EigenTimeSeriesConstRef signal,
                            IndexType width,
                            IndexType jump,
                            IndexType min_size)
 {
-  std::vector<IndexType> score;
+  std::vector<double> score;
   score.reserve(signal.size());
-  IndexType gain;
+  double gain;
   auto half_of_width = width / 2;
 
-  for (auto i = half_of_width; i < (signal.size() - half_of_width); i += jump) {
+  for (int i = 0; i < signal.size(); i += jump){
+    if ( (i < half_of_width) || (i >= (signal.size() - half_of_width) ) ){
+      continue;
+    }
     auto start = i - half_of_width;
     auto end = i + half_of_width;
     gain = cost_L1_error(signal, start, end, min_size);
@@ -374,16 +377,15 @@ fit_change_point_detection(EigenTimeSeriesConstRef signal,
             cost_L1_error(signal, i, end, min_size);
     score.push_back(gain);
   }
-  score.push_back(gain);
   return score;
 }
 
-IndexType
+double
 sum_of_costs(EigenTimeSeriesConstRef signal,
              std::vector<IndexType>& bkps,
              IndexType min_size)
 { // input bkps array should be sorted!!!
-  IndexType result = 0;
+  double result = 0.0;
   int start = 0;
   int end = 0;
   for (auto i : bkps) {
@@ -396,7 +398,7 @@ sum_of_costs(EigenTimeSeriesConstRef signal,
 
 std::vector<IndexType>
 predict_change_point_detection(EigenTimeSeriesConstRef signal,
-                               std::vector<IndexType>& score,
+                               std::vector<double>& score,
                                IndexType width,
                                IndexType jump,
                                IndexType min_size,
@@ -406,10 +408,10 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
   std::vector<IndexType> bkps;
   bkps.reserve(n_samples / width);
   int bkp;
-  IndexType gain;
+  double gain;
   bkps.push_back(n_samples);
   bool stop = false;
-  IndexType error = sum_of_costs(signal, bkps, min_size);
+  double error = sum_of_costs(signal, bkps, min_size);
 
   // forcing order to be above one in case jump is too large
   int preorder = std::max(width, 2 * min_size) / (2 * jump);
@@ -427,7 +429,7 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
 
   peak_inds_shifted_indx = local_maxima_calculation(score, order);
 
-  std::vector<IndexType> gains;
+  std::vector<double> gains;
   std::vector<IndexType> peak_inds_arr;
   std::vector<IndexType> peak_inds;
 
@@ -481,7 +483,7 @@ std::vector<IndexType>
 change_point_detection(const ChangePointDetectionData& data)
 {
   std::vector<IndexType> changepoints;
-  std::vector<IndexType> score;
+  std::vector<double> score;
   score.reserve(data.ts.size());
   score = fit_change_point_detection(
     data.ts, data.window_width, data.jump, data.min_size);
