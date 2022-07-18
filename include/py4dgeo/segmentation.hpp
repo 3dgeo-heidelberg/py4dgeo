@@ -93,8 +93,7 @@ median_calculation(std::vector<double>&);
 std::vector<IndexType>
 local_maxima_calculation(std::vector<double>&, IndexType);
 /** @brief Calculate cost error */
-double
-cost_L1_error(EigenTimeSeriesConstRef, IndexType, IndexType, IndexType);
+double cost_L1_error(EigenTimeSeriesConstRef, IndexType, IndexType, IndexType);
 
 /** @brief Calculate signal sum of costs */
 double

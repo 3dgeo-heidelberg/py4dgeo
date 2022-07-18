@@ -339,7 +339,7 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
   //   //std::cout << "End - Start < min_size"<<endl;
   // }
   std::vector<double> signal_subvector(signal.begin() + start,
-                                          signal.begin() + end);
+                                       signal.begin() + end);
 
   double median = median_calculation(signal_subvector);
   double sum_result = 0.0;
@@ -363,8 +363,8 @@ fit_change_point_detection(EigenTimeSeriesConstRef signal,
   double gain;
   IndexType half_of_width = width / 2;
 
-  for (int i = 0; i < signal.size(); i += jump){
-    if ( (i < half_of_width) || (i >= (signal.size() - half_of_width) ) ){
+  for (int i = 0; i < signal.size(); i += jump) {
+    if ((i < half_of_width) || (i >= (signal.size() - half_of_width))) {
       continue;
     }
     IndexType start = i - half_of_width;
