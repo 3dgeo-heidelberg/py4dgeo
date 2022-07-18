@@ -330,8 +330,8 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
 
 double
 cost_L1_error(EigenTimeSeriesConstRef signal,
-              int start,
-              int end,
+              IndexType start,
+              IndexType end,
               IndexType min_size)
 { // the function calculate error with cost function "l1"
 
@@ -339,7 +339,7 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
   //   //std::cout << "End - Start < min_size"<<endl;
   // }
   std::vector<double> signal_subvector(signal.begin() + start,
-                                       signal.begin() + end);
+                                          signal.begin() + end);
 
   double median = median_calculation(signal_subvector);
   double sum_result = 0.0;
@@ -361,14 +361,14 @@ fit_change_point_detection(EigenTimeSeriesConstRef signal,
   std::vector<double> score;
   score.reserve(signal.size());
   double gain;
-  auto half_of_width = width / 2;
+  IndexType half_of_width = width / 2;
 
-  for (int i = 0; i < signal.size(); i += jump) {
-    if ((i < half_of_width) || (i >= (signal.size() - half_of_width))) {
+  for (int i = 0; i < signal.size(); i += jump){
+    if ( (i < half_of_width) || (i >= (signal.size() - half_of_width) ) ){
       continue;
     }
-    auto start = i - half_of_width;
-    auto end = i + half_of_width;
+    IndexType start = i - half_of_width;
+    IndexType end = i + half_of_width;
     gain = cost_L1_error(signal, start, end, min_size);
     if (gain < 0) {
       score.push_back(0);
@@ -402,7 +402,7 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
                                IndexType width,
                                IndexType jump,
                                IndexType min_size,
-                               IndexType pen)
+                               double pen)
 {
   int n_samples = signal.size();
   std::vector<IndexType> bkps;

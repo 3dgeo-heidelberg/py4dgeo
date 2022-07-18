@@ -94,7 +94,7 @@ std::vector<IndexType>
 local_maxima_calculation(std::vector<double>&, IndexType);
 /** @brief Calculate cost error */
 double
-cost_L1_error(EigenTimeSeriesConstRef, int, int, IndexType);
+cost_L1_error(EigenTimeSeriesConstRef, IndexType, IndexType, IndexType);
 
 /** @brief Calculate signal sum of costs */
 double
@@ -120,6 +120,6 @@ predict_change_point_detection(EigenTimeSeriesConstRef,
                                IndexType,
                                IndexType,
                                IndexType,
-                               IndexType);
+                               double);
 
 } // namespace py4dgeo
