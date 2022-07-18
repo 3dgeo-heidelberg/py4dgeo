@@ -839,7 +839,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         algo = ruptures.Window(
             width=self.window_width,
             model=window_costmodel,
-            min_size=window_min_size,
+            min_size=self.minperiod,
             jump=window_jump,
         )
 
@@ -882,46 +882,46 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 if corepoint_seeds and start_idx <= corepoint_seeds[-1].end_epoch:
                     continue
 
-                # Skip this changepoint if this to close to the end
+                # Skip this changepoint if too close to the end (i.e. minperiod not possible)
                 if start_idx >= timeseries.shape[0] - self.minperiod:
                     break
 
-                # Decide whether we need use the flipped timeseries
+                # Decide whether we need use the flipped timeseries (for negative changes)
                 used_timeseries = timeseries
                 if timeseries[start_idx] >= timeseries[start_idx + self.minperiod]:
                     used_timeseries = timeseries_flipped
 
+                # Initialize volume for change volume maximization during search of end_idx
                 previous_volume = -999.9
 
+                # Set the base height to which change volume is calculated at start_idx
+                height = used_timeseries[start_idx]
+
+                # Find the end index, all until end of timeseries are candidates
                 for target_idx in range(
-                    start_idx + 1, timeseries.shape[0] - self.minperiod
+                    start_idx + 1, timeseries.shape[0]
                 ):
 
-                    # Calculate the change volume
-                    height = used_timeseries[start_idx] + self.height_threshold
+                    # Calculate the change volume relative to the height at start_idx
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
-                    if volume < 0.0:
-                        height = used_timeseries[start_idx]
-                        volume = np.nansum(
-                            used_timeseries[start_idx : target_idx + 1] - height
-                        )
 
-                    # Check whether the volume started decreasing
-                    # TODO: Didn't we explicitly enforce positivity of the series?
+                    # Check whether the volume started decreasing (relative to height of start_idx)
                     if previous_volume > volume:
-                        corepoint_seeds.append(
-                            RegionGrowingSeed(i, start_idx, target_idx)
-                        )
+                        # Stop the search loop and use previous target_idx
+                        # Add the seed only if the minimum height is reached within the timespan
+                        if np.nanmax(used_timeseries[start_idx : target_idx + 1] - height) >= self.height_threshold:
+                            corepoint_seeds.append(
+                                RegionGrowingSeed(i, start_idx, target_idx-1)
+                                )
                         break
                     else:
                         previous_volume = volume
 
-                # We reached the present and add a seed based on it
-                corepoint_seeds.append(
-                    RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
-                )
+                # We reached the end, no seed is added
+                # because reference algorithm discards seed candidates if present reached
+                # TODO future enhancement: add seeds anyways but provide seed filter option in analysis.run()
 
             # Add all the seeds found for this corepoint to the full list
             seeds.extend(corepoint_seeds)
