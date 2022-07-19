@@ -271,12 +271,22 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
 
   while (current < score.end()) // check main part of score
   {
-    max_left_array =
-      std::max_element(left_array_left_index, left_array_right_index);
-    max_right_array =
-      std::max_element(right_array_left_index, right_array_right_index);
-    max_left_array_num = *max_left_array;
-    max_right_array_num = *max_right_array;
+    if (left_array_left_index == left_array_right_index){
+        max_left_array_num = 0;
+    }
+    else {
+        max_left_array = std::max_element(left_array_left_index, left_array_right_index);
+        max_left_array_num = *max_left_array;
+
+    }
+    
+    if (right_array_left_index==right_array_right_index){
+        max_right_array_num = 0;
+    }
+    else{
+        max_right_array = std::max_element(right_array_left_index, right_array_right_index);
+        max_right_array_num = *max_right_array;
+    }
 
     if (current < score.begin() + order) {
       distance_range =
