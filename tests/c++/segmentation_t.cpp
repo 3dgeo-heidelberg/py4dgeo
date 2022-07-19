@@ -70,25 +70,25 @@ TEST_CASE("Median_calculation for 13 values including negative",
 TEST_CASE("Local maxima calculation", "[segmentation]")
 {
   std::vector<double> subsignal{
-        6.99863915e+01,  9.06408359e+01,  8.13410671e+01,  6.77831025e+01,
-        5.31590789e+01,  3.82774617e+01,  2.11088802e+01,  1.86900940e+00,
-        1.86900940e+00,  2.97618622e+00,  4.06579088e+00,  3.53954452e+00,
-        1.46886774e+00,  1.75437980e-01,  6.02897540e-01,  1.87717908e+00,
-        3.61690920e-01,  3.61690920e-01,  7.10542736e-15,  1.88687618e+00,
-        3.71578220e+00,  4.92274156e+00,  3.39755630e+00,  1.56865028e+00,
-        2.31733020e+00,  1.11751678e+01,  1.70051315e+01,  2.54870722e+01,
-        3.44543235e+01,  4.58417830e+01,  5.90938513e+01,  5.47172168e+01,
-        5.54368480e+01,  4.43110233e+01,  3.36282954e+01,  2.17050262e+01,
-        1.62525474e+01,  9.20163784e+00,  6.17964200e+00,  0.00000000e+00,
-        2.34560410e+00,  1.26792540e+01,  2.53748679e+01,  3.53479526e+01,
-        5.23087256e+01,  5.24978726e+01,  4.90522323e+01,  4.10721229e+01,
-        3.92949571e+01,  2.80161810e+01,  1.79132547e+01,  4.38646398e+00,
-        7.15155678e+00,  9.98924200e+00,  1.52767758e+01,  2.66401552e+01,
-        3.33803080e+01,  4.60923062e+01,  6.25816178e+01,  7.87648505e+01,
-        8.26367941e+01,  7.21430804e+01,  5.81567697e+01,  4.67933903e+01,
-        2.88612965e+01,  1.40530121e+01,  2.94313726e+00, -1.42108547e-14,
-        4.36233604e+00,  1.07040682e+01,  1.57973338e+01,  2.20795663e+01,
-        2.72791308e+01,  3.48844576e+01,  3.37712687e+01,  3.35675227e+01
+    6.99863915e+01, 9.06408359e+01, 8.13410671e+01, 6.77831025e+01,
+    5.31590789e+01, 3.82774617e+01, 2.11088802e+01, 1.86900940e+00,
+    1.86900940e+00, 2.97618622e+00, 4.06579088e+00, 3.53954452e+00,
+    1.46886774e+00, 1.75437980e-01, 6.02897540e-01, 1.87717908e+00,
+    3.61690920e-01, 3.61690920e-01, 7.10542736e-15, 1.88687618e+00,
+    3.71578220e+00, 4.92274156e+00, 3.39755630e+00, 1.56865028e+00,
+    2.31733020e+00, 1.11751678e+01, 1.70051315e+01, 2.54870722e+01,
+    3.44543235e+01, 4.58417830e+01, 5.90938513e+01, 5.47172168e+01,
+    5.54368480e+01, 4.43110233e+01, 3.36282954e+01, 2.17050262e+01,
+    1.62525474e+01, 9.20163784e+00, 6.17964200e+00, 0.00000000e+00,
+    2.34560410e+00, 1.26792540e+01, 2.53748679e+01, 3.53479526e+01,
+    5.23087256e+01, 5.24978726e+01, 4.90522323e+01, 4.10721229e+01,
+    3.92949571e+01, 2.80161810e+01, 1.79132547e+01, 4.38646398e+00,
+    7.15155678e+00, 9.98924200e+00, 1.52767758e+01, 2.66401552e+01,
+    3.33803080e+01, 4.60923062e+01, 6.25816178e+01, 7.87648505e+01,
+    8.26367941e+01, 7.21430804e+01, 5.81567697e+01, 4.67933903e+01,
+    2.88612965e+01, 1.40530121e+01, 2.94313726e+00, -1.42108547e-14,
+    4.36233604e+00, 1.07040682e+01, 1.57973338e+01, 2.20795663e+01,
+    2.72791308e+01, 3.48844576e+01, 3.37712687e+01, 3.35675227e+01
   };
   IndexType order1 = 1;
   IndexType order2 = 2;
@@ -105,25 +105,30 @@ TEST_CASE("Local maxima calculation", "[segmentation]")
   std::vector<IndexType> result2 = local_maxima_calculation(subsignal, order2);
   std::vector<IndexType> result3 = local_maxima_calculation(subsignal, order3);
   std::vector<IndexType> result4 = local_maxima_calculation(subsignal, order4);
-  std::vector<IndexType> result12 = local_maxima_calculation(subsignal, order12);
-  std::vector<IndexType> result13 = local_maxima_calculation(subsignal, order13);
-  std::vector<IndexType> result16 = local_maxima_calculation(subsignal, order16);
-  std::vector<IndexType> result17 = local_maxima_calculation(subsignal, order17);
-  std::vector<IndexType> result26 = local_maxima_calculation(subsignal, order26);
+  std::vector<IndexType> result12 =
+    local_maxima_calculation(subsignal, order12);
+  std::vector<IndexType> result13 =
+    local_maxima_calculation(subsignal, order13);
+  std::vector<IndexType> result16 =
+    local_maxima_calculation(subsignal, order16);
+  std::vector<IndexType> result17 =
+    local_maxima_calculation(subsignal, order17);
+  std::vector<IndexType> result26 =
+    local_maxima_calculation(subsignal, order26);
   std::vector<IndexType> result27 =
     local_maxima_calculation(subsignal, order27);
 
-  std::vector<IndexType> true_result1{ 1, 10, 15, 21, 30, 32, 45, 60, 73};
+  std::vector<IndexType> true_result1{ 1, 10, 15, 21, 30, 32, 45, 60, 73 };
   std::vector<IndexType> true_result2{ 1, 10, 15, 21, 30, 45, 60, 73 };
   std::vector<IndexType> true_result3{ 1, 10, 15, 21, 30, 45, 60 };
   std::vector<IndexType> true_result4{ 1, 30, 45, 60 };
   std::vector<IndexType> true_result12{ 1, 30, 45, 60 };
-  std::vector<IndexType> true_result13{ 1, 30, 60};
-  std::vector<IndexType> true_result16{ 1, 30, 60};
-  std::vector<IndexType> true_result17{ 1, 30};
-  std::vector<IndexType> true_result26{ 1, 30};
-  std::vector<IndexType> true_result27{ 1};
-  
+  std::vector<IndexType> true_result13{ 1, 30, 60 };
+  std::vector<IndexType> true_result16{ 1, 30, 60 };
+  std::vector<IndexType> true_result17{ 1, 30 };
+  std::vector<IndexType> true_result26{ 1, 30 };
+  std::vector<IndexType> true_result27{ 1 };
+
   REQUIRE(result1 == true_result1);
   REQUIRE(result2 == true_result2);
   REQUIRE(result3 == true_result3);
