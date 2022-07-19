@@ -306,33 +306,29 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       auto item_index = current - score.begin();
       result.push_back(item_index);
       // find_max = true;
-      if (std::distance(score.begin(), current + order + 1) < score.size()){
-          current = current + order + 1;     
-      }
-      else 
-        break;      
+      if (std::distance(score.begin(), current + order + 1) < score.size()) {
+        current = current + order + 1;
+      } else
+        break;
     }
 
     else {
       // find_max = false;
-      if (std::distance(score.begin(), current + 1) < score.size()){
-          current ++;     
-      }
-      else 
+      if (std::distance(score.begin(), current + 1) < score.size()) {
+        current++;
+      } else
         break;
     }
 
-    if (current == score.end() - 1){
-        right_array_left_index = score.end();
+    if (current == score.end() - 1) {
+      right_array_left_index = score.end();
+    } else {
+      right_array_left_index = current + 1;
     }
-    else {
-        right_array_left_index = current + 1;
-    }
-        
-    if (current > score.end() - order - 1){
+
+    if (current > score.end() - order - 1) {
       right_array_right_index = score.end();
-    }
-    else{
+    } else {
       right_array_right_index = current + order + 1;
     }
 
