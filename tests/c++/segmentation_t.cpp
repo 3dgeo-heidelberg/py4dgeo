@@ -70,97 +70,70 @@ TEST_CASE("Median_calculation for 13 values including negative",
 TEST_CASE("Local maxima calculation", "[segmentation]")
 {
   std::vector<double> subsignal{
-    -8.75263237,  -12.4498439,  -5.95124875,  -7.85988551,  -6.3420341,
-    -8.12835494,  -9.1555907,   -8.99132828,  -8.23779461,  -7.04616777,
-    -10.19556631, -7.24568867,  -9.96439281,  -7.82714118,  -9.66504466,
-    -9.18525009,  -8.98032933,  -12.49556549, -7.24393337,  -7.43629618,
-    -12.44862489, -11.26010483, -14.71118047, -12.66358088, -11.4180224,
-    -9.89459227,  -9.25428397,  -10.98106482, -12.24054219, -14.11235437,
-    -9.67368203,  -8.89575981,  -9.09613235,  -12.36181265, -10.65832827,
-    -12.23607436, -12.05403716, -8.41956718,  -5.18927969,  -3.46317324,
-    -5.34923737,  -4.53456195,  -9.19263727,  -7.17482253,  -2.20532421,
-    -7.37874326,  -1.53594652,  -5.11036,     -2.87127928,  -2.6068047,
-    -5.79774031,  -2.94577185,  -1.80551765,  -5.97307174,  -3.47239943,
-    -5.97743071,  -1.37331331,  -5.36262128,  -10.04554594, -14.0063941,
-    -12.06269672, -10.97716596, -8.74879272,  -9.3208788,   -10.17981112,
-    -9.29126698,  -13.14586401, -8.59697448,  -10.69016884, -10.05068367,
-    -14.70860228, -10.17570982, -9.95747217,  -13.48605285, -8.98073346,
-    -7.88617972,  -12.61344823, -8.60895198,  0.30669687,   -3.8899,
-    -3.17765681,  -2.41072433,  -2.38724579,  -3.01936097,  -5.28568242,
-    -5.27564404,  -1.32490158,  -6.90442492,  -0.18194116,  -3.49999513,
-    -3.92970908,  -7.39331718,  -2.20850241,  -2.95758654,  -1.05819608,
-    -3.44517988,  -3.48499704,  -2.39362274,  -3.29244654,  -3.5994971
+        6.99863915e+01,  9.06408359e+01,  8.13410671e+01,  6.77831025e+01,
+        5.31590789e+01,  3.82774617e+01,  2.11088802e+01,  1.86900940e+00,
+        1.86900940e+00,  2.97618622e+00,  4.06579088e+00,  3.53954452e+00,
+        1.46886774e+00,  1.75437980e-01,  6.02897540e-01,  1.87717908e+00,
+        3.61690920e-01,  3.61690920e-01,  7.10542736e-15,  1.88687618e+00,
+        3.71578220e+00,  4.92274156e+00,  3.39755630e+00,  1.56865028e+00,
+        2.31733020e+00,  1.11751678e+01,  1.70051315e+01,  2.54870722e+01,
+        3.44543235e+01,  4.58417830e+01,  5.90938513e+01,  5.47172168e+01,
+        5.54368480e+01,  4.43110233e+01,  3.36282954e+01,  2.17050262e+01,
+        1.62525474e+01,  9.20163784e+00,  6.17964200e+00,  0.00000000e+00,
+        2.34560410e+00,  1.26792540e+01,  2.53748679e+01,  3.53479526e+01,
+        5.23087256e+01,  5.24978726e+01,  4.90522323e+01,  4.10721229e+01,
+        3.92949571e+01,  2.80161810e+01,  1.79132547e+01,  4.38646398e+00,
+        7.15155678e+00,  9.98924200e+00,  1.52767758e+01,  2.66401552e+01,
+        3.33803080e+01,  4.60923062e+01,  6.25816178e+01,  7.87648505e+01,
+        8.26367941e+01,  7.21430804e+01,  5.81567697e+01,  4.67933903e+01,
+        2.88612965e+01,  1.40530121e+01,  2.94313726e+00, -1.42108547e-14,
+        4.36233604e+00,  1.07040682e+01,  1.57973338e+01,  2.20795663e+01,
+        2.72791308e+01,  3.48844576e+01,  3.37712687e+01,  3.35675227e+01
   };
   IndexType order1 = 1;
   IndexType order2 = 2;
   IndexType order3 = 3;
   IndexType order4 = 4;
-  IndexType order5 = 5;
-  IndexType order6 = 6;
-  IndexType order7 = 7;
-  IndexType order8 = 8;
-  IndexType order9 = 9;
-  IndexType order10 = 10;
-  IndexType order11 = 11;
   IndexType order12 = 12;
-  IndexType order21 = 21;
-  IndexType order22 = 22;
+  IndexType order13 = 13;
+  IndexType order16 = 16;
+  IndexType order17 = 17;
+  IndexType order26 = 26;
+  IndexType order27 = 27;
 
   std::vector<IndexType> result1 = local_maxima_calculation(subsignal, order1);
   std::vector<IndexType> result2 = local_maxima_calculation(subsignal, order2);
   std::vector<IndexType> result3 = local_maxima_calculation(subsignal, order3);
   std::vector<IndexType> result4 = local_maxima_calculation(subsignal, order4);
-  std::vector<IndexType> result5 = local_maxima_calculation(subsignal, order5);
-  std::vector<IndexType> result6 = local_maxima_calculation(subsignal, order6);
-  std::vector<IndexType> result7 = local_maxima_calculation(subsignal, order7);
-  std::vector<IndexType> result8 = local_maxima_calculation(subsignal, order8);
-  std::vector<IndexType> result9 = local_maxima_calculation(subsignal, order9);
-  std::vector<IndexType> result10 =
-    local_maxima_calculation(subsignal, order10);
-  std::vector<IndexType> result11 =
-    local_maxima_calculation(subsignal, order11);
-  std::vector<IndexType> result12 =
-    local_maxima_calculation(subsignal, order12);
-  std::vector<IndexType> result21 =
-    local_maxima_calculation(subsignal, order21);
-  std::vector<IndexType> result22 =
-    local_maxima_calculation(subsignal, order22);
+  std::vector<IndexType> result12 = local_maxima_calculation(subsignal, order12);
+  std::vector<IndexType> result13 = local_maxima_calculation(subsignal, order13);
+  std::vector<IndexType> result16 = local_maxima_calculation(subsignal, order16);
+  std::vector<IndexType> result17 = local_maxima_calculation(subsignal, order17);
+  std::vector<IndexType> result26 = local_maxima_calculation(subsignal, order26);
+  std::vector<IndexType> result27 =
+    local_maxima_calculation(subsignal, order27);
 
-  std::vector<IndexType> true_result1{ 2,  4,  9,  11, 13, 16, 18, 21,
-                                       26, 31, 34, 39, 41, 44, 46, 49,
-                                       52, 54, 56, 62, 65, 67, 69, 72,
-                                       75, 78, 82, 86, 88, 92, 94, 97 };
-  std::vector<IndexType> true_result2{ 2,  9,  18, 26, 31, 39, 46, 49, 52,
-                                       56, 62, 67, 75, 78, 82, 88, 94, 97 };
-  std::vector<IndexType> true_result3{ 9,  18, 26, 31, 39, 46, 52,
-                                       56, 62, 67, 78, 82, 88, 94 };
-  std::vector<IndexType> true_result4{ 9,  18, 26, 31, 39, 46,
-                                       56, 62, 67, 78, 88, 94 };
-  std::vector<IndexType> true_result5{ 18, 31, 46, 56, 67, 78, 88, 94 };
-  std::vector<IndexType> true_result6{ 18, 46, 56, 67, 78, 88 };
-  std::vector<IndexType> true_result7{ 18, 46, 56, 67, 78, 88 };
-  std::vector<IndexType> true_result8{ 18, 46, 56, 78, 88 };
-  std::vector<IndexType> true_result9{ 46, 56, 78, 88 };
-  std::vector<IndexType> true_result10{ 56, 78 };
-  std::vector<IndexType> true_result11{ 56, 78 };
-  std::vector<IndexType> true_result12{ 56, 78 };
-  std::vector<IndexType> true_result21{ 56, 78 };
-  std::vector<IndexType> true_result22{ 78 };
-
+  std::vector<IndexType> true_result1{ 1, 10, 15, 21, 30, 32, 45, 60, 73};
+  std::vector<IndexType> true_result2{ 1, 10, 15, 21, 30, 45, 60, 73 };
+  std::vector<IndexType> true_result3{ 1, 10, 15, 21, 30, 45, 60 };
+  std::vector<IndexType> true_result4{ 1, 30, 45, 60 };
+  std::vector<IndexType> true_result12{ 1, 30, 45, 60 };
+  std::vector<IndexType> true_result13{ 1, 30, 60};
+  std::vector<IndexType> true_result16{ 1, 30, 60};
+  std::vector<IndexType> true_result17{ 1, 30};
+  std::vector<IndexType> true_result26{ 1, 30};
+  std::vector<IndexType> true_result27{ 1};
+  
   REQUIRE(result1 == true_result1);
   REQUIRE(result2 == true_result2);
   REQUIRE(result3 == true_result3);
   REQUIRE(result4 == true_result4);
-  REQUIRE(result5 == true_result5);
-  REQUIRE(result6 == true_result6);
-  REQUIRE(result7 == true_result7);
-  REQUIRE(result8 == true_result8);
-  REQUIRE(result9 == true_result9);
-  REQUIRE(result10 == true_result10);
-  REQUIRE(result11 == true_result11);
   REQUIRE(result12 == true_result12);
-  REQUIRE(result21 == true_result21);
-  REQUIRE(result22 == true_result22);
+  REQUIRE(result13 == true_result13);
+  REQUIRE(result16 == true_result16);
+  REQUIRE(result17 == true_result17);
+  REQUIRE(result26 == true_result26);
+  REQUIRE(result27 == true_result27);
 }
 
 TEST_CASE("Calculation cost L1", "[segmentation]")
@@ -285,7 +258,7 @@ TEST_CASE("Predict change point detection", "[segmentation]")
   IndexType min_size1 = 12;
   IndexType jump1 = 1;
   IndexType window_width1 = 24;
-  IndexType penalty1 = 1;
+  double penalty1 = 1;
   std::vector<double> score1;
   score1 = fit_change_point_detection(signal, window_width1, jump1, min_size1);
 
@@ -297,7 +270,7 @@ TEST_CASE("Predict change point detection", "[segmentation]")
   IndexType min_size2 = 6;
   IndexType jump2 = 6;
   IndexType window_width2 = 12;
-  IndexType penalty2 = 1;
+  double penalty2 = 1;
   std::vector<double> score2;
   score2 = fit_change_point_detection(signal, window_width2, jump2, min_size2);
 
@@ -337,7 +310,7 @@ TEST_CASE("Fit predict change point detection", "[segmentation]")
   IndexType min_size1 = 12;
   IndexType jump1 = 1;
   IndexType window_width1 = 24;
-  IndexType penalty1 = 1;
+  double penalty1 = 1;
 
   ChangePointDetectionData data{
     signal, window_width1, min_size1, jump1, penalty1
