@@ -249,8 +249,10 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
 
   std::vector<double>::const_iterator current = score.begin();
 
-  std::vector<double>::const_iterator right_array_left_index = score.begin() + 1;
-  std::vector<double>::const_iterator right_array_right_index = score.begin() + order + 1;
+  std::vector<double>::const_iterator right_array_left_index =
+    score.begin() + 1;
+  std::vector<double>::const_iterator right_array_right_index =
+    score.begin() + order + 1;
 
   std::vector<double>::const_iterator left_array_left_index = score.begin();
   std::vector<double>::const_iterator left_array_right_index = score.begin();
@@ -338,7 +340,7 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       right_array_left_index = current + 1;
     }
 
-    if (current_distance >= n - order -1) {
+    if (current_distance >= n - order - 1) {
       right_array_right_index = score.cend();
     } else {
       right_array_right_index = current + order + 1;
