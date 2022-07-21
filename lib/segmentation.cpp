@@ -268,8 +268,9 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
   auto max_right_array_num = 0.0;
   auto max_left_array_num = 0.0;
   auto second_max = 0.0;
+  IndexType current_distance = std::distance(score.begin(),current);
 
-  while (current < score.end()) // check main part of score
+  while (current != score.end()) // check main part of score
   {
     if (left_array_left_index == left_array_right_index) {
       max_left_array_num = 0;
@@ -287,7 +288,7 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       max_right_array_num = *max_right_array;
     }
 
-    if (current < score.begin() + order) {
+    if (current_distance < std::distance(score.begin(),score.begin() + order)) {
       distance_range =
         order - std::distance(left_array_left_index, left_array_right_index);
       if (distance_range == order)
@@ -299,7 +300,7 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
           *(std::max_element((score.end() - distance_range), score.end())));
     }
 
-    else if (current > score.end() - order - 1) {
+    else if (current_distance > std::distance(score.begin(), score.end() - order - 1)) {
       distance_range =
         order - std::distance(right_array_left_index, right_array_right_index);
       if (distance_range == order)
@@ -317,6 +318,7 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       // find_max = true;
       if (std::distance(score.begin(), current + order + 1) < score.size()) {
         current = current + order + 1;
+        current_distance = std::distance(score.begin(),current);
       } else
         break;
     }
@@ -325,6 +327,7 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       // find_max = false;
       if (std::distance(score.begin(), current + 1) < score.size()) {
         current++;
+        current_distance = std::distance(score.begin(),current);
       } else
         break;
     }
@@ -335,14 +338,14 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       right_array_left_index = current + 1;
     }
 
-    if (current > score.end() - order - 1) {
+    if (current_distance > std::distance(score.begin(),score.end() - order - 1)) {
       right_array_right_index = score.end();
     } else {
       right_array_right_index = current + order + 1;
     }
 
     left_array_right_index = current;
-    if (current < score.begin() + order)
+    if (current_distance < std::distance(score.begin(),score.begin() + order))
       left_array_left_index = score.begin();
     else
       left_array_left_index = current - order;
