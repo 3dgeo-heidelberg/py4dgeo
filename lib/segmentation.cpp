@@ -247,30 +247,30 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
   bool last_is_max = false;
   bool find_max = false;
 
-  auto current = score.begin();
+  std::vector<double>::const_iterator current = score.begin();
 
-  auto right_array_left_index = score.begin() + 1;
-  auto right_array_right_index = score.begin() + order + 1;
+  std::vector<double>::const_iterator right_array_left_index = score.begin() + 1;
+  std::vector<double>::const_iterator right_array_right_index = score.begin() + order + 1;
 
-  auto left_array_left_index = score.begin();
-  auto left_array_right_index = score.begin();
+  std::vector<double>::const_iterator left_array_left_index = score.begin();
+  std::vector<double>::const_iterator left_array_right_index = score.begin();
 
   // std::vector<double>::const_iterator right_array_left_index = score.begin()
   // + 1; std::vector<double>::const_iterator right_array_right_index =
   // score.begin() + order;
 
-  auto max_right_array =
+  std::vector<double>::const_iterator max_right_array =
     std::max_element(right_array_left_index, right_array_right_index);
-  auto max_left_array =
+  std::vector<double>::const_iterator max_left_array =
     std::max_element(left_array_left_index, left_array_right_index);
 
   auto distance_range = 0;
   auto max_right_array_num = 0.0;
   auto max_left_array_num = 0.0;
   auto second_max = 0.0;
-  IndexType current_distance = std::distance(score.begin(), current);
+  IndexType current_distance = std::distance(score.cbegin(), current);
 
-  while (current != score.end()) // check main part of score
+  while (current_distance < n) // check main part of score
   {
     if (left_array_left_index == left_array_right_index) {
       max_left_array_num = 0;
@@ -288,67 +288,64 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
       max_right_array_num = *max_right_array;
     }
 
-    if (current_distance <
-        std::distance(score.begin(), score.begin() + order)) {
+    if (current_distance < order) {
       distance_range =
         order - std::distance(left_array_left_index, left_array_right_index);
       if (distance_range == order)
         max_left_array_num =
-          *(std::max_element((score.end() - distance_range), score.end()));
+          *(std::max_element((score.cend() - distance_range), score.cend()));
       else
         max_left_array_num = std::max(
           *max_left_array,
-          *(std::max_element((score.end() - distance_range), score.end())));
+          *(std::max_element((score.cend() - distance_range), score.cend())));
     }
 
-    else if (current_distance >
-             std::distance(score.begin(), score.end() - order - 1)) {
+    else if (current_distance > n - order - 1) {
       distance_range =
         order - std::distance(right_array_left_index, right_array_right_index);
       if (distance_range == order)
         max_right_array_num =
-          *(std::max_element(score.begin(), score.begin() + distance_range));
+          *(std::max_element(score.cbegin(), score.cbegin() + distance_range));
       else
         max_right_array_num = std::max(
           *max_right_array,
-          *(std::max_element(score.begin(), score.begin() + distance_range)));
+          *(std::max_element(score.cbegin(), score.cbegin() + distance_range)));
     }
 
     if (*current > max_left_array_num && *current > max_right_array_num) {
-      auto item_index = current - score.begin();
+      auto item_index = current - score.cbegin();
       result.push_back(item_index);
       // find_max = true;
-      if (std::distance(score.begin(), current + order + 1) < score.size()) {
+      if (current_distance + order + 1 < n) {
         current = current + order + 1;
-        current_distance = std::distance(score.begin(), current);
+        current_distance = current_distance + order + 1;
       } else
         break;
     }
 
     else {
       // find_max = false;
-      if (std::distance(score.begin(), current + 1) < score.size()) {
+      if (current_distance + 1 < n) {
         current++;
-        current_distance = std::distance(score.begin(), current);
+        current_distance++;
       } else
         break;
     }
 
     if (current == score.end() - 1) {
-      right_array_left_index = score.end();
+      right_array_left_index = score.cend();
     } else {
       right_array_left_index = current + 1;
     }
 
-    if (current_distance >
-        std::distance(score.begin(), score.end() - order - 1)) {
-      right_array_right_index = score.end();
+    if (current_distance >= n - order -1) {
+      right_array_right_index = score.cend();
     } else {
       right_array_right_index = current + order + 1;
     }
 
     left_array_right_index = current;
-    if (current_distance < std::distance(score.begin(), score.begin() + order))
+    if (current_distance < order)
       left_array_left_index = score.begin();
     else
       left_array_left_index = current - order;
