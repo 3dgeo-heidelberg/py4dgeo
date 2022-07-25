@@ -830,7 +830,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # These are some arguments used below that we might consider
         # exposing to the user in the future. For now, they are considered
         # internal, but they are still defined here for readability.
-        window_costmodel = "l1"
         window_min_size = 12
         window_jump = 1
         window_penalty = 1.0
@@ -863,7 +862,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             # Run detection of change points
             cpdata = _py4dgeo.ChangePointDetectionData(
                 ts=timeseries,
-                window_size=window_width,
+                window_size=self.window_width,
                 min_size=window_min_size,
                 jump=window_jump,
                 penalty=window_penalty,
