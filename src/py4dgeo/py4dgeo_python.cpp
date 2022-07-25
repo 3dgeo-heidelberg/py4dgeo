@@ -110,9 +110,9 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Add all the radius search methods
   kdtree.def(
     "radius_search",
-    [](const KDTree& self, py::array_t<float> qp, double radius) {
+    [](const KDTree& self, py::array_t<double> qp, double radius) {
       // Get a pointer for the query point
-      auto ptr = static_cast<const float*>(qp.request().ptr);
+      auto ptr = static_cast<const double*>(qp.request().ptr);
 
       KDTree::RadiusSearchResult result;
       self.radius_search(ptr, radius, result);

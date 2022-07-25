@@ -23,7 +23,7 @@ import pytest
     "workingset_callback",
     [
         (cxx_radius_workingset_finder, radius_workingset_finder),
-        (cxx_cylinder_workingset_finder, cylinder_workingset_finder),
+        # (cxx_cylinder_workingset_finder, cylinder_workingset_finder),
     ],
 )
 def test_fallback_implementations(epochs, distance_callback, workingset_callback):

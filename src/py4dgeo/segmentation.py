@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
+import ruptures
 import seaborn
 import tempfile
 import zipfile
@@ -43,7 +44,7 @@ class SpatiotemporalAnalysis:
 
         :param filename:
             The filename used for this analysis. If it does not exist on the file
-            system, a new analysis is created. Otherwise, the data is loaded.
+            system, a new analysis is created. Otherwise, the data is loaded from the existent file.
         :type filename: str
         :param compress:
             Whether to compress the stored data. This is a tradeoff decision between
@@ -72,6 +73,7 @@ class SpatiotemporalAnalysis:
         # This is the cache for lazily loaded data
         self._corepoints = None
         self._distances = None
+        self._smoothed_distances = None
         self._uncertainties = None
         self._reference_epoch = None
 
@@ -157,7 +159,7 @@ class SpatiotemporalAnalysis:
                 # Extract it from the archive
                 with tempfile.TemporaryDirectory() as tmp_dir:
                     cpfile = zf.extract("corepoints.zip", path=tmp_dir)
-                    return Epoch.load(cpfile)
+                    self._corepoints = Epoch.load(cpfile)
 
         return self._corepoints
 
@@ -249,7 +251,7 @@ class SpatiotemporalAnalysis:
 
         if self._distances is None:
             with zipfile.ZipFile(self.filename, mode="r") as zf:
-                filename = "distances.npz" if self.compress else "distances.npy"
+                filename = self._numpy_filename("distances")
                 if filename not in zf.namelist():
                     self.distances = np.empty(
                         (self.corepoints.cloud.shape[0], 0), dtype=np.float64
@@ -273,7 +275,7 @@ class SpatiotemporalAnalysis:
         epochs via the :ref:`add_epochs` method.
         """
         with zipfile.ZipFile(self.filename, mode="a") as zf:
-            filename = "distances.npz" if self.compress else "distances.npy"
+            filename = self._numpy_filename("distances")
             write_func = np.savez_compressed if self.compress else np.save
 
             # If we already have distacces in the archive, this is not possible
@@ -294,12 +296,46 @@ class SpatiotemporalAnalysis:
         self._distances = None
 
     @property
+    def smoothed_distances(self):
+        if self._smoothed_distances is None:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
+                filename = self._numpy_filename("smoothed_distances")
+                if filename in zf.namelist():
+                    with tempfile.TemporaryDirectory() as tmp_dir:
+                        smoothedfile = zf.extract(filename, path=tmp_dir)
+                        read_func = (
+                            (lambda f: np.load(f)["arr_0"])
+                            if self.compress
+                            else np.load
+                        )
+                        self._smoothed_distances = read_func(smoothedfile)
+
+        return self._smoothed_distances
+
+    @smoothed_distances.setter
+    def smoothed_distances(self, _smoothed_distances):
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
+            filename = self._numpy_filename("smoothed_distances")
+            write_func = np.savez_compressed if self.compress else np.save
+
+            with tempfile.TemporaryDirectory() as tmp_dir:
+                smoothedfile = os.path.join(tmp_dir, filename)
+                write_func(smoothedfile, _smoothed_distances)
+                zf.write(smoothedfile, arcname=filename)
+
+        self._smoothed_distances = _smoothed_distances
+
+    @smoothed_distances.deleter
+    def smoothed_distances(self):
+        self._smoothed_distances = None
+
+    @property
     def uncertainties(self):
         """Access the M3C2 uncertainties of this analysis"""
 
         if self._uncertainties is None:
             with zipfile.ZipFile(self.filename, mode="r") as zf:
-                filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+                filename = self._numpy_filename("uncertainties")
                 if filename not in zf.namelist():
                     self.uncertainties = np.empty(
                         (self.corepoints.cloud.shape[0], 0),
@@ -332,7 +368,7 @@ class SpatiotemporalAnalysis:
         epochs via the :ref:`add_epochs` method.
         """
         with zipfile.ZipFile(self.filename, mode="a") as zf:
-            filename = "uncertainties.npz" if self.compress else "uncertainties.npy"
+            filename = self._numpy_filename("uncertainties")
             write_func = np.savez_compressed if self.compress else np.save
 
             # If we already have distacces in the archive, this is not possible
@@ -405,10 +441,8 @@ class SpatiotemporalAnalysis:
 
             # Depending on whether we compress, we use different numpy functionality
             write_func = np.savez_compressed if self.compress else np.save
-            distance_filename = "distances.npz" if self.compress else "distances.npy"
-            uncertainty_filename = (
-                "uncertainties.npz" if self.compress else "uncertainties.npy"
-            )
+            distance_filename = self._numpy_filename("distances")
+            uncertainty_filename = self._numpy_filename("uncertainties")
 
             with logger_context("Rearranging space-time array in memory"):
                 # Load the distance array and append new data
@@ -523,7 +557,7 @@ class SpatiotemporalAnalysis:
 
                 zf.write(objectsfile, arcname="objects.pickle")
 
-    def invalidate_results(self, seeds=True, objects=True):
+    def invalidate_results(self, seeds=True, objects=True, smoothed_distances=True):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
@@ -540,6 +574,26 @@ class SpatiotemporalAnalysis:
             if objects and "objects.pickle" in zf.namelist():
                 zf.remove("objects.pickle")
 
+            smoothed_file = self._numpy_filename("smoothed_distances")
+            if smoothed_distances and smoothed_file in zf.namelist():
+                zf.remove(smoothed_file)
+
+    def _numpy_filename(self, name):
+        extension = "npz" if self.compress else "npy"
+        return f"{name}.{extension}"
+
+    @property
+    def distances_for_compute(self):
+        """Retrieve the distance array used for computation
+
+        This might be the raw data or smoothed data, based on whether
+        a smoothing was provided by the user.
+        """
+        distances = self.smoothed_distances
+        if distances is None:
+            distances = self.distances
+        return distances
+
 
 class RegionGrowingAlgorithmBase:
     def __init__(
@@ -554,7 +608,7 @@ class RegionGrowingAlgorithmBase:
         This class can be derived from to customize the algorithm behaviour.
 
         :param neighborhood_radius:
-            The size of the neighborhood of a corepoint. All corepoints within
+            The size of the neighborhood of a core point. All core points within
             this radius are considered adjacent and are therefore considered as
             candidates for inclusion in the region growing algorithm.
         :type neighborhood_radius: float
@@ -563,11 +617,11 @@ class RegionGrowingAlgorithmBase:
             thresholding procedure.
         :type thresholds: list
         :param min_segments:
-            The minimum number of core points in an object by change. Defaults to
+            The minimum number of core points in an object-by-change. Defaults to
             20.
         :type min_segments: int
         :param max_segments:
-            The maximum number of core points in an object by change. This is mainly
+            The maximum number of core points in an object-by-change. This is mainly
             used to bound the runtime of expensive region growing. By default, no
             maximum is applied.
         :type max_segments: int
@@ -580,12 +634,6 @@ class RegionGrowingAlgorithmBase:
 
         self._analysis = None
 
-    def temporal_averaging(self):
-        """Smoothen a space-time array of distance change"""
-
-        # This base class implements no-op smoothing
-        return self.analysis.distances
-
     def distance_measure(self):
         """Distance measure between two time series
 
@@ -595,7 +643,7 @@ class RegionGrowingAlgorithmBase:
 
         return _py4dgeo.normalized_dtw_distance
 
-    def find_seedpoints(self, distances):
+    def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
         raise NotImplementedError
@@ -634,11 +682,11 @@ class RegionGrowingAlgorithmBase:
         """Calculate the segmentation
 
         :param analysis:
-            The analysis object we are working with
+            The analysis object we are working with.
         :type analysis: py4dgeo.segmentation.SpatiotemporalAnalysis
         :param force:
             Force recalculation of results. If false, some intermediate results will be
-            restored from the analysis object instead of being recalculated
+            restored from the analysis object instead of being recalculated.
         """
 
         # Make the analysis object known to all members
@@ -654,10 +702,6 @@ class RegionGrowingAlgorithmBase:
             logger.info("Reusing objects by change stored in analysis object")
             return precalculated
 
-        # Smooth the distance array
-        with logger_context("Smoothing temporal data"):
-            smoothed = self.temporal_averaging()
-
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
         corepoints.build_kdtree()
@@ -666,7 +710,7 @@ class RegionGrowingAlgorithmBase:
         seeds = analysis.seeds
         if seeds is None:
             with logger_context("Find seed candidates in time series"):
-                seeds = self.find_seedpoints(smoothed)
+                seeds = self.find_seedpoints()
                 analysis.seeds = seeds
         else:
             logger.info("Reusing seed candidates stored in analysis object")
@@ -698,7 +742,7 @@ class RegionGrowingAlgorithmBase:
                 max_segments = corepoints.cloud.shape[0] + 1
 
             data = _py4dgeo.RegionGrowingAlgorithmData(
-                smoothed,
+                analysis.distances_for_compute,
                 corepoints,
                 self.neighborhood_radius,
                 seed._seed,
@@ -729,79 +773,77 @@ class RegionGrowingAlgorithmBase:
         analysis.objects = objects
 
         # Potentially remove objects from memory
+        del analysis.smoothed_distances
         del analysis.distances
 
         return objects
 
 
 class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
-    def __init__(self, smoothing_window=0, seed_subsampling=1, **kwargs):
+    def __init__(
+        self,
+        seed_subsampling=1,
+        window_width=24,
+        minperiod=24,
+        height_threshold=0.0,
+        **kwargs,
+    ):
         """Construct the 4D-OBC algorithm.
 
-        :param smoothing_window:
-            The size of the sliding window used in smoothing the data. The
-            default value of 0 does not perform any smooting.
-        :type smooting_window: int
         :param seed_subsampling:
-            A subsampling factor for the set of corepoints for the generation
-            of region growing seed candidates. This can be used to speed up
+            A subsampling factor for the set of core points for the generation
+            of segmentation seed candidates. This can be used to speed up
             the generation of seeds. The default of 1 does not perform any
-            subsampling, a value of e.g. 10 would only consider every 10th
+            subsampling, a value of, e.g., 10 would only consider every 10th
             corepoint for adding seeds.
         :type seed_subsampling: int
+        :param window_width:
+            The width of the sliding temporal window for change point detection. The sliding window
+            moves along the signal and determines the discrepancy between the first and the second
+            half of the window (i.e. subsequent time series segments within the window width). The
+            default value is 24, corresponding to one day in case of hourly data.
+        :type window_width: int
+        :param minperiod:
+            The minimum period of a detected change to be considered as seed candidate for subsequent
+            segmentation. The default is 24, corresponding to one day for hourly data.
+        :type minperiod: int
+        :param height_threshold:
+            The height threshold represents the required magnitude of a dectected change to be considered
+            as seed candidate for subsequent segmentation. The magnitude of a detected change is derived
+            as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
+            The default is 0.0, in which case all detected changes are used as seed candidates.
+        :type height_threshold: float
         """
 
         # Initialize base class
         super().__init__(**kwargs)
 
         # Store the given parameters
-        self.smoothing_window = smoothing_window
         self.seed_subsampling = seed_subsampling
+        self.window_width = window_width
+        self.minperiod = minperiod
+        self.height_threshold = height_threshold
 
-    def temporal_averaging(self):
-        """Smoothen a space-time array of distance change"""
-
-        # If the smoothing_window parameter is set to 0, this is no-op
-        if self.smoothing_window == 0:
-            return self.analysis.distances
-
-        smoothed = np.empty_like(self.analysis.distances)
-        eps = self.smoothing_window // 2
-
-        for i in range(self.analysis.distances.shape[1]):
-            smoothed[:, i] = np.nanmedian(
-                self.analysis.distances[
-                    :,
-                    max(0, i - eps) : min(
-                        self.analysis.distances.shape[1] - 1, i + eps
-                    ),
-                ],
-                axis=1,
-            )
-
-        # We use no-op smooting as the default implementation here
-        return smoothed
-
-    def find_seedpoints(self, distances):
+    def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
         # These are some arguments used below that we might consider
-        # exposing to the user
-        window_width = 24
+        # exposing to the user in the future. For now, they are considered
+        # internal, but they are still defined here for readability.
         window_costmodel = "l1"
         window_min_size = 12
         window_jump = 1
         window_penalty = 1.0
-        minperiod = 24
-        height_threshold = 0.0
 
         # The list of generated seeds
         seeds = []
 
         # Iterate over all time series to analyse their change points
-        for i in range(0, distances.shape[0], self.seed_subsampling):
+        for i in range(
+            0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
+        ):
             # Extract the time series and interpolate its nan values
-            timeseries = distances[i, :]
+            timeseries = self.analysis.distances_for_compute[i, :]
             bad_indices = np.isnan(timeseries)
             num_nans = np.count_nonzero(bad_indices)
 
@@ -811,7 +853,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
             # If there are nan values, we try fixing things by interpolation
             if num_nans > 0:
-                good_indices = np.logical_nor(bad_indices)
+                good_indices = np.logical_not(bad_indices)
                 timeseries[bad_indices] = np.interp(
                     bad_indices.nonzero()[0],
                     good_indices.nonzero()[0],
@@ -840,20 +882,22 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     continue
 
                 # Skip this changepoint if this to close to the end
-                if start_idx >= timeseries.shape[0] - minperiod:
+                if start_idx >= timeseries.shape[0] - self.minperiod:
                     break
 
                 # Decide whether we need use the flipped timeseries
                 used_timeseries = timeseries
-                if timeseries[start_idx] >= timeseries[start_idx + minperiod]:
+                if timeseries[start_idx] >= timeseries[start_idx + self.minperiod]:
                     used_timeseries = timeseries_flipped
 
                 previous_volume = -999.9
 
-                for target_idx in range(start_idx + 1, timeseries.shape[0] - minperiod):
+                for target_idx in range(
+                    start_idx + 1, timeseries.shape[0] - self.minperiod
+                ):
 
                     # Calculate the change volume
-                    height = used_timeseries[start_idx] + height_threshold
+                    height = used_timeseries[start_idx] + self.height_threshold
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
@@ -895,10 +939,12 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             similarities = []
             for n in neighbors:
                 data = _py4dgeo.TimeseriesDistanceFunctionData(
-                    self.analysis.distances[
+                    self.analysis.distances_for_compute[
                         seed.index, seed.start_epoch : seed.end_epoch + 1
                     ],
-                    self.analysis.distances[n, seed.start_epoch : seed.end_epoch + 1],
+                    self.analysis.distances_for_compute[
+                        n, seed.start_epoch : seed.end_epoch + 1
+                    ],
                 )
                 similarities.append(self.distance_measure()(data))
 
@@ -994,11 +1040,14 @@ class ObjectByChange:
         timeseries_padding = 10
         start_epoch = max(self.start_epoch - timeseries_padding, 0)
         end_epoch = min(
-            self.end_epoch + timeseries_padding, self._analysis.distances.shape[1]
+            self.end_epoch + timeseries_padding,
+            self._analysis.distances_for_compute.shape[1],
         )
 
         # We use the seed's timeseries to set good axis limits
-        seed_ts = self._analysis.distances[self.seed.index, start_epoch:end_epoch]
+        seed_ts = self._analysis.distances_for_compute[
+            self.seed.index, start_epoch:end_epoch
+        ]
         tsax.set_ylim(np.nanmin(seed_ts) * 0.5, np.nanmax(seed_ts) * 1.5)
 
         # Create a colormap with distance for this object
@@ -1008,7 +1057,7 @@ class ObjectByChange:
         # Plot each time series individually
         for index in self.indices:
             tsax.plot(
-                self._analysis.distances[index, start_epoch:end_epoch],
+                self._analysis.distances_for_compute[index, start_epoch:end_epoch],
                 linewidth=0.7,
                 alpha=0.3,
                 color=cmap(self.distance(index) / maxdist),
@@ -1057,20 +1106,20 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
     :type upperright: nd.ndarray
     :param num_points:
         A tuple with two entries denoting the number of points to be used in
-        x and y direction
+        x and y direction.
     :type num_points: tuple
     :param zval:
-        The value to fill for the z-direction.
+        The value to fill for the z direction.
     :type zval: double
     """
     xspace = np.linspace(
-        lowerleft[0], upperright[0], num=num_points[0], dtype=np.float32
+        lowerleft[0], upperright[0], num=num_points[0], dtype=np.float64
     )
     yspace = np.linspace(
-        lowerleft[1], upperright[1], num=num_points[1], dtype=np.float32
+        lowerleft[1], upperright[1], num=num_points[1], dtype=np.float64
     )
 
-    grid = np.empty(shape=(num_points[0] * num_points[1], 3), dtype=np.float32)
+    grid = np.empty(shape=(num_points[0] * num_points[1], 3), dtype=np.float64)
     for i, x in enumerate(xspace):
         for j, y in enumerate(yspace):
             grid[i * num_points[0] + j, 0] = x
@@ -1078,3 +1127,32 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
             grid[i * num_points[0] + j, 2] = zval
 
     return grid
+
+
+def temporal_averaging(distances, smoothing_window=24):
+    """Smoothen a space-time array of distance change using a sliding window approach
+
+    :param distances:
+        The raw data to smoothen.
+    :type distances: np.ndarray
+    :param smoothing_window:
+        The size of the sliding window used in smoothing the data. The
+        default value of 0 does not perform any smooting.
+    :type smooting_window: int
+    """
+
+    with logger_context("Smoothing temporal data"):
+        smoothed = np.empty_like(distances)
+        eps = smoothing_window // 2
+
+        for i in range(distances.shape[1]):
+            smoothed[:, i] = np.nanmedian(
+                distances[
+                    :,
+                    max(0, i - eps) : min(distances.shape[1] - 1, i + eps),
+                ],
+                axis=1,
+            )
+
+        # We use no-op smooting as the default implementation here
+        return smoothed

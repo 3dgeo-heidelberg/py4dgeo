@@ -43,7 +43,7 @@ benchcloud_from_file(const std::string& filename)
     double x;
     for (int i = 0; i < 3; ++i) {
       s >> x;
-      (*cloud)(points, i) = static_cast<float>(x - mincoord[i]);
+      (*cloud)(points, i) = x - mincoord[i];
     }
     ++points;
   }

@@ -6,8 +6,10 @@ from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
     SpatiotemporalAnalysis,
     regular_corepoint_grid,
+    temporal_averaging,
 )
 from py4dgeo.util import (
+    __version__,
     ensure_test_data_availability,
     MemoryPolicy,
     set_memory_policy,

@@ -22,24 +22,25 @@ jobs:
         include:
           - os: ubuntu-20.04
             arch: "x86_64"
-          - os: windows-2022
-            arch: "x86"
+          # Temporarily disable 32-bit builds on Windows until lazrs provides wheels for it.
+          #- os: windows-2022
+          #  arch: "x86"
           - os: windows-2022
             arch: "AMD64"
           - os: macos-11
             arch: "x86_64"
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
         submodules: 'recursive'
 
     - name: Build wheels (arch=${{ matrix.arch }})
-      uses: pypa/cibuildwheel@v2.5.0
+      uses: pypa/cibuildwheel@v2.7.0
       env:
         CIBW_ARCHS: "${{ matrix.arch }}"
 
-    - uses: actions/upload-artifact@v2
+    - uses: actions/upload-artifact@v3
       with:
         path: ./wheelhouse/*.whl
 
@@ -48,14 +49,14 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
 
       - name: Build SDist
         run: pipx run build --sdist
 
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v3
         with:
           name: artifact
           path: dist/*.tar.gz
@@ -72,16 +73,16 @@ jobs:
           - macos-11
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: 'recursive'
 
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v4
         name: Install Python
         with:
           python-version: '3.9'
 
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist
@@ -106,9 +107,9 @@ jobs:
   upload_testpypi:
     needs: [build-sdist, test-sdist, build-wheels]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'ssciwr'
+    if: github.repository_owner == '3dgeo-heidelberg'
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist
@@ -123,9 +124,9 @@ jobs:
   upload_pypi:
     needs: [build-sdist, build-wheels, upload_testpypi]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == 'ssciwr'
+    if: github.repository_owner == '3dgeo-heidelberg'
     steps:
-      - uses: actions/download-artifact@v2
+      - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist

@@ -67,16 +67,6 @@ def test_as_double_precision():
     assert np.allclose(arr1, arr1_dp)
 
 
-def test_as_single_precision():
-    arr1 = np.full((42, 3), 1.0, dtype=np.float32)
-    arr1_sp = as_single_precision(arr1)
-    assert arr1 is arr1_sp
-
-    arr1 = np.full((42, 3), 1.0, dtype=np.float64)
-    arr1_sp = as_single_precision(arr1)
-    assert np.allclose(arr1, arr1_sp)
-
-
 def test_as_double_precision_strict():
     set_memory_policy(MemoryPolicy.STRICT)
 

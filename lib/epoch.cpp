@@ -27,7 +27,7 @@ Epoch::to_stream(std::ostream& stream) const
   IndexType rows = cloud.rows();
   stream.write(reinterpret_cast<const char*>(&rows), sizeof(IndexType));
   stream.write(reinterpret_cast<const char*>(&cloud(0, 0)),
-               sizeof(float) * rows * 3);
+               sizeof(double) * rows * 3);
 
   // Write the leaf parameter
   int leaf_parameter = kdtree.leaf_parameter;
@@ -48,7 +48,7 @@ Epoch::from_stream(std::istream& stream)
   stream.read(reinterpret_cast<char*>(&rows), sizeof(IndexType));
   auto cloud = std::make_shared<EigenPointCloud>(rows, 3);
   stream.read(reinterpret_cast<char*>(&(*cloud)(0, 0)),
-              sizeof(float) * rows * 3);
+              sizeof(double) * rows * 3);
 
   // Create the epoch
   auto epoch = std::make_unique<Epoch>(cloud);

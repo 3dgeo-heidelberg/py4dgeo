@@ -54,7 +54,7 @@ KDTree::loadIndex(std::istream& stream)
 }
 
 std::size_t
-KDTree::radius_search(const float* query,
+KDTree::radius_search(const double* query,
                       double radius,
                       RadiusSearchResult& result) const
 {
@@ -65,7 +65,7 @@ KDTree::radius_search(const float* query,
 }
 
 std::size_t
-KDTree::radius_search_with_distances(const float* query,
+KDTree::radius_search_with_distances(const double* query,
                                      double radius,
                                      RadiusSearchDistanceResult& result) const
 {
