@@ -138,7 +138,7 @@ def test_regular_corepoint_grid():
 @pytest.mark.parametrize("ts", (simple_jump(), complex_timeseries()))
 @pytest.mark.parametrize("window_size", (12, 24, 48))
 @pytest.mark.parametrize("min_size", (6, 9, 12))
-@pytest.mark.parametrize("jump", (1, 2, 3))
+@pytest.mark.parametrize("jump", (1, 3))
 @pytest.mark.parametrize("penalty", (1.0, 2.0))
 def test_change_point_detection_against_ruptures(
     ts, window_size, min_size, jump, penalty
