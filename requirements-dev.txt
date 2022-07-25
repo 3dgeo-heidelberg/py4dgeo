@@ -9,5 +9,6 @@ pandas
 pre-commit
 pytest
 pytest-cov
+ruptures
 sphinx
 sphinx_rtd_theme

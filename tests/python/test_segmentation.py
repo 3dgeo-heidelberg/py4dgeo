@@ -5,7 +5,7 @@ from py4dgeo.util import Py4DGeoError
 import pytest
 import ruptures
 
-from .helpers import compare_segmentations
+from .helpers import complex_timeseries, simple_jump
 
 
 def test_segmentation(analysis):
@@ -137,25 +137,32 @@ def test_regular_corepoint_grid():
     assert grid.shape == (16, 3)
 
 
-def test_change_point_detection():
-    # Setup test data
-    ts = np.linspace(0, 0.1, 100)
-    ts[50:] += 1
+@pytest.mark.parametrize("ts", (simple_jump(), complex_timeseries()))
+@pytest.mark.parametrize("window_size", (12, 24, 48))
+@pytest.mark.parametrize("min_size", (6, 9, 12))
+@pytest.mark.parametrize("jump", (1, 2, 3))
+@pytest.mark.parametrize("penalty", (1.0, 2.0))
+def test_change_point_detection_against_ruptures(
+    ts, window_size, min_size, jump, penalty
+):
+    """These are regression tests of the change point detection algorithm
+    against the ruptures library which was previously used.
+    """
 
     # Run ruptures algorithm
     algo = ruptures.Window(
-        width=24,
+        width=window_size,
         model="l1",
-        min_size=12,
-        jump=1,
+        min_size=min_size,
+        jump=jump,
     )
-    rcp = algo.fit_predict(ts, pen=1.0)
+    rcp = algo.fit_predict(ts, pen=penalty)
 
     # Run C++ algorithm
     from py4dgeo._py4dgeo import change_point_detection, ChangePointDetectionData
 
     data = ChangePointDetectionData(
-        ts=ts, window_size=24, min_size=12, jump=1, penalty=1.0
+        ts=ts, window_size=window_size, min_size=min_size, jump=jump, penalty=penalty
     )
     cpp = change_point_detection(data)
 

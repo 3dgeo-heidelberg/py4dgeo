@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
-import ruptures
 import seaborn
 import tempfile
 import zipfile
@@ -795,14 +794,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         window_penalty = 1.0
         minperiod = 24
         height_threshold = 0.0
-
-        # The chang point detection algorithm we use
-        algo = ruptures.Window(
-            width=window_width,
-            model=window_costmodel,
-            min_size=window_min_size,
-            jump=window_jump,
-        )
 
         # The list of generated seeds
         seeds = []
