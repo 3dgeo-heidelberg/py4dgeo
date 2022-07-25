@@ -828,7 +828,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 )
 
             # Run detection of change points
-            changepoints = algo.fit_predict(timeseries, pen=window_penalty)[:-1]
+            cpdata = _py4dgeo.ChangePointDetectionData(
+                ts=timeseries,
+                window_size=window_width,
+                min_size=window_min_size,
+                jump=window_jump,
+                penalty=window_penalty,
+            )
+            changepoints = _py4dgeo.change_point_detection(cpdata)[:-1]
 
             # Shift the time series to positive values
             timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)
