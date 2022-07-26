@@ -210,13 +210,13 @@ double
 median_calculation(std::vector<double>& subsignal)
 {                          // function calculate median of the vector
                            // the function change the vector
-  if (subsignal.empty()) { // what we should return, exeption or 0?
-    return 0.0;
+  if (subsignal.empty()) {// exeption
+    throw std::runtime_error{"Empty signal passed to median calculation"};
   }
   auto n = subsignal.size() / 2;
   std::nth_element(subsignal.begin(), subsignal.begin() + n, subsignal.end());
   double med = subsignal[n];
-  if (!(subsignal.size() & 1)) { // If the set size is even
+  if (subsignal.size() % 2 == 0) { // If the set size is even
     auto max_it = std::max_element(subsignal.begin(), subsignal.begin() + n);
     med = (*max_it + med) / 2.0;
   }
@@ -227,25 +227,17 @@ std::vector<IndexType>
 local_maxima_calculation(std::vector<double>& score, IndexType order)
 {
   std::vector<IndexType> result;
-  // Exceptions
-  if (score.empty()) { // what we should return, exeption or 0?
-    // cout<<"The score is empty";
-    return result;
+
+  if (score.empty()) {// exeption
+    throw std::runtime_error{"The score is empty"};
   }
-  if (order < 1) { // what we should return, exeption or 0?
-    // cout<<"Order in local_maxima_calculation function should be >= 1";
-    return result;
+  if (order < 1) {// exeption
+    throw std::runtime_error{"Order in local_maxima_calculation function < 1"};
   }
   auto n = score.size();
-  if (n == 1) {
-    // cout<<"The score contains only one element";
-    return result;
+  if (n == 1) {// exeption
+    throw std::runtime_error{"The score contains only one element"};
   }
-  //
-
-  bool first_is_max = false;
-  bool last_is_max = false;
-  bool find_max = false;
 
   std::vector<double>::const_iterator current = score.begin();
 
@@ -257,12 +249,9 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
   std::vector<double>::const_iterator left_array_left_index = score.begin();
   std::vector<double>::const_iterator left_array_right_index = score.begin();
 
-  // std::vector<double>::const_iterator right_array_left_index = score.begin()
-  // + 1; std::vector<double>::const_iterator right_array_right_index =
-  // score.begin() + order;
-
   std::vector<double>::const_iterator max_right_array =
     std::max_element(right_array_left_index, right_array_right_index);
+
   std::vector<double>::const_iterator max_left_array =
     std::max_element(left_array_left_index, left_array_right_index);
 
@@ -317,7 +306,6 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
     if (*current > max_left_array_num && *current > max_right_array_num) {
       auto item_index = current - score.cbegin();
       result.push_back(item_index);
-      // find_max = true;
       if (current_distance + order + 1 < n) {
         current = current + order + 1;
         current_distance = current_distance + order + 1;
@@ -326,7 +314,6 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
     }
 
     else {
-      // find_max = false;
       if (current_distance + 1 < n) {
         current++;
         current_distance++;
@@ -362,20 +349,20 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
               IndexType min_size)
 { // the function calculate error with cost function "l1"
 
-  // if (end - start < min_size){ // exeption
-  //   //std::cout << "End - Start < min_size"<<endl;
-  // }
+  if (end - start < min_size){ // exeption
+    throw std::runtime_error{"End - Start < Min_size in cost_L1_error function"};
+  }
   std::vector<double> signal_subvector(signal.begin() + start,
                                        signal.begin() + end);
 
   double median = median_calculation(signal_subvector);
-  double sum_result = 0.0;
 
-  for (auto& element : signal_subvector) {
-    element =
-      std::abs(element - median); // todo we can delete writing to vector
-    sum_result += element;
-  }
+  double sum_result = std::accumulate(signal_subvector.begin(),
+  signal_subvector.end(), 0.0, [median] (double a, double b){
+    return a + std::abs(b - median);
+    }
+  );
+
   return sum_result;
 }
 
@@ -448,8 +435,12 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
   inds.reserve(signal.size()); // todo: I can make it faster
 
   int half_of_width = width / 2;
-  for (int i = half_of_width; i < (signal.size() - half_of_width); i += jump) {
-    inds.push_back(i);
+  for (int i = 0; i < signal.size(); i += jump) {
+    if ((i < half_of_width) || (i >= (signal.size() - half_of_width))) {
+      continue;
+    }
+    else
+      inds.push_back(i);
   }
 
   std::vector<IndexType> peak_inds_shifted_indx;
@@ -462,9 +453,7 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
 
   for (auto i : peak_inds_shifted_indx) {
     gains.push_back(score[i]);
-    // cout<<"i:"<<score[i]<<endl;
     peak_inds_arr.push_back(inds[i]);
-    // cout<<"p:"<<inds[i]<<endl;
   }
 
   std::vector<int> index_vec(peak_inds_arr.size());
@@ -475,7 +464,6 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
 
   for (auto i : index_vec) {
     peak_inds.push_back(peak_inds_arr[i]);
-    // std::cout << "peak_inds_arr:" << peak_inds_arr[i] << "\n";
   }
 
   while (!stop) {
