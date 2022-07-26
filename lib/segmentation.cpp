@@ -210,8 +210,8 @@ double
 median_calculation(std::vector<double>& subsignal)
 {                          // function calculate median of the vector
                            // the function change the vector
-  if (subsignal.empty()) {// exeption
-    throw std::runtime_error{"Empty signal passed to median calculation"};
+  if (subsignal.empty()) { // exeption
+    throw std::runtime_error{ "Empty signal passed to median calculation" };
   }
   auto n = subsignal.size() / 2;
   std::nth_element(subsignal.begin(), subsignal.begin() + n, subsignal.end());
@@ -228,15 +228,17 @@ local_maxima_calculation(std::vector<double>& score, IndexType order)
 {
   std::vector<IndexType> result;
 
-  if (score.empty()) {// exeption
-    throw std::runtime_error{"The score is empty"};
+  if (score.empty()) { // exeption
+    throw std::runtime_error{ "The score is empty" };
   }
-  if (order < 1) {// exeption
-    throw std::runtime_error{"Order in local_maxima_calculation function < 1"};
+  if (order < 1) { // exeption
+    throw std::runtime_error{
+      "Order in local_maxima_calculation function < 1"
+    };
   }
   auto n = score.size();
-  if (n == 1) {// exeption
-    throw std::runtime_error{"The score contains only one element"};
+  if (n == 1) { // exeption
+    throw std::runtime_error{ "The score contains only one element" };
   }
 
   std::vector<double>::const_iterator current = score.begin();
@@ -349,19 +351,21 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
               IndexType min_size)
 { // the function calculate error with cost function "l1"
 
-  if (end - start < min_size){ // exeption
-    throw std::runtime_error{"End - Start < Min_size in cost_L1_error function"};
+  if (end - start < min_size) { // exeption
+    throw std::runtime_error{
+      "End - Start < Min_size in cost_L1_error function"
+    };
   }
   std::vector<double> signal_subvector(signal.begin() + start,
                                        signal.begin() + end);
 
   double median = median_calculation(signal_subvector);
 
-  double sum_result = std::accumulate(signal_subvector.begin(),
-  signal_subvector.end(), 0.0, [median] (double a, double b){
-    return a + std::abs(b - median);
-    }
-  );
+  double sum_result = std::accumulate(
+    signal_subvector.begin(),
+    signal_subvector.end(),
+    0.0,
+    [median](double a, double b) { return a + std::abs(b - median); });
 
   return sum_result;
 }
@@ -438,8 +442,7 @@ predict_change_point_detection(EigenTimeSeriesConstRef signal,
   for (int i = 0; i < signal.size(); i += jump) {
     if ((i < half_of_width) || (i >= (signal.size() - half_of_width))) {
       continue;
-    }
-    else
+    } else
       inds.push_back(i);
   }
 
