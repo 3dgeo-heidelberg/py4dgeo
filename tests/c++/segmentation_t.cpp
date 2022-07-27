@@ -148,7 +148,7 @@ TEST_CASE("Calculation cost L1", "[segmentation]")
   signal << -8.75263237, -12.4498439, -5.95124875, -7.85988551, -6.3420341,
     -8.12835494, -9.1555907, -8.99132828, -8.23779461, -7.04616777,
     -10.19556631, -7.24568867;
-  IndexType min_size = 12;
+  IndexType min_size = 2;
 
   int start1 = 0;
   int end1 = 12;
@@ -173,7 +173,7 @@ TEST_CASE("Calculation sum of costs", "[segmentation]")
   signal << 1.89491096e+00, 0.00000000e+00, 3.87843620e-01, 0.00000000e+00,
     1.48506944e+00, 3.55271368e-15, -3.55271368e-15, 4.14970948e+00,
     3.19012034e+00, 7.65566496e+00, 7.65566496e+00, 4.14970948e+00;
-  IndexType min_size = 12;
+  IndexType min_size = 2;
 
   std::vector<IndexType> bkps1{ 12 };
   std::vector<IndexType> bkps2{ 0, 12 };

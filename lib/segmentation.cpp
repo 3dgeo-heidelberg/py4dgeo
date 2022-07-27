@@ -351,11 +351,16 @@ cost_L1_error(EigenTimeSeriesConstRef signal,
               IndexType min_size)
 { // the function calculate error with cost function "l1"
 
-  if (end - start < min_size) { // exeption
+  if (end < start) { // exeption
     throw std::runtime_error{
-      "End - Start < Min_size in cost_L1_error function"
+      "End < Start in cost_L1_error function"
     };
   }
+
+  if (start == end){
+    return 0.0;
+  }
+  
   std::vector<double> signal_subvector(signal.begin() + start,
                                        signal.begin() + end);
 
