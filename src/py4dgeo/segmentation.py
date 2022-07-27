@@ -830,18 +830,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # These are some arguments used below that we might consider
         # exposing to the user in the future. For now, they are considered
         # internal, but they are still defined here for readability.
-        window_costmodel = "l1"
         window_min_size = 12
         window_jump = 1
         window_penalty = 1.0
-
-        # The chang point detection algorithm we use
-        algo = ruptures.Window(
-            width=self.window_width,
-            model=window_costmodel,
-            min_size=window_min_size,
-            jump=window_jump,
-        )
 
         # The list of generated seeds
         seeds = []
@@ -869,7 +860,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 )
 
             # Run detection of change points
-            changepoints = algo.fit_predict(timeseries, pen=window_penalty)[:-1]
+            cpdata = _py4dgeo.ChangePointDetectionData(
+                ts=timeseries,
+                window_size=self.window_width,
+                min_size=window_min_size,
+                jump=window_jump,
+                penalty=window_penalty,
+            )
+            changepoints = _py4dgeo.change_point_detection(cpdata)[:-1]
 
             # Shift the time series to positive values
             timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)

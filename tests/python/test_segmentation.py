@@ -3,8 +3,9 @@ from py4dgeo.m3c2 import M3C2
 from py4dgeo.util import Py4DGeoError
 
 import pytest
+import ruptures
 
-from .helpers import compare_segmentations
+from .helpers import complex_timeseries, simple_jump
 
 
 def test_segmentation(analysis):
@@ -132,3 +133,38 @@ def test_region_growing_seed():
 def test_regular_corepoint_grid():
     grid = regular_corepoint_grid((0, 0), (1, 1), (4, 4))
     assert grid.shape == (16, 3)
+
+
+@pytest.mark.parametrize("ts", (simple_jump(), complex_timeseries()))
+@pytest.mark.parametrize("window_size", (12, 24, 48))
+@pytest.mark.parametrize("min_size", (6, 9, 12))
+@pytest.mark.parametrize("jump", (1, 3))
+@pytest.mark.parametrize("penalty", (1.0, 2.0))
+def test_change_point_detection_against_ruptures(
+    ts, window_size, min_size, jump, penalty
+):
+    """These are regression tests of the change point detection algorithm
+    against the ruptures library which was previously used.
+    """
+
+    # Run ruptures algorithm
+    algo = ruptures.Window(
+        width=window_size,
+        model="l1",
+        min_size=min_size,
+        jump=jump,
+    )
+    rcp = algo.fit_predict(ts, pen=penalty)
+
+    # Run C++ algorithm
+    from py4dgeo._py4dgeo import change_point_detection, ChangePointDetectionData
+
+    data = ChangePointDetectionData(
+        ts=ts, window_size=window_size, min_size=min_size, jump=jump, penalty=penalty
+    )
+    cpp = change_point_detection(data)
+
+    # Assert that the two gave the same result
+    assert len(rcp) == len(cpp)
+    for r, c in zip(rcp, cpp):
+        assert r == c
