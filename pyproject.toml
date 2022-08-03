@@ -53,9 +53,7 @@ copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 build-verbosity = 3
 
 # We restrict ourselves to recent Python versions.
-# We temporarily skip win32 builds, because lazrs
-# does not provide Win32 wheels.
-skip = "pp* *p27-* cp35-* cp36-* cp37-* *musllinux* *-win32"
+skip = "pp* *p27-* cp35-* cp36-* cp37-* *musllinux*"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
