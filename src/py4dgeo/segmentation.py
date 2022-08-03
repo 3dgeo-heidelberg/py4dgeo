@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
-import ruptures
 import seaborn
 import tempfile
 import zipfile
