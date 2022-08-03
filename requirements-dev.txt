@@ -1,4 +1,6 @@
 breathe
+cmake
+ipykernel
 lcov_cobertura
 m2r2
 matplotlib

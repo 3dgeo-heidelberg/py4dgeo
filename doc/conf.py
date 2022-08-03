@@ -5,6 +5,7 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os
+import py4dgeo
 import subprocess
 import sys
 
@@ -23,6 +24,7 @@ os.environ["XDG_DATA_DIRS"] = os.path.abspath("../tests/data")
 project = "py4dgeo"
 copyright = "2021, Scientific Software Center, Heidelberg University"
 author = "Dominic Kempf"
+release = py4dgeo.__version__
 
 # -- General configuration ---------------------------------------------------
 
@@ -74,11 +76,3 @@ if os.environ.get("READTHEDOCS", "False") == "True":
     )
     subprocess.check_call("cmake --build . --target doxygen".split(), cwd=builddir)
     breathe_projects["py4dgeo"] = os.path.join(builddir, "doc", "xml")
-
-    # Make sure to also install the Python package on RTD
-    subprocess.check_call("python -m pip install ..".split())
-
-# The full version, including alpha/beta/rc tags
-import py4dgeo
-
-release = py4dgeo.__version__
