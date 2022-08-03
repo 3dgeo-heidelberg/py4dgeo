@@ -76,11 +76,9 @@ Developer API reference
 
 .. autoclass:: py4dgeo.util.Py4DGeoError
 
-.. autofunction:: py4dgeo.find_file
+.. autofunction:: py4dgeo.util.find_file
 
 .. autofunction:: py4dgeo.util.as_double_precision
-
-.. autofunction:: py4dgeo.util.as_single_precision
 
 .. autofunction:: py4dgeo.util.make_contiguous
 

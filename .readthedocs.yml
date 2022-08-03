@@ -13,4 +13,6 @@ submodules:
 python:
   version: "3.8"
   install:
-    - requirements: doc/requirements-rtd.txt
+    - requirements: requirements-dev.txt
+    - method: pip
+      path: .[docs]
