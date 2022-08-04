@@ -706,18 +706,19 @@ class RegionGrowingAlgorithmBase:
         corepoints = as_epoch(analysis.corepoints)
         corepoints.build_kdtree()
 
-        # Calculate the list of seed points
+        # Calculate the list of seed points and sort them
         seeds = analysis.seeds
         if seeds is None:
             with logger_context("Find seed candidates in time series"):
                 seeds = self.find_seedpoints()
                 analysis.seeds = seeds
+
+            # Sort the seed points
+            with logger_context("Sort seed candidates by priority"):
+                seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
+
         else:
             logger.info("Reusing seed candidates stored in analysis object")
-
-        # Sort the seed points
-        with logger_context("Sort seed candidates by priority"):
-            seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
 
         objects = []
 
