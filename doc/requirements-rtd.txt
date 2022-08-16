@@ -1,6 +1,0 @@
-breathe
-cmake
-ipykernel
-m2r2
-nbsphinx
-nbsphinx-link

@@ -32,7 +32,6 @@ dependencies = [
     "matplotlib",
     "numpy",
     "requests",
-    "ruptures",
     "seaborn",
     "xdg",
 ]

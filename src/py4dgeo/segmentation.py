@@ -10,7 +10,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import pickle
-import ruptures
 import seaborn
 import tempfile
 import zipfile
@@ -706,19 +705,18 @@ class RegionGrowingAlgorithmBase:
         corepoints = as_epoch(analysis.corepoints)
         corepoints.build_kdtree()
 
-        # Calculate the list of seed points and sort them
+        # Calculate the list of seed points
         seeds = analysis.seeds
         if seeds is None:
             with logger_context("Find seed candidates in time series"):
                 seeds = self.find_seedpoints()
                 analysis.seeds = seeds
-
-            # Sort the seed points
-            with logger_context("Sort seed candidates by priority"):
-                seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
-
         else:
             logger.info("Reusing seed candidates stored in analysis object")
+
+        # Sort the seed points
+        with logger_context("Sort seed candidates by priority"):
+            seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
 
         objects = []
 
@@ -836,14 +834,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         window_jump = 1
         window_penalty = 1.0
 
-        # The chang point detection algorithm we use
-        algo = ruptures.Window(
-            width=self.window_width,
-            model=window_costmodel,
-            min_size=self.minperiod,
-            jump=window_jump,
-        )
-
         # The list of generated seeds
         seeds = []
 
@@ -870,7 +860,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 )
 
             # Run detection of change points
-            changepoints = algo.fit_predict(timeseries, pen=window_penalty)[:-1]
+            cpdata = _py4dgeo.ChangePointDetectionData(
+                ts=timeseries,
+                window_size=self.window_width,
+                min_size=window_min_size,
+                jump=window_jump,
+                penalty=window_penalty,
+            )
+            changepoints = _py4dgeo.change_point_detection(cpdata)[:-1]
 
             # Shift the time series to positive values
             timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)
@@ -883,46 +880,46 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 if corepoint_seeds and start_idx <= corepoint_seeds[-1].end_epoch:
                     continue
 
-                # Skip this changepoint if too close to the end (i.e. minperiod not possible)
+                # Skip this changepoint if this to close to the end
                 if start_idx >= timeseries.shape[0] - self.minperiod:
                     break
 
-                # Decide whether we need use the flipped timeseries (for negative changes)
+                # Decide whether we need use the flipped timeseries
                 used_timeseries = timeseries
                 if timeseries[start_idx] >= timeseries[start_idx + self.minperiod]:
                     used_timeseries = timeseries_flipped
 
-                # Initialize volume for change volume maximization during search of end_idx
                 previous_volume = -999.9
 
-                # Set the base height to which change volume is calculated at start_idx
-                height = used_timeseries[start_idx]
-
-                # Find the end index, all until end of timeseries are candidates
                 for target_idx in range(
-                    start_idx + 1, timeseries.shape[0]
+                    start_idx + 1, timeseries.shape[0] - self.minperiod
                 ):
 
-                    # Calculate the change volume relative to the height at start_idx
+                    # Calculate the change volume
+                    height = used_timeseries[start_idx] + self.height_threshold
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
+                    if volume < 0.0:
+                        height = used_timeseries[start_idx]
+                        volume = np.nansum(
+                            used_timeseries[start_idx : target_idx + 1] - height
+                        )
 
-                    # Check whether the volume started decreasing (relative to height of start_idx)
+                    # Check whether the volume started decreasing
+                    # TODO: Didn't we explicitly enforce positivity of the series?
                     if previous_volume > volume:
-                        # Stop the search loop and use previous target_idx
-                        # Add the seed only if the minimum height is reached within the timespan
-                        if np.nanmax(used_timeseries[start_idx : target_idx + 1] - height) >= self.height_threshold:
-                            corepoint_seeds.append(
-                                RegionGrowingSeed(i, start_idx, target_idx-1)
-                                )
+                        corepoint_seeds.append(
+                            RegionGrowingSeed(i, start_idx, target_idx)
+                        )
                         break
                     else:
                         previous_volume = volume
 
-                # We reached the end, no seed is added
-                # because reference algorithm discards seed candidates if present reached
-                # TODO future enhancement: add seeds anyways but provide seed filter option in analysis.run()
+                # We reached the present and add a seed based on it
+                corepoint_seeds.append(
+                    RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
+                )
 
             # Add all the seeds found for this corepoint to the full list
             seeds.extend(corepoint_seeds)
@@ -938,9 +935,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             neighbors = self.analysis.corepoints.kdtree.radius_search(
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
-            # If there are no neighbors, return a similarity of 0.0
-            if (len(neighbors)-1)<1:
-                return 0.0
             similarities = []
             for n in neighbors:
                 data = _py4dgeo.TimeseriesDistanceFunctionData(
@@ -1088,7 +1082,6 @@ class ObjectByChange:
         # Maybe save to file
         if filename is not None:
             plt.savefig(filename)
-            plt.close()
 
 
 def check_epoch_timestamp(epoch):
@@ -1112,10 +1105,10 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
     :type upperright: nd.ndarray
     :param num_points:
         A tuple with two entries denoting the number of points to be used in
-        x and y direction.
+        x and y direction
     :type num_points: tuple
     :param zval:
-        The value to fill for the z direction.
+        The value to fill for the z-direction.
     :type zval: double
     """
     xspace = np.linspace(

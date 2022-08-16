@@ -1,4 +1,6 @@
 breathe
+cmake
+ipykernel
 lcov_cobertura
 m2r2
 matplotlib
@@ -9,5 +11,6 @@ pandas
 pre-commit
 pytest
 pytest-cov
+ruptures
 sphinx
 sphinx_rtd_theme
