@@ -104,12 +104,14 @@ As a starting point, please have a look to the [Jupyter Notebooks](notebooks) av
 If you are looking for data to test different methods, consider the following open data publications:
 
 ### Hourly TLS point clouds of a sandy beach
-Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9). 
 
+<a href="https://doi.org/10.1038/s41597-022-01291-9" target="_blank"><img src="doc/img/data_vos_2022_kijkduin.png" alt="" width="450" /></a>
+Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9). 
 
 
 ### By-weekly TLS point clouds of an Alpine rock glacier
 
+<a href="https://doi.org/10.11588/data/TGSVUI" target="_blank"><img src="doc/img/data_zahs_2022_ahk_2019_tls.png" alt="" width="450" /></a>
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI). 
 
 
