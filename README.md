@@ -89,17 +89,16 @@ docker build -t py4dgeo:latest .
 docker run -t -p 8888:8888 py4dgeo:latest
 ```
 
-## Documentation of software usage
+## 🐍 Documentation of software usage
 
 As a starting point, please have a look to the [Jupyter Notebooks](notebooks) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
 
-## 🌐 Published Test Data
+## 🌐 Published test data
 
 If you are looking for data to test different methods, consider the following open data publications:
 
 * Vos, S., Anders, K., Kuschnerus, M., Lindenbergh, R., Höfle, B., Aarninkhof, S. & de Vries, S. (2022): A high-resolution 4D terrestrial laser scan dataset of the Kijkduin beach-dune system, The Netherlands. Scientific Data, 9 (1), pp. 191. DOI: [10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9).
 * Zahs, V., Winiwarter, L., Anders, K., Williams, J.G., Rutzinger, M., Bremer, M., Höfle, B. (2021): Correspondence-driven plane-based M3C2 for quantification of 3D topographic change with lower uncertainty [Data and Source Code]. heiDATA, V2. DOI: [10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI). 
-
 
 
 ## 📑 Citation
