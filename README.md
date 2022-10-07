@@ -21,12 +21,16 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-* M3C2 algorithm ([Lague et al., 2013](#literature)) for bitemporal point cloud distance computation
-* 4D objects-by-change (4D-OBC; [Anders et al., 2021](#literature)) for time series-based extraction of surface activities *[under active development]*
+* **M3C2 algorithm** ([Lague et al., 2013](#literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
+
+
+* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
+<a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="doc/img/thumb_youtube_anders_isprs2021.png" alt="" width="450" /></a>
 
 **Coming next:**
-* Correspondence-driven plane-based M3C2 ([Zahs et al., 2022](#literature)) for lower uncertainty in 3D topographic change quantification 
-
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
+<a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="doc/img/thumb_youtube_zahs_isprs2022.png" alt="" width="450" /></a>
+ 
 
 ## 💻 Installation
 
@@ -102,15 +106,12 @@ If you are looking for data to test different methods, consider the following op
 ### Hourly TLS point clouds of a sandy beach
 Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9). 
 
-Check out this video for information on the research motivation and objective:
-
 
 
 ### By-weekly TLS point clouds of an Alpine rock glacier
 
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI). 
 
-Check out this video for information on the research motivation and objective:
 
 
 
