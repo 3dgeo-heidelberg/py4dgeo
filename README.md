@@ -95,16 +95,29 @@ As a starting point, please have a look to the [Jupyter Notebooks](notebooks) av
 
 ## 🌐 Published test data
 
+<!-- TODO: integrate example notebooks for these use cases and data -->
+
 If you are looking for data to test different methods, consider the following open data publications:
 
-* Vos, S., Anders, K., Kuschnerus, M., Lindenbergh, R., Höfle, B., Aarninkhof, S. & de Vries, S. (2022): A high-resolution 4D terrestrial laser scan dataset of the Kijkduin beach-dune system, The Netherlands. Scientific Data, 9 (1), pp. 191. DOI: [10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9).
-* Zahs, V., Winiwarter, L., Anders, K., Williams, J.G., Rutzinger, M., Bremer, M., Höfle, B. (2021): Correspondence-driven plane-based M3C2 for quantification of 3D topographic change with lower uncertainty [Data and Source Code]. heiDATA, V2. DOI: [10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI). 
+### Hourly TLS point clouds of a sandy beach
+Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9). 
+
+Check out this video for information on the research motivation and objective:
+
+
+
+### By-weekly TLS point clouds of an Alpine rock glacier
+
+Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI). 
+
+Check out this video for information on the research motivation and objective:
+
 
 
 ## 📑 Citation
 Please cite py4dgeo when using it in your research and reference the appropriate release version. 
 
-<!-- All releases of pytreedb are listed on Zenodo where you will find the citation information including DOI. -->
+<!-- TODO: All releases of pytreedb are listed on Zenodo where you will find the citation information including DOI. -->
 
 ```
 article{py4dgeo,
