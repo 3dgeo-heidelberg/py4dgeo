@@ -12,7 +12,7 @@
 
 Topographic 3D/4D point clouds are omnipresent in geosciences, environmental, ecological and archaeological sciences, robotics, and many more fields and applications. Technology to capture such data using laser scanning and photogrammetric techniques have evolved into standard tools. Dense time series of topographic point clouds are becoming increasing available and require tools for automatic analysis. Moreover, methods considering the full 4D (3D space + time) data are being developed in research and need to be made available in an accessible way with flexible integration into existent workflows.
 
-The **main objective** of `py4dgeo` is to bundle and provide different methods of 3D/4D change analysis in a dedicated, comprehensive Python library. 
+The **main objective** of `py4dgeo` is to bundle and provide different methods of 3D/4D change analysis in a dedicated, comprehensive Python library.
 `py4dgeo` is designed as an international open source project that can be integrated into almost any 3D and GIS software in the geodata domain supporting Python, e.g. as plugins.
 
 `py4dgeo` is under *ongoing active development*.
@@ -30,7 +30,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 **Coming next:**
 * **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="doc/img/thumb_youtube_zahs_isprs2022.png" alt="" width="450" /></a>
- 
+
 
 ## 💻 Installation
 
@@ -106,19 +106,19 @@ If you are looking for data to test different methods, consider the following op
 ### Hourly TLS point clouds of a sandy beach
 
 <a href="https://doi.org/10.1038/s41597-022-01291-9" target="_blank"><img src="doc/img/data_vos_2022_kijkduin.png" alt="" width="450" /></a>
-Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9). 
+Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9).
 
 
 ### By-weekly TLS point clouds of an Alpine rock glacier
 
 <a href="https://doi.org/10.11588/data/TGSVUI" target="_blank"><img src="doc/img/data_zahs_2022_ahk_2019_tls.png" alt="" width="450" /></a>
-Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI). 
+Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI).
 
 
 
 
 ## 📑 Citation
-Please cite py4dgeo when using it in your research and reference the appropriate release version. 
+Please cite py4dgeo when using it in your research and reference the appropriate release version.
 
 <!-- TODO: All releases of pytreedb are listed on Zenodo where you will find the citation information including DOI. -->
 
@@ -132,7 +132,7 @@ number = {},
 volume = {},
 doi = {},
 url = {https://github.com/3dgeo-heidelberg/py4dgeo},
-} 
+}
  ```
 
 ## 💟 Funding / Acknowledgements
@@ -140,7 +140,7 @@ The initial software development was supported by the [**Scientific Software Cen
 
 ## 🔔 Contact / Bugs / Feature Requests
 
-You think you have found a bug or have specific request for a new feature? Please open a new issue in the online code repository on Github. Also for general questions please use the issue system. 
+You think you have found a bug or have specific request for a new feature? Please open a new issue in the online code repository on Github. Also for general questions please use the issue system.
 
 Scientific requests can be directed to the [3DGeo Research Group Heidelberg](https://uni-heidelberg.de/3dgeo) and its respective members.
 
@@ -151,6 +151,6 @@ See [LICENSE.md](LICENSE.md).
 
 ## 📚 Literature
 
-* Anders, K., Winiwarter, L., Mara, H., Lindenbergh, R., Vos, S.E. & Höfle, B. (2021): Fully automatic spatiotemporal segmentation of 3D LiDAR time series for the extraction of natural surface changes. ISPRS Journal of Photogrammetry and Remote Sensing, 173, pp. 297-308. DOI: [10.1016/j.isprsjprs.2021.01.015](https://doi.org/10.1016/j.isprsjprs.2021.01.015). 
+* Anders, K., Winiwarter, L., Mara, H., Lindenbergh, R., Vos, S.E. & Höfle, B. (2021): Fully automatic spatiotemporal segmentation of 3D LiDAR time series for the extraction of natural surface changes. ISPRS Journal of Photogrammetry and Remote Sensing, 173, pp. 297-308. DOI: [10.1016/j.isprsjprs.2021.01.015](https://doi.org/10.1016/j.isprsjprs.2021.01.015).
 * Lague, D., Brodu, N., & Leroux, J. (2013). Accurate 3D comparison of complex topography with terrestrial laser scanner: Application to the Rangitikei canyon (N-Z). ISPRS Journal of Photogrammetry and Remote Sensing, 82, pp. 10-26. DOI: [10.1016/j.isprsjprs.2013.04.009](https://doi.org/10.1016/j.isprsjprs.2013.04.009).
 * Zahs, V., Winiwarter, L., Anders, K., Williams, J.G., Rutzinger, M. & Höfle, B. (2022): Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification. ISPRS Journal of Photogrammetry and Remote Sensing, 183, pp. 541-559. DOI: [10.1016/j.isprsjprs.2021.11.018](https://doi.org/10.1016/j.isprsjprs.2021.11.018).
