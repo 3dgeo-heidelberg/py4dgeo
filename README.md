@@ -1,6 +1,6 @@
 # Welcome to py4dgeo
 
-![logo](py4dgeo_logo_mini.png)
+![logo](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo_mini.png?raw=true)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Workflow Status](https://img.shields.io/github/workflow/status/3dgeo-heidelberg/py4dgeo/CI)](https://github.com/3dgeo-heidelberg/py4dgeo/actions?query=workflow%3ACI)
@@ -25,11 +25,11 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 
 * **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
-<a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="doc/img/thumb_youtube_anders_isprs2021.png" alt="" width="450" /></a>
+<a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
 
 **Coming next:**
 * **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
-<a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="doc/img/thumb_youtube_zahs_isprs2022.png" alt="" width="450" /></a>
+<a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
 
 ## 💻 Installation
@@ -105,13 +105,13 @@ If you are looking for data to test different methods, consider the following op
 
 ### Hourly TLS point clouds of a sandy beach
 
-<a href="https://doi.org/10.1038/s41597-022-01291-9" target="_blank"><img src="doc/img/data_vos_2022_kijkduin.png" alt="" width="450" /></a>
+<a href="https://doi.org/10.1038/s41597-022-01291-9" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/data_vos_2022_kijkduin.png?raw=true" alt="" width="450" /></a>
 Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9).
 
 
 ### By-weekly TLS point clouds of an Alpine rock glacier
 
-<a href="https://doi.org/10.11588/data/TGSVUI" target="_blank"><img src="doc/img/data_zahs_2022_ahk_2019_tls.png" alt="" width="450" /></a>
+<a href="https://doi.org/10.11588/data/TGSVUI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/data_zahs_2022_ahk_2019_tls.png?raw=true" alt="" width="450" /></a>
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI).
 
 
