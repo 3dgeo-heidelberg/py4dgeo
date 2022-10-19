@@ -782,6 +782,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
     def __init__(
         self,
         seed_subsampling=1,
+        seed_candidates=None,
         window_width=24,
         minperiod=24,
         height_threshold=0.0,
@@ -796,6 +797,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             subsampling, a value of, e.g., 10 would only consider every 10th
             corepoint for adding seeds.
         :type seed_subsampling: int
+        :param seed_candidates:
+            A set of indices specifying which core points should be used for seed detection. This can be used to perform segmentation for selected locations. The default of None does not perform any selection and uses all corepoints. The subsampling parameter is applied additionally.
+        :type seed_candidates: np.ndarray
         :param window_width:
             The width of the sliding temporal window for change point detection. The sliding window
             moves along the signal and determines the discrepancy between the first and the second
@@ -819,6 +823,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # Store the given parameters
         self.seed_subsampling = seed_subsampling
+        self.seed_candidates = seed_candidates
         self.window_width = window_width
         self.minperiod = minperiod
         self.height_threshold = height_threshold
@@ -837,10 +842,18 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # The list of generated seeds
         seeds = []
 
+        # The list of core point indices to check as seeds
+        if self.seed_candidates is None:
+            # Use all corepoints if no selection specified, considering subsampling
+            seed_candidates_curr = range(
+                0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
+                )
+        else:
+            # Use the specified corepoint indices, but consider subsampling
+            seed_candidates_curr = self.seed_candidates[::self.seed_subsampling]
+
         # Iterate over all time series to analyse their change points
-        for i in range(
-            0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
-        ):
+        for i in seed_candidates_curr:
             # Extract the time series and interpolate its nan values
             timeseries = self.analysis.distances_for_compute[i, :]
             bad_indices = np.isnan(timeseries)
@@ -1102,7 +1115,7 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
     :type lowerleft: np.ndarray
     :param upperright:
         The upper right corner of the grid. Given as a 2D coordinate.
-    :type upperright: nd.ndarray
+    :type upperright: np.ndarray
     :param num_points:
         A tuple with two entries denoting the number of points to be used in
         x and y direction
