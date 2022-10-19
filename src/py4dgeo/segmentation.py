@@ -788,6 +788,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         seed_subsampling=1,
         seed_candidates=None,
         window_width=24,
+        window_min_size=12,
+        window_jump=1,
+        window_penalty=1.0,
         minperiod=24,
         height_threshold=0.0,
         **kwargs,
@@ -810,16 +813,30 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             half of the window (i.e. subsequent time series segments within the window width). The
             default value is 24, corresponding to one day in case of hourly data.
         :type window_width: int
+        :param window_min_size:
+            The minimum temporal distance needed between two seed candidates, for the second one to be considered.
+            The default value is 1, such that all detected seeds candidates are considered.
+        :type window_min_size: int
+        :param window_jump:
+            The interval on which the sliding temporal window moves and checks for seed candidates.
+            The default value is 1, corresponding to a check for every epoch in the time series.
+        :type window_jump: int
+        :param window_penalty:
+            A complexity penalty that determines how strict the change point detection is.
+            A higher penalty results in stricter change point detection (i.e, fewer points are detected), while a low
+            value results in a large amount of detected change points. The default value is 1.0.
+        :type window_penalty: float
         :param minperiod:
             The minimum period of a detected change to be considered as seed candidate for subsequent
             segmentation. The default is 24, corresponding to one day for hourly data.
         :type minperiod: int
         :param height_threshold:
-            The height threshold represents the required magnitude of a dectected change to be considered
+            The height threshold represents the required magnitude of a detected change to be considered
             as seed candidate for subsequent segmentation. The magnitude of a detected change is derived
             as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
             The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float
+
         """
 
         # Initialize base class
@@ -829,6 +846,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.seed_subsampling = seed_subsampling
         self.seed_candidates = seed_candidates
         self.window_width = window_width
+        self.window_min_size = window_min_size
+        self.window_jump = window_jump
+        self.window_penalty = window_penalty
         self.minperiod = minperiod
         self.height_threshold = height_threshold
 
@@ -839,9 +859,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # exposing to the user in the future. For now, they are considered
         # internal, but they are still defined here for readability.
         window_costmodel = "l1"
-        window_min_size = 12
-        window_jump = 1
-        window_penalty = 1.0
+        # window_min_size = 12
+        # window_jump = 1
+        # window_penalty = 1.0
 
         # The list of generated seeds
         seeds = []
@@ -880,9 +900,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             cpdata = _py4dgeo.ChangePointDetectionData(
                 ts=timeseries,
                 window_size=self.window_width,
-                min_size=window_min_size,
-                jump=window_jump,
-                penalty=window_penalty,
+                min_size=self.window_min_size,
+                jump=self.window_jump,
+                penalty=self.window_penalty,
             )
             changepoints = _py4dgeo.change_point_detection(cpdata)[:-1]
 
