@@ -799,7 +799,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         :type seed_subsampling: int
         :param seed_candidates:
             A set of indices specifying which core points should be used for seed detection. This can be used to perform segmentation for selected locations. The default of None does not perform any selection and uses all corepoints. The subsampling parameter is applied additionally.
-        :type seed_candidates: np.ndarray
+        :type seed_candidates: list
         :param window_width:
             The width of the sliding temporal window for change point detection. The sliding window
             moves along the signal and determines the discrepancy between the first and the second
