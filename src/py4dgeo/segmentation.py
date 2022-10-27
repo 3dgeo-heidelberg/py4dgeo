@@ -874,7 +874,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 )
         else:
             # Use the specified corepoint indices, but consider subsampling
-            seed_candidates_curr = self.seed_candidates[::self.seed_subsampling]
+            seed_candidates_curr = self.seed_candidates#[::self.seed_subsampling]
 
         # Iterate over all time series to analyse their change points
         for i in seed_candidates_curr:
@@ -927,17 +927,17 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     used_timeseries = timeseries_flipped
 
                 previous_volume = -999.9
-
+                # TODO DH: Should this not loop until timeseries.shape[0] instead of subtracting the minperiod?
                 for target_idx in range(
                     start_idx + 1, timeseries.shape[0] - self.minperiod
                 ):
 
                     # Calculate the change volume
-                    height = used_timeseries[start_idx] + self.height_threshold
+                    height = used_timeseries[start_idx]
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
-                    if volume < 0.0:
+                    if volume < 0.0: #TODO Both of these do the same
                         height = used_timeseries[start_idx]
                         volume = np.nansum(
                             used_timeseries[start_idx : target_idx + 1] - height
@@ -953,10 +953,15 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     else:
                         previous_volume = volume
 
-                # We reached the present and add a seed based on it
-                corepoint_seeds.append(
-                    RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
-                )
+                    # TODO This causes a seed to always be detected if the volume doesn't decrease before present
+                    #  Useful when used in an online setting?
+                    # Only if the last epoch is reached we use the segment as seed
+                    if target_idx == timeseries.shape[0] - self.minperiod - 1:
+                        # We reached the present and add a seed based on it
+                        corepoint_seeds.append(
+                            RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
+                        )
+
 
             # Add all the seeds found for this corepoint to the full list
             seeds.extend(corepoint_seeds)
