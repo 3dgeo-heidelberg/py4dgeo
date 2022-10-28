@@ -937,11 +937,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
-                    if volume < 0.0: #TODO Both of these do the same
-                        height = used_timeseries[start_idx]
-                        volume = np.nansum(
-                            used_timeseries[start_idx : target_idx + 1] - height
-                        )
 
                     # Check whether the volume started decreasing
                     # TODO: Didn't we explicitly enforce positivity of the series?
