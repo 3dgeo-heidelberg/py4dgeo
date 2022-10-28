@@ -994,7 +994,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # Filter based on coefficient of variation
         distarray = np.fromiter(obj._data.indices_distances.values(), np.float64)
-        cv = np.std(distarray) / np.mean(distarray)
+
+        # Check if mean is 0.0, if so, set to very small value to avoid division by 0
+        mean_distarray = np.mean(distarray)
+        if mean_distarray == 0.0:
+            mean_distarray = 10**-10
+
+        # Calculate coefficient of variation
+        cv = np.std(distarray) / mean_distarray
 
         # TODO: Make this threshold configurable?
         return cv <= 0.8
