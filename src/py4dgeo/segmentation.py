@@ -730,7 +730,7 @@ class RegionGrowingAlgorithmBase:
             found = False
             for obj in objects:
                 if seed.index in obj.indices and (
-                    obj.end_epoch > seed.start_epoch or seed.end_epoch > obj.start_epoch
+                    obj.end_epoch > seed.start_epoch and seed.end_epoch > obj.start_epoch
                 ):
                     found = True
                     break
