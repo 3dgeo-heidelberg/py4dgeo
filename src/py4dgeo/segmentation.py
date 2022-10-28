@@ -775,7 +775,7 @@ class RegionGrowingAlgorithmBase:
         # Store the results in the analysis object
         analysis.objects = objects
 
-        # Potentially remove objects from memory
+        # Potentially remove objects from memory # TODO Why do we remove these?
         del analysis.smoothed_distances
         del analysis.distances
 
@@ -908,6 +908,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
             # Shift the time series to positive values
             timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)
+            # create a flipped version for negative change volumes
             timeseries_flipped = timeseries * -1.0 + abs(np.nanmax(timeseries)) + 0.1
 
             # Create seeds for this timeseries
@@ -927,9 +928,8 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     used_timeseries = timeseries_flipped
 
                 previous_volume = -999.9
-                # TODO DH: Should this not loop until timeseries.shape[0] instead of subtracting the minperiod?
                 for target_idx in range(
-                    start_idx + 1, timeseries.shape[0] - self.minperiod
+                    start_idx + 1, timeseries.shape[0]
                 ):
 
                     # Calculate the change volume
@@ -939,19 +939,20 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     )
 
                     # Check whether the volume started decreasing
-                    # TODO: Didn't we explicitly enforce positivity of the series?
                     if previous_volume > volume:
-                        corepoint_seeds.append(
-                            RegionGrowingSeed(i, start_idx, target_idx)
-                        )
+                        # Only add seed if larger than the minimum period
+                        if target_idx - start_idx >= self.minperiod:
+                            corepoint_seeds.append(
+                                RegionGrowingSeed(i, start_idx, target_idx)
+                            )
                         break
                     else:
                         previous_volume = volume
 
-                    # TODO This causes a seed to always be detected if the volume doesn't decrease before present
-                    #  Useful when used in an online setting?
+                    # This causes a seed to always be detected if the volume doesn't decrease before present
+                    #  Useful when used in an online setting, can be filtered before region growing
                     # Only if the last epoch is reached we use the segment as seed
-                    if target_idx == timeseries.shape[0] - self.minperiod - 1:
+                    if target_idx == timeseries.shape[0] - 1:
                         # We reached the present and add a seed based on it
                         corepoint_seeds.append(
                             RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
