@@ -13,7 +13,7 @@ multiscale_normal_benchmark(benchmark::State& state)
   auto [cloud, corepoints] = ahk_benchcloud();
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
-  std::vector<double> normal_radii{ 1.0 };
+  std::vector<double> normal_radii{ 0.1, 0.5, 1.0, 2.0, 5.0 };
   EigenNormalSet directions(corepoints->rows(), 3);
   EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
@@ -25,5 +25,5 @@ multiscale_normal_benchmark(benchmark::State& state)
   }
 }
 
-BENCHMARK(multiscale_normal_benchmark)->Unit(benchmark::kMillisecond);
+BENCHMARK(multiscale_normal_benchmark)->Unit(benchmark::kMicrosecond);
 BENCHMARK_MAIN();
