@@ -14,3 +14,7 @@ target_link_libraries(scaling PUBLIC benchmark::benchmark py4dgeo_test)
 
 # Copy the scalability notebook into the build for ease of use
 file(COPY scalability.ipynb DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+
+add_executable(multiscale_normal multiscale_normal.cpp)
+target_link_libraries(multiscale_normal PUBLIC benchmark::benchmark
+                                               py4dgeo_test)
