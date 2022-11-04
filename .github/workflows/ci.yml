@@ -113,7 +113,7 @@ jobs:
     - name: run tests
       shell: bash
       working-directory: ${{runner.workspace}}/build
-      run: ctest
+      run: ctest -C Debug
 
     - name: collect coverage report
       shell: bash
