@@ -78,7 +78,7 @@ ahk_benchcloud()
 {
   // auto cloud = benchcloud_from_file(DATAPATH(ahk_2017_small.xyz));
   auto cloud = benchcloud_from_file(DATAPATH(plane_horizontal_t1.xyz));
-  return std::make_pair(cloud, slice_cloud(*cloud, 1000));
+  return std::make_pair(cloud, slice_cloud(*cloud, 100));
 }
 
 std::pair<std::shared_ptr<EigenPointCloud>, std::shared_ptr<EigenPointCloud>>
