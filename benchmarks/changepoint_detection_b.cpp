@@ -24,5 +24,5 @@ changepoint_detection_benchmark(benchmark::State& state)
 BENCHMARK(changepoint_detection_benchmark)
   ->Unit(benchmark::kMicrosecond)
   ->RangeMultiplier(10)
-  ->Range(10, 100000);
+  ->Range(100, 100000);
 BENCHMARK_MAIN();
