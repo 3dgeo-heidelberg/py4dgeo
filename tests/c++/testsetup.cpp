@@ -13,7 +13,19 @@ using namespace py4dgeo;
 std::shared_ptr<EigenPointCloud>
 benchcloud_from_file(const std::string& filename)
 {
-  std::ifstream stream(filename);
+
+  std::ifstream stream;
+  try {
+    stream.open(filename);
+    if (stream.fail())
+      throw filename;
+  } catch (std::string e) {
+    std::cerr << e
+              << " Was not successfully opened.\\n Please check that the file "
+                 "currently exists. "
+              << std::endl;
+    exit(1);
+  }
   std::string line;
 
   // Read the file once to determine size and lower left corner
@@ -64,7 +76,8 @@ slice_cloud(EigenPointCloudConstRef cloud, int sampling_factor)
 std::pair<std::shared_ptr<EigenPointCloud>, std::shared_ptr<EigenPointCloud>>
 ahk_benchcloud()
 {
-  auto cloud = benchcloud_from_file(DATAPATH(ahk_2017_small.xyz));
+  // auto cloud = benchcloud_from_file(DATAPATH(ahk_2017_small.xyz));
+  auto cloud = benchcloud_from_file(DATAPATH(plane_horizontal_t1.xyz));
   return std::make_pair(cloud, slice_cloud(*cloud, 1000));
 }
 
