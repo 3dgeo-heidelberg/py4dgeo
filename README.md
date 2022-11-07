@@ -38,7 +38,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 Using py4dgeo requires the following software installed:
 
-* Python `>= 3.8`
+* 64-bit Python `>= 3.8` (32-bit installations might cause trouble during installation of dependencies)
 
 In order to build the package from source, the following tools are also needed.
 
