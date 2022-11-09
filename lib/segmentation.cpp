@@ -59,9 +59,9 @@ fixed_threshold_region_growing(
         // Calculate the distance for this neighbor
         TimeseriesDistanceFunctionData distance_data{
           data.distances.row(data.seed.index),
-          data.distances.row(candidate),
+          data.distances.row(n),
           data.distances(data.seed.index, 0),
-          data.distances(candidate, 0)
+          data.distances(n, 0)
         };
         auto d = distance_function(distance_data);
 
