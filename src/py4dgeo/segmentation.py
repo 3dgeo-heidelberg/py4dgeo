@@ -705,18 +705,20 @@ class RegionGrowingAlgorithmBase:
         corepoints = as_epoch(analysis.corepoints)
         corepoints.build_kdtree()
 
-        # Calculate the list of seed points
+        # Calculate the list of seed points and sort them
         seeds = analysis.seeds
         if seeds is None:
             with logger_context("Find seed candidates in time series"):
                 seeds = self.find_seedpoints()
-                analysis.seeds = seeds
+
+            # Sort the seed points
+            with logger_context("Sort seed candidates by priority"):
+                seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
+
+            # Store the seeds
+            analysis.seeds = seeds
         else:
             logger.info("Reusing seed candidates stored in analysis object")
-
-        # Sort the seed points
-        with logger_context("Sort seed candidates by priority"):
-            seeds = list(sorted(seeds, key=self.seed_sorting_scorefunction()))
 
         objects = []
 
@@ -726,7 +728,8 @@ class RegionGrowingAlgorithmBase:
             found = False
             for obj in objects:
                 if seed.index in obj.indices and (
-                    obj.end_epoch > seed.start_epoch or seed.end_epoch > obj.start_epoch
+                    obj.end_epoch > seed.start_epoch
+                    and seed.end_epoch > obj.start_epoch
                 ):
                     found = True
                     break
@@ -771,7 +774,7 @@ class RegionGrowingAlgorithmBase:
         # Store the results in the analysis object
         analysis.objects = objects
 
-        # Potentially remove objects from memory
+        # Potentially remove objects from memory # TODO Why do we remove these?
         del analysis.smoothed_distances
         del analysis.distances
 
@@ -782,7 +785,11 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
     def __init__(
         self,
         seed_subsampling=1,
+        seed_candidates=None,
         window_width=24,
+        window_min_size=12,
+        window_jump=1,
+        window_penalty=1.0,
         minperiod=24,
         height_threshold=0.0,
         **kwargs,
@@ -796,22 +803,39 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             subsampling, a value of, e.g., 10 would only consider every 10th
             corepoint for adding seeds.
         :type seed_subsampling: int
+        :param seed_candidates:
+            A set of indices specifying which core points should be used for seed detection. This can be used to perform segmentation for selected locations. The default of None does not perform any selection and uses all corepoints. The subsampling parameter is applied additionally.
+        :type seed_candidates: list
         :param window_width:
             The width of the sliding temporal window for change point detection. The sliding window
             moves along the signal and determines the discrepancy between the first and the second
             half of the window (i.e. subsequent time series segments within the window width). The
             default value is 24, corresponding to one day in case of hourly data.
         :type window_width: int
+        :param window_min_size:
+            The minimum temporal distance needed between two seed candidates, for the second one to be considered.
+            The default value is 1, such that all detected seeds candidates are considered.
+        :type window_min_size: int
+        :param window_jump:
+            The interval on which the sliding temporal window moves and checks for seed candidates.
+            The default value is 1, corresponding to a check for every epoch in the time series.
+        :type window_jump: int
+        :param window_penalty:
+            A complexity penalty that determines how strict the change point detection is.
+            A higher penalty results in stricter change point detection (i.e, fewer points are detected), while a low
+            value results in a large amount of detected change points. The default value is 1.0.
+        :type window_penalty: float
         :param minperiod:
             The minimum period of a detected change to be considered as seed candidate for subsequent
             segmentation. The default is 24, corresponding to one day for hourly data.
         :type minperiod: int
         :param height_threshold:
-            The height threshold represents the required magnitude of a dectected change to be considered
+            The height threshold represents the required magnitude of a detected change to be considered
             as seed candidate for subsequent segmentation. The magnitude of a detected change is derived
             as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
             The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float
+
         """
 
         # Initialize base class
@@ -819,7 +843,11 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # Store the given parameters
         self.seed_subsampling = seed_subsampling
+        self.seed_candidates = seed_candidates
         self.window_width = window_width
+        self.window_min_size = window_min_size
+        self.window_jump = window_jump
+        self.window_penalty = window_penalty
         self.minperiod = minperiod
         self.height_threshold = height_threshold
 
@@ -829,17 +857,26 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # These are some arguments used below that we might consider
         # exposing to the user in the future. For now, they are considered
         # internal, but they are still defined here for readability.
-        window_min_size = 12
-        window_jump = 1
-        window_penalty = 1.0
+        window_costmodel = "l1"
+        # window_min_size = 12
+        # window_jump = 1
+        # window_penalty = 1.0
 
         # The list of generated seeds
         seeds = []
 
+        # The list of core point indices to check as seeds
+        if self.seed_candidates is None:
+            # Use all corepoints if no selection specified, considering subsampling
+            seed_candidates_curr = range(
+                0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
+            )
+        else:
+            # Use the specified corepoint indices, but consider subsampling
+            seed_candidates_curr = self.seed_candidates  # [::self.seed_subsampling]
+
         # Iterate over all time series to analyse their change points
-        for i in range(
-            0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
-        ):
+        for i in seed_candidates_curr:
             # Extract the time series and interpolate its nan values
             timeseries = self.analysis.distances_for_compute[i, :]
             bad_indices = np.isnan(timeseries)
@@ -862,14 +899,15 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             cpdata = _py4dgeo.ChangePointDetectionData(
                 ts=timeseries,
                 window_size=self.window_width,
-                min_size=window_min_size,
-                jump=window_jump,
-                penalty=window_penalty,
+                min_size=self.window_min_size,
+                jump=self.window_jump,
+                penalty=self.window_penalty,
             )
             changepoints = _py4dgeo.change_point_detection(cpdata)[:-1]
 
             # Shift the time series to positive values
             timeseries = timeseries + abs(np.nanmin(timeseries) + 0.1)
+            # create a flipped version for negative change volumes
             timeseries_flipped = timeseries * -1.0 + abs(np.nanmax(timeseries)) + 0.1
 
             # Create seeds for this timeseries
@@ -889,36 +927,33 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     used_timeseries = timeseries_flipped
 
                 previous_volume = -999.9
-
-                for target_idx in range(
-                    start_idx + 1, timeseries.shape[0] - self.minperiod
-                ):
+                for target_idx in range(start_idx + 1, timeseries.shape[0]):
 
                     # Calculate the change volume
-                    height = used_timeseries[start_idx] + self.height_threshold
+                    height = used_timeseries[start_idx]
                     volume = np.nansum(
                         used_timeseries[start_idx : target_idx + 1] - height
                     )
-                    if volume < 0.0:
-                        height = used_timeseries[start_idx]
-                        volume = np.nansum(
-                            used_timeseries[start_idx : target_idx + 1] - height
-                        )
 
                     # Check whether the volume started decreasing
-                    # TODO: Didn't we explicitly enforce positivity of the series?
                     if previous_volume > volume:
-                        corepoint_seeds.append(
-                            RegionGrowingSeed(i, start_idx, target_idx)
-                        )
+                        # Only add seed if larger than the minimum period
+                        if target_idx - start_idx >= self.minperiod:
+                            corepoint_seeds.append(
+                                RegionGrowingSeed(i, start_idx, target_idx)
+                            )
                         break
                     else:
                         previous_volume = volume
 
-                # We reached the present and add a seed based on it
-                corepoint_seeds.append(
-                    RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
-                )
+                    # This causes a seed to always be detected if the volume doesn't decrease before present
+                    #  Useful when used in an online setting, can be filtered before region growing
+                    # Only if the last epoch is reached we use the segment as seed
+                    if target_idx == timeseries.shape[0] - 1:
+                        # We reached the present and add a seed based on it
+                        corepoint_seeds.append(
+                            RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
+                        )
 
             # Add all the seeds found for this corepoint to the full list
             seeds.extend(corepoint_seeds)
@@ -955,7 +990,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # Filter based on coefficient of variation
         distarray = np.fromiter(obj._data.indices_distances.values(), np.float64)
-        cv = np.std(distarray) / np.mean(distarray)
+
+        # Check if mean is 0.0, if so, set to very small value to avoid division by 0
+        mean_distarray = np.mean(distarray)
+        if mean_distarray == 0.0:
+            mean_distarray = 10**-10
+
+        # Calculate coefficient of variation
+        cv = np.std(distarray) / mean_distarray
 
         # TODO: Make this threshold configurable?
         return cv <= 0.8
@@ -1101,13 +1143,13 @@ def regular_corepoint_grid(lowerleft, upperright, num_points, zval=0.0):
     :type lowerleft: np.ndarray
     :param upperright:
         The upper right corner of the grid. Given as a 2D coordinate.
-    :type upperright: nd.ndarray
+    :type upperright: np.ndarray
     :param num_points:
         A tuple with two entries denoting the number of points to be used in
-        x and y direction.
+        x and y direction
     :type num_points: tuple
     :param zval:
-        The value to fill for the z direction.
+        The value to fill for the z-direction.
     :type zval: double
     """
     xspace = np.linspace(
