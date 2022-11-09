@@ -720,8 +720,6 @@ class RegionGrowingAlgorithmBase:
         else:
             logger.info("Reusing seed candidates stored in analysis object")
 
-
-
         objects = []
 
         # Iterate over the seeds to maybe turn them into objects
@@ -730,7 +728,8 @@ class RegionGrowingAlgorithmBase:
             found = False
             for obj in objects:
                 if seed.index in obj.indices and (
-                    obj.end_epoch > seed.start_epoch and seed.end_epoch > obj.start_epoch
+                    obj.end_epoch > seed.start_epoch
+                    and seed.end_epoch > obj.start_epoch
                 ):
                     found = True
                     break
@@ -871,10 +870,10 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             # Use all corepoints if no selection specified, considering subsampling
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
-                )
+            )
         else:
             # Use the specified corepoint indices, but consider subsampling
-            seed_candidates_curr = self.seed_candidates#[::self.seed_subsampling]
+            seed_candidates_curr = self.seed_candidates  # [::self.seed_subsampling]
 
         # Iterate over all time series to analyse their change points
         for i in seed_candidates_curr:
@@ -928,9 +927,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     used_timeseries = timeseries_flipped
 
                 previous_volume = -999.9
-                for target_idx in range(
-                    start_idx + 1, timeseries.shape[0]
-                ):
+                for target_idx in range(start_idx + 1, timeseries.shape[0]):
 
                     # Calculate the change volume
                     height = used_timeseries[start_idx]
@@ -957,7 +954,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                         corepoint_seeds.append(
                             RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
                         )
-
 
             # Add all the seeds found for this corepoint to the full list
             seeds.extend(corepoint_seeds)
