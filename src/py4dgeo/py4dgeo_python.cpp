@@ -323,6 +323,16 @@ PYBIND11_MODULE(_py4dgeo, m)
   tdfd.def(py::init<EigenTimeSeriesConstRef, EigenTimeSeriesConstRef>(),
            py::arg("ts1"),
            py::arg("ts2"));
+  tdfd.def_property_readonly(
+    "ts1", [](const TimeseriesDistanceFunctionData& self) { return self.ts1; });
+  tdfd.def_property_readonly(
+    "ts2", [](const TimeseriesDistanceFunctionData& self) { return self.ts2; });
+  tdfd.def_property_readonly(
+    "norm1",
+    [](const TimeseriesDistanceFunctionData& self) { return self.norm1; });
+  tdfd.def_property_readonly(
+    "norm2",
+    [](const TimeseriesDistanceFunctionData& self) { return self.norm2; });
 
   py::class_<ChangePointDetectionData> cpdd(m, "ChangePointDetectionData");
   cpdd.def(
