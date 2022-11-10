@@ -57,10 +57,6 @@ if(PY4DGEO_WITH_OPENMP)
   endif()
 endif()
 
-# Compile a stand-alone application - mostly used for testing purposes
-add_executable(py4dgeo_app app/py4dgeo_app.cpp)
-target_link_libraries(py4dgeo_app PRIVATE py4dgeo)
-
 # Compile the tests and benchmarks
 include(CTest)
 if(BUILD_TESTING)
