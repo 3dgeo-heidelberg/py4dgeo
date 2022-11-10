@@ -345,7 +345,13 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("penalty"));
 
   // The main algorithms for the spatiotemporal segmentations
-  m.def("region_growing", &region_growing);
+  m.def("region_growing",
+        [](const RegionGrowingAlgorithmData& data,
+           const TimeseriesDistanceFunction& distance_function) {
+          // The region_growing function may call Python callback functions
+          py::gil_scoped_release release_gil;
+          return region_growing(data, distance_function);
+        });
   m.def("change_point_detection", &change_point_detection);
 
   // Callback implementations
