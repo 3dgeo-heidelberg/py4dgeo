@@ -58,10 +58,13 @@ fixed_threshold_region_growing(
           (obj.indices_distances.find(n) == obj.indices_distances.end())) {
         // Calculate the distance for this neighbor
         TimeseriesDistanceFunctionData distance_data{
-          data.distances.row(data.seed.index),
-          data.distances.row(candidate),
+          data.distances(
+            data.seed.index,
+            Eigen::seq(data.seed.start_epoch, data.seed.end_epoch)),
+          data.distances(
+            n, Eigen::seq(data.seed.start_epoch, data.seed.end_epoch)),
           data.distances(data.seed.index, 0),
-          data.distances(candidate, 0)
+          data.distances(n, 0)
         };
         auto d = distance_function(distance_data);
 
