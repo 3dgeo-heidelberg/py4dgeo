@@ -58,7 +58,7 @@ skip = "pp* *p27-* cp35-* cp36-* cp37-* *musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
-test-requires = ["pytest"]
+test-requires = ["pytest", "ruptures"]
 
 [tool.cibuildwheel.macos]
 before-all = "brew install libomp"
