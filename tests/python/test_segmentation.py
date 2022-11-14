@@ -168,3 +168,31 @@ def test_change_point_detection_against_ruptures(
     assert len(rcp) == len(cpp)
     for r, c in zip(rcp, cpp):
         assert r == c
+
+
+def test_custom_distance_function(analysis):
+    def custom_distance(params):
+        # NB: This is only a proof-of-concept how individual distance measures
+        #    can be included into 4D-OBC. Reimplementing DTW distance calculation
+        #    in Python is horribly slow.
+        mask = ~np.isnan(params.ts1) & ~np.isnan(params.ts2)
+        if not np.any(mask):
+            return np.nan
+
+        # Mask the two input arrays
+        masked_ts1 = params.ts1[mask]
+        masked_ts2 = params.ts2[mask]
+
+        return np.sum(np.abs(masked_ts1 - masked_ts2)) / np.sum(
+            np.abs(np.maximum(masked_ts1, masked_ts2))
+        )
+
+    class Custom4DOBC(RegionGrowingAlgorithm):
+        """An implementation of 4D-OBC that makes use of Python fallback implementations"""
+
+        def distance_measure(self):
+            return custom_distance
+
+    # Run custom algorithm
+    algo = Custom4DOBC(neighborhood_radius=2.0, seed_subsampling=20)
+    objects = algo.run(analysis)

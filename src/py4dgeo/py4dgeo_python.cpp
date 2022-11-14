@@ -323,6 +323,16 @@ PYBIND11_MODULE(_py4dgeo, m)
   tdfd.def(py::init<EigenTimeSeriesConstRef, EigenTimeSeriesConstRef>(),
            py::arg("ts1"),
            py::arg("ts2"));
+  tdfd.def_property_readonly(
+    "ts1", [](const TimeseriesDistanceFunctionData& self) { return self.ts1; });
+  tdfd.def_property_readonly(
+    "ts2", [](const TimeseriesDistanceFunctionData& self) { return self.ts2; });
+  tdfd.def_property_readonly(
+    "norm1",
+    [](const TimeseriesDistanceFunctionData& self) { return self.norm1; });
+  tdfd.def_property_readonly(
+    "norm2",
+    [](const TimeseriesDistanceFunctionData& self) { return self.norm2; });
 
   py::class_<ChangePointDetectionData> cpdd(m, "ChangePointDetectionData");
   cpdd.def(
@@ -335,7 +345,13 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("penalty"));
 
   // The main algorithms for the spatiotemporal segmentations
-  m.def("region_growing", &region_growing);
+  m.def("region_growing",
+        [](const RegionGrowingAlgorithmData& data,
+           const TimeseriesDistanceFunction& distance_function) {
+          // The region_growing function may call Python callback functions
+          py::gil_scoped_release release_gil;
+          return region_growing(data, distance_function);
+        });
   m.def("change_point_detection", &change_point_detection);
 
   // Callback implementations
