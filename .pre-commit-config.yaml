@@ -25,7 +25,7 @@ repos:
 
   # Add some general purpose useful hooks
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v4.4.0
     hooks:
       # Make sure that contained YAML files are well-formed
       - id: check-yaml
@@ -50,7 +50,7 @@ repos:
 
   # Check Configuration as Code files for integrations
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.19.1
+    rev: 0.19.2
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs
