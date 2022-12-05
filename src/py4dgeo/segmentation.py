@@ -867,6 +867,10 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         # The list of core point indices to check as seeds
         if self.seed_candidates is None:
+            if self.seed_subsampling == 0:
+                raise Py4DGeoError(
+                    "Subsampling factor cannot be 0, use 1 or any integer larger than 1"
+                )
             # Use all corepoints if no selection specified, considering subsampling
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
