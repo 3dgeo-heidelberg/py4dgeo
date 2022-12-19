@@ -3,7 +3,7 @@
 ![logo](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo_mini.png?raw=true)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/3dgeo-heidelberg/py4dgeo/CI)](https://github.com/3dgeo-heidelberg/py4dgeo/actions?query=workflow%3ACI)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/3dgeo-heidelberg/py4dgeo/ci.yml?branch=main)](https://github.com/3dgeo-heidelberg/py4dgeo/actions/workflows/ci.yml)
 [![PyPI Release](https://img.shields.io/pypi/v/py4dgeo.svg)](https://pypi.org/project/py4dgeo)
 [![Documentation Status](https://readthedocs.org/projects/py4dgeo/badge/)](https://py4dgeo.readthedocs.io/)
 [![codecov](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo)
