@@ -26,7 +26,7 @@ set_config(display="diagram")
 
 from IPython import display
 
-from sympy import Plane, Point3D
+#from sympy import Plane, Point3D
 
 from vedo import *
 
