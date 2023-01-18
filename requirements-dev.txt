@@ -15,4 +15,4 @@ ruptures
 sphinx
 sphinx_rtd_theme
 scikit-learn
-vedo
+git+https://github.com/marcomusy/vedo.git
