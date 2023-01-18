@@ -34,6 +34,7 @@ dependencies = [
     "requests",
     "seaborn",
     "xdg",
+    "git+https://github.com/marcomusy/vedo.git",
 ]
 
 # Command line scripts installed as part of the installation
