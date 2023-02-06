@@ -932,7 +932,6 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
                 previous_volume = -999.9
                 for target_idx in range(start_idx + 1, timeseries.shape[0]):
-
                     # Calculate the change volume
                     height = used_timeseries[start_idx]
                     volume = np.nansum(
