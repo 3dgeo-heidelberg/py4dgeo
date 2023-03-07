@@ -1,4 +1,4 @@
-# Welcome to py4dgeo 
+# Welcome to py4dgeo
 
 <img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo.png?raw=true" alt="logo" style="width:500px;"/><br>
 
