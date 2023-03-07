@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.utils.multiclass import unique_labels
+
 # from sklearn.metrics import euclidean_distances
 
 from sklearn.pipeline import Pipeline, FeatureUnion
@@ -16,6 +17,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.utils.estimator_checks import check_estimator
 
 from sklearn import set_config
+
 set_config(display="diagram")
 
 from abc import ABC, abstractmethod
@@ -32,16 +34,17 @@ import colorsys
 import random
 
 __all__ = [
-    'BaseTransformer',
-    'AddLLSVandPCA',
-    'Segmentation',
-    'ExtractSegments',
-    'BuildSimilarityFeature_and_y',
-    'BuildSimilarityFeature_and_y_RandomPairs',
-    'BuildSimilarityFeature_and_y_Visually',
-    'SimplifiedClassifier',
-    'PB_M3C2'
+    "BaseTransformer",
+    "AddLLSVandPCA",
+    "Segmentation",
+    "ExtractSegments",
+    "BuildSimilarityFeature_and_y",
+    "BuildSimilarityFeature_and_y_RandomPairs",
+    "BuildSimilarityFeature_and_y_Visually",
+    "SimplifiedClassifier",
+    "PB_M3C2",
 ]
+
 
 def angle_difference_compute(normal1, normal2):
 
@@ -53,15 +56,19 @@ def angle_difference_compute(normal1, normal2):
     """
 
     # normal1, normal2 have to be unit vectors ( and that is the case as a result of the SVD process )
-    return np.arccos(np.clip(np.dot(normal1, normal2), -1.0, 1.0)) * 180./np.pi
+    return np.arccos(np.clip(np.dot(normal1, normal2), -1.0, 1.0)) * 180.0 / np.pi
+
 
 def geodesic_distance(v1, v2):
 
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
 
-    return min(np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) * 180./np.pi,
-               np.arccos(np.clip(np.dot(v1_u, -v2_u), -1.0, 1.0)) * 180./np.pi)
+    return min(
+        np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) * 180.0 / np.pi,
+        np.arccos(np.clip(np.dot(v1_u, -v2_u), -1.0, 1.0)) * 180.0 / np.pi,
+    )
+
 
 def HSVToRGB(h, s, v):
 
@@ -74,6 +81,7 @@ def HSVToRGB(h, s, v):
     """
     return colorsys.hsv_to_rgb(h, s, v)
 
+
 def get_distinct_colors(n):
 
     """
@@ -84,6 +92,7 @@ def get_distinct_colors(n):
 
     huePartition = 1.0 / (n + 1)
     return [HSVToRGB(huePartition * value, 1.0, 1.0) for value in range(0, n)]
+
 
 def points_segmentation_visualizer(X):
 
@@ -100,7 +109,7 @@ def points_segmentation_visualizer(X):
 
     plt = Plotter(axes=3)
 
-    for i in range(0, max+1):
+    for i in range(0, max + 1):
 
         mask = X[:, 17] == float(i)
         set_cloud = X[mask, :3]  # x,y,z
@@ -108,6 +117,7 @@ def points_segmentation_visualizer(X):
         sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
 
     plt.show(sets).close()
+
 
 def compute_similarity_between(seg_epoch0, seg_epoch1):
 
@@ -140,46 +150,63 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
 
     Standard_deviation_Column = 18
 
-    Nr_points_seg_Column = 19 #18
+    Nr_points_seg_Column = 19  # 18
 
     Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
 
     # angle = np.arccos(
     #     np.clip(np.dot(seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]), -1.0, 1.0)
     # ) * 180./np.pi
-    angle = angle_difference_compute(seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns])
+    angle = angle_difference_compute(
+        seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]
+    )
 
-    points_density_seg_epoch0 = \
-        seg_epoch0[Nr_points_seg_Column] / (seg_epoch0[Eigenvalue0_Column] * seg_epoch0[Eigenvalue1_Column])
+    points_density_seg_epoch0 = seg_epoch0[Nr_points_seg_Column] / (
+        seg_epoch0[Eigenvalue0_Column] * seg_epoch0[Eigenvalue1_Column]
+    )
 
-    points_density_seg_epoch1 = \
-        seg_epoch1[Nr_points_seg_Column] / (seg_epoch1[Eigenvalue0_Column] * seg_epoch1[Eigenvalue1_Column])
+    points_density_seg_epoch1 = seg_epoch1[Nr_points_seg_Column] / (
+        seg_epoch1[Eigenvalue0_Column] * seg_epoch1[Eigenvalue1_Column]
+    )
 
     points_density_diff = abs(points_density_seg_epoch0 - points_density_seg_epoch1)
 
-    eigen_value_smallest_diff = abs(seg_epoch0[Eigenvalue2_Column] - seg_epoch1[Eigenvalue2_Column])
-    eigen_value_largest_diff = abs(seg_epoch0[Eigenvalue0_Column] - seg_epoch1[Eigenvalue0_Column])
-    eigen_value_middle_diff = abs(seg_epoch0[Eigenvalue1_Column] - seg_epoch1[Eigenvalue1_Column])
+    eigen_value_smallest_diff = abs(
+        seg_epoch0[Eigenvalue2_Column] - seg_epoch1[Eigenvalue2_Column]
+    )
+    eigen_value_largest_diff = abs(
+        seg_epoch0[Eigenvalue0_Column] - seg_epoch1[Eigenvalue0_Column]
+    )
+    eigen_value_middle_diff = abs(
+        seg_epoch0[Eigenvalue1_Column] - seg_epoch1[Eigenvalue1_Column]
+    )
 
-    nr_points_diff = abs(seg_epoch0[Nr_points_seg_Column] - seg_epoch1[Nr_points_seg_Column])
+    nr_points_diff = abs(
+        seg_epoch0[Nr_points_seg_Column] - seg_epoch1[Nr_points_seg_Column]
+    )
 
-    return np.array([
-        angle,
-        points_density_diff,
-        eigen_value_smallest_diff, eigen_value_largest_diff, eigen_value_middle_diff,
-        nr_points_diff
-    ])
+    return np.array(
+        [
+            angle,
+            points_density_diff,
+            eigen_value_smallest_diff,
+            eigen_value_largest_diff,
+            eigen_value_middle_diff,
+            nr_points_diff,
+        ]
+    )
 
 
 sets = []
 plt = None
+
 
 def toggle_transparenct(evt):
 
     global sets
     global plt
 
-    if evt.keyPressed == 'z':
+    if evt.keyPressed == "z":
         print("transparency toggle")
         for segment in sets:
             if segment.alpha() < 1.0:
@@ -188,7 +215,7 @@ def toggle_transparenct(evt):
                 segment.alpha(0.5)
         plt.render()
 
-    if evt.keyPressed == 'g':
+    if evt.keyPressed == "g":
         print("toggle red")
         for segment in sets:
             if segment.epoch == 0:
@@ -199,7 +226,7 @@ def toggle_transparenct(evt):
                 segment.isOn = not segment.isOn
         plt.render()
 
-    if evt.keyPressed == 'd':
+    if evt.keyPressed == "d":
         print("toggle green")
         for segment in sets:
             if segment.epoch == 1:
@@ -209,6 +236,7 @@ def toggle_transparenct(evt):
                     segment.on()
                 segment.isOn = not segment.isOn
         plt.render()
+
 
 def controller(evt):
 
@@ -223,6 +251,7 @@ def controller(evt):
     if evt.isPoints:
         print(evt.actor)
     # print("full event dump:", evt)
+
 
 def segments_visualizer(X):
 
@@ -257,15 +286,14 @@ def segments_visualizer(X):
 
     max = X.shape[0]
     # colors = getDistinctColors(max)
-    colors = [(1,0,0), (0,1,0)]
+    colors = [(1, 0, 0), (0, 1, 0)]
 
     global plt
     plt = Plotter(axes=3)
 
-    plt.add_callback('EndInteraction', controller)
+    plt.add_callback("EndInteraction", controller)
     # plt.add_callback('KeyRelease', toggle_transparenct)
-    plt.add_callback('KeyPress', toggle_transparenct)
-
+    plt.add_callback("KeyPress", toggle_transparenct)
 
     for i in range(0, max):
 
@@ -281,32 +309,35 @@ def segments_visualizer(X):
 
         # sets = sets + [ Point( pos=(X[i, 0],X[i, 1],X[i, 2]), r=15, c=colors[i], alpha=1 ) ]
         ellipsoid = Ellipsoid(
-            pos=(X[i, 0],X[i, 1],X[i, 2]),
+            pos=(X[i, 0], X[i, 1], X[i, 2]),
             axis1=(
                 X[i, Eigenvector0x_Column] * X[i, Eigenvalue0_Column] * 0.5,
                 X[i, Eigenvector0y_Column] * X[i, Eigenvalue0_Column] * 0.5,
-                X[i, Eigenvector0z_Column]*  X[i, Eigenvalue0_Column] * 0.3
+                X[i, Eigenvector0z_Column] * X[i, Eigenvalue0_Column] * 0.3,
             ),
             axis2=(
                 X[i, Eigenvector1x_Column] * X[i, Eigenvalue1_Column] * 0.5,
                 X[i, Eigenvector1y_Column] * X[i, Eigenvalue1_Column] * 0.5,
-                X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5
+                X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5,
             ),
             axis3=(
-                X[i, Eigenvector2x_Column]*0.1,
-                X[i, Eigenvector2y_Column]*0.1,
-                X[i, Eigenvector2z_Column]*0.1
+                X[i, Eigenvector2x_Column] * 0.1,
+                X[i, Eigenvector2y_Column] * 0.1,
+                X[i, Eigenvector2z_Column] * 0.1,
             ),
-
-            res=24,	c=color, alpha=1)
+            res=24,
+            c=color,
+            alpha=1,
+        )
         # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
         ellipsoid.id = X[i, Segment_ID_Column]
         ellipsoid.epoch = X[i, EpochID_Column]
         ellipsoid.isOn = True
-        #ellipsoid.on()
-        sets = sets + [ ellipsoid ]
+        # ellipsoid.on()
+        sets = sets + [ellipsoid]
 
     plt.show(sets).close()
+
 
 def generate_random_y(X):
 
@@ -325,7 +356,7 @@ def generate_random_y(X):
     epoch0_set = X[mask_epoch0, :]  # all
     epoch1_set = X[mask_epoch1, :]  # all
 
-    nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0])//3
+    nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0]) // 3
 
     indx0_seg_id = random.sample(range(epoch0_set.shape[0]), nr_pairs)
     indx1_seg_id = random.sample(range(epoch1_set.shape[0]), nr_pairs)
@@ -337,8 +368,8 @@ def generate_random_y(X):
 
     return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
 
-class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
 
+class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
     def __init__(self, skip=False):
         self.skip = skip
         super(BaseTransformer, self).__init__()
@@ -389,7 +420,7 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
             return X
 
         # Check is fit had been called
-        check_is_fitted(self, 'n_features_')
+        check_is_fitted(self, "n_features_")
 
         # Input validation
         X = check_array(X, accept_sparse=True)
@@ -397,14 +428,14 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         # Check that the input is of the same shape as the one passed
         # during fit.
         if X.shape[1] != self.n_features_:
-            raise ValueError('Shape of input is different from what was seen in `fit`')
+            raise ValueError("Shape of input is different from what was seen in `fit`")
 
         print("Transformer Transform")
         return self._transform(X)
 
-class AddLLSVandPCA(BaseTransformer):
 
-    def __init__(self,skip=False, radius=10):
+class AddLLSVandPCA(BaseTransformer):
+    def __init__(self, skip=False, radius=10):
 
         """
 
@@ -433,7 +464,7 @@ class AddLLSVandPCA(BaseTransformer):
         U, S, VT = np.linalg.svd(B.T / np.sqrt(size), full_matrices=0)
 
         # lowest local surface variation, normal vector
-        #return np.hstack(( S[-1] / np.sum(S), U[:,2] ))
+        # return np.hstack(( S[-1] / np.sum(S), U[:,2] ))
 
         x[-13:] = np.hstack(
             (
@@ -441,7 +472,7 @@ class AddLLSVandPCA(BaseTransformer):
                 U[:, 0].reshape(1, -1),
                 U[:, 1].reshape(1, -1),
                 U[:, 2].reshape(1, -1),
-                (S[-1] / np.sum(S)).reshape(1, -1)
+                (S[-1] / np.sum(S)).reshape(1, -1),
             )
         )
 
@@ -504,34 +535,42 @@ class AddLLSVandPCA(BaseTransformer):
         Eigenvector2y_Column = 14
         Eigenvector2z_Column = 15
         llsv_Column = 16
-        Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
+        Normal_Columns = [
+            Eigenvector2x_Column,
+            Eigenvector2y_Column,
+            Eigenvector2z_Column,
+        ]
 
         return np.apply_along_axis(
             lambda x: self.llsv_and_pca(
                 x,
                 _epoch[int(x[EpochID_Column])].cloud[
-                    _epoch[int(x[EpochID_Column])].kdtree.radius_search(x[X_Y_Z_Columns], self.radius)
-                ]
+                    _epoch[int(x[EpochID_Column])].kdtree.radius_search(
+                        x[X_Y_Z_Columns], self.radius
+                    )
+                ],
             ),
             1,
-            X
+            X,
         )
-        #return X
+        # return X
         pass
 
-class Segmentation(BaseTransformer):
 
-    def __init__(self,
-                 skip=False,
-                 radius=2,
-                 angle_diff_threshold=1,
-                 disntance_3D_threshold=1.5,
-                 distance_orthogonal_threshold=1.5,
-                 llsv_threshold=1,
-                 roughness_threshold=5,
-                 max_nr_points_neighbourhood=100,
-                 min_nr_points_per_segment=5,
-                 with_previously_computed_segments=False):
+class Segmentation(BaseTransformer):
+    def __init__(
+        self,
+        skip=False,
+        radius=2,
+        angle_diff_threshold=1,
+        disntance_3D_threshold=1.5,
+        distance_orthogonal_threshold=1.5,
+        llsv_threshold=1,
+        roughness_threshold=5,
+        max_nr_points_neighbourhood=100,
+        min_nr_points_per_segment=5,
+        with_previously_computed_segments=False,
+    ):
 
         """
 
@@ -559,7 +598,6 @@ class Segmentation(BaseTransformer):
         self.min_nr_points_per_segment = min_nr_points_per_segment
         self.with_previously_computed_segments = with_previously_computed_segments
 
-
     def angle_difference_check(self, normal1, normal2):
 
         """
@@ -574,7 +612,9 @@ class Segmentation(BaseTransformer):
         # return np.arccos(np.clip(np.dot(normal1, normal2), -1.0, 1.0)) * 180./np.pi <= self.angle_diff_threshold
         return angle_difference_compute(normal1, normal2) <= self.angle_diff_threshold
 
-    def disntance_3D_set_check(self, point, segment_id, X, X_Y_Z_Columns, Segment_ID_Column):
+    def disntance_3D_set_check(
+        self, point, segment_id, X, X_Y_Z_Columns, Segment_ID_Column
+    ):
 
         """
 
@@ -589,19 +629,24 @@ class Segmentation(BaseTransformer):
         point_mask = X[:, Segment_ID_Column] == segment_id
 
         # x,y,z
-        #np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
-        #np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
+        # np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
+        # np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
         # can be optimized by changing the norm
-        return np.min(np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)) \
-               <= self.disntance_3D_threshold
+        return (
+            np.min(
+                np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
+            )
+            <= self.disntance_3D_threshold
+        )
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
 
         d = -plane_point.dot(plane_normal)
-        distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(plane_normal)
+        distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(
+            plane_normal
+        )
 
         return distance
-
 
     def distance_orthogonal_check(self, candidate_point, plane_point, plane_normal):
 
@@ -616,7 +661,9 @@ class Segmentation(BaseTransformer):
         # d = -plane_point.dot(plane_normal)
         # distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(plane_normal)
 
-        distance = self.compute_distance_orthogonal(candidate_point, plane_point, plane_normal)
+        distance = self.compute_distance_orthogonal(
+            candidate_point, plane_point, plane_normal
+        )
         return distance - self.distance_orthogonal_threshold <= 0
 
     def lowest_local_suface_variance_check(self, llsv):
@@ -657,13 +704,17 @@ class Segmentation(BaseTransformer):
 
         EpochID_Column = 3
         # Lowest local surface variation
-        llsv_Column = -2 # the column ID
+        llsv_Column = -2  # the column ID
 
         Eigenvector2x_Column = 13
         Eigenvector2y_Column = 14
         Eigenvector2z_Column = 15
         llsv_Column = 16
-        Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
+        Normal_Columns = [
+            Eigenvector2x_Column,
+            Eigenvector2y_Column,
+            Eigenvector2z_Column,
+        ]
 
         # default, the points are part of NO segment ( e.g. -1 )
         Default_No_Segment = -1
@@ -676,8 +727,9 @@ class Segmentation(BaseTransformer):
             new_columns = np.full((X.shape[0], 1), Default_No_Segment, dtype=float)
             X = np.hstack((X, new_columns))
 
-            new_columns_std_deviation = \
-                np.full((X.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float)
+            new_columns_std_deviation = np.full(
+                (X.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float
+            )
             X = np.hstack((X, new_columns_std_deviation))
 
         Segment_ID_Column = 17
@@ -705,7 +757,7 @@ class Segmentation(BaseTransformer):
         seg_id = np.max(X[:, Segment_ID_Column])
 
         for epoch_id in range(2):
-            #seg_id = -1
+            # seg_id = -1
             for indx_row in Sort_indx_epoch[epoch_id] + offset_in_X[epoch_id]:
                 if X[indx_row, Segment_ID_Column] < 0:  # not part of a segment yet
                     seg_id += 1
@@ -716,43 +768,66 @@ class Segmentation(BaseTransformer):
 
                     # this step can be preprocessed in a vectorized way!
                     indx_kd_tree_list = _epoch[epoch_id].kdtree.radius_search(
-                        X[indx_row, X_Y_Z_Columns], self.radius)[:self.max_nr_points_neighbourhood]
+                        X[indx_row, X_Y_Z_Columns], self.radius
+                    )[: self.max_nr_points_neighbourhood]
                     for indx_kd_tree in indx_kd_tree_list:
-                        if X[indx_kd_tree + offset_in_X[epoch_id], Segment_ID_Column] < 0 and \
-                                self.angle_difference_check(
-                                    X[indx_row, Normal_Columns],
-                                    X[indx_kd_tree + offset_in_X[epoch_id], Normal_Columns]) and \
-                                self.disntance_3D_set_check(
-                                    X[indx_kd_tree + offset_in_X[epoch_id], X_Y_Z_Columns],
-                                    seg_id, X, X_Y_Z_Columns, Segment_ID_Column) and \
-                                self.distance_orthogonal_check(
-                                    X[indx_kd_tree + offset_in_X[epoch_id], X_Y_Z_Columns],
-                                    X[indx_row, X_Y_Z_Columns],
-                                    X[indx_row, Normal_Columns]) and \
-                                self.lowest_local_suface_variance_check(
-                                    X[indx_kd_tree + offset_in_X[epoch_id], llsv_Column]
-                                ):
-                            X[indx_kd_tree + offset_in_X[epoch_id], Segment_ID_Column] = seg_id
-                            cumulative_distance_for_std_deviation += self.compute_distance_orthogonal(
+                        if (
+                            X[indx_kd_tree + offset_in_X[epoch_id], Segment_ID_Column]
+                            < 0
+                            and self.angle_difference_check(
+                                X[indx_row, Normal_Columns],
+                                X[indx_kd_tree + offset_in_X[epoch_id], Normal_Columns],
+                            )
+                            and self.disntance_3D_set_check(
+                                X[indx_kd_tree + offset_in_X[epoch_id], X_Y_Z_Columns],
+                                seg_id,
+                                X,
+                                X_Y_Z_Columns,
+                                Segment_ID_Column,
+                            )
+                            and self.distance_orthogonal_check(
                                 X[indx_kd_tree + offset_in_X[epoch_id], X_Y_Z_Columns],
                                 X[indx_row, X_Y_Z_Columns],
-                                X[indx_row, Normal_Columns]) ** 2
+                                X[indx_row, Normal_Columns],
+                            )
+                            and self.lowest_local_suface_variance_check(
+                                X[indx_kd_tree + offset_in_X[epoch_id], llsv_Column]
+                            )
+                        ):
+                            X[
+                                indx_kd_tree + offset_in_X[epoch_id], Segment_ID_Column
+                            ] = seg_id
+                            cumulative_distance_for_std_deviation += (
+                                self.compute_distance_orthogonal(
+                                    X[
+                                        indx_kd_tree + offset_in_X[epoch_id],
+                                        X_Y_Z_Columns,
+                                    ],
+                                    X[indx_row, X_Y_Z_Columns],
+                                    X[indx_row, Normal_Columns],
+                                )
+                                ** 2
+                            )
                             nr_points_for_std_deviation += 1
                     # floating equality test must be changed with a more robust test !!!
                     # cast to int for a better testing !!!
-                    nr_points_segment = np.count_nonzero(X[:, Segment_ID_Column] == seg_id)
+                    nr_points_segment = np.count_nonzero(
+                        X[:, Segment_ID_Column] == seg_id
+                    )
                     # not enough points
-                    if(nr_points_segment < self.min_nr_points_per_segment):
+                    if nr_points_segment < self.min_nr_points_per_segment:
                         mask_seg_id = X[:, Segment_ID_Column] == seg_id
                         X[mask_seg_id, Segment_ID_Column] = Default_No_Segment
                         seg_id -= 1  # since we don't have a new segment
                     else:
-                        X[indx_row, Standard_deviation_Column] = \
-                            cumulative_distance_for_std_deviation / nr_points_for_std_deviation
+                        X[indx_row, Standard_deviation_Column] = (
+                            cumulative_distance_for_std_deviation
+                            / nr_points_for_std_deviation
+                        )
         return X
 
-class ExtractSegments(BaseTransformer):
 
+class ExtractSegments(BaseTransformer):
     def __init__(self, skip=False):
         """
 
@@ -760,7 +835,6 @@ class ExtractSegments(BaseTransformer):
         """
 
         super(ExtractSegments, self).__init__(skip=skip)
-
 
     def _fit(self, X, y=None):
         """
@@ -803,16 +877,15 @@ class ExtractSegments(BaseTransformer):
 
         Standard_deviation_Column = 18
 
+        # new column
+        Nr_points_seg_Column = 19  # 18
 
-        #new column
-        Nr_points_seg_Column = 19 #18
-
-        nr_columns_segment = 20 #19
+        nr_columns_segment = 20  # 19
 
         max = int(X[:, Segment_ID_Column].max())
-        X_Segments = np.empty((int(max)+1, nr_columns_segment), dtype=float)
+        X_Segments = np.empty((int(max) + 1, nr_columns_segment), dtype=float)
 
-        for i in range(0, max+1):
+        for i in range(0, max + 1):
 
             mask = X[:, Segment_ID_Column] == float(i)
             set_cloud = X[mask, :]  # all
@@ -823,13 +896,17 @@ class ExtractSegments(BaseTransformer):
 
             mask_std = set_cloud[:, Standard_deviation_Column] != float(-1)
             set_cloud_std = set_cloud[mask_std, :]
-            assert set_cloud_std.shape[0] == 1, "Only one element of the segment has standard deviation computed!"
+            assert (
+                set_cloud_std.shape[0] == 1
+            ), "Only one element of the segment has standard deviation computed!"
             X_Segments[i, :-1] = set_cloud_std[0, :]
 
             X_Segments[i, -1] = nr_points
 
         return X_Segments
+
     pass
+
 
 # class ExtendedClassifier(RandomForestClassifier):
 #
@@ -1044,14 +1121,14 @@ class ExtractSegments(BaseTransformer):
 #
 #         return list_segments_pair
 
-class BuildSimilarityFeature_and_y(ABC):
 
+class BuildSimilarityFeature_and_y(ABC):
     def __init__(
-            self,
-            angle_diff_threshold,
-            neighborhood_search_radius,
-            threshold_probability_most_similar,
-            diff_between_most_similar_2
+        self,
+        angle_diff_threshold,
+        neighborhood_search_radius,
+        threshold_probability_most_similar,
+        diff_between_most_similar_2,
     ):
         """
 
@@ -1087,12 +1164,10 @@ class BuildSimilarityFeature_and_y(ABC):
         y_extended = self.generate_extended_y(X)
 
         X_similarity = np.apply_along_axis(
-            lambda y_row: self.build_X_similarity(y_row, X),
-            1,
-            y_extended
+            lambda y_row: self.build_X_similarity(y_row, X), 1, y_extended
         )
 
-        return (X_similarity, y_extended[:, 2].reshape(-1,1))
+        return (X_similarity, y_extended[:, 2].reshape(-1, 1))
 
     # def compute_similarity_between(self, seg_epoch0, seg_epoch1):
     #     """
@@ -1181,23 +1256,27 @@ class BuildSimilarityFeature_and_y(ABC):
         Segment_ID_Column = 17
 
         Standard_deviation_Column = 18
-        Nr_points_seg_Column = 19 #18
+        Nr_points_seg_Column = 19  # 18
 
-        Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
+        Normal_Columns = [
+            Eigenvector2x_Column,
+            Eigenvector2y_Column,
+            Eigenvector2z_Column,
+        ]
 
         seg_epoch0 = X[int(y_row[0]), :]
         seg_epoch1 = X[int(y_row[1]), :]
 
         return compute_similarity_between(seg_epoch0, seg_epoch1)
 
-class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
 
+class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
     def __init__(
-            self,
-            angle_diff_threshold=1,
-            neighborhood_search_radius=3,
-            threshold_probability_most_similar=0.8,
-            diff_between_most_similar_2=0.1
+        self,
+        angle_diff_threshold=1,
+        neighborhood_search_radius=3,
+        threshold_probability_most_similar=0.8,
+        diff_between_most_similar_2=0.1,
     ):
         """
 
@@ -1211,7 +1290,7 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
             angle_diff_threshold=angle_diff_threshold,
             neighborhood_search_radius=neighborhood_search_radius,
             threshold_probability_most_similar=threshold_probability_most_similar,
-            diff_between_most_similar_2=diff_between_most_similar_2
+            diff_between_most_similar_2=diff_between_most_similar_2,
         )
 
     def generate_extended_y(self, X):
@@ -1231,7 +1310,7 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
         epoch0_set = X[mask_epoch0, :]  # all
         epoch1_set = X[mask_epoch1, :]  # all
 
-        nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0])//3
+        nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0]) // 3
 
         indx0_seg_id = random.sample(range(epoch0_set.shape[0]), nr_pairs)
         indx1_seg_id = random.sample(range(epoch1_set.shape[0]), nr_pairs)
@@ -1243,14 +1322,14 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
 
         return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
 
-class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
 
+class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
     def __init__(
-            self,
-            angle_diff_threshold=1,
-            neighborhood_search_radius=3,
-            threshold_probability_most_similar=0.8,
-            diff_between_most_similar_2=0.1
+        self,
+        angle_diff_threshold=1,
+        neighborhood_search_radius=3,
+        threshold_probability_most_similar=0.8,
+        diff_between_most_similar_2=0.1,
     ):
         """
 
@@ -1264,11 +1343,11 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
             angle_diff_threshold=angle_diff_threshold,
             neighborhood_search_radius=neighborhood_search_radius,
             threshold_probability_most_similar=threshold_probability_most_similar,
-            diff_between_most_similar_2=diff_between_most_similar_2
+            diff_between_most_similar_2=diff_between_most_similar_2,
         )
 
         self.current_pair = [None] * 2
-        self.constructed_extended_y = np.empty(shape=(0,3))
+        self.constructed_extended_y = np.empty(shape=(0, 3))
 
     # def controller(self, evt):
     #     """
@@ -1297,7 +1376,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
 
     def toggle_transparenct(self, evt):
 
-        if evt.keyPressed == 'z':
+        if evt.keyPressed == "z":
             print("transparency toggle")
             for segment in self.sets:
                 if segment.alpha() < 1.0:
@@ -1306,7 +1385,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
                     segment.alpha(0.5)
             self.plt.render()
 
-        if evt.keyPressed == 'g':
+        if evt.keyPressed == "g":
             print("toggle red")
             for segment in self.sets:
                 if segment.epoch == 0:
@@ -1317,7 +1396,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
                     segment.isOn = not segment.isOn
             self.plt.render()
 
-        if evt.keyPressed == 'd':
+        if evt.keyPressed == "d":
             print("toggle green")
             for segment in self.sets:
                 if segment.epoch == 1:
@@ -1361,23 +1440,26 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         if self.current_pair[0] != None and self.current_pair[1] != None:
 
             try:
-                self.constructed_extended_y = np.vstack((
-                    self.constructed_extended_y,
-                    np.array([
-                        self.current_pair[0],
-                        self.current_pair[1],
-                        int(self.label.status())
-                    ]))
+                self.constructed_extended_y = np.vstack(
+                    (
+                        self.constructed_extended_y,
+                        np.array(
+                            [
+                                self.current_pair[0],
+                                self.current_pair[1],
+                                int(self.label.status()),
+                            ]
+                        ),
+                    )
                 )
 
                 self.current_pair[0] = None
                 self.current_pair[1] = None
-                self.label.status( self.label.states[0] ) # firs state "None"
+                self.label.status(self.label.states[0])  # firs state "None"
 
                 self.add_pair_button.switch()
             except:
                 print("You must select 0 or 1 as label!!!")
-
 
     def segments_visualizer(self, X):
         """
@@ -1410,11 +1492,11 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
 
         max = X.shape[0]
         # colors = getDistinctColors(max)
-        colors = [(1,0,0), (0,1,0)]
+        colors = [(1, 0, 0), (0, 1, 0)]
         self.plt = Plotter(axes=3)
 
-        self.plt.add_callback('EndInteraction', self.controller)
-        self.plt.add_callback('KeyPress', self.toggle_transparenct)
+        self.plt.add_callback("EndInteraction", self.controller)
+        self.plt.add_callback("KeyPress", self.toggle_transparenct)
 
         for i in range(0, max):
 
@@ -1430,55 +1512,62 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
 
             # self.sets = self.sets + [ Point( pos=(X[i, 0],X[i, 1],X[i, 2]), r=15, c=colors[i], alpha=1 ) ]
             ellipsoid = Ellipsoid(
-                pos=(X[i, 0],X[i, 1],X[i, 2]),
+                pos=(X[i, 0], X[i, 1], X[i, 2]),
                 axis1=(
                     X[i, Eigenvector0x_Column] * X[i, Eigenvalue0_Column] * 0.5,
                     X[i, Eigenvector0y_Column] * X[i, Eigenvalue0_Column] * 0.5,
-                    X[i, Eigenvector0z_Column]*  X[i, Eigenvalue0_Column] * 0.3
+                    X[i, Eigenvector0z_Column] * X[i, Eigenvalue0_Column] * 0.3,
                 ),
                 axis2=(
                     X[i, Eigenvector1x_Column] * X[i, Eigenvalue1_Column] * 0.5,
                     X[i, Eigenvector1y_Column] * X[i, Eigenvalue1_Column] * 0.5,
-                    X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5
+                    X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5,
                 ),
                 axis3=(
-                    X[i, Eigenvector2x_Column]*0.1,
-                    X[i, Eigenvector2y_Column]*0.1,
-                    X[i, Eigenvector2z_Column]*0.1
+                    X[i, Eigenvector2x_Column] * 0.1,
+                    X[i, Eigenvector2y_Column] * 0.1,
+                    X[i, Eigenvector2z_Column] * 0.1,
                 ),
-                res=24,	c=color, alpha=1)
+                res=24,
+                c=color,
+                alpha=1,
+            )
             # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
             ellipsoid.id = X[i, Segment_ID_Column]
             ellipsoid.epoch = X[i, EpochID_Column]
             ellipsoid.isOn = True
-            self.sets = self.sets + [ ellipsoid ]
+            self.sets = self.sets + [ellipsoid]
 
         self.label = self.plt.add_button(
             # self.label.switch(),
             # self.switch_label(),
-            lambda : self.label.switch(),
-            states=['None','0','1'],
-            c=['w','w','w'],
-            bc=['bb','lr','lg'],
-            pos=(0.90,0.25),
-            size=24
+            lambda: self.label.switch(),
+            states=["None", "0", "1"],
+            c=["w", "w", "w"],
+            bc=["bb", "lr", "lg"],
+            pos=(0.90, 0.25),
+            size=24,
         )
 
         self.add_pair_button = self.plt.add_button(
             self.event_add_pair_button,
-            states=['Select pair','Add pair'],
-            c=['w','w'],
-            bc=['lg','lr'],
-            pos=(0.90,0.15),
-            size=24
+            states=["Select pair", "Add pair"],
+            c=["w", "w"],
+            bc=["lg", "lr"],
+            pos=(0.90, 0.15),
+            size=24,
         )
 
         self.plt.show(
             self.sets,
-            Text2D("Additional fonts (https://vedo.embl.es/fonts)", pos='top-left', bg='k', s=0.4)
+            Text2D(
+                "Additional fonts (https://vedo.embl.es/fonts)",
+                pos="top-left",
+                bg="k",
+                s=0.4,
+            ),
         ).close()
         return self.constructed_extended_y
-
 
     def generate_extended_y(self, X):
 
@@ -1494,7 +1583,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
 
 
 class ClassifierWrapper(ClassifierMixin, BaseEstimator):
-    """ An example classifier which implements a 1-NN algorithm.
+    """An example classifier which implements a 1-NN algorithm.
 
     For more information regarding how to build your own classifier, read more
     in the :ref:`User Guide <user_guide>`.
@@ -1515,13 +1604,13 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
     """
 
     def __init__(
-            self,
-            angle_diff_threshold=1,
-            neighborhood_search_radius=3,
-            threshold_probability_most_similar=0.8,
-            diff_between_most_similar_2=0.1,
-            classifier = RandomForestClassifier(),
-            # cross_validation_is_active=False,
+        self,
+        angle_diff_threshold=1,
+        neighborhood_search_radius=3,
+        threshold_probability_most_similar=0.8,
+        diff_between_most_similar_2=0.1,
+        classifier=RandomForestClassifier(),
+        # cross_validation_is_active=False,
     ):
         super().__init__()
 
@@ -1559,7 +1648,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         return self.classifier.fit(X, y)
 
     def predict(self, X):
-        """ A reference implementation of a prediction for a classifier.
+        """A reference implementation of a prediction for a classifier.
 
         Parameters
         ----------
@@ -1573,13 +1662,13 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
             seen during fit.
         """
         # Check is fit had been called
-        check_is_fitted(self, ['X_', 'y_'])
+        check_is_fitted(self, ["X_", "y_"])
 
         # Input validation
         X = check_array(X)
 
-        #closest = np.argmin(euclidean_distances(X, self.X_), axis=1)
-        #return self.y_[closest]
+        # closest = np.argmin(euclidean_distances(X, self.X_), axis=1)
+        # return self.y_[closest]
 
         X_Column = 0
         Y_Column = 1
@@ -1592,7 +1681,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         #     # the input 'X', in this scenario, is represented by the 'similarity feature'
         #     # and it is used during cross-validation learning
         #     return super(RandomForestClassifier, self).predict(X)
-
 
         mask_epoch0 = X[:, EpochID_Column] == 0
         mask_epoch1 = X[:, EpochID_Column] == 1
@@ -1609,50 +1697,53 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         for epoch0_set_row in epoch0_set:
 
             list_candidates = self.epoch1_segments.kdtree.radius_search(
-                epoch0_set_row, self.neighborhood_search_radius)
+                epoch0_set_row, self.neighborhood_search_radius
+            )
 
-            list_classified = np.array([
-                # super(RandomForestClassifier, self)
-                # self.predict_proba(
-                self.classifier.predict_proba(
-                    compute_similarity_between(
-                        epoch0_set_row,
-                        epoch1_set[candidate, :]
-                    ).reshape(1, -1)
-                )[0][1]
-                for candidate in list_candidates
-            ])
+            list_classified = np.array(
+                [
+                    # super(RandomForestClassifier, self)
+                    # self.predict_proba(
+                    self.classifier.predict_proba(
+                        compute_similarity_between(
+                            epoch0_set_row, epoch1_set[candidate, :]
+                        ).reshape(1, -1)
+                    )[0][1]
+                    for candidate in list_candidates
+                ]
+            )
 
             if len(list_classified) < 2:
                 continue
 
             most_similar = list_classified.argsort()[-2:]
 
-            if(most_similar[1] >= self.threshold_probability_most_similar and
-                    abs(most_similar[1]-most_similar[0]) >= self.diff_between_most_similar_2):
+            if (
+                most_similar[1] >= self.threshold_probability_most_similar
+                and abs(most_similar[1] - most_similar[0])
+                >= self.diff_between_most_similar_2
+            ):
 
                 list_segments_pair = np.vstack(
                     (
                         list_segments_pair,
                         np.hstack(
                             (epoch0_set_row, epoch1_set[most_similar[-1], :])
-                        ).reshape(1, -1)
+                        ).reshape(1, -1),
                     )
                 )
 
         return list_segments_pair
 
 
-
 class SimplifiedClassifier(RandomForestClassifier):
-
     def __init__(
-            self,
-            angle_diff_threshold=1,
-            neighborhood_search_radius=3,
-            threshold_probability_most_similar=0.8,
-            diff_between_most_similar_2=0.1,
-            # cross_validation_is_active=False,
+        self,
+        angle_diff_threshold=1,
+        neighborhood_search_radius=3,
+        threshold_probability_most_similar=0.8,
+        diff_between_most_similar_2=0.1,
+        # cross_validation_is_active=False,
     ):
         """
 
@@ -1759,7 +1850,6 @@ class SimplifiedClassifier(RandomForestClassifier):
         #     # and it is used during cross-validation learning
         #     return super(RandomForestClassifier, self).predict(X)
 
-
         mask_epoch0 = X[:, EpochID_Column] == 0
         mask_epoch1 = X[:, EpochID_Column] == 1
 
@@ -1775,52 +1865,58 @@ class SimplifiedClassifier(RandomForestClassifier):
         for epoch0_set_row in epoch0_set:
 
             list_candidates = self.epoch1_segments.kdtree.radius_search(
-                epoch0_set_row, self.neighborhood_search_radius)
+                epoch0_set_row, self.neighborhood_search_radius
+            )
 
-            list_classified = np.array([
-                # super(RandomForestClassifier, self)
-                self.predict_proba(
-                    compute_similarity_between(
-                        epoch0_set_row,
-                        epoch1_set[candidate, :]
-                    ).reshape(1, -1)
-                )[0][1]
-                for candidate in list_candidates
-            ])
+            list_classified = np.array(
+                [
+                    # super(RandomForestClassifier, self)
+                    self.predict_proba(
+                        compute_similarity_between(
+                            epoch0_set_row, epoch1_set[candidate, :]
+                        ).reshape(1, -1)
+                    )[0][1]
+                    for candidate in list_candidates
+                ]
+            )
 
             if len(list_classified) < 2:
                 continue
 
             most_similar = list_classified.argsort()[-2:]
 
-            if(most_similar[1] >= self.threshold_probability_most_similar and
-                    abs(most_similar[1]-most_similar[0]) >= self.diff_between_most_similar_2):
+            if (
+                most_similar[1] >= self.threshold_probability_most_similar
+                and abs(most_similar[1] - most_similar[0])
+                >= self.diff_between_most_similar_2
+            ):
 
                 list_segments_pair = np.vstack(
                     (
                         list_segments_pair,
                         np.hstack(
                             (epoch0_set_row, epoch1_set[most_similar[-1], :])
-                        ).reshape(1, -1)
+                        ).reshape(1, -1),
                     )
                 )
 
         return list_segments_pair
 
-class PB_M3C2:
 
+class PB_M3C2:
     def __init__(
-            self,
-            add_LLSV_and_PCA = AddLLSVandPCA(),
-            segmentation = Segmentation(),
-            second_segmentation = Segmentation(with_previously_computed_segments=True),
-            extract_segments = ExtractSegments(),
-            build_similarity_feature_and_y = BuildSimilarityFeature_and_y_Visually(),
-            classifier = SimplifiedClassifier()
+        self,
+        add_LLSV_and_PCA=AddLLSVandPCA(),
+        segmentation=Segmentation(),
+        second_segmentation=Segmentation(with_previously_computed_segments=True),
+        extract_segments=ExtractSegments(),
+        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
+        classifier=SimplifiedClassifier(),
     ):
 
-        assert second_segmentation.with_previously_computed_segments == True, \
-            "Second segmentation must have with_previously_computed_segments=True"
+        assert (
+            second_segmentation.with_previously_computed_segments == True
+        ), "Second segmentation must have with_previously_computed_segments=True"
 
         self._add_LLSV_and_PCA = add_LLSV_and_PCA
         self._segmentation = segmentation
@@ -1831,7 +1927,7 @@ class PB_M3C2:
         # expose the parameters as part of the costructor of this class... maybe??
         self._build_similarity_feature_and_y = build_similarity_feature_and_y
 
-        #self.valid_PB_M3C2 = False
+        # self.valid_PB_M3C2 = False
         pass
 
     # def set_new_segmentation(self, segmentation):
@@ -1868,7 +1964,7 @@ class PB_M3C2:
         """
 
         X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((Epoch1.cloud[:, :], np.ones( (Epoch1.cloud.shape[0], 1))))
+        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
 
         # | x | y | z | epoch I.D.
         X = np.vstack((X0, X1))
@@ -1884,7 +1980,9 @@ class PB_M3C2:
 
         self.labeling_pipeline.fit(X)
 
-        return self._build_similarity_feature_and_y.compute(self.labeling_pipeline.transform(X))
+        return self._build_similarity_feature_and_y.compute(
+            self.labeling_pipeline.transform(X)
+        )
         pass
 
     def training(self, X, y):
@@ -1905,7 +2003,7 @@ class PB_M3C2:
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
-                ("Classifier", self._classifier)
+                ("Classifier", self._classifier),
             ]
         )
 
@@ -1941,7 +2039,7 @@ class PB_M3C2:
         """
 
         X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((Epoch1.cloud[:, :], np.ones( (Epoch1.cloud.shape[0], 1))))
+        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
 
         # | x | y | z | epoch I.D.
         X = np.vstack((X0, X1))
@@ -1959,7 +2057,7 @@ class PB_M3C2:
         return self.training_predicting_pipeline.predict(X)
         pass
 
-    def distance(self, Epoch0, Epoch1, alignment_error = 1.1):
+    def distance(self, Epoch0, Epoch1, alignment_error=1.1):
 
         X_Column = 0
         Y_Column = 1
@@ -1982,8 +2080,7 @@ class PB_M3C2:
         Segment_ID_Column = 17
 
         Standard_deviation_Column = 18
-        Nr_points_seg_Column = 19 #18
-
+        Nr_points_seg_Column = 19  # 18
 
         segments_pair = self.predict(Epoch0=Epoch0, Epoch1=Epoch1)
 
@@ -2004,7 +2101,11 @@ class PB_M3C2:
             t0_CoG = segment_epoch0[[X_Column, Y_Column, Z_Column]]
             t1_CoG = segment_epoch1[[X_Column, Y_Column, Z_Column]]
 
-            Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
+            Normal_Columns = [
+                Eigenvector2x_Column,
+                Eigenvector2y_Column,
+                Eigenvector2z_Column,
+            ]
             normal_vector_t0 = segment_epoch0[Normal_Columns]
 
             # # not used yet
@@ -2031,7 +2132,10 @@ class PB_M3C2:
             std_dev_normalized_squared_t1 = segment_epoch1[Standard_deviation_Column]
 
             # LoDetection_cm = (1.96*(sqrt(((sigma_plane_t1)/(no_pts_plane_t1))+((sigma_plane_t2)/(no_pts_plane_t2)))))+1.1  # regerror: 1.1 cm
-            LoDetection = 1.96 * (sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1) + alignment_error)
+            LoDetection = 1.96 * (
+                sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1)
+                + alignment_error
+            )
 
             # LoDetection_m = LoDetection_cm/100
 
@@ -2041,7 +2145,6 @@ class PB_M3C2:
             # else:
             #     sign_change = 0
 
-
             # seg_id_epoch0, X_Column0, Y_Column0, Z_Column0, seg_id_epoch1, X_Column1, Y_Column1, Z_Column1, distance, uncertaintie
 
             args = (
@@ -2050,13 +2153,14 @@ class PB_M3C2:
                 np.array([segment_epoch1[Segment_ID_Column]]),
                 t1_CoG,
                 np.array([M3C2_dist]),
-                np.array([LoDetection])
+                np.array([LoDetection]),
             )
-            row =  np.concatenate(args)
+            row = np.concatenate(args)
 
             output = np.vstack((output, row))
 
         return output
+
 
 if __name__ == "__main__":
 
@@ -2186,13 +2290,14 @@ if __name__ == "__main__":
     Alg = PB_M3C2(classifier=ClassifierWrapper())
     X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
     Alg.training(X, y)
-    print( Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1) )
-    print( Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1) )
+    print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
 
     random.seed(10)
     np.random.seed(10)
 
-    Alg2 = PB_M3C2(classifier=SimplifiedClassifier()
+    Alg2 = PB_M3C2(
+        classifier=SimplifiedClassifier()
         # add_LLSV_and_PCA = AddLLSVandPCA(),
         # segmentation = Segmentation(),
         # second_segmentation = Segmentation(
@@ -2208,5 +2313,5 @@ if __name__ == "__main__":
 
     X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
     Alg2.training(X, y)
-    print( Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1) )
-    print( Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1) )
+    print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
