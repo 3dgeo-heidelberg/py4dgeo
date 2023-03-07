@@ -1,4 +1,6 @@
-# <img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo.png?raw=true" alt="logo" style="width:500px;"/>
+# Welcome to py4dgeo 
+
+<img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo.png?raw=true" alt="logo" style="width:500px;"/>
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/3dgeo-heidelberg/py4dgeo/ci.yml?branch=main)](https://github.com/3dgeo-heidelberg/py4dgeo/actions/workflows/ci.yml)
