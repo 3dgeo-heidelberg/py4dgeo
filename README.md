@@ -22,14 +22,14 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-* **M3C2 algorithm** ([Lague et al., 2013](#literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
+* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
 
 
-* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
+* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
 
 **Coming next:**
-* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
 
