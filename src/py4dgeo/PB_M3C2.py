@@ -704,7 +704,7 @@ class Segmentation(BaseTransformer):
 
         EpochID_Column = 3
         # Lowest local surface variation
-        llsv_Column = -2  # the column ID
+        # llsv_Column = -2  # the column ID
 
         Eigenvector2x_Column = 13
         Eigenvector2y_Column = 14
@@ -824,6 +824,161 @@ class Segmentation(BaseTransformer):
                             cumulative_distance_for_std_deviation
                             / nr_points_for_std_deviation
                         )
+        return X
+
+class PostSegmentation(BaseTransformer):
+
+    def __init__(self, skip=False, compute_normal=False):
+        super().__init__(skip=skip)
+        self.compute_normal = compute_normal
+
+    def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
+
+        d = -plane_point.dot(plane_normal.T)
+        distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(
+            plane_normal
+        )
+
+        return distance
+
+    def pca_compute_normal_and_mean(self, X):
+
+        """
+
+        :param x:
+        :param X:
+        :return:
+        """
+
+        size = X.shape[0]
+
+        X_avg = np.mean(X, axis=0)  # compute mean
+        B = X - np.tile(X_avg, (size, 1))
+
+        # Find principal components (SVD)
+        U, S, VT = np.linalg.svd(B.T / np.sqrt(size), full_matrices=0)
+
+        assert S[0] != 0
+        assert S[1] != 0
+        assert S[2] != 0
+
+        # Eig. values,
+        # Eig. Vector0, Eig. Vector1, Eig. Vector2(Normal),
+        # initial guess for normal position
+        return \
+            S.reshape(1, -1), \
+            U[:, 0].reshape(1, -1), U[:, 1].reshape(1, -1), U[:, 2].reshape(1, -1), \
+            X_avg.reshape(1,-1)
+
+
+
+    def _fit(self, X, y=None):
+
+        """
+        :param X:
+        :param y:
+        :return:
+        """
+
+        return self
+        pass
+
+    def _transform(self, X):
+
+        """
+
+        :param X:
+        :return:
+        """
+
+        X_Column = 0
+        Y_Column = 1
+        Z_Column = 2
+        X_Y_Z_Columns = [X_Column, Y_Column, Z_Column]
+
+        EpochID_Column = 3
+        Eigenvalue0_Column = 4
+        Eigenvalue1_Column = 5
+        Eigenvalue2_Column = 6
+        Eigenvector0x_Column = 7
+        Eigenvector0y_Column = 8
+        Eigenvector0z_Column = 9
+        Eigenvector1x_Column = 10
+        Eigenvector1y_Column = 11
+        Eigenvector1z_Column = 12
+        Eigenvector2x_Column = 13
+        Eigenvector2y_Column = 14
+        Eigenvector2z_Column = 15
+        llsv_Column = 16
+        Segment_ID_Column = 17
+
+        Standard_deviation_Column = 18
+
+        # new column
+        Nr_points_seg_Column = 19  # 18
+
+        nr_columns_segment = 20  # 19
+
+        Eigval = [
+            Eigenvalue0_Column,
+            Eigenvalue1_Column,
+            Eigenvalue2_Column,
+        ]
+
+        Eigvec0 = [
+            Eigenvector0x_Column,
+            Eigenvector0y_Column,
+            Eigenvector0z_Column
+        ]
+
+        Eigvec1 = [
+            Eigenvector1x_Column,
+            Eigenvector1y_Column,
+            Eigenvector1z_Column,
+        ]
+
+        Normal_Columns = [
+            Eigenvector2x_Column,
+            Eigenvector2y_Column,
+            Eigenvector2z_Column,
+        ]
+
+        # default, the points are part of NO segment ( e.g. -1 )
+        Default_No_Segment = -1
+        # default standard deviation for points that are not "core points"
+        Default_std_deviation_of_no_core_point = -1
+
+        max = int(X[:, Segment_ID_Column].max())
+
+        for i in range(0, max + 1):
+
+            mask = X[:, Segment_ID_Column] == float(i)
+            set_cloud = X[mask, :3]  # all
+            eig_values, e0, e1, normal, position = self.pca_compute_normal_and_mean(set_cloud)
+
+            indexes = np.where(mask == True)[0]
+
+            # compute the closest point from the current segment to calculated "position"
+            indx_min_in_indexes = np.linalg.norm(x=set_cloud - position, axis=1).argmin()
+            indx_min_in_X = indexes[indx_min_in_indexes]
+
+            X[indx_min_in_X, Eigval] = eig_values
+            X[indx_min_in_X, Eigvec0] = e0
+            X[indx_min_in_X, Eigvec1] = e1
+            X[indx_min_in_X, Normal_Columns] = normal
+
+            cumulative_distance_for_std_deviation = 0
+            nr_points_for_std_deviation = indexes.shape[0] - 1
+            for indx in indexes:
+                cumulative_distance_for_std_deviation +=\
+                    self.compute_distance_orthogonal(
+                        X[indx, X_Y_Z_Columns],
+                        X[indx_min_in_X, X_Y_Z_Columns],
+                        normal.reshape(1, -1)) ** 2
+
+            X[indx_min_in_X, Standard_deviation_Column] = \
+                cumulative_distance_for_std_deviation / nr_points_for_std_deviation
+
         return X
 
 
@@ -1542,7 +1697,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
             # self.label.switch(),
             # self.switch_label(),
             lambda: self.label.switch(),
-            states=["None", "0", "1"],
+            states=["Label (0/1)", "0", "1"], # None
             c=["w", "w", "w"],
             bc=["bb", "lr", "lg"],
             pos=(0.90, 0.25),
@@ -1561,10 +1716,11 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         self.plt.show(
             self.sets,
             Text2D(
-                "Additional fonts (https://vedo.embl.es/fonts)",
+                "Select multiple pairs of red-green Ellipsoids with their corresponding labels (0/1) and then press 'Select pair'\n"
+                "'z' - toggle transparency on/off 'g' - toggle on/off red ellipsoids 'd' toggle on/off red ellipsoids",
                 pos="top-left",
                 bg="k",
-                s=0.4,
+                s=0.7,
             ),
         ).close()
         return self.constructed_extended_y
@@ -1902,7 +2058,6 @@ class SimplifiedClassifier(RandomForestClassifier):
 
         return list_segments_pair
 
-
 class PB_M3C2:
     def __init__(
         self,
@@ -1914,7 +2069,8 @@ class PB_M3C2:
         classifier=SimplifiedClassifier(),
     ):
 
-        assert (
+        if second_segmentation:
+            assert (
             second_segmentation.with_previously_computed_segments == True
         ), "Second segmentation must have with_previously_computed_segments=True"
 
@@ -1966,7 +2122,6 @@ class PB_M3C2:
         X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
         X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
 
-        # | x | y | z | epoch I.D.
         X = np.vstack((X0, X1))
 
         self.labeling_pipeline = Pipeline(
@@ -2013,7 +2168,7 @@ class PB_M3C2:
         self._second_segmentation.skip = True
         self._extract_segments.skip = True
 
-        self._classifier.cross_validation_is_active = True
+        # self._classifier.cross_validation_is_active = True
 
         self.training_predicting_pipeline.fit(X, y)
 
@@ -2162,6 +2317,250 @@ class PB_M3C2:
         return output
 
 
+def build_input_scenario2_with_normals(Epoch0, Epoch1):
+
+    """
+    :param Epoch0: x,y,z point cloud
+    :param Epoch1: x,y,z point cloud
+    :return:
+        # x,y,z, N_x,N_y,N_z, Segment_ID
+        new_epoch0, new_epoch1
+    """
+
+    X_Column = 0
+    Y_Column = 1
+    Z_Column = 2
+
+    EpochID_Column = 3
+    Eigenvalue0_Column = 4
+    Eigenvalue1_Column = 5
+    Eigenvalue2_Column = 6
+    Eigenvector0x_Column = 7
+    Eigenvector0y_Column = 8
+    Eigenvector0z_Column = 9
+    Eigenvector1x_Column = 10
+    Eigenvector1y_Column = 11
+    Eigenvector1z_Column = 12
+    Eigenvector2x_Column = 13
+    Eigenvector2y_Column = 14
+    Eigenvector2z_Column = 15
+    llsv_Column = 16
+    Segment_ID_Column = 17
+
+    Standard_deviation_Column = 18
+    Nr_points_seg_Column = 19  # 18
+
+    Normal_Columns = [
+        Eigenvector2x_Column,
+        Eigenvector2y_Column,
+        Eigenvector2z_Column,
+    ]
+
+    x_y_z_Columns = [
+        X_Column,
+        Y_Column,
+        Z_Column
+    ]
+
+    X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
+    X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+
+    X = np.vstack((X0, X1))
+
+    transform_pipeline = Pipeline(
+    [
+        ("Transform AddLLSVandPCA", AddLLSVandPCA()),
+        ("Transform Segmentation", Segmentation()),
+    ])
+
+    transform_pipeline.fit(X)
+    out = transform_pipeline.transform(X)
+    new_epoch01 = np.hstack(
+        (
+            out[:, x_y_z_Columns],
+            out[:, EpochID_Column].reshape(-1, 1),
+            out[:, Normal_Columns],
+            out[:, Segment_ID_Column].reshape(-1, 1)
+        )
+    )
+
+    mask_epoch0 = new_epoch01[:, EpochID_Column] == 0
+    mask_epoch1 = new_epoch01[:, EpochID_Column] == 1
+
+    new_epoch0 = new_epoch01[mask_epoch0, :]  # all
+    new_epoch1 = new_epoch01[mask_epoch1, :]  # all
+
+    # cleaning Segment_ID_Column
+    new_epoch0 = np.delete(new_epoch0, EpochID_Column, 1)
+    new_epoch1 = np.delete(new_epoch1, EpochID_Column, 1)
+
+    # x,y,z, N_x,N_y,N_z, Segment_ID
+    return new_epoch0, new_epoch1
+    pass
+
+
+class PB_M3C2_scenario2(PB_M3C2):
+    def __init__(
+            self,
+            post_segmentation=PostSegmentation(compute_normal=True),
+            classifier=ClassifierWrapper(),
+            build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually()
+
+    ):
+        super().__init__(
+            add_LLSV_and_PCA=None,
+            segmentation=None,
+            second_segmentation=None,
+            extract_segments=ExtractSegments(),
+            build_similarity_feature_and_y=build_similarity_feature_and_y,
+            classifier=classifier
+        );
+        self._post_segmentation=post_segmentation
+
+    def reconstruct_input(self, Epoch0, Epoch1):
+
+        X_Column = 0
+        Y_Column = 1
+        Z_Column = 2
+
+        EpochID_Column = 3
+        Eigenvalue0_Column = 4
+        Eigenvalue1_Column = 5
+        Eigenvalue2_Column = 6
+        Eigenvector0x_Column = 7
+        Eigenvector0y_Column = 8
+        Eigenvector0z_Column = 9
+        Eigenvector1x_Column = 10
+        Eigenvector1y_Column = 11
+        Eigenvector1z_Column = 12
+        Eigenvector2x_Column = 13
+        Eigenvector2y_Column = 14
+        Eigenvector2z_Column = 15
+        llsv_Column = 16
+        Segment_ID_Column = 17
+
+        Standard_deviation_Column = 18
+
+        # default standard deviation for points that are not "core points"
+        Default_std_deviation_of_no_core_point = -1
+
+        # assert 0, "the input structure must be done properly!"
+        # X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
+        # X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+
+        X0 = np.hstack(
+            (
+                Epoch0[:,:3], # x,y,z     X 3
+                np.zeros((Epoch0.shape[0], 1)).reshape(-1, 1), # EpochID_Column X 1
+                np.full((Epoch0.shape[0], 3), 0, dtype=float), # Eigenvalue X 3
+                np.full((Epoch0.shape[0], 6), 0, dtype=float),  # Eigenvector0, Eigenvector1 X 6
+                Epoch0[:,3:6], # Eigenvector2 X 3
+                np.full((Epoch0.shape[0], 1), 0, dtype=float).reshape(-1, 1), # llsv_Column
+                Epoch0[:,-1].reshape(-1, 1), # Segment_ID_Column
+                np.full((Epoch0.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float).reshape(-1, 1), # Standard_deviation_Column
+            )
+        )
+
+        X1 = np.hstack(
+            (
+                Epoch1[:,:3], # x,y,z     X 3
+                np.ones((Epoch1.shape[0], 1)).reshape(-1, 1), # EpochID_Column X 1
+                np.full((Epoch1.shape[0], 3), 0, dtype=float), # Eigenvalue X 3
+                np.full((Epoch1.shape[0], 6), 0, dtype=float),  # Eigenvector0, Eigenvector1 X 6
+                Epoch1[:,3:6], # Eigenvector2 X 3
+                np.full((Epoch1.shape[0], 1), 0, dtype=float).reshape(-1, 1), # llsv_Column
+                Epoch1[:,-1].reshape(-1, 1), # Segment_ID_Column
+                np.full((Epoch1.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float).reshape(-1, 1), # Standard_deviation_Column
+            )
+        )
+
+        return X0, X1
+
+
+    def build_labels(self, Epoch0, Epoch1):
+
+        """
+
+        :param Epoch0:
+        :param Epoch1:
+        :return:
+        """
+
+        X0, X1 = self.reconstruct_input(Epoch0=Epoch0, Epoch1=Epoch1)
+
+        X = np.vstack((X0, X1))
+
+        self.labeling_pipeline = Pipeline(
+            [
+                ("Transform Post Segmentation", self._post_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+            ]
+        )
+
+        self.labeling_pipeline.fit(X)
+
+        return self._build_similarity_feature_and_y.compute(
+            self.labeling_pipeline.transform(X)
+        )
+        pass
+
+    def training(self, X, y):
+
+        """
+
+        :param X:
+        :param y:
+        :return:
+        """
+
+        # Is is a good idea to recreate the "Classifier" ??
+        # Maybe there is value in having multiple learning iterations??
+
+        self.training_predicting_pipeline = Pipeline(
+            [
+                ("Transform Post Segmentation", self._post_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+                ("Classifier", self._classifier),
+            ]
+        )
+
+        # self.training_predicting_pipeline.set_params()
+        self._post_segmentation.skip = True
+        self._extract_segments.skip = True
+
+        self.training_predicting_pipeline.fit(X, y)
+
+        pass
+
+    def predict(self, Epoch0, Epoch1):
+        """
+
+        :param Epoch0:
+        :param Epoch1:
+        :return:
+        """
+
+        X0, X1 = self.reconstruct_input(Epoch0=Epoch0, Epoch1=Epoch1)
+
+        X = np.vstack((X0, X1))
+
+        # activate the entire pipeline
+        # self.training_predicting_pipeline.set_params()
+
+        self._post_segmentation.skip = False
+        self._extract_segments.skip = False
+
+
+        # self._classifier.cross_validation_is_active = False
+        # self.training_predicting_pipeline.set_params(estimator__Classifier__cross_validation_is_active= False)
+
+        return self.training_predicting_pipeline.predict(X)
+        pass
+
+    # the algorithm should be the same!
+    # def distance(self, Epoch0, Epoch1, alignment_error=1.1):
+
+
 if __name__ == "__main__":
 
     util.ensure_test_data_availability()
@@ -2284,34 +2683,52 @@ if __name__ == "__main__":
     #     # we don't test anything else.
     #     exit(0)
 
-    random.seed(10)
-    np.random.seed(10)
+# *********************
 
-    Alg = PB_M3C2(classifier=ClassifierWrapper())
-    X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    Alg.training(X, y)
-    print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg = PB_M3C2(classifier=ClassifierWrapper())
+    # X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    # Alg.training(X, y)
+    # print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    # print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    #
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg2 = PB_M3C2(
+    #     classifier=SimplifiedClassifier()
+    #     # add_LLSV_and_PCA = AddLLSVandPCA(),
+    #     # segmentation = Segmentation(),
+    #     # second_segmentation = Segmentation(
+    #     #     radius=5,
+    #     #     angle_diff_threshold=10,
+    #     #     disntance_3D_threshold=10,
+    #     #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
+    #     #     with_previously_computed_segments=True),
+    #     # extract_segments = Extract_segments(),
+    #     # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
+    #     # classifier=ClassifierWrapper()
+    # )
+    #
+    # X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    # Alg2.training(X, y)
+    # print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    # print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
 
-    random.seed(10)
-    np.random.seed(10)
+# *********************
 
-    Alg2 = PB_M3C2(
-        classifier=SimplifiedClassifier()
-        # add_LLSV_and_PCA = AddLLSVandPCA(),
-        # segmentation = Segmentation(),
-        # second_segmentation = Segmentation(
-        #     radius=5,
-        #     angle_diff_threshold=10,
-        #     disntance_3D_threshold=10,
-        #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-        #     with_previously_computed_segments=True),
-        # extract_segments = Extract_segments(),
-        # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
-        # classifier=ClassifierWrapper()
-    )
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
+    #
+    # alg_scenario2 = PB_M3C2_scenario2()
+    # X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
+    # alg_scenario2.training(X, y)
+    # print(alg_scenario2.predict(Epoch0=new_epoch0, Epoch1=new_epoch1))
+    # print(alg_scenario2.distance(Epoch0=new_epoch0, Epoch1=new_epoch1))
 
-    X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    Alg2.training(X, y)
-    print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+# ***************
+
