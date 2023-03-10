@@ -1,6 +1,6 @@
 breathe
 cmake
-git+https://github.com/marcomusy/vedo.git
+vedo
 ipykernel
 lcov_cobertura
 m2r2
