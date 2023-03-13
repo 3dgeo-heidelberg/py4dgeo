@@ -2081,8 +2081,8 @@ class PB_M3C2:
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
         classifier=SimplifiedClassifier(),
     ):
-        """
 
+        """
         :param add_LLSV_and_PCA: lowest local surface variation and PCA computattion.
         :param segmentation: The object used for the first segmentation.
         :param second_segmentation: The object used for the second segmentation.
@@ -2261,10 +2261,10 @@ class PB_M3C2:
     def build_labels(self, Epoch0, Epoch1):
 
         """
-
+        Given 2 Epochs, it builds a pair of features and labels used for learning.
         :param Epoch0:
         :param Epoch1:
-        :return:
+        :return: parir of (X,y) (features, labels)
         """
 
         X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
@@ -2291,7 +2291,7 @@ class PB_M3C2:
     def training(self, X, y):
 
         """
-
+        It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
         :param X: features.
         :param y: labels.
         :return:
@@ -2335,10 +2335,10 @@ class PB_M3C2:
 
     def predict(self, Epoch0, Epoch1):
         """
-
+        For a set of pairs of segments, between Epoch and Epoch 1, it predicts which one corresponds and which don't.
         :param Epoch0:
         :param Epoch1:
-        :return:
+        :return: Return a vector of 0/1
         """
 
         X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
@@ -2364,6 +2364,7 @@ class PB_M3C2:
     def predict_update(self, previous_segmented_epoch, Epoch1):
 
         """
+        "predict_scenario4"
 
         :param previous_segmented_epoch:
         :param Epoch1:
@@ -2426,7 +2427,7 @@ class PB_M3C2:
         :param Epoch0:
         :param Epoch1:
         :param alignment_error: alignment error reg between point clouds.
-        :return:
+        :return: seg_id_epoch0, X Y Z (center of mass), seg_id_epoch1, X Y Z (center of mass), distance, uncertaintie
         """
 
         X_Column = 0
