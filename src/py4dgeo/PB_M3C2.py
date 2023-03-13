@@ -44,6 +44,9 @@ __all__ = [
     "SimplifiedClassifier",
     "ClassifierWrapper",
     "PB_M3C2",
+    "build_input_scenario2_without_normals",
+    "build_input_scenario2_with_normals",
+    "PB_M3C2_scenario2",
 ]
 
 
@@ -2921,52 +2924,54 @@ if __name__ == "__main__":
 
     # *********************
 
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg = PB_M3C2(classifier=ClassifierWrapper())
+    # X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    # Alg.training(X, y)
+    # print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    # print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    #
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg2 = PB_M3C2(
+    #     classifier=SimplifiedClassifier()
+    #     # add_LLSV_and_PCA = AddLLSVandPCA(),
+    #     # segmentation = Segmentation(),
+    #     # second_segmentation = Segmentation(
+    #     #     radius=5,
+    #     #     angle_diff_threshold=10,
+    #     #     disntance_3D_threshold=10,
+    #     #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
+    #     #     with_previously_computed_segments=True),
+    #     # extract_segments = Extract_segments(),
+    #     # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
+    #     # classifier=ClassifierWrapper()
+    # )
+    #
+    # X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    # Alg2.training(X, y)
+    # print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    # print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+
+    # *********************
+
     random.seed(10)
     np.random.seed(10)
 
-    Alg = PB_M3C2(classifier=ClassifierWrapper())
-    X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    Alg.training(X, y)
-    print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
-
-    random.seed(10)
-    np.random.seed(10)
-
-    Alg2 = PB_M3C2(
-        classifier=SimplifiedClassifier()
-        # add_LLSV_and_PCA = AddLLSVandPCA(),
-        # segmentation = Segmentation(),
-        # second_segmentation = Segmentation(
-        #     radius=5,
-        #     angle_diff_threshold=10,
-        #     disntance_3D_threshold=10,
-        #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-        #     with_previously_computed_segments=True),
-        # extract_segments = Extract_segments(),
-        # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
-        # classifier=ClassifierWrapper()
+    new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+        Epoch0=Epoch0, Epoch1=Epoch1
     )
 
-    X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    Alg2.training(X, y)
-    print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
 
-# *********************
-
-# random.seed(10)
-# np.random.seed(10)
-#
-# new_epoch0, new_epoch1 = build_input_scenario2_without_normals(Epoch0=Epoch0, Epoch1=Epoch1)
-#
-# # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
-#
-# alg_scenario2 = PB_M3C2_scenario2()
-# X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
-# alg_scenario2.training(X, y)
-# print(alg_scenario2.predict(Epoch0=new_epoch0, Epoch1=new_epoch1))
-# print(alg_scenario2.distance(Epoch0=new_epoch0, Epoch1=new_epoch1))
+    alg_scenario2 = PB_M3C2_scenario2()
+    X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
+    alg_scenario2.training(X, y)
+    print(alg_scenario2.predict(Epoch0=new_epoch0, Epoch1=new_epoch1))
+    print(alg_scenario2.distance(Epoch0=new_epoch0, Epoch1=new_epoch1))
 
 # ***************
 
