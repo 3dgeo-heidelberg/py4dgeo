@@ -127,9 +127,15 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
 
     """
 
-    :param seg_epoch0:
-    :param seg_epoch1:
+    :param seg_epoch0: segment from epoch0
+    :param seg_epoch1: segment from epoch1
     :return:
+        angle, -> between normal vectors
+        points_density_diff, -> difference between points density segments of surfaces
+        eigen_value_smallest_diff, -> the smallest eigen
+        eigen_value_largest_diff,
+        eigen_value_middle_diff,
+        nr_points_diff,
     """
 
     X_Column = 0
@@ -443,17 +449,18 @@ class AddLLSVandPCA(BaseTransformer):
 
         """
 
-        :param skip:
-        :param radius:
+        :param skip: Whether the current transform is applied or not.
+        :param radius: The radius used to extract the neighbour points using KD-tree.
         """
 
         super(AddLLSVandPCA, self).__init__(skip=skip)
         self.radius = radius
 
-    def llsv_and_pca(self, x, X):
+    def _llsv_and_pca(self, x, X):
 
         """
-
+        Compute PCA (implicitly, the normal vector as well) and lowest local surface variation
+        for point "x" using the set "X" as input.
         :param x:
         :param X:
         :return:
@@ -461,7 +468,8 @@ class AddLLSVandPCA(BaseTransformer):
 
         size = X.shape[0]
 
-        X_avg = np.mean(X, axis=0)  # compute mean
+        # compute mean
+        X_avg = np.mean(X, axis=0)
         B = X - np.tile(X_avg, (size, 1))
 
         # Find principal components (SVD)
@@ -496,9 +504,13 @@ class AddLLSVandPCA(BaseTransformer):
     def _transform(self, X):
 
         """
-
-        :param X:
-        :return:
+        Extending X matrix with eigenvalues, eigenvectors, and lowest local surface variation columns.
+        :param X: A numpy matrix with x,y,z,EpochID columns.
+        :return:  X numpy matrix extended containing the following columns:
+                x,y,z,EpochID columns and
+                Eigenvalues( 3 columns )
+                Eigenvectors( 3 columns ) X 3 [ in descending normal order ]
+                Lowest local surface variation( 1 column )
         """
 
         X_Column = 0
@@ -546,7 +558,7 @@ class AddLLSVandPCA(BaseTransformer):
         ]
 
         return np.apply_along_axis(
-            lambda x: self.llsv_and_pca(
+            lambda x: self._llsv_and_pca(
                 x,
                 _epoch[int(x[EpochID_Column])].cloud[
                     _epoch[int(x[EpochID_Column])].kdtree.radius_search(
@@ -1013,7 +1025,7 @@ class ExtractSegments(BaseTransformer):
         """
 
         :param X:
-        :return:
+        :return: A vector of segments.
         """
 
         X_Column = 0
@@ -1577,7 +1589,8 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         :return:
         """
         if not evt.actor:
-            return  # no hit, return
+            # no hit, return
+            return
         logger = logging.getLogger("py4dgeo")
         logger.debug("point coords =%s", str(evt.picked3d), exc_info=1)
         # print("point coords =", evt.picked3d)
@@ -1625,7 +1638,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
                 self.add_pair_button.switch()
             except:
                 # print("You must select 0 or 1 as label!!!")
-                logger = logging.getLogger(loggername)
+                logger = logging.getLogger("py4dgeo")
                 logger.error("You must select 0 or 1 as label")
 
     def segments_visualizer(self, X):
@@ -2083,7 +2096,7 @@ class PB_M3C2:
     ):
 
         """
-        :param add_LLSV_and_PCA: lowest local surface variation and PCA computattion.
+        :param add_LLSV_and_PCA: lowest local surface variation and PCA computattion. (computes the normal vector as well)
         :param segmentation: The object used for the first segmentation.
         :param second_segmentation: The object used for the second segmentation.
         :param extract_segments: The object used for building the segments.
