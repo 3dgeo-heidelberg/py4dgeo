@@ -828,7 +828,7 @@ class Segmentation(BaseTransformer):
 
 class PostSegmentation(BaseTransformer):
 
-    def __init__(self, skip=False, compute_normal=False):
+    def __init__(self, skip=False, compute_normal=True):
         super().__init__(skip=skip)
         self.compute_normal = compute_normal
 
@@ -914,11 +914,6 @@ class PostSegmentation(BaseTransformer):
 
         Standard_deviation_Column = 18
 
-        # new column
-        Nr_points_seg_Column = 19  # 18
-
-        nr_columns_segment = 20  # 19
-
         Eigval = [
             Eigenvalue0_Column,
             Eigenvalue1_Column,
@@ -965,7 +960,9 @@ class PostSegmentation(BaseTransformer):
             X[indx_min_in_X, Eigval] = eig_values
             X[indx_min_in_X, Eigvec0] = e0
             X[indx_min_in_X, Eigvec1] = e1
-            X[indx_min_in_X, Normal_Columns] = normal
+
+            if self.compute_normal:
+                X[indx_min_in_X, Normal_Columns] = normal
 
             cumulative_distance_for_std_deviation = 0
             nr_points_for_std_deviation = indexes.shape[0] - 1
@@ -2110,6 +2107,107 @@ class PB_M3C2:
     #     #self.valid_PB_M3C2 = False
     #     pass
 
+    def reconstruct_input_with_normals(self, epoch, epoch_id):
+
+        """
+
+        :param epoch:
+        :param epoch_id:
+        :return:
+        """
+
+        X_Column = 0
+        Y_Column = 1
+        Z_Column = 2
+
+        EpochID_Column = 3
+        Eigenvalue0_Column = 4
+        Eigenvalue1_Column = 5
+        Eigenvalue2_Column = 6
+        Eigenvector0x_Column = 7
+        Eigenvector0y_Column = 8
+        Eigenvector0z_Column = 9
+        Eigenvector1x_Column = 10
+        Eigenvector1y_Column = 11
+        Eigenvector1z_Column = 12
+        Eigenvector2x_Column = 13
+        Eigenvector2y_Column = 14
+        Eigenvector2z_Column = 15
+        llsv_Column = 16
+        Segment_ID_Column = 17
+
+        Standard_deviation_Column = 18
+
+        # default standard deviation for points that are not "core points"
+        Default_std_deviation_of_no_core_point = -1
+
+        assert epoch.shape[1] == 3+3+1, "epoch size mismatch!"
+
+        return np.hstack(
+            (
+                epoch[:,:3], # x,y,z     X 3
+                #np.zeros((epoch.shape[0], 0)).reshape(-1, 1),
+                np.full((epoch.shape[0], 1), epoch_id, dtype=float), # EpochID_Column X 1
+                np.full((epoch.shape[0], 3), 0, dtype=float), # Eigenvalue X 3
+                np.full((epoch.shape[0], 6), 0, dtype=float),  # Eigenvector0, Eigenvector1 X 6
+                epoch[:,3:6], # Eigenvector2 X 3
+                np.full((epoch.shape[0], 1), 0, dtype=float).reshape(-1, 1), # llsv_Column
+                epoch[:,-1].reshape(-1, 1), # Segment_ID_Column
+                np.full((epoch.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float).reshape(-1, 1), # Standard_deviation_Column
+            )
+        )
+
+    def reconstruct_input_without_normals(self, epoch, epoch_id):
+
+        """
+
+        :param epoch:
+        :param epoch_id:
+        :return:
+        """
+
+        X_Column = 0
+        Y_Column = 1
+        Z_Column = 2
+
+        EpochID_Column = 3
+        Eigenvalue0_Column = 4
+        Eigenvalue1_Column = 5
+        Eigenvalue2_Column = 6
+        Eigenvector0x_Column = 7
+        Eigenvector0y_Column = 8
+        Eigenvector0z_Column = 9
+        Eigenvector1x_Column = 10
+        Eigenvector1y_Column = 11
+        Eigenvector1z_Column = 12
+        Eigenvector2x_Column = 13
+        Eigenvector2y_Column = 14
+        Eigenvector2z_Column = 15
+        llsv_Column = 16
+        Segment_ID_Column = 17
+
+        Standard_deviation_Column = 18
+
+        # default standard deviation for points that are not "core points"
+        Default_std_deviation_of_no_core_point = -1
+
+        assert epoch.shape[1] == 3+1 or epoch.shape[1] == 3+3+1, "epoch size mismatch!"
+
+        return np.hstack(
+            (
+                epoch[:,:3], # x,y,z     X 3
+                #np.zeros((epoch.shape[0], 0)).reshape(-1, 1),
+                np.full((epoch.shape[0], 1), epoch_id, dtype=float), # EpochID_Column X 1
+                np.full((epoch.shape[0], 3), 0, dtype=float), # Eigenvalue X 3
+                np.full((epoch.shape[0], 6), 0, dtype=float), # Eigenvector0, Eigenvector1 X 6
+                np.full((epoch.shape[0], 3), 0, dtype=float), # Eigenvector2 X 3
+                np.full((epoch.shape[0], 1), 0, dtype=float).reshape(-1, 1), # llsv_Column
+                epoch[:,-1].reshape(-1, 1), # Segment_ID_Column
+                np.full((epoch.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float).reshape(-1, 1), # Standard_deviation_Column
+            )
+        )
+
+
     def build_labels(self, Epoch0, Epoch1):
 
         """
@@ -2211,6 +2309,56 @@ class PB_M3C2:
 
         return self.training_predicting_pipeline.predict(X)
         pass
+
+    # predict_scenario4
+    def predict_update(self, previous_segmented_epoch, Epoch1):
+
+        Segment_ID_Column = 17
+
+        X0 = self.reconstruct_input_with_normals(epoch=previous_segmented_epoch, epoch_id=0)
+
+        post_segmentation_transform = PostSegmentation(compute_normal=True)
+        post_segmentation_transform.fit(X0)
+        X0_post_seg = post_segmentation_transform.transform(X0)
+
+        max_segment_id_X0 = int(X0_post_seg[:, Segment_ID_Column].max())
+
+        # transform X1
+        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+
+        pipe = Pipeline(
+            [
+                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform Segmentation", self._segmentation),
+                ("Transform Second Segmentation", self._second_segmentation),
+            ]
+        )
+
+        self._add_LLSV_and_PCA.skip = False
+        self._segmentation.skip = False
+        self._second_segmentation.skip = False
+
+        pipe.fit(X1)
+        X1_post_pipe = pipe.transform(X1)
+
+        for indx in range(0, X1_post_pipe.shape[0]):
+            if X1_post_pipe[indx, Segment_ID_Column] != -1:
+                X1_post_pipe[indx, Segment_ID_Column] += max_segment_id_X0
+
+        X = np.vstack((X0, X1))
+
+        predict_pipe = Pipeline(
+            [
+                ("Transform ExtractSegments", self._extract_segments),
+                ("Classifier", self._classifier),
+            ]
+        )
+
+        self._extract_segments.skip = False
+        self._classifier.skip = False
+
+        predict_pipe.fit(X)
+        return predict_pipe.predict(X)
 
     def distance(self, Epoch0, Epoch1, alignment_error=1.1):
 
@@ -2399,6 +2547,88 @@ def build_input_scenario2_with_normals(Epoch0, Epoch1):
     pass
 
 
+def build_input_scenario2_without_normals(Epoch0, Epoch1):
+
+    """
+    :param Epoch0: x,y,z point cloud
+    :param Epoch1: x,y,z point cloud
+    :return:
+        # x,y,z, Segment_ID
+        new_epoch0, new_epoch1
+    """
+
+    X_Column = 0
+    Y_Column = 1
+    Z_Column = 2
+
+    EpochID_Column = 3
+    Eigenvalue0_Column = 4
+    Eigenvalue1_Column = 5
+    Eigenvalue2_Column = 6
+    Eigenvector0x_Column = 7
+    Eigenvector0y_Column = 8
+    Eigenvector0z_Column = 9
+    Eigenvector1x_Column = 10
+    Eigenvector1y_Column = 11
+    Eigenvector1z_Column = 12
+    Eigenvector2x_Column = 13
+    Eigenvector2y_Column = 14
+    Eigenvector2z_Column = 15
+    llsv_Column = 16
+    Segment_ID_Column = 17
+
+    Standard_deviation_Column = 18
+    Nr_points_seg_Column = 19  # 18
+
+    x_y_z_Columns = [
+        X_Column,
+        Y_Column,
+        Z_Column
+    ]
+
+    Normal_Columns = [
+        Eigenvector2x_Column,
+        Eigenvector2y_Column,
+        Eigenvector2z_Column,
+    ]
+
+    X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
+    X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+
+    X = np.vstack((X0, X1))
+
+    transform_pipeline = Pipeline(
+        [
+            ("Transform AddLLSVandPCA", AddLLSVandPCA()),
+            ("Transform Segmentation", Segmentation()),
+        ])
+
+    transform_pipeline.fit(X)
+    out = transform_pipeline.transform(X)
+    new_epoch01 = np.hstack(
+        (
+            out[:, x_y_z_Columns], # X 3
+            out[:, EpochID_Column].reshape(-1, 1), # X 1
+            out[:, Normal_Columns], # X 3
+            out[:, Segment_ID_Column].reshape(-1, 1) # X 1
+        )
+    )
+
+    mask_epoch0 = new_epoch01[:, EpochID_Column] == 0
+    mask_epoch1 = new_epoch01[:, EpochID_Column] == 1
+
+    new_epoch0 = new_epoch01[mask_epoch0, :]  # all
+    new_epoch1 = new_epoch01[mask_epoch1, :]  # all
+
+    # cleaning Segment_ID_Column and normals (4,5,6)
+    new_epoch0 = np.delete(new_epoch0, [4,5,6] + [EpochID_Column], 1)
+    new_epoch1 = np.delete(new_epoch1, [4,5,6] + [EpochID_Column], 1)
+
+    # x,y,z, N_x,N_y,N_z, Segment_ID
+    return new_epoch0, new_epoch1
+    pass
+
+
 class PB_M3C2_scenario2(PB_M3C2):
     def __init__(
             self,
@@ -2417,66 +2647,6 @@ class PB_M3C2_scenario2(PB_M3C2):
         );
         self._post_segmentation=post_segmentation
 
-    def reconstruct_input(self, Epoch0, Epoch1):
-
-        X_Column = 0
-        Y_Column = 1
-        Z_Column = 2
-
-        EpochID_Column = 3
-        Eigenvalue0_Column = 4
-        Eigenvalue1_Column = 5
-        Eigenvalue2_Column = 6
-        Eigenvector0x_Column = 7
-        Eigenvector0y_Column = 8
-        Eigenvector0z_Column = 9
-        Eigenvector1x_Column = 10
-        Eigenvector1y_Column = 11
-        Eigenvector1z_Column = 12
-        Eigenvector2x_Column = 13
-        Eigenvector2y_Column = 14
-        Eigenvector2z_Column = 15
-        llsv_Column = 16
-        Segment_ID_Column = 17
-
-        Standard_deviation_Column = 18
-
-        # default standard deviation for points that are not "core points"
-        Default_std_deviation_of_no_core_point = -1
-
-        # assert 0, "the input structure must be done properly!"
-        # X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-        # X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
-
-        X0 = np.hstack(
-            (
-                Epoch0[:,:3], # x,y,z     X 3
-                np.zeros((Epoch0.shape[0], 1)).reshape(-1, 1), # EpochID_Column X 1
-                np.full((Epoch0.shape[0], 3), 0, dtype=float), # Eigenvalue X 3
-                np.full((Epoch0.shape[0], 6), 0, dtype=float),  # Eigenvector0, Eigenvector1 X 6
-                Epoch0[:,3:6], # Eigenvector2 X 3
-                np.full((Epoch0.shape[0], 1), 0, dtype=float).reshape(-1, 1), # llsv_Column
-                Epoch0[:,-1].reshape(-1, 1), # Segment_ID_Column
-                np.full((Epoch0.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float).reshape(-1, 1), # Standard_deviation_Column
-            )
-        )
-
-        X1 = np.hstack(
-            (
-                Epoch1[:,:3], # x,y,z     X 3
-                np.ones((Epoch1.shape[0], 1)).reshape(-1, 1), # EpochID_Column X 1
-                np.full((Epoch1.shape[0], 3), 0, dtype=float), # Eigenvalue X 3
-                np.full((Epoch1.shape[0], 6), 0, dtype=float),  # Eigenvector0, Eigenvector1 X 6
-                Epoch1[:,3:6], # Eigenvector2 X 3
-                np.full((Epoch1.shape[0], 1), 0, dtype=float).reshape(-1, 1), # llsv_Column
-                Epoch1[:,-1].reshape(-1, 1), # Segment_ID_Column
-                np.full((Epoch1.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float).reshape(-1, 1), # Standard_deviation_Column
-            )
-        )
-
-        return X0, X1
-
-
     def build_labels(self, Epoch0, Epoch1):
 
         """
@@ -2486,7 +2656,13 @@ class PB_M3C2_scenario2(PB_M3C2):
         :return:
         """
 
-        X0, X1 = self.reconstruct_input(Epoch0=Epoch0, Epoch1=Epoch1)
+        if self._post_segmentation.compute_normal:
+            X0 = self.reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self.reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
+        else:
+            X0 = self.reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self.reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
+
 
         X = np.vstack((X0, X1))
 
@@ -2540,7 +2716,12 @@ class PB_M3C2_scenario2(PB_M3C2):
         :return:
         """
 
-        X0, X1 = self.reconstruct_input(Epoch0=Epoch0, Epoch1=Epoch1)
+        if self._post_segmentation.compute_normal:
+            X0 = self.reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self.reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
+        else:
+            X0 = self.reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self.reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
 
         X = np.vstack((X0, X1))
 
@@ -2685,44 +2866,46 @@ if __name__ == "__main__":
 
 # *********************
 
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg = PB_M3C2(classifier=ClassifierWrapper())
-    # X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    # Alg.training(X, y)
-    # print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    # print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
-    #
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg2 = PB_M3C2(
-    #     classifier=SimplifiedClassifier()
-    #     # add_LLSV_and_PCA = AddLLSVandPCA(),
-    #     # segmentation = Segmentation(),
-    #     # second_segmentation = Segmentation(
-    #     #     radius=5,
-    #     #     angle_diff_threshold=10,
-    #     #     disntance_3D_threshold=10,
-    #     #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-    #     #     with_previously_computed_segments=True),
-    #     # extract_segments = Extract_segments(),
-    #     # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
-    #     # classifier=ClassifierWrapper()
-    # )
-    #
-    # X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    # Alg2.training(X, y)
-    # print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    # print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    random.seed(10)
+    np.random.seed(10)
+
+    Alg = PB_M3C2(classifier=ClassifierWrapper())
+    X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    Alg.training(X, y)
+    print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+
+    random.seed(10)
+    np.random.seed(10)
+
+    Alg2 = PB_M3C2(
+        classifier=SimplifiedClassifier()
+        # add_LLSV_and_PCA = AddLLSVandPCA(),
+        # segmentation = Segmentation(),
+        # second_segmentation = Segmentation(
+        #     radius=5,
+        #     angle_diff_threshold=10,
+        #     disntance_3D_threshold=10,
+        #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
+        #     with_previously_computed_segments=True),
+        # extract_segments = Extract_segments(),
+        # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
+        # classifier=ClassifierWrapper()
+    )
+
+    X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    Alg2.training(X, y)
+    print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
 
 # *********************
 
     # random.seed(10)
     # np.random.seed(10)
     #
-    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
+    # new_epoch0, new_epoch1 = build_input_scenario2_without_normals(Epoch0=Epoch0, Epoch1=Epoch1)
+    #
+    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
     #
     # alg_scenario2 = PB_M3C2_scenario2()
     # X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
@@ -2732,3 +2915,15 @@ if __name__ == "__main__":
 
 # ***************
 
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg = PB_M3C2(classifier=ClassifierWrapper())
+    # X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    # Alg.training(X, y)
+    #
+    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
+    # Alg.predict_update(previous_segmented_epoch=new_epoch0, Epoch1=Epoch1)
+    #
+    # print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    # print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
