@@ -1535,7 +1535,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
     def toggle_transparenct(self, evt):
 
         if evt.keyPressed == "z":
-            print("transparency toggle")
+            # print("transparency toggle")
             for segment in self.sets:
                 if segment.alpha() < 1.0:
                     segment.alpha(1)
@@ -1544,7 +1544,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
             self.plt.render()
 
         if evt.keyPressed == "g":
-            print("toggle red")
+            # print("toggle red")
             for segment in self.sets:
                 if segment.epoch == 0:
                     if segment.isOn == True:
@@ -1555,7 +1555,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
             self.plt.render()
 
         if evt.keyPressed == "d":
-            print("toggle green")
+            # print("toggle green")
             for segment in self.sets:
                 if segment.epoch == 1:
                     if segment.isOn == True:
@@ -1574,12 +1574,12 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         """
         if not evt.actor:
             return  # no hit, return
-        logger = logging.getLogger(loggername)
+        logger = logging.getLogger("py4dgeo")
         logger.debug("point coords =%s", str(evt.picked3d), exc_info=1)
         # print("point coords =", evt.picked3d)
         if evt.isPoints:
             logger.debug("evt.actor = s", str(evt.actor))
-            print(evt.actor)
+            # print(evt.actor)
             self.current_pair[int(evt.actor.epoch)] = evt.actor.id
 
         if self.current_pair[0] != None and self.current_pair[1] != None:
