@@ -1324,7 +1324,8 @@ class BuildSimilarityFeature_and_y(ABC):
             lambda y_row: self.build_X_similarity(y_row, X), 1, y_extended
         )
 
-        return (X_similarity, y_extended[:, 2].reshape(-1, 1))
+        # return (X_similarity, y_extended[:, 2].reshape(-1, 1))
+        return (X_similarity, y_extended[:, 2])
 
     # def compute_similarity_between(self, seg_epoch0, seg_epoch1):
     #     """
@@ -1573,8 +1574,11 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         """
         if not evt.actor:
             return  # no hit, return
-        print("point coords =", evt.picked3d)
+        logger = logging.getLogger(loggername)
+        logger.debug("point coords =%s", str(evt.picked3d), exc_info=1)
+        # print("point coords =", evt.picked3d)
         if evt.isPoints:
+            logger.debug("evt.actor = s", str(evt.actor))
             print(evt.actor)
             self.current_pair[int(evt.actor.epoch)] = evt.actor.id
 
@@ -1616,7 +1620,9 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
 
                 self.add_pair_button.switch()
             except:
-                print("You must select 0 or 1 as label!!!")
+                # print("You must select 0 or 1 as label!!!")
+                logger = logging.getLogger(loggername)
+                logger.error("You must select 0 or 1 as label")
 
     def segments_visualizer(self, X):
         """
