@@ -1,6 +1,5 @@
 breathe
 cmake
-vedo
 ipykernel
 lcov_cobertura
 m2r2
@@ -16,3 +15,4 @@ ruptures
 scikit-learn
 sphinx
 sphinx_rtd_theme
+vedo
