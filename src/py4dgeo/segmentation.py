@@ -21,17 +21,17 @@ import py4dgeo._py4dgeo as _py4dgeo
 logger = logging.getLogger("py4dgeo")
 
 
-# This integer controls the versioning of the segmentation file format. Whenever the
+# This integer controls the versioning of the _segmentation file format. Whenever the
 # format is changed, this version should be increased, so that py4dgeo can warn
 # about incompatibilities of py4dgeo with loaded data. This version is intentionally
 # different from py4dgeo's version, because not all releases of py4dgeo necessarily
-# change the segmentation file format and we want to be as compatible as possible.
+# change the _segmentation file format and we want to be as compatible as possible.
 PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION = 0
 
 
 class SpatiotemporalAnalysis:
     def __init__(self, filename, compress=True, allow_pickle=True, force=False):
-        """Construct a spatiotemporal segmentation object
+        """Construct a spatiotemporal _segmentation object
 
         This is the basic data structure for the 4D objects by change algorithm
         and its derived variants. It manages storage of M3C2 distances and other
@@ -80,7 +80,7 @@ class SpatiotemporalAnalysis:
         if force or not os.path.exists(self.filename):
             logger.info(f"Creating analysis file {self.filename}")
             with ziparchive.ZipFile(self.filename, mode="w") as zf:
-                # Write the segmentation file format version number
+                # Write the _segmentation file format version number
                 zf.writestr(
                     "SEGMENTATION_FILE_FORMAT",
                     str(PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION),
@@ -89,12 +89,12 @@ class SpatiotemporalAnalysis:
                 # Write the compression algorithm used for all suboperations
                 zf.writestr("USE_COMPRESSION", str(self.compress))
 
-        # Assert that the segmentation file format is still valid
+        # Assert that the _segmentation file format is still valid
         with ziparchive.ZipFile(self.filename, mode="r") as zf:
-            # Read the segmentation file version number and compare to current
+            # Read the _segmentation file version number and compare to current
             version = int(zf.read("SEGMENTATION_FILE_FORMAT").decode())
             if version != PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION:
-                raise Py4DGeoError("Segmentation file format is out of date!")
+                raise Py4DGeoError("_segmentation file format is out of date!")
 
             # Read the compression algorithm
             self.compress = eval(zf.read("USE_COMPRESSION").decode())
@@ -602,7 +602,7 @@ class RegionGrowingAlgorithmBase:
         min_segments=20,
         max_segments=None,
     ):
-        """Construct a spatiotemporal segmentation algorithm.
+        """Construct a spatiotemporal _segmentation algorithm.
 
         This class can be derived from to customize the algorithm behaviour.
 
@@ -678,7 +678,7 @@ class RegionGrowingAlgorithmBase:
         return self._analysis
 
     def run(self, analysis, force=False):
-        """Calculate the segmentation
+        """Calculate the _segmentation
 
         :param analysis:
             The analysis object we are working with.
@@ -798,13 +798,13 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
         :param seed_subsampling:
             A subsampling factor for the set of core points for the generation
-            of segmentation seed candidates. This can be used to speed up
+            of _segmentation seed candidates. This can be used to speed up
             the generation of seeds. The default of 1 does not perform any
             subsampling, a value of, e.g., 10 would only consider every 10th
             corepoint for adding seeds.
         :type seed_subsampling: int
         :param seed_candidates:
-            A set of indices specifying which core points should be used for seed detection. This can be used to perform segmentation for selected locations. The default of None does not perform any selection and uses all corepoints. The subsampling parameter is applied additionally.
+            A set of indices specifying which core points should be used for seed detection. This can be used to perform _segmentation for selected locations. The default of None does not perform any selection and uses all corepoints. The subsampling parameter is applied additionally.
         :type seed_candidates: list
         :param window_width:
             The width of the sliding temporal window for change point detection. The sliding window
@@ -827,11 +827,11 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         :type window_penalty: float
         :param minperiod:
             The minimum period of a detected change to be considered as seed candidate for subsequent
-            segmentation. The default is 24, corresponding to one day for hourly data.
+            _segmentation. The default is 24, corresponding to one day for hourly data.
         :type minperiod: int
         :param height_threshold:
             The height threshold represents the required magnitude of a detected change to be considered
-            as seed candidate for subsequent segmentation. The magnitude of a detected change is derived
+            as seed candidate for subsequent _segmentation. The magnitude of a detected change is derived
             as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
             The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float

@@ -42,6 +42,7 @@ __all__ = [
     "BuildSimilarityFeature_and_y_RandomPairs",
     "BuildSimilarityFeature_and_y_Visually",
     "SimplifiedClassifier",
+    "ClassifierWrapper",
     "PB_M3C2",
 ]
 
@@ -2077,6 +2078,15 @@ class PB_M3C2:
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
         classifier=SimplifiedClassifier(),
     ):
+        """
+
+        :param add_LLSV_and_PCA: lowest local surface variation and PCA computattion.
+        :param segmentation: The object used for the first segmentation.
+        :param second_segmentation: The object used for the second segmentation.
+        :param extract_segments: The object used for building the segments.
+        :param build_similarity_feature_and_y: The object used for extracting the features applied as part of similarity alg.
+        :param classifier:
+        """
 
         if second_segmentation:
             assert (
@@ -2123,8 +2133,8 @@ class PB_M3C2:
 
         """
 
-        :param epoch:
-        :param epoch_id:
+        :param epoch: Epoch object.
+        :param epoch_id: is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
         """
 
@@ -2185,8 +2195,8 @@ class PB_M3C2:
 
         """
 
-        :param epoch:
-        :param epoch_id:
+        :param epoch: Epoch object.
+        :param epoch_id: is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
         """
 
@@ -2279,8 +2289,8 @@ class PB_M3C2:
 
         """
 
-        :param X:
-        :param y:
+        :param X: features.
+        :param y: labels.
         :return:
         """
 
@@ -2350,6 +2360,13 @@ class PB_M3C2:
     # predict_scenario4
     def predict_update(self, previous_segmented_epoch, Epoch1):
 
+        """
+
+        :param previous_segmented_epoch:
+        :param Epoch1:
+        :return:
+        """
+
         Segment_ID_Column = 17
 
         X0 = self.reconstruct_input_with_normals(
@@ -2400,6 +2417,14 @@ class PB_M3C2:
         return predict_pipe.predict(X)
 
     def distance(self, Epoch0, Epoch1, alignment_error=1.1):
+
+        """
+
+        :param Epoch0:
+        :param Epoch1:
+        :param alignment_error: alignment error reg between point clouds.
+        :return:
+        """
 
         X_Column = 0
         Y_Column = 1
