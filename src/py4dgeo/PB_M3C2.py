@@ -2698,6 +2698,13 @@ class PB_M3C2_scenario2(PB_M3C2):
         classifier=ClassifierWrapper(),
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
     ):
+        """
+
+        :param post_segmentation:
+        :param classifier:
+        :param build_similarity_feature_and_y:
+        """
+
         super().__init__(
             add_LLSV_and_PCA=None,
             segmentation=None,
@@ -2711,10 +2718,10 @@ class PB_M3C2_scenario2(PB_M3C2):
     def build_labels(self, Epoch0, Epoch1):
 
         """
-
+        Given 2 Epochs, it builds a pair of features and labels used for learning.
         :param Epoch0:
         :param Epoch1:
-        :return:
+        :return: parir of (X,y) (features, labels)
         """
 
         if self._post_segmentation.compute_normal:
@@ -2743,9 +2750,9 @@ class PB_M3C2_scenario2(PB_M3C2):
     def training(self, X, y):
 
         """
-
-        :param X:
-        :param y:
+        It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
+        :param X: features.
+        :param y: labels.
         :return:
         """
 
@@ -2769,11 +2776,12 @@ class PB_M3C2_scenario2(PB_M3C2):
         pass
 
     def predict(self, Epoch0, Epoch1):
-        """
 
+        """
+        For a set of pairs of segments, between Epoch and Epoch 1, it predicts which one corresponds and which don't.
         :param Epoch0:
         :param Epoch1:
-        :return:
+        :return: Return a vector of 0/1
         """
 
         if self._post_segmentation.compute_normal:
