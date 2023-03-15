@@ -1296,27 +1296,9 @@ class ExtractSegments(BaseTransformer):
 
 
 class BuildSimilarityFeature_and_y(ABC):
-    def __init__(
-        self,
-        # angle_diff_threshold,
-        # neighborhood_search_radius,
-        # threshold_probability_most_similar,
-        # diff_between_most_similar_2,
-    ):
-        # """
-        #
-        # :param angle_diff_threshold:
-        # :param neighborhood_search_radius:
-        # :param threshold_probability_most_similar:
-        # :param diff_between_most_similar_2:
-        # """
+    def __init__(self):
 
         super().__init__()
-
-        # self.angle_diff_threshold = angle_diff_threshold
-        # self.neighborhood_search_radius = neighborhood_search_radius
-        # self.threshold_probability_most_similar = threshold_probability_most_similar
-        # self.diff_between_most_similar_2 = diff_between_most_similar_2
 
     @abstractmethod
     def generate_extended_y(self, X):
@@ -1342,64 +1324,6 @@ class BuildSimilarityFeature_and_y(ABC):
 
         # return (X_similarity, y_extended[:, 2].reshape(-1, 1))
         return (X_similarity, y_extended[:, 2])
-
-    # def compute_similarity_between(self, seg_epoch0, seg_epoch1):
-    #     """
-    #
-    #     :param seg_epoch0:
-    #     :param seg_epoch1:
-    #     :return:
-    #     """
-    #
-    #     X_Column = 0
-    #     Y_Column = 1
-    #     Z_Column = 2
-    #
-    #     EpochID_Column = 3
-    #     Eigenvalue0_Column = 4
-    #     Eigenvalue1_Column = 5
-    #     Eigenvalue2_Column = 6
-    #     Eigenvector0x_Column = 7
-    #     Eigenvector0y_Column = 8
-    #     Eigenvector0z_Column = 9
-    #     Eigenvector1x_Column = 10
-    #     Eigenvector1y_Column = 11
-    #     Eigenvector1z_Column = 12
-    #     Eigenvector2x_Column = 13
-    #     Eigenvector2y_Column = 14
-    #     Eigenvector2z_Column = 15
-    #     llsv_Column = 16
-    #     Segment_ID_Column = 17
-    #
-    #     Nr_points_seg_Column = 18
-    #
-    #     Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
-    #
-    #     # angle = np.arccos(
-    #     #     np.clip(np.dot(seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]), -1.0, 1.0)
-    #     # ) * 180./np.pi
-    #     angle = angle_difference_compute(seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns])
-    #
-    #     points_density_seg_epoch0 = \
-    #         seg_epoch0[Nr_points_seg_Column] / (seg_epoch0[Eigenvalue0_Column] * seg_epoch0[Eigenvalue1_Column])
-    #
-    #     points_density_seg_epoch1 = \
-    #         seg_epoch1[Nr_points_seg_Column] / (seg_epoch1[Eigenvalue0_Column] * seg_epoch1[Eigenvalue1_Column])
-    #
-    #     points_density_diff = abs(points_density_seg_epoch0 - points_density_seg_epoch1)
-    #
-    #     eigen_value_smallest_diff = abs(seg_epoch0[Eigenvalue2_Column] - seg_epoch1[Eigenvalue2_Column])
-    #     eigen_value_largest_diff = abs(seg_epoch0[Eigenvalue0_Column] - seg_epoch1[Eigenvalue0_Column])
-    #     eigen_value_middle_diff = abs(seg_epoch0[Eigenvalue1_Column] - seg_epoch1[Eigenvalue1_Column])
-    #
-    #     nr_points_diff = abs(seg_epoch0[Nr_points_seg_Column] - seg_epoch1[Nr_points_seg_Column])
-    #
-    #     return np.array([
-    #         angle,
-    #         points_density_diff,
-    #         eigen_value_smallest_diff, eigen_value_largest_diff, eigen_value_middle_diff,
-    #         nr_points_diff
-    #     ])
 
     def build_X_similarity(self, y_row, X):
         """
@@ -1444,29 +1368,10 @@ class BuildSimilarityFeature_and_y(ABC):
         return compute_similarity_between(seg_epoch0, seg_epoch1)
 
 
-class BuildPairsOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
-    def __init__(
-        self,
-        # angle_diff_threshold=1,
-        # neighborhood_search_radius=3,
-        # threshold_probability_most_similar=0.8,
-        # diff_between_most_similar_2=0.1,
-    ):
-        """
+class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
+    def __init__(self):
 
-        # :param angle_diff_threshold:
-        #     Angle between plane normal vectors.
-        # :param neighborhood_search_radius:
-        # :param threshold_probability_most_similar:
-        # :param diff_between_most_similar_2:
-        #"""
-
-        super(BuildPairsOfSimilarityFeature_and_y, self).__init__(
-            # angle_diff_threshold=angle_diff_threshold,
-            # neighborhood_search_radius=neighborhood_search_radius,
-            # threshold_probability_most_similar=threshold_probability_most_similar,
-            # diff_between_most_similar_2=diff_between_most_similar_2,
-        )
+        super(BuildTuplesOfSimilarityFeature_and_y, self).__init__()
 
     def generate_extended_y(self, X):
 
@@ -1474,10 +1379,17 @@ class BuildPairsOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
         pass
 
     def compute(self, X, y):
+
         """
 
         :param X:
+            numpy array of segments.
+        :param y:
+            numpy array of (segment ID epoch0, segment ID epoch1, label)
         :return:
+            touple of
+                similarity feature (as a function of segment ID epoch0, segment ID epoch1) numpy array
+                label (0/1) numpy array (n,)
         """
 
         assert y != None, "y must exist!"
@@ -1489,32 +1401,13 @@ class BuildPairsOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
             lambda y_row: self.build_X_similarity(y_row, X), 1, y_extended
         )
 
-        # return (X_similarity, y_extended[:, 2].reshape(-1, 1))
         return (X_similarity, y_extended[:, 2])
 
 
 class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
-    def __init__(
-        self,
-        # angle_diff_threshold=1,
-        # neighborhood_search_radius=3,
-        # threshold_probability_most_similar=0.8,
-        # diff_between_most_similar_2=0.1,
-    ):
-        # """
-        #
-        # :param angle_diff_threshold:
-        # :param neighborhood_search_radius:
-        # :param threshold_probability_most_similar:
-        # :param diff_between_most_similar_2:
-        # """
+    def __init__(self):
 
-        super(BuildSimilarityFeature_and_y_RandomPairs, self).__init__(
-            # angle_diff_threshold=angle_diff_threshold,
-            # neighborhood_search_radius=neighborhood_search_radius,
-            # threshold_probability_most_similar=threshold_probability_most_similar,
-            # diff_between_most_similar_2=diff_between_most_similar_2,
-        )
+        super(BuildSimilarityFeature_and_y_RandomPairs, self).__init__()
 
     def generate_extended_y(self, X):
 
@@ -1547,27 +1440,9 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
 
 
 class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
-    def __init__(
-        self,
-        # angle_diff_threshold=1,
-        # neighborhood_search_radius=3,
-        # threshold_probability_most_similar=0.8,
-        # diff_between_most_similar_2=0.1,
-    ):
-        # """
-        #
-        # :param angle_diff_threshold:
-        # :param neighborhood_search_radius:
-        # :param threshold_probability_most_similar:
-        # :param diff_between_most_similar_2:
-        # """
+    def __init__(self):
 
-        super(BuildSimilarityFeature_and_y_Visually, self).__init__(
-            # angle_diff_threshold=angle_diff_threshold,
-            # neighborhood_search_radius=neighborhood_search_radius,
-            # threshold_probability_most_similar=threshold_probability_most_similar,
-            # diff_between_most_similar_2=diff_between_most_similar_2,
-        )
+        super(BuildSimilarityFeature_and_y_Visually, self).__init__()
 
         self.current_pair = [None] * 2
         self.constructed_extended_y = np.empty(shape=(0, 3))
@@ -2320,7 +2195,7 @@ class PB_M3C2:
             )
         )
 
-    def build_labels(self, Epoch0, Epoch1):
+    def build_labeld_similarity_feature_interactively(self, Epoch0, Epoch1):
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
@@ -2350,19 +2225,25 @@ class PB_M3C2:
         )
         pass
 
-    def build_labeld_segments_similarity(
+    def build_labeld_similarity_feature(
         self,
         extracted_segments,
-        pair_segments_epoch0_epoch1_label,
-        pairs_feature_y=BuildPairsOfSimilarityFeature_and_y(),
+        tuples_seg_epoch0_seg_epoch1_label,
+        tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
     ):
 
         """
 
         :param extracted_segments:
+            same format as the one exported by export_segments_for_labeling()
         :param pair_segments_epoch0_epoch1_label:
+            numpy array (m, 3)
         :return:
         """
+
+        return tuple_feature_y.compute(
+            X=extracted_segments, y=tuples_seg_epoch0_seg_epoch1_label
+        )
 
     def export_segments_for_labeling(self, Epoch0, Epoch1):
 
@@ -2417,8 +2298,11 @@ class PB_M3C2:
         mask_epoch0 = out[:, EpochID_Column] == 0
         mask_epoch1 = out[:, EpochID_Column] == 1
 
-        x_y_z_id_epoch0 = out[mask_epoch0, Extract_Columns]  # x,y,z, Seg_ID
-        x_y_z_id_epoch1 = out[mask_epoch1, Extract_Columns]  # x,y,z, Seg_ID
+        out_epoch0 = out[mask_epoch0, :]
+        out_epoch1 = out[mask_epoch1, :]
+
+        x_y_z_id_epoch0 = out_epoch0[:, Extract_Columns]  # x,y,z, Seg_ID
+        x_y_z_id_epoch1 = out_epoch1[:, Extract_Columns]  # x,y,z, Seg_ID
 
         return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
 
@@ -2851,7 +2735,7 @@ class PB_M3C2_scenario2(PB_M3C2):
         )
         self._post_segmentation = post_segmentation
 
-    def build_labels(self, Epoch0, Epoch1):
+    def build_labeld_similarity_feature_interactively(self, Epoch0, Epoch1):
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
@@ -3073,7 +2957,16 @@ if __name__ == "__main__":
     np.random.seed(10)
 
     Alg = PB_M3C2(classifier=ClassifierWrapper())
-    X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+
+    X, y = Alg.build_labeld_similarity_feature_interactively(
+        Epoch0=Epoch0, Epoch1=Epoch1
+    )
+    (
+        x_y_z_id_epoch0,
+        x_y_z_id_epoch1,
+        extracted_segments,
+    ) = Alg.export_segments_for_labeling(Epoch0=Epoch0, Epoch1=Epoch1)
+
     Alg.training(X, y)
     print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
     print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
