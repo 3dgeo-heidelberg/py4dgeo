@@ -2029,8 +2029,7 @@ class PB_M3C2:
         second_segmentation=Segmentation(with_previously_computed_segments=True),
         extract_segments=ExtractSegments(),
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
-        classifier=ClassifierWrapper()
-        # classifier=SimplifiedClassifier(),
+        classifier=ClassifierWrapper(),
     ):
 
         """
