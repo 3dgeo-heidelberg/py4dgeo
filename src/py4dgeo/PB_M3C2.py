@@ -1319,13 +1319,13 @@ class BuildSimilarityFeature_and_y(ABC):
         y_extended = self.generate_extended_y(X)
 
         X_similarity = np.apply_along_axis(
-            lambda y_row: self.build_X_similarity(y_row, X), 1, y_extended
+            lambda y_row: self._build_X_similarity(y_row, X), 1, y_extended
         )
 
         # return (X_similarity, y_extended[:, 2].reshape(-1, 1))
         return (X_similarity, y_extended[:, 2])
 
-    def build_X_similarity(self, y_row, X):
+    def _build_X_similarity(self, y_row, X):
         """
 
         :param y_row:
@@ -1392,13 +1392,12 @@ class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
                 label (0/1) numpy array (n,)
         """
 
-        assert y != None, "y must exist!"
         assert y.shape[1] == 3, "rows of y must be of size 3!"
 
         y_extended = y
 
         X_similarity = np.apply_along_axis(
-            lambda y_row: self.build_X_similarity(y_row, X), 1, y_extended
+            lambda y_row: self._build_X_similarity(y_row, X), 1, y_extended
         )
 
         return (X_similarity, y_extended[:, 2])
