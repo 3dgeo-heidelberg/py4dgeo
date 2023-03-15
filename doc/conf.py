@@ -34,9 +34,9 @@ release = py4dgeo.__version__
 extensions = [
     "sphinx.ext.autodoc",
     "breathe",
-    "m2r2",
     "nbsphinx",
     "nbsphinx_link",
+    "sphinx_mdinclude",
     "sphinx_rtd_theme",
 ]
 
