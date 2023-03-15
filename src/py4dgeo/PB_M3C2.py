@@ -130,12 +130,12 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
     :param seg_epoch0: segment from epoch0
     :param seg_epoch1: segment from epoch1
     :return:
-        angle, -> between normal vectors
+        angle, -> angle between plane normal vectors
         points_density_diff, -> difference between points density segments of surfaces
-        eigen_value_smallest_diff, -> the smallest eigen
-        eigen_value_largest_diff,
-        eigen_value_middle_diff,
-        nr_points_diff,
+        eigen_value_smallest_diff, -> difference in the quality of plane fit (smallest eigenvalue)
+        eigen_value_largest_diff, -> difference in plane extension (largest eigenvalue)
+        eigen_value_middle_diff, -> difference in orthogonal plane extension (middle eigenvalue)
+        nr_points_diff, -> difference in number of points per plane
     """
 
     X_Column = 0
@@ -1298,25 +1298,25 @@ class ExtractSegments(BaseTransformer):
 class BuildSimilarityFeature_and_y(ABC):
     def __init__(
         self,
-        angle_diff_threshold,
-        neighborhood_search_radius,
-        threshold_probability_most_similar,
-        diff_between_most_similar_2,
+        # angle_diff_threshold,
+        # neighborhood_search_radius,
+        # threshold_probability_most_similar,
+        # diff_between_most_similar_2,
     ):
-        """
-
-        :param angle_diff_threshold:
-        :param neighborhood_search_radius:
-        :param threshold_probability_most_similar:
-        :param diff_between_most_similar_2:
-        """
+        # """
+        #
+        # :param angle_diff_threshold:
+        # :param neighborhood_search_radius:
+        # :param threshold_probability_most_similar:
+        # :param diff_between_most_similar_2:
+        # """
 
         super().__init__()
 
-        self.angle_diff_threshold = angle_diff_threshold
-        self.neighborhood_search_radius = neighborhood_search_radius
-        self.threshold_probability_most_similar = threshold_probability_most_similar
-        self.diff_between_most_similar_2 = diff_between_most_similar_2
+        # self.angle_diff_threshold = angle_diff_threshold
+        # self.neighborhood_search_radius = neighborhood_search_radius
+        # self.threshold_probability_most_similar = threshold_probability_most_similar
+        # self.diff_between_most_similar_2 = diff_between_most_similar_2
 
     @abstractmethod
     def generate_extended_y(self, X):
@@ -1327,7 +1327,7 @@ class BuildSimilarityFeature_and_y(ABC):
         """
         pass
 
-    def compute(self, X):
+    def compute(self, X, y=None):
         """
 
         :param X:
@@ -1444,27 +1444,76 @@ class BuildSimilarityFeature_and_y(ABC):
         return compute_similarity_between(seg_epoch0, seg_epoch1)
 
 
-class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
+class BuildPairsOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
     def __init__(
         self,
-        angle_diff_threshold=1,
-        neighborhood_search_radius=3,
-        threshold_probability_most_similar=0.8,
-        diff_between_most_similar_2=0.1,
+        # angle_diff_threshold=1,
+        # neighborhood_search_radius=3,
+        # threshold_probability_most_similar=0.8,
+        # diff_between_most_similar_2=0.1,
     ):
         """
 
-        :param angle_diff_threshold:
-        :param neighborhood_search_radius:
-        :param threshold_probability_most_similar:
-        :param diff_between_most_similar_2:
+        # :param angle_diff_threshold:
+        #     Angle between plane normal vectors.
+        # :param neighborhood_search_radius:
+        # :param threshold_probability_most_similar:
+        # :param diff_between_most_similar_2:
+        #"""
+
+        super(BuildPairsOfSimilarityFeature_and_y, self).__init__(
+            # angle_diff_threshold=angle_diff_threshold,
+            # neighborhood_search_radius=neighborhood_search_radius,
+            # threshold_probability_most_similar=threshold_probability_most_similar,
+            # diff_between_most_similar_2=diff_between_most_similar_2,
+        )
+
+    def generate_extended_y(self, X):
+
+        return X
+        pass
+
+    def compute(self, X, y):
         """
 
+        :param X:
+        :return:
+        """
+
+        assert y != None, "y must exist!"
+        assert y.shape[1] == 3, "rows of y must be of size 3!"
+
+        y_extended = y
+
+        X_similarity = np.apply_along_axis(
+            lambda y_row: self.build_X_similarity(y_row, X), 1, y_extended
+        )
+
+        # return (X_similarity, y_extended[:, 2].reshape(-1, 1))
+        return (X_similarity, y_extended[:, 2])
+
+
+class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
+    def __init__(
+        self,
+        # angle_diff_threshold=1,
+        # neighborhood_search_radius=3,
+        # threshold_probability_most_similar=0.8,
+        # diff_between_most_similar_2=0.1,
+    ):
+        # """
+        #
+        # :param angle_diff_threshold:
+        # :param neighborhood_search_radius:
+        # :param threshold_probability_most_similar:
+        # :param diff_between_most_similar_2:
+        # """
+
         super(BuildSimilarityFeature_and_y_RandomPairs, self).__init__(
-            angle_diff_threshold=angle_diff_threshold,
-            neighborhood_search_radius=neighborhood_search_radius,
-            threshold_probability_most_similar=threshold_probability_most_similar,
-            diff_between_most_similar_2=diff_between_most_similar_2,
+            # angle_diff_threshold=angle_diff_threshold,
+            # neighborhood_search_radius=neighborhood_search_radius,
+            # threshold_probability_most_similar=threshold_probability_most_similar,
+            # diff_between_most_similar_2=diff_between_most_similar_2,
         )
 
     def generate_extended_y(self, X):
@@ -1500,24 +1549,24 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
 class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
     def __init__(
         self,
-        angle_diff_threshold=1,
-        neighborhood_search_radius=3,
-        threshold_probability_most_similar=0.8,
-        diff_between_most_similar_2=0.1,
+        # angle_diff_threshold=1,
+        # neighborhood_search_radius=3,
+        # threshold_probability_most_similar=0.8,
+        # diff_between_most_similar_2=0.1,
     ):
-        """
-
-        :param angle_diff_threshold:
-        :param neighborhood_search_radius:
-        :param threshold_probability_most_similar:
-        :param diff_between_most_similar_2:
-        """
+        # """
+        #
+        # :param angle_diff_threshold:
+        # :param neighborhood_search_radius:
+        # :param threshold_probability_most_similar:
+        # :param diff_between_most_similar_2:
+        # """
 
         super(BuildSimilarityFeature_and_y_Visually, self).__init__(
-            angle_diff_threshold=angle_diff_threshold,
-            neighborhood_search_radius=neighborhood_search_radius,
-            threshold_probability_most_similar=threshold_probability_most_similar,
-            diff_between_most_similar_2=diff_between_most_similar_2,
+            # angle_diff_threshold=angle_diff_threshold,
+            # neighborhood_search_radius=neighborhood_search_radius,
+            # threshold_probability_most_similar=threshold_probability_most_similar,
+            # diff_between_most_similar_2=diff_between_most_similar_2,
         )
 
         self.current_pair = [None] * 2
@@ -2145,7 +2194,7 @@ class PB_M3C2:
     #     #self.valid_PB_M3C2 = False
     #     pass
 
-    def reconstruct_input_with_normals(self, epoch, epoch_id):
+    def _reconstruct_input_with_normals(self, epoch, epoch_id):
 
         """
 
@@ -2207,7 +2256,7 @@ class PB_M3C2:
             )
         )
 
-    def reconstruct_input_without_normals(self, epoch, epoch_id):
+    def _reconstruct_input_without_normals(self, epoch, epoch_id):
 
         """
 
@@ -2301,6 +2350,80 @@ class PB_M3C2:
         )
         pass
 
+    def build_labeld_segments_similarity(
+        self,
+        extracted_segments,
+        pair_segments_epoch0_epoch1_label,
+        pairs_feature_y=BuildPairsOfSimilarityFeature_and_y(),
+    ):
+
+        """
+
+        :param extracted_segments:
+        :param pair_segments_epoch0_epoch1_label:
+        :return:
+        """
+
+    def export_segments_for_labeling(self, Epoch0, Epoch1):
+
+        """
+        For each epoch, returns the segmentation of the point cloud containing a numpy array (n,4)
+        where each row has the following structure: x, y, z, segment_id
+        It also generates a numpy array of segments of the form:
+                    X_Column, Y_Column, Z_Column, -> Center of Gravity
+                    EpochID_Column,
+                    Eigenvalue0_Column, Eigenvalue1_Column, Eigenvalue2_Column,
+                    Eigenvector0x_Column, Eigenvector0y_Column, Eigenvector0z_Column,
+                    Eigenvector1x_Column, Eigenvector1y_Column, Eigenvector1z_Column,
+                    Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column, -> Normal vector
+                    llsv_Column, Segment_ID_Column, Standard_deviation_Column,
+                    Nr_points_seg_Column,
+
+        :param Epoch0:
+        :param Epoch1:
+        :return:
+            x_y_z_id_epoch0
+            x_y_z_id_epoch1
+            extracted_segments
+        """
+
+        X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+
+        X = np.vstack((X0, X1))
+
+        pipe_segmentation = Pipeline(
+            [
+                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform Segmentation", self._segmentation),
+                ("Transform Second Segmentation", self._second_segmentation),
+            ]
+        )
+
+        pipe_segmentation.fit(X)
+        out = pipe_segmentation.transform(X)
+
+        self._extract_segments.fit(out)
+        extracted_segments = self._extract_segments.transform(out)
+
+        X_Column = 0
+        Y_Column = 1
+        Z_Column = 2
+        EpochID_Column = 3
+        Segment_ID_Column = 17
+
+        Extract_Columns = [X_Column, Y_Column, Z_Column, Segment_ID_Column]
+
+        mask_epoch0 = out[:, EpochID_Column] == 0
+        mask_epoch1 = out[:, EpochID_Column] == 1
+
+        x_y_z_id_epoch0 = out[mask_epoch0, Extract_Columns]  # x,y,z, Seg_ID
+        x_y_z_id_epoch1 = out[mask_epoch1, Extract_Columns]  # x,y,z, Seg_ID
+
+        return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
+
+        pass
+
     def training(self, X, y):
 
         """
@@ -2386,7 +2509,7 @@ class PB_M3C2:
 
         Segment_ID_Column = 17
 
-        X0 = self.reconstruct_input_with_normals(
+        X0 = self._reconstruct_input_with_normals(
             epoch=previous_segmented_epoch, epoch_id=0
         )
 
@@ -2738,11 +2861,11 @@ class PB_M3C2_scenario2(PB_M3C2):
         """
 
         if self._post_segmentation.compute_normal:
-            X0 = self.reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self.reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
         else:
-            X0 = self.reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self.reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
 
         X = np.vstack((X0, X1))
 
@@ -2798,11 +2921,11 @@ class PB_M3C2_scenario2(PB_M3C2):
         """
 
         if self._post_segmentation.compute_normal:
-            X0 = self.reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self.reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
         else:
-            X0 = self.reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self.reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
 
         X = np.vstack((X0, X1))
 
@@ -2946,33 +3069,33 @@ if __name__ == "__main__":
 
     # *********************
 
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg = PB_M3C2(classifier=ClassifierWrapper())
-    # X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
-    # Alg.training(X, y)
-    # print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    # print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
-    #
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg2 = PB_M3C2(
-    #     classifier=SimplifiedClassifier()
-    #     # add_LLSV_and_PCA = AddLLSVandPCA(),
-    #     # segmentation = Segmentation(),
-    #     # second_segmentation = Segmentation(
-    #     #     radius=5,
-    #     #     angle_diff_threshold=10,
-    #     #     disntance_3D_threshold=10,
-    #     #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-    #     #     with_previously_computed_segments=True),
-    #     # extract_segments = Extract_segments(),
-    #     # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
-    #     # classifier=ClassifierWrapper()
-    # )
-    #
+    random.seed(10)
+    np.random.seed(10)
+
+    Alg = PB_M3C2(classifier=ClassifierWrapper())
+    X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    Alg.training(X, y)
+    print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
+    print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+
+    random.seed(10)
+    np.random.seed(10)
+
+    Alg2 = PB_M3C2(
+        classifier=SimplifiedClassifier()
+        # add_LLSV_and_PCA = AddLLSVandPCA(),
+        # segmentation = Segmentation(),
+        # second_segmentation = Segmentation(
+        #     radius=5,
+        #     angle_diff_threshold=10,
+        #     disntance_3D_threshold=10,
+        #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
+        #     with_previously_computed_segments=True),
+        # extract_segments = Extract_segments(),
+        # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
+        # classifier=ClassifierWrapper()
+    )
+
     # X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
     # Alg2.training(X, y)
     # print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
@@ -2980,20 +3103,20 @@ if __name__ == "__main__":
 
     # *********************
 
-    random.seed(10)
-    np.random.seed(10)
-
-    new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
-        Epoch0=Epoch0, Epoch1=Epoch1
-    )
-
-    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
-
-    alg_scenario2 = PB_M3C2_scenario2()
-    X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
-    alg_scenario2.training(X, y)
-    print(alg_scenario2.predict(Epoch0=new_epoch0, Epoch1=new_epoch1))
-    print(alg_scenario2.distance(Epoch0=new_epoch0, Epoch1=new_epoch1))
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+    #     Epoch0=Epoch0, Epoch1=Epoch1
+    # )
+    #
+    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
+    #
+    # alg_scenario2 = PB_M3C2_scenario2()
+    # X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
+    # alg_scenario2.training(X, y)
+    # print(alg_scenario2.predict(Epoch0=new_epoch0, Epoch1=new_epoch1))
+    # print(alg_scenario2.distance(Epoch0=new_epoch0, Epoch1=new_epoch1))
 
 # ***************
 
