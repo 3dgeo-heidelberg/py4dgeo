@@ -2562,7 +2562,50 @@ class PB_M3C2:
 
             output = np.vstack((output, row))
 
-        return output
+        # we don't return this anymore.
+        # return output
+
+        # distance vector
+        self.distances = output[:, -1]
+        # corepoints of Epoch0 (initial one)
+        self.corepoints = Epoch(output[:, [1, 2, 3]])
+        # epochs
+        self.epochs = (Epoch0, Epoch1)
+
+        self.uncertainties = np.empty(
+            (output.shape[0], 1),
+            dtype=np.dtype(
+                [
+                    ("lodetection", "<f8"),
+                    ("spread1", "<f8"),
+                    ("num_samples1", "<i8"),
+                    ("spread2", "<f8"),
+                    ("num_samples2", "<i8"),
+                ]
+            ),
+        )
+
+        self.uncertainties["lodetection"] = output[:, -1].reshape(-1, 1)
+
+        self.uncertainties["spread1"] = np.sqrt(
+            np.multiply(
+                epoch0_segments[:, Standard_deviation_Column],
+                epoch0_segments[:, Nr_points_seg_Column],
+            )
+        ).reshape(-1, 1)
+        self.uncertainties["spread2"] = np.sqrt(
+            np.multiply(
+                epoch1_segments[:, Standard_deviation_Column],
+                epoch1_segments[:, Nr_points_seg_Column],
+            )
+        ).reshape(-1, 1)
+
+        self.uncertainties["num_samples1"] = (
+            epoch0_segments[:, Nr_points_seg_Column].astype(int).reshape(-1, 1)
+        )
+        self.uncertainties["num_samples2"] = (
+            epoch1_segments[:, Nr_points_seg_Column].astype(int).reshape(-1, 1)
+        )
 
 
 def build_input_scenario2_with_normals(Epoch0, Epoch1):
