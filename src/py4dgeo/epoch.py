@@ -32,11 +32,16 @@ PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, timestamp=None):
+    def __init__(self, cloud: np.ndarray, additional_dimensions: np.ndarray = None, timestamp=None):
         """
 
         :param cloud:
             The point cloud array of shape (n, 3).
+
+        :param additional_dimensions:
+            A numpy array of additional, per-point data in the point cloud. The
+            numpy data type is expected to be a structured dtype, so that the data
+            columns are accessible by their name.
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
@@ -242,7 +247,7 @@ def _as_tuple(x):
     return (x,)
 
 
-def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
+def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **parse_opts):
     """Create an epoch from an xyz file
 
     :param filename:
@@ -257,6 +262,10 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         to e.g. change the delimiter character, remove header_lines or manually
         specify which columns of the input contain the XYZ coordinates.
     :type parse_opts: dict
+    :param additional_dimensions:
+        A dictionary, mapping column indices to names of additional data dimensions.
+        They will be read from the and areaccessible under their names from the
+        created Epoch objects.
     """
 
     # Resolve the given path
