@@ -1715,8 +1715,22 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         threshold_probability_most_similar=0.8,
         diff_between_most_similar_2=0.1,
         classifier=RandomForestClassifier(),
-        # cross_validation_is_active=False,
     ):
+
+        """
+
+        :param angle_diff_threshold:
+        :param neighborhood_search_radius:
+            Spatial proximity of corresponding planes is considered by using a neighbourhood
+            limited to 3 m for correspondencesearch.
+        :param threshold_probability_most_similar:
+            Lower bound threshold probability for the most similar plane.
+        :param diff_between_most_similar_2:
+            Lower bound threshold of difference between first 2, most similar planes.
+        :param classifier:
+            The classifier used, default is RandomForestClassifier.
+        """
+
         super().__init__()
 
         self.angle_diff_threshold = angle_diff_threshold
@@ -1724,7 +1738,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         self.threshold_probability_most_similar = threshold_probability_most_similar
         self.diff_between_most_similar_2 = diff_between_most_similar_2
         self.classifier = classifier
-        # self.cross_validation_is_active = cross_validation_is_active
 
     def fit(self, X, y):
         """A reference implementation of a fitting function for a classifier.
@@ -2016,7 +2029,8 @@ class PB_M3C2:
         second_segmentation=Segmentation(with_previously_computed_segments=True),
         extract_segments=ExtractSegments(),
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
-        classifier=SimplifiedClassifier(),
+        classifier=ClassifierWrapper()
+        # classifier=SimplifiedClassifier(),
     ):
 
         """
