@@ -2207,17 +2207,17 @@ class PB_M3C2:
             )
         )
 
-    def build_labeld_similarity_feature_interactively(self, Epoch0, Epoch1):
+    def build_labelled_similarity_features_interactively(self, epoch0, epoch1):
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
-        :param Epoch0:
-        :param Epoch1:
+        :param epoch0:
+        :param epoch1:
         :return: parir of (X,y) (features, labels)
         """
 
-        X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
         X = np.vstack((X0, X1))
 
@@ -2237,7 +2237,7 @@ class PB_M3C2:
         )
         pass
 
-    def build_labeld_similarity_feature(
+    def build_labelled_similarity_features(
         self,
         extracted_segments,
         tuples_seg_epoch0_seg_epoch1_label,
@@ -2247,7 +2247,7 @@ class PB_M3C2:
         """
 
         :param extracted_segments:
-            same format as the one exported by export_segments_for_labeling()
+            same format as the one exported by export_segments_for_labelling()
         :param pair_segments_epoch0_epoch1_label:
             numpy array (m, 3)
         :return:
@@ -2257,10 +2257,18 @@ class PB_M3C2:
             X=extracted_segments, y=tuples_seg_epoch0_seg_epoch1_label
         )
 
-    def export_segments_for_labeling(self, Epoch0, Epoch1):
+    def export_segments_for_labelling(
+        self,
+        epoch0,
+        epoch1,
+        x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz_id",
+        x_y_z_id_epoch1_file_anem="x_y_z_id_epoch1.xyz_id",
+        extracted_segments_file_name="extracted_segments.seg",
+    ):
 
         """
-        For each epoch, returns the segmentation of the point cloud containing a numpy array (n,4)
+        For each epoch, it returns the segmentation of the point cloud as a numpy array (n,4)
+        and it also serializes them using the provided file names.
         where each row has the following structure: x, y, z, segment_id
         It also generates a numpy array of segments of the form:
                     X_Column, Y_Column, Z_Column, -> Center of Gravity
@@ -2272,16 +2280,16 @@ class PB_M3C2:
                     llsv_Column, Segment_ID_Column, Standard_deviation_Column,
                     Nr_points_seg_Column,
 
-        :param Epoch0:
-        :param Epoch1:
+        :param epoch0:
+        :param epoch1:
         :return:
             x_y_z_id_epoch0
             x_y_z_id_epoch1
             extracted_segments
         """
 
-        X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
         X = np.vstack((X0, X1))
 
@@ -2315,6 +2323,10 @@ class PB_M3C2:
 
         x_y_z_id_epoch0 = out_epoch0[:, Extract_Columns]  # x,y,z, Seg_ID
         x_y_z_id_epoch1 = out_epoch1[:, Extract_Columns]  # x,y,z, Seg_ID
+
+        np.savetxt(x_y_z_id_epoch0_file_name, x_y_z_id_epoch0, delimiter=",")
+        np.savetxt(x_y_z_id_epoch1_file_anem, x_y_z_id_epoch1, delimiter=",")
+        np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
 
         return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
 
@@ -2365,16 +2377,16 @@ class PB_M3C2:
         # cross_val_score(self.training_predicting_pipeline, X, y, cv=2,
         pass
 
-    def predict(self, Epoch0, Epoch1):
+    def predict(self, epoch0, epoch1):
         """
         For a set of pairs of segments, between Epoch and Epoch 1, it predicts which one corresponds and which don't.
-        :param Epoch0:
-        :param Epoch1:
+        :param epoch0:
+        :param epoch1:
         :return: Return a vector of 0/1
         """
 
-        X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
         # | x | y | z | epoch I.D.
         X = np.vstack((X0, X1))
@@ -2393,13 +2405,13 @@ class PB_M3C2:
         pass
 
     # predict_scenario4
-    def predict_update(self, previous_segmented_epoch, Epoch1):
+    def predict_update(self, previous_segmented_epoch, epoch1):
 
         """
         "predict_scenario4"
 
         :param previous_segmented_epoch:
-        :param Epoch1:
+        :param epoch1:
         :return:
         """
 
@@ -2416,7 +2428,7 @@ class PB_M3C2:
         max_segment_id_X0 = int(X0_post_seg[:, Segment_ID_Column].max())
 
         # transform X1
-        X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
         pipe = Pipeline(
             [
@@ -2452,12 +2464,12 @@ class PB_M3C2:
         predict_pipe.fit(X)
         return predict_pipe.predict(X)
 
-    def distance(self, Epoch0, Epoch1, alignment_error=1.1):
+    def compute_distances(self, epoch0, epoch1, alignment_error=1.1):
 
         """
 
-        :param Epoch0:
-        :param Epoch1:
+        :param epoch0:
+        :param epoch1:
         :param alignment_error: alignment error reg between point clouds.
         :return: seg_id_epoch0, X Y Z (center of mass), seg_id_epoch1, X Y Z (center of mass), distance, uncertaintie
         """
@@ -2485,7 +2497,7 @@ class PB_M3C2:
         Standard_deviation_Column = 18
         Nr_points_seg_Column = 19  # 18
 
-        segments_pair = self.predict(Epoch0=Epoch0, Epoch1=Epoch1)
+        segments_pair = self.predict(epoch0=epoch0, epoch1=epoch1)
 
         size_segment = int(segments_pair.shape[1] / 2)
         nr_pairs = segments_pair.shape[0]
@@ -2567,10 +2579,10 @@ class PB_M3C2:
 
         # distance vector
         self.distances = output[:, -2]
-        # corepoints of Epoch0 (initial one)
+        # corepoints of epoch0 (initial one)
         self.corepoints = Epoch(output[:, [1, 2, 3]])
         # epochs
-        self.epochs = (Epoch0, Epoch1)
+        self.epochs = (epoch0, epoch1)
 
         self.uncertainties = np.empty(
             (output.shape[0], 1),
@@ -2792,21 +2804,21 @@ class PB_M3C2_scenario2(PB_M3C2):
         )
         self._post_segmentation = post_segmentation
 
-    def build_labeld_similarity_feature_interactively(self, Epoch0, Epoch1):
+    def build_labelled_similarity_features_interactively(self, epoch0, epoch1):
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
-        :param Epoch0:
-        :param Epoch1:
+        :param epoch0:
+        :param epoch1:
         :return: parir of (X,y) (features, labels)
         """
 
         if self._post_segmentation.compute_normal:
-            X0 = self._reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
         else:
-            X0 = self._reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
 
         X = np.vstack((X0, X1))
 
@@ -2852,21 +2864,21 @@ class PB_M3C2_scenario2(PB_M3C2):
 
         pass
 
-    def predict(self, Epoch0, Epoch1):
+    def predict(self, epoch0, epoch1):
 
         """
         For a set of pairs of segments, between Epoch and Epoch 1, it predicts which one corresponds and which don't.
-        :param Epoch0:
-        :param Epoch1:
+        :param epoch0:
+        :param epoch1:
         :return: Return a vector of 0/1
         """
 
         if self._post_segmentation.compute_normal:
-            X0 = self._reconstruct_input_without_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_without_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
         else:
-            X0 = self._reconstruct_input_with_normals(epoch=Epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_with_normals(epoch=Epoch1, epoch_id=1)
+            X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
 
         X = np.vstack((X0, X1))
 
@@ -2883,7 +2895,7 @@ class PB_M3C2_scenario2(PB_M3C2):
         pass
 
     # the algorithm should be the same!
-    # def distance(self, Epoch0, Epoch1, alignment_error=1.1):
+    # def distance(self, epoch0, epoch1, alignment_error=1.1):
 
 
 if __name__ == "__main__":
@@ -2899,12 +2911,12 @@ if __name__ == "__main__":
     #
     #     Sample = 441
     #
-    #     X0 = np.hstack((Epoch0.cloud[:Sample, :], np.zeros((Sample, 1))))
-    #     X1 = np.hstack((Epoch1.cloud[:Sample, :], np.ones( (Sample, 1))))
+    #     X0 = np.hstack((epoch0.cloud[:Sample, :], np.zeros((Sample, 1))))
+    #     X1 = np.hstack((epoch1.cloud[:Sample, :], np.ones( (Sample, 1))))
     #
     #     # | x | y | z | epoch I.D.
     #     X = np.vstack((X0, X1))
-    #     y = np.vstack((Epoch0.cloud[:Sample, 0], Epoch1.cloud[:Sample, 0]))     # just some random input
+    #     y = np.vstack((epoch0.cloud[:Sample, 0], epoch1.cloud[:Sample, 0]))     # just some random input
     #
     #     Tr1 = AddLLSVandPCA()
     #     #Tr1.fit(X, y)
@@ -3015,18 +3027,18 @@ if __name__ == "__main__":
 
     Alg = PB_M3C2(classifier=ClassifierWrapper())
 
-    X, y = Alg.build_labeld_similarity_feature_interactively(
-        Epoch0=Epoch0, Epoch1=Epoch1
+    X, y = Alg.build_labelled_similarity_features_interactively(
+        epoch0=Epoch0, epoch1=Epoch1
     )
     (
         x_y_z_id_epoch0,
         x_y_z_id_epoch1,
         extracted_segments,
-    ) = Alg.export_segments_for_labeling(Epoch0=Epoch0, Epoch1=Epoch1)
+    ) = Alg.export_segments_for_labelling(epoch0=Epoch0, epoch1=Epoch1)
 
     Alg.training(X, y)
-    print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    print(Alg.predict(epoch0=Epoch0, epoch1=Epoch1))
+    print(Alg.compute_distances(epoch0=Epoch0, epoch1=Epoch1))
 
     random.seed(10)
     np.random.seed(10)
@@ -3046,10 +3058,10 @@ if __name__ == "__main__":
         # classifier=ClassifierWrapper()
     )
 
-    # X1, y1 = Alg2.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+    # X1, y1 = Alg2.build_labels(epoch0=epoch0, epoch1=epoch1)
     # Alg2.training(X, y)
-    # print(Alg2.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-    # print(Alg2.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+    # print(Alg2.predict(epoch0=epoch0, epoch1=epoch1))
+    # print(Alg2.distance(epoch0=epoch0, epoch1=epoch1))
 
     # *********************
 
@@ -3057,16 +3069,16 @@ if __name__ == "__main__":
     # np.random.seed(10)
     #
     # new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
-    #     Epoch0=Epoch0, Epoch1=Epoch1
+    #     epoch0=epoch0, epoch1=epoch1
     # )
     #
-    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
+    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
     #
     # alg_scenario2 = PB_M3C2_scenario2()
-    # X, y = alg_scenario2.build_labels(Epoch0=new_epoch0, Epoch1=new_epoch1)
+    # X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
     # alg_scenario2.training(X, y)
-    # print(alg_scenario2.predict(Epoch0=new_epoch0, Epoch1=new_epoch1))
-    # print(alg_scenario2.distance(Epoch0=new_epoch0, Epoch1=new_epoch1))
+    # print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
+    # print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
 
 # ***************
 
@@ -3074,11 +3086,11 @@ if __name__ == "__main__":
 # np.random.seed(10)
 #
 # Alg = PB_M3C2(classifier=ClassifierWrapper())
-# X, y = Alg.build_labels(Epoch0=Epoch0, Epoch1=Epoch1)
+# X, y = Alg.build_labels(epoch0=epoch0, epoch1=epoch1)
 # Alg.training(X, y)
 #
-# new_epoch0, new_epoch1 = build_input_scenario2_with_normals(Epoch0=Epoch0, Epoch1=Epoch1)
-# Alg.predict_update(previous_segmented_epoch=new_epoch0, Epoch1=Epoch1)
+# new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+# Alg.predict_update(previous_segmented_epoch=new_epoch0, epoch1=epoch1)
 #
-# print(Alg.predict(Epoch0=Epoch0, Epoch1=Epoch1))
-# print(Alg.distance(Epoch0=Epoch0, Epoch1=Epoch1))
+# print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
+# print(Alg.distance(epoch0=epoch0, epoch1=epoch1))
