@@ -2495,7 +2495,8 @@ class PB_M3C2:
         :param epoch0:
         :param epoch1:
         :param alignment_error: alignment error reg between point clouds.
-        :return: seg_id_epoch0, X Y Z (center of mass), seg_id_epoch1, X Y Z (center of mass), distance, uncertaintie
+        :return:
+            distance, uncertaintie
         """
 
         X_Column = 0
@@ -3051,9 +3052,9 @@ if __name__ == "__main__":
 
     Alg = PB_M3C2(classifier=ClassifierWrapper())
 
-    # X, y = Alg.build_labelled_similarity_features_interactively(
-    #     epoch0=Epoch0, epoch1=Epoch1
-    # )
+    X, y = Alg.build_labelled_similarity_features_interactively(
+        epoch0=Epoch0, epoch1=Epoch1
+    )
 
     # (
     #     x_y_z_id_epoch0,
