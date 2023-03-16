@@ -2239,19 +2239,42 @@ class PB_M3C2:
 
     def build_labelled_similarity_features(
         self,
-        extracted_segments,
-        tuples_seg_epoch0_seg_epoch1_label,
+        extracted_segments_file_name="extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_name="testdata-labelling.csv",
         tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
     ):
 
         """
-
+            Build similarity features from pairs of segments and assign the corresponding labels.
         :param extracted_segments:
             same format as the one exported by export_segments_for_labelling()
         :param pair_segments_epoch0_epoch1_label:
             numpy array (m, 3)
         :return:
+            features, labels
         """
+
+        # Resolve the given path
+        filename = find_file(extracted_segments_file_name)
+
+        # Read it
+        try:
+            logger.info(f"Reading segments from file '{filename}'")
+            extracted_segments = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
+
+        # Resolve the given path
+        filename = find_file(tuples_seg_epoch0_seg_epoch1_label_name)
+
+        # Read it
+        try:
+            logger.info(
+                f"Reading tuples of (segment epoch0,segment epoch1,label) from file '{filename}'"
+            )
+            tuples_seg_epoch0_seg_epoch1_label = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
 
         return tuple_feature_y.compute(
             X=extracted_segments, y=tuples_seg_epoch0_seg_epoch1_label
@@ -2270,6 +2293,7 @@ class PB_M3C2:
         For each epoch, it returns the segmentation of the point cloud as a numpy array (n,4)
         and it also serializes them using the provided file names.
         where each row has the following structure: x, y, z, segment_id
+
         It also generates a numpy array of segments of the form:
                     X_Column, Y_Column, Z_Column, -> Center of Gravity
                     EpochID_Column,
@@ -3027,14 +3051,19 @@ if __name__ == "__main__":
 
     Alg = PB_M3C2(classifier=ClassifierWrapper())
 
-    X, y = Alg.build_labelled_similarity_features_interactively(
-        epoch0=Epoch0, epoch1=Epoch1
-    )
-    (
-        x_y_z_id_epoch0,
-        x_y_z_id_epoch1,
-        extracted_segments,
-    ) = Alg.export_segments_for_labelling(epoch0=Epoch0, epoch1=Epoch1)
+    # X, y = Alg.build_labelled_similarity_features_interactively(
+    #     epoch0=Epoch0, epoch1=Epoch1
+    # )
+
+    # (
+    #     x_y_z_id_epoch0,
+    #     x_y_z_id_epoch1,
+    #     extracted_segments,
+    # )
+
+    Alg.export_segments_for_labelling(epoch0=Epoch0, epoch1=Epoch1)
+
+    Alg.build_labelled_similarity_features()
 
     Alg.training(X, y)
     print(Alg.predict(epoch0=Epoch0, epoch1=Epoch1))
