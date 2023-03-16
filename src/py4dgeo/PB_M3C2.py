@@ -2566,7 +2566,7 @@ class PB_M3C2:
         # return output
 
         # distance vector
-        self.distances = output[:, -1]
+        self.distances = output[:, -2]
         # corepoints of Epoch0 (initial one)
         self.corepoints = Epoch(output[:, [1, 2, 3]])
         # epochs
@@ -2606,6 +2606,8 @@ class PB_M3C2:
         self.uncertainties["num_samples2"] = (
             epoch1_segments[:, Nr_points_seg_Column].astype(int).reshape(-1, 1)
         )
+
+        return (self.distances, self.uncertainties)
 
 
 def build_input_scenario2_with_normals(Epoch0, Epoch1):
