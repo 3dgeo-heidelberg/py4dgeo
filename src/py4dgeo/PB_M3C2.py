@@ -349,12 +349,18 @@ def segments_visualizer(X):
     plt.show(sets).close()
 
 
-def generate_random_y(X):
+def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"):
 
     """
-
+        Generate a subset of random tuples of segment id from each epoch with a random label.
     :param X:
+        (n, 20)
+        Each row contains a pair of segments.
+    :param extended_y_file_name:
+        Name of the file where the serialized result is saved.
     :return:
+        numpy (m, 3)
+            Where each row contains tuples of set0 segment id, set1 segment id, rand 0/1.
     """
 
     Segment_ID_Column = 17
@@ -375,6 +381,12 @@ def generate_random_y(X):
     set1_seg_id = epoch1_set[indx1_seg_id, Segment_ID_Column]
 
     rand_y_01 = list(np.random.randint(0, 2, nr_pairs))
+
+    np.savetxt(
+        extended_y_file_name,
+        np.array([set0_seg_id, set1_seg_id, rand_y_01]).T,
+        delimiter=",",
+    )
 
     return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
 
@@ -2285,7 +2297,7 @@ class PB_M3C2:
         epoch0,
         epoch1,
         x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz_id",
-        x_y_z_id_epoch1_file_anem="x_y_z_id_epoch1.xyz_id",
+        x_y_z_id_epoch1_file_name="x_y_z_id_epoch1.xyz_id",
         extracted_segments_file_name="extracted_segments.seg",
     ):
 
@@ -2349,7 +2361,7 @@ class PB_M3C2:
         x_y_z_id_epoch1 = out_epoch1[:, Extract_Columns]  # x,y,z, Seg_ID
 
         np.savetxt(x_y_z_id_epoch0_file_name, x_y_z_id_epoch0, delimiter=",")
-        np.savetxt(x_y_z_id_epoch1_file_anem, x_y_z_id_epoch1, delimiter=",")
+        np.savetxt(x_y_z_id_epoch1_file_name, x_y_z_id_epoch1, delimiter=",")
         np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
 
         return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
@@ -3050,44 +3062,48 @@ if __name__ == "__main__":
     random.seed(10)
     np.random.seed(10)
 
-    Alg = PB_M3C2(classifier=ClassifierWrapper())
+    Alg = PB_M3C2()
 
-    X, y = Alg.build_labelled_similarity_features_interactively(
-        epoch0=Epoch0, epoch1=Epoch1
-    )
-
-    # (
-    #     x_y_z_id_epoch0,
-    #     x_y_z_id_epoch1,
-    #     extracted_segments,
+    # X, y = Alg.build_labelled_similarity_features_interactively(
+    #     epoch0=Epoch0, epoch1=Epoch1
     # )
+    # Alg.training(X, y)
 
-    Alg.export_segments_for_labelling(epoch0=Epoch0, epoch1=Epoch1)
+    (
+        x_y_z_id_epoch0,
+        x_y_z_id_epoch1,
+        extracted_segments,
+    ) = Alg.export_segments_for_labelling(epoch0=Epoch0, epoch1=Epoch1)
+    extended_y = generate_random_y(
+        extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
+    )
+    features, labels = Alg.build_labelled_similarity_features(
+        extracted_segments_file_name="extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_name="locally_generated_extended_y.csv",
+    )
+    Alg.training(features, labels)
 
-    Alg.build_labelled_similarity_features()
-
-    Alg.training(X, y)
     print(Alg.predict(epoch0=Epoch0, epoch1=Epoch1))
     print(Alg.compute_distances(epoch0=Epoch0, epoch1=Epoch1))
 
-    random.seed(10)
-    np.random.seed(10)
-
-    Alg2 = PB_M3C2(
-        classifier=SimplifiedClassifier()
-        # add_LLSV_and_PCA = AddLLSVandPCA(),
-        # segmentation = Segmentation(),
-        # second_segmentation = Segmentation(
-        #     radius=5,
-        #     angle_diff_threshold=10,
-        #     disntance_3D_threshold=10,
-        #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-        #     with_previously_computed_segments=True),
-        # extract_segments = Extract_segments(),
-        # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
-        # classifier=ClassifierWrapper()
-    )
-
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg2 = PB_M3C2(
+    #     classifier=SimplifiedClassifier()
+    #     # add_LLSV_and_PCA = AddLLSVandPCA(),
+    #     # segmentation = Segmentation(),
+    #     # second_segmentation = Segmentation(
+    #     #     radius=5,
+    #     #     angle_diff_threshold=10,
+    #     #     disntance_3D_threshold=10,
+    #     #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
+    #     #     with_previously_computed_segments=True),
+    #     # extract_segments = Extract_segments(),
+    #     # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
+    #     # classifier=ClassifierWrapper()
+    # )
+    #
     # X1, y1 = Alg2.build_labels(epoch0=epoch0, epoch1=epoch1)
     # Alg2.training(X, y)
     # print(Alg2.predict(epoch0=epoch0, epoch1=epoch1))
