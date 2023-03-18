@@ -1,7 +1,6 @@
 import numpy as np
 import py4dgeo
 import typing
-import pickle
 import os
 import math
 import time
@@ -55,17 +54,8 @@ class M3C2EP(M3C2):
         p2_coords = self.epochs[1].cloud
         p2_positions = self.epochs[1].scan_pos
 
-        p1_pickle_file = "./test_data/p1_kd.pickle"
-        p2_pickle_file = "./test_data/p2_kd.pickle"
-
         # build kd tree
-        if not os.path.exists(p1_pickle_file):
-            # print("Building kd-Tree for first PC")
-            p1_kdtree = KDTree(p1_coords, leaf_size=LEAF_SIZE)
-            picklebig(p1_kdtree, p1_pickle_file)
-        else:
-            # print("Loading pre-built kd-Tree for first PC")
-            p1_kdtree = unpicklebig(p1_pickle_file)
+        p1_kdtree = KDTree(p1_coords, leaf_size=LEAF_SIZE)
 
         # M3C2Meta = self.meta
         M3C2Meta = {'searchrad': 0.5, 'maxdist': 3, 'minneigh': 5, 'maxneigh': 100000, 'leg_ref_err': 0.02}
@@ -84,13 +74,7 @@ class M3C2EP(M3C2):
         # transform p2
         p2_coords = p2_coords - refPointMov
         p2_coords = np.dot(tfM[:3, :3], p2_coords.T).T + tfM[:, 3] + refPointMov
-        if not os.path.exists(p2_pickle_file):
-            # print("Building kd-Tree for second PC")
-            p2_kdtree = KDTree(p2_coords, leaf_size=LEAF_SIZE)
-            picklebig(p2_kdtree, p2_pickle_file)
-        else:
-            # print("Loading pre-built kd-Tree for second PC")
-            p2_kdtree = unpicklebig(p2_pickle_file)
+        p2_kdtree = KDTree(p2_coords, leaf_size=LEAF_SIZE)
 
         # load query points
         query_coords = self.corepoints
@@ -241,25 +225,6 @@ class M3C2EP(M3C2):
     @property
     def name(self):
         return "M3C2EP"
-
-
-def picklebig(obj, file):
-    max_bytes = 2 ** 31 - 1
-    # write
-    bytes_out = pickle.dumps(obj)
-    with open(file, 'wb') as f_out:
-        for idx in range(0, len(bytes_out), max_bytes):
-            f_out.write(bytes_out[idx:idx + max_bytes])
-
-
-def unpicklebig(file):
-    max_bytes = 2 ** 31 - 1
-    bytes_in = bytearray(0)
-    input_size = os.path.getsize(file)
-    with open(file, 'rb') as f_in:
-        for _ in range(0, input_size, max_bytes):
-            bytes_in += f_in.read(max_bytes)
-    return pickle.loads(bytes_in)
 
 
 def updatePbar(total, queue, maxProc):
