@@ -19,9 +19,7 @@ import zipfile
 
 import py4dgeo._py4dgeo as _py4dgeo
 
-
 logger = logging.getLogger("py4dgeo")
-
 
 # This integer controls the versioning of the epoch file format. Whenever the
 # format is changed, this version should be increased, so that py4dgeo can warn
@@ -32,11 +30,17 @@ PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, timestamp=None):
+    def __init__(self, cloud: np.ndarray, timestamp=None,
+                 scan_pos: np.ndarray = None, sp_info: list = None):
         """
-
         :param cloud:
             The point cloud array of shape (n, 3).
+        :param timestamp:
+            The point cloud timestamp, defualt is None.
+        :param scan_pos:
+            The point scan positions array of shape (n,).
+        :param sp_info:
+            The point scan positions information.
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
@@ -48,6 +52,10 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set metadata properties
         self.timestamp = timestamp
+
+        # Set scan positions
+        self.scan_pos = np.array(scan_pos)
+        self.sp_info = sp_info
 
         # Call base class constructor
         super().__init__(cloud)
@@ -72,6 +80,8 @@ class Epoch(_py4dgeo.Epoch):
 
         return {
             "timestamp": None if self.timestamp is None else str(self.timestamp),
+            "scan_pos": None if self.scan_pos is None else self.scan_pos.tolist(),
+            "sp_info": None if self.sp_info is None else self.sp_info,
         }
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
@@ -91,6 +101,16 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def add_scan_position(self, scan_pos: np.ndarray, sp_info: list):
+        """
+        :param scan_pos:
+            The point scan positions array of shape (n,).
+        :param sp_info:
+            The point scan positions information.
+        """
+        self.scan_pos = scan_pos
+        self.sp_info = sp_info
+
     def save(self, filename):
         """Save this epoch to a file
 
@@ -107,7 +127,7 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create the final archive
             with zipfile.ZipFile(
-                filename, mode="w", compression=zipfile.ZIP_BZIP2
+                    filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
                 # Write the epoch file format version number
                 zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
@@ -283,7 +303,7 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         )
 
 
-def read_from_las(*filenames, other_epoch=None):
+def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
@@ -293,6 +313,12 @@ def read_from_las(*filenames, other_epoch=None):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
+    :param sp_name:
+        An attribute name to read scan positions id of cloud from LAS/LAZ file.
+    :type sp_name: str
+    :param sp_file:
+        An filename name to read scan positions information.
+    :type sp_file: str
     """
 
     # Resolve the given path
@@ -301,6 +327,13 @@ def read_from_las(*filenames, other_epoch=None):
     # Read the lasfile using laspy
     logger.info(f"Reading point cloud from file '{filename}'")
     lasfile = laspy.read(filename)
+
+    # set scan positions
+    scanpos = None
+    sp_info = None
+    if sp_name is not None and sp_file is not None:
+        scanpos = lasfile.points[sp_name]
+        sp_info = load_scan_positions_info(sp_file)
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
@@ -312,6 +345,8 @@ def read_from_las(*filenames, other_epoch=None):
             )
         ).transpose(),
         timestamp=lasfile.header.creation_date,
+        scan_pos=scanpos,
+        sp_info=sp_info
     )
 
     if len(filenames) == 1:
@@ -321,7 +356,8 @@ def read_from_las(*filenames, other_epoch=None):
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_las(*filenames[1:], other_epoch=new_epoch)
+            read_from_las(*filenames[1:], other_epoch=new_epoch,
+                          sp_name=sp_name, sp_file=sp_file)
         )
 
 
@@ -354,3 +390,29 @@ def normalize_timestamp(timestamp):
             return parsed
 
     raise Py4DGeoError(f"The timestamp '{timestamp}' was not understood by py4dgeo.")
+
+
+def load_scan_positions_info(filename):
+    if filename.rsplit(".", 1)[1] != "json":
+        print("Not a json format file.")
+        return None
+    with open(filename, "r") as load_f:
+        try:
+            SPsdict_load = json.load(load_f)
+        except ValueError as err:
+            print("SetJsonOperator load json error.")
+            return None
+    sps_list = []
+    for key in SPsdict_load:
+        sps_list.append(SPsdict_load[key])
+
+    for sp in sps_list:
+        sp_check = True
+        sp_check = False if len(sp['origin']) != 3 else sp_check
+        sp_check = False if not isinstance(sp['sigma_range'], float) else sp_check
+        sp_check = False if not isinstance(sp['sigma_scan'], float) else sp_check
+        sp_check = False if not isinstance(sp['sigma_yaw'], float) else sp_check
+        if not sp_check:
+            print("Scan positions load failed, please check format. ")
+
+    return sps_list
