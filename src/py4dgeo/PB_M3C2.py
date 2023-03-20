@@ -2659,11 +2659,11 @@ class PB_M3C2:
         return (self.distances, self.uncertainties)
 
 
-def build_input_scenario2_with_normals(Epoch0, Epoch1):
+def build_input_scenario2_with_normals(epoch0, epoch1):
 
     """
-    :param Epoch0: x,y,z point cloud
-    :param Epoch1: x,y,z point cloud
+    :param epoch0: x,y,z point cloud
+    :param epoch1: x,y,z point cloud
     :return:
         # x,y,z, N_x,N_y,N_z, Segment_ID
         new_epoch0, new_epoch1
@@ -2700,8 +2700,8 @@ def build_input_scenario2_with_normals(Epoch0, Epoch1):
 
     x_y_z_Columns = [X_Column, Y_Column, Z_Column]
 
-    X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-    X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+    X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+    X1 = np.hstack((Epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
     X = np.vstack((X0, X1))
 
@@ -2738,11 +2738,11 @@ def build_input_scenario2_with_normals(Epoch0, Epoch1):
     pass
 
 
-def build_input_scenario2_without_normals(Epoch0, Epoch1):
+def build_input_scenario2_without_normals(epoch0, epoch1):
 
     """
-    :param Epoch0: x,y,z point cloud
-    :param Epoch1: x,y,z point cloud
+    :param epoch0: x,y,z point cloud
+    :param epoch1: x,y,z point cloud
     :return:
         # x,y,z, Segment_ID
         new_epoch0, new_epoch1
@@ -2779,8 +2779,8 @@ def build_input_scenario2_without_normals(Epoch0, Epoch1):
         Eigenvector2z_Column,
     ]
 
-    X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((Epoch0.cloud.shape[0], 1))))
-    X1 = np.hstack((Epoch1.cloud[:, :], np.ones((Epoch1.cloud.shape[0], 1))))
+    X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+    X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
     X = np.vstack((X0, X1))
 
@@ -2942,7 +2942,7 @@ if __name__ == "__main__":
     random.seed(10)
     np.random.seed(10)
 
-    Epoch0, Epoch1 = read_from_xyz("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
+    epoch0, epoch1 = read_from_xyz("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
 
     # if False:
     #
@@ -3059,32 +3059,35 @@ if __name__ == "__main__":
 
     # *********************
 
-    random.seed(10)
-    np.random.seed(10)
+    # ***************
+    # Scenario 1
 
-    Alg = PB_M3C2()
-
-    # X, y = Alg.build_labelled_similarity_features_interactively(
-    #     epoch0=Epoch0, epoch1=Epoch1
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg = PB_M3C2()
+    #
+    # # X, y = Alg.build_labelled_similarity_features_interactively(
+    # #     epoch0=epoch0, epoch1=epoch1
+    # # )
+    # # Alg.training(X, y)
+    #
+    # (
+    #     x_y_z_id_epoch0,
+    #     x_y_z_id_epoch1,
+    #     extracted_segments,
+    # ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
+    # extended_y = generate_random_y(
+    #     extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
     # )
-    # Alg.training(X, y)
-
-    (
-        x_y_z_id_epoch0,
-        x_y_z_id_epoch1,
-        extracted_segments,
-    ) = Alg.export_segments_for_labelling(epoch0=Epoch0, epoch1=Epoch1)
-    extended_y = generate_random_y(
-        extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
-    )
-    features, labels = Alg.build_labelled_similarity_features(
-        extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_name="locally_generated_extended_y.csv",
-    )
-    Alg.training(features, labels)
-
-    print(Alg.predict(epoch0=Epoch0, epoch1=Epoch1))
-    print(Alg.compute_distances(epoch0=Epoch0, epoch1=Epoch1))
+    # features, labels = Alg.build_labelled_similarity_features(
+    #     extracted_segments_file_name="extracted_segments.seg",
+    #     tuples_seg_epoch0_seg_epoch1_label_name="locally_generated_extended_y.csv",
+    # )
+    # Alg.training(features, labels)
+    #
+    # print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
+    # print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
 
     # random.seed(10)
     # np.random.seed(10)
@@ -3110,21 +3113,22 @@ if __name__ == "__main__":
     # print(Alg2.distance(epoch0=epoch0, epoch1=epoch1))
 
     # *********************
+    # scenario 2
 
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
-    #     epoch0=epoch0, epoch1=epoch1
-    # )
-    #
-    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-    #
-    # alg_scenario2 = PB_M3C2_scenario2()
-    # X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
-    # alg_scenario2.training(X, y)
-    # print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
-    # print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
+    random.seed(10)
+    np.random.seed(10)
+
+    new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+        epoch0=epoch0, epoch1=epoch1
+    )
+
+    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+
+    alg_scenario2 = PB_M3C2_scenario2()
+    X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
+    alg_scenario2.training(X, y)
+    print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
+    print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
 
 # ***************
 
