@@ -2256,6 +2256,7 @@ class PB_M3C2:
 
         # Resolve the given path
         filename = find_file(extracted_segments_file_name)
+        logger = logging.getLogger("py4dgeo")
 
         # Read it
         try:
@@ -2284,8 +2285,8 @@ class PB_M3C2:
         self,
         epoch0,
         epoch1,
-        x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz_id",
-        x_y_z_id_epoch1_file_anem="x_y_z_id_epoch1.xyz_id",
+        x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_anem="x_y_z_id_epoch1.xyz",
         extracted_segments_file_name="extracted_segments.seg",
     ):
 
