@@ -51,7 +51,19 @@ __all__ = [
     "build_input_scenario2_without_normals",
     "build_input_scenario2_with_normals",
     "PB_M3C2_scenario2",
+    "set_interactive_backend"
 ]
+
+
+def set_interactive_backend(backend="vtk"):
+    """Set the interactive backend for selection of correspondent segements.
+
+    All backends that can be used with the vedo library can be given here.
+    E.g. the following backends are available: vtk, ipyvtk, k3d, 2d, ipygany, panel, itk
+    """
+    if interactive_available:
+        from vedo import settings
+        settings.default_backend = backend
 
 
 def angle_difference_compute(normal1, normal2):
