@@ -57,8 +57,8 @@ class M3C2EP(M3C2):
         # build kd tree
         p1_kdtree = KDTree(p1_coords, leaf_size=LEAF_SIZE)
 
-        # M3C2Meta = self.meta
-        M3C2Meta = {'searchrad': 0.5, 'maxdist': 3, 'minneigh': 5, 'maxneigh': 100000, 'leg_ref_err': 0.02}
+        # set default M3C2Meta
+        M3C2Meta = {'searchrad': 0.5, 'maxdist': 3, 'minneigh': 5, 'maxneigh': 100000}
         M3C2Meta['searchrad'] = self.cyl_radii[0]
         M3C2Meta['maxdist'] = self.max_distance
 
