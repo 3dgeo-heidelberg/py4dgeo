@@ -27,7 +27,12 @@ from py4dgeo import *
 
 from IPython import display
 
-from vedo import *
+try:
+    from vedo import *
+
+    interactive_available = True
+except ImportError:
+    interactive_available = False
 
 import colorsys
 
@@ -47,7 +52,20 @@ __all__ = [
     "build_input_scenario2_without_normals",
     "build_input_scenario2_with_normals",
     "PB_M3C2_scenario2",
+    "set_interactive_backend",
 ]
+
+
+def set_interactive_backend(backend="vtk"):
+    """Set the interactive backend for selection of correspondent segements.
+
+    All backends that can be used with the vedo library can be given here.
+    E.g. the following backends are available: vtk, ipyvtk, k3d, 2d, ipygany, panel, itk
+    """
+    if interactive_available:
+        from vedo import settings
+
+        settings.default_backend = backend
 
 
 def angle_difference_compute(normal1, normal2):
@@ -2228,6 +2246,11 @@ class PB_M3C2:
         :return: parir of (X,y) (features, labels)
         """
 
+        if not interactive_available:
+            logger = logging.getLogger("py4dgeo")
+            logger.error("Interactive session not available in this environment.")
+            return
+
         X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
         X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
@@ -2268,6 +2291,7 @@ class PB_M3C2:
 
         # Resolve the given path
         filename = find_file(extracted_segments_file_name)
+        logger = logging.getLogger("py4dgeo")
 
         # Read it
         try:
@@ -2296,8 +2320,8 @@ class PB_M3C2:
         self,
         epoch0,
         epoch1,
-        x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz_id",
-        x_y_z_id_epoch1_file_name="x_y_z_id_epoch1.xyz_id",
+        x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_name="x_y_z_id_epoch1.xyz",
         extracted_segments_file_name="extracted_segments.seg",
     ):
 
@@ -2585,7 +2609,7 @@ class PB_M3C2:
 
             # LoDetection_cm = (1.96*(sqrt(((sigma_plane_t1)/(no_pts_plane_t1))+((sigma_plane_t2)/(no_pts_plane_t2)))))+1.1  # regerror: 1.1 cm
             LoDetection = 1.96 * (
-                sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1)
+                np.sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1)
                 + alignment_error
             )
 

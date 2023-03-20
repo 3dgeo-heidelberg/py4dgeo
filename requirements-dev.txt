@@ -3,7 +3,6 @@ cmake
 ipykernel
 lcov_cobertura
 m2r2
-matplotlib
 nbsphinx
 nbsphinx-link
 nbval
@@ -12,7 +11,5 @@ pre-commit
 pytest
 pytest-cov
 ruptures
-scikit-learn
 sphinx
 sphinx_rtd_theme
-vedo
