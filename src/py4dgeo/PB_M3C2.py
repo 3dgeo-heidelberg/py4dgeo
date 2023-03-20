@@ -2286,7 +2286,7 @@ class PB_M3C2:
         epoch0,
         epoch1,
         x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz",
-        x_y_z_id_epoch1_file_anem="x_y_z_id_epoch1.xyz",
+        x_y_z_id_epoch1_file_name="x_y_z_id_epoch1.xyz",
         extracted_segments_file_name="extracted_segments.seg",
     ):
 
@@ -2350,7 +2350,7 @@ class PB_M3C2:
         x_y_z_id_epoch1 = out_epoch1[:, Extract_Columns]  # x,y,z, Seg_ID
 
         np.savetxt(x_y_z_id_epoch0_file_name, x_y_z_id_epoch0, delimiter=",")
-        np.savetxt(x_y_z_id_epoch1_file_anem, x_y_z_id_epoch1, delimiter=",")
+        np.savetxt(x_y_z_id_epoch1_file_name, x_y_z_id_epoch1, delimiter=",")
         np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
 
         return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments

@@ -33,6 +33,8 @@ dependencies = [
     "numpy",
     "requests",
     "seaborn",
+    "scikit-learn",
+    "vedo",
     "xdg",
 ]
 
