@@ -27,7 +27,11 @@ from py4dgeo import *
 
 from IPython import display
 
-from vedo import *
+try:
+    from vedo import *
+    interactive_available = True
+except ImportError:
+    interactive_available = False
 
 import colorsys
 
@@ -2215,6 +2219,11 @@ class PB_M3C2:
         :param epoch1:
         :return: parir of (X,y) (features, labels)
         """
+
+        if not interactive_available:
+            logger = logging.getLogger("py4dgeo")
+            logger.error("Interactive session not available in this environment.")
+            return
 
         X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
         X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
