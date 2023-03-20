@@ -2595,7 +2595,7 @@ class PB_M3C2:
 
             # LoDetection_cm = (1.96*(sqrt(((sigma_plane_t1)/(no_pts_plane_t1))+((sigma_plane_t2)/(no_pts_plane_t2)))))+1.1  # regerror: 1.1 cm
             LoDetection = 1.96 * (
-                sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1)
+                np.sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1)
                 + alignment_error
             )
 
