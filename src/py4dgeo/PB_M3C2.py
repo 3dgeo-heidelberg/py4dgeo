@@ -1910,7 +1910,6 @@ class SimplifiedClassifier(RandomForestClassifier):
         self.neighborhood_search_radius = neighborhood_search_radius
         self.threshold_probability_most_similar = threshold_probability_most_similar
         self.diff_between_most_similar_2 = diff_between_most_similar_2
-        # self.cross_validation_is_active = cross_validation_is_active
 
     # def compute_similarity_between(self, seg_epoch0, seg_epoch1):
     #
@@ -1995,11 +1994,6 @@ class SimplifiedClassifier(RandomForestClassifier):
 
         Segment_ID_Column = 17
         EpochID_Column = 3
-
-        # if self.cross_validation_is_active == True:
-        #     # the input 'X', in this scenario, is represented by the 'similarity feature'
-        #     # and it is used during cross-validation learning
-        #     return super(RandomForestClassifier, self).predict(X)
 
         mask_epoch0 = X[:, EpochID_Column] == 0
         mask_epoch1 = X[:, EpochID_Column] == 1
@@ -2092,32 +2086,6 @@ class PB_M3C2:
         self._classifier = classifier
 
         self._build_similarity_feature_and_y = build_similarity_feature_and_y
-
-        pass
-
-    # def set_new_segmentation(self, segmentation):
-    #
-    #     """
-    #
-    #     :param segmentation:
-    #     :return:
-    #     """
-    #
-    #     self._segmentation = segmentation
-    #     #self.valid_PB_M3C2 = False
-    #     pass
-
-    # def set_new_similarity_features(self, build_similarity_feature_and_y):
-    #
-    #     """
-    #
-    #     :param build_similarity_feature_and_y:
-    #     :return:
-    #     """
-    #
-    #     self._build_similarity_feature_and_y = build_similarity_feature_and_y
-    #     #self.valid_PB_M3C2 = False
-    #     pass
 
     def _reconstruct_input_with_normals(self, epoch, epoch_id):
 
@@ -2274,7 +2242,7 @@ class PB_M3C2:
 
         X = np.vstack((X0, X1))
 
-        self.labeling_pipeline = Pipeline(
+        labeling_pipeline = Pipeline(
             [
                 ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
@@ -2283,55 +2251,10 @@ class PB_M3C2:
             ]
         )
 
-        self.labeling_pipeline.fit(X)
+        labeling_pipeline.fit(X)
 
         return self._build_similarity_feature_and_y.compute(
-            self.labeling_pipeline.transform(X)
-        )
-        pass
-
-    def build_labelled_similarity_features(
-        self,
-        extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_name=None,
-        tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
-    ):
-
-        """
-            Build similarity features from pairs of segments and assign the corresponding labels.
-        :param extracted_segments:
-            same format as the one exported by export_segments_for_labelling()
-        :param pair_segments_epoch0_epoch1_label:
-            numpy array (m, 3)
-        :return:
-            similarity features, labels
-        """
-
-        # Resolve the given path
-        filename = find_file(extracted_segments_file_name)
-        logger = logging.getLogger("py4dgeo")
-
-        # Read it
-        try:
-            logger.info(f"Reading segments from file '{filename}'")
-            extracted_segments = np.genfromtxt(filename, delimiter=",")
-        except ValueError:
-            raise Py4DGeoError("Malformed file: " + str(filename))
-
-        # Resolve the given path
-        filename = find_file(tuples_seg_epoch0_seg_epoch1_label_name)
-
-        # Read it
-        try:
-            logger.info(
-                f"Reading tuples of (segment epoch0,segment epoch1,label) from file '{filename}'"
-            )
-            tuples_seg_epoch0_seg_epoch1_label = np.genfromtxt(filename, delimiter=",")
-        except ValueError:
-            raise Py4DGeoError("Malformed file: " + str(filename))
-
-        return tuple_feature_y.compute(
-            X=extracted_segments, y=tuples_seg_epoch0_seg_epoch1_label
+            labeling_pipeline.transform(X)
         )
 
     def export_segments_for_labelling(
@@ -2382,9 +2305,11 @@ class PB_M3C2:
         )
 
         pipe_segmentation.fit(X)
+        # 'out' contains the segmentation of the point cloud.
         out = pipe_segmentation.transform(X)
 
         self._extract_segments.fit(out)
+        # 'extracted_segments' contains the new set of segments
         extracted_segments = self._extract_segments.transform(out)
 
         X_Column = 0
@@ -2410,7 +2335,49 @@ class PB_M3C2:
 
         return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
 
-        pass
+    def build_labelled_similarity_features(
+        self,
+        extracted_segments_file_name="extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_file_name=None,
+        tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
+    ):
+
+        """
+            Build similarity features from pairs of segments and assign the corresponding labels.
+        :param extracted_segments:
+            same format as the one exported by export_segments_for_labelling()
+        :param pair_segments_epoch0_epoch1_label:
+            numpy array (m, 3)
+        :return:
+            similarity features, labels
+        """
+
+        # Resolve the given path
+        filename = find_file(extracted_segments_file_name)
+        logger = logging.getLogger("py4dgeo")
+
+        # Read it
+        try:
+            logger.info(f"Reading segments from file '{filename}'")
+            extracted_segments = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
+
+        # Resolve the given path
+        filename = find_file(tuples_seg_epoch0_seg_epoch1_label_file_name)
+
+        # Read it
+        try:
+            logger.info(
+                f"Reading tuples of (segment epoch0,segment epoch1,label) from file '{filename}'"
+            )
+            tuples_seg_epoch0_seg_epoch1_label = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
+
+        return tuple_feature_y.compute(
+            X=extracted_segments, y=tuples_seg_epoch0_seg_epoch1_label
+        )
 
     def training(self, X, y):
 
@@ -2421,40 +2388,27 @@ class PB_M3C2:
         :return:
         """
 
-        # Is is a good idea to recreate the "Classifier" ??
-        # Maybe there is value in having multiple learning iterations??
-
-        self.training_predicting_pipeline = Pipeline(
+        training_predicting_pipeline = Pipeline(
             [
-                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
-                ("Transform Segmentation", self._segmentation),
-                ("Transform Second Segmentation", self._second_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                # ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                # ("Transform Segmentation", self._segmentation),
+                # ("Transform Second Segmentation", self._second_segmentation),
+                # ("Transform ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
 
-        # self.training_predicting_pipeline.set_params()
-        self._add_LLSV_and_PCA.skip = True
-        self._segmentation.skip = True
-        self._second_segmentation.skip = True
-        self._extract_segments.skip = True
+        # training_predicting_pipeline.set_params()
+        # self._add_LLSV_and_PCA.skip = True
+        # self._segmentation.skip = True
+        # self._second_segmentation.skip = True
+        # self._extract_segments.skip = True
 
-        # self._classifier.cross_validation_is_active = True
-
-        self.training_predicting_pipeline.fit(X, y)
-
-        # training_pipeline = GridSearchCV(
-        #     estimator=self.training_predicting_pipeline,
-        #     # currently, works as a CV, no GridSearch. (default parameters are used)
-        #     # param_grid=self.training_predicting_pipeline.get_params()
-        #     param_grid={}
-        # )
-        # training_pipeline.fit(X, y.ravel())
+        training_predicting_pipeline.fit(X, y)
 
         # check: https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter
         # check: https://scikit-learn.org/stable/modules/cross_validation.html
-        # cross_val_score(self.training_predicting_pipeline, X, y, cv=2,
+        # cross_val_score(training_predicting_pipeline, X, y, cv=2,
         pass
 
     def predict(self, epoch0, epoch1):
@@ -2471,17 +2425,25 @@ class PB_M3C2:
         # | x | y | z | epoch I.D.
         X = np.vstack((X0, X1))
 
+        training_predicting_pipeline = Pipeline(
+            [
+                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform Segmentation", self._segmentation),
+                ("Transform Second Segmentation", self._second_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+                ("Classifier", self._classifier),
+            ]
+        )
+
         # activate the entire pipeline
-        # self.training_predicting_pipeline.set_params()
-        self._add_LLSV_and_PCA.skip = False
-        self._segmentation.skip = False
-        self._second_segmentation.skip = False
-        self._extract_segments.skip = False
+        # training_predicting_pipeline.set_params()
+        # self._add_LLSV_and_PCA.skip = False
+        # self._segmentation.skip = False
+        # self._second_segmentation.skip = False
+        # self._extract_segments.skip = False
 
-        # self._classifier.cross_validation_is_active = False
-        # self.training_predicting_pipeline.set_params(estimator__Classifier__cross_validation_is_active= False)
-
-        return self.training_predicting_pipeline.predict(X)
+        # training_predicting_pipeline.fit(X)
+        return training_predicting_pipeline.predict(X)
         pass
 
     # predict_scenario4
@@ -2494,6 +2456,8 @@ class PB_M3C2:
         :param epoch1:
         :return:
         """
+
+        assert False, "Please, recheck this functionality first!"
 
         Segment_ID_Column = 17
 
@@ -2550,7 +2514,8 @@ class PB_M3C2:
 
         :param epoch0:
         :param epoch1:
-        :param alignment_error: alignment error reg between point clouds.
+        :param alignment_error:
+            alignment error reg between point clouds.
         :return:
             distance, uncertaintie
         """
@@ -2887,23 +2852,23 @@ class PB_M3C2_scenario2(PB_M3C2):
 
         X = np.vstack((X0, X1))
 
-        self.labeling_pipeline = Pipeline(
+        labeling_pipeline = Pipeline(
             [
                 ("Transform Post Segmentation", self._post_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
             ]
         )
 
-        self.labeling_pipeline.fit(X)
+        labeling_pipeline.fit(X)
 
         return self._build_similarity_feature_and_y.compute(
-            self.labeling_pipeline.transform(X)
+            labeling_pipeline.transform(X)
         )
 
     def build_labelled_similarity_features(
         self,
         extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_name=None,
+        tuples_seg_epoch0_seg_epoch1_label_file_name=None,
         tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
     ):
         assert False, "Not implemented yet!"
@@ -2921,7 +2886,7 @@ class PB_M3C2_scenario2(PB_M3C2):
         # Is is a good idea to recreate the "Classifier" ??
         # Maybe there is value in having multiple learning iterations??
 
-        self.training_predicting_pipeline = Pipeline(
+        training_predicting_pipeline = Pipeline(
             [
                 ("Transform Post Segmentation", self._post_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2929,11 +2894,11 @@ class PB_M3C2_scenario2(PB_M3C2):
             ]
         )
 
-        # self.training_predicting_pipeline.set_params()
+        # training_predicting_pipeline.set_params()
         self._post_segmentation.skip = True
         self._extract_segments.skip = True
 
-        self.training_predicting_pipeline.fit(X, y)
+        training_predicting_pipeline.fit(X, y)
 
         pass
 
@@ -2956,15 +2921,15 @@ class PB_M3C2_scenario2(PB_M3C2):
         X = np.vstack((X0, X1))
 
         # activate the entire pipeline
-        # self.training_predicting_pipeline.set_params()
+        # training_predicting_pipeline.set_params()
 
         self._post_segmentation.skip = False
         self._extract_segments.skip = False
 
         # self._classifier.cross_validation_is_active = False
-        # self.training_predicting_pipeline.set_params(estimator__Classifier__cross_validation_is_active= False)
+        # training_predicting_pipeline.set_params(estimator__Classifier__cross_validation_is_active= False)
 
-        return self.training_predicting_pipeline.predict(X)
+        return training_predicting_pipeline.predict(X)
         pass
 
     # the algorithm should be the same!
@@ -3118,7 +3083,7 @@ if __name__ == "__main__":
     # )
     # features, labels = Alg.build_labelled_similarity_features(
     #     extracted_segments_file_name="extracted_segments.seg",
-    #     tuples_seg_epoch0_seg_epoch1_label_name="locally_generated_extended_y.csv",
+    #     tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
     # )
     # Alg.training(features, labels)
     #
