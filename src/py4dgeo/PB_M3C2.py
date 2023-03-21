@@ -2055,7 +2055,6 @@ class PB_M3C2:
         segmentation=Segmentation(),
         second_segmentation=Segmentation(with_previously_computed_segments=True),
         extract_segments=ExtractSegments(),
-        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
         classifier=ClassifierWrapper(),
     ):
 
@@ -2068,8 +2067,6 @@ class PB_M3C2:
             The object used for the second segmentation.
         :param extract_segments:
             The object used for building the segments.
-        :param build_similarity_feature_and_y:
-            The object used for extracting the features applied as part of similarity alg.
         :param classifier:
             An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
         """
@@ -2085,7 +2082,7 @@ class PB_M3C2:
         self._extract_segments = extract_segments
         self._classifier = classifier
 
-        self._build_similarity_feature_and_y = build_similarity_feature_and_y
+        # self._build_similarity_feature_and_y = build_similarity_feature_and_y
 
     def _reconstruct_input_with_normals(self, epoch, epoch_id):
 
@@ -2222,12 +2219,19 @@ class PB_M3C2:
             )
         )
 
-    def build_labelled_similarity_features_interactively(self, epoch0, epoch1):
+    def build_labelled_similarity_features_interactively(
+        self,
+        epoch0,
+        epoch1,
+        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
+    ):
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
         :param epoch0:
         :param epoch1:
+        :param build_similarity_feature_and_y:
+            The object used for extracting the features applied as part of similarity alg.
         :return: parir
             similarity features, labels
         """
@@ -2253,9 +2257,7 @@ class PB_M3C2:
 
         labeling_pipeline.fit(X)
 
-        return self._build_similarity_feature_and_y.compute(
-            labeling_pipeline.transform(X)
-        )
+        return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
 
     def export_segments_for_labelling(
         self,
@@ -2813,14 +2815,13 @@ class PB_M3C2_scenario2(PB_M3C2):
         self,
         post_segmentation=PostSegmentation(compute_normal=True),
         classifier=ClassifierWrapper(),
-        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
     ):
         """
 
         :param post_segmentation:
 
         :param classifier:
-        :param build_similarity_feature_and_y:
+            An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
         """
 
         super().__init__(
@@ -2828,12 +2829,16 @@ class PB_M3C2_scenario2(PB_M3C2):
             segmentation=None,
             second_segmentation=None,
             extract_segments=ExtractSegments(),
-            build_similarity_feature_and_y=build_similarity_feature_and_y,
             classifier=classifier,
         )
         self._post_segmentation = post_segmentation
 
-    def build_labelled_similarity_features_interactively(self, epoch0, epoch1):
+    def build_labelled_similarity_features_interactively(
+        self,
+        epoch0,
+        epoch1,
+        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
+    ):
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
@@ -2861,9 +2866,7 @@ class PB_M3C2_scenario2(PB_M3C2):
 
         labeling_pipeline.fit(X)
 
-        return self._build_similarity_feature_and_y.compute(
-            labeling_pipeline.transform(X)
-        )
+        return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
 
     def build_labelled_similarity_features(
         self,
@@ -3063,32 +3066,32 @@ if __name__ == "__main__":
     # ***************
     # Scenario 1
 
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg = PB_M3C2()
-    #
-    # # X, y = Alg.build_labelled_similarity_features_interactively(
-    # #     epoch0=epoch0, epoch1=epoch1
-    # # )
-    # # Alg.training(X, y)
-    #
-    # (
-    #     x_y_z_id_epoch0,
-    #     x_y_z_id_epoch1,
-    #     extracted_segments,
-    # ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
-    # extended_y = generate_random_y(
-    #     extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
+    random.seed(10)
+    np.random.seed(10)
+
+    Alg = PB_M3C2()
+
+    # X, y = Alg.build_labelled_similarity_features_interactively(
+    #     epoch0=epoch0, epoch1=epoch1
     # )
-    # features, labels = Alg.build_labelled_similarity_features(
-    #     extracted_segments_file_name="extracted_segments.seg",
-    #     tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
-    # )
-    # Alg.training(features, labels)
-    #
-    # print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
-    # print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
+    # Alg.training(X, y)
+
+    (
+        x_y_z_id_epoch0,
+        x_y_z_id_epoch1,
+        extracted_segments,
+    ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
+    extended_y = generate_random_y(
+        extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
+    )
+    features, labels = Alg.build_labelled_similarity_features(
+        extracted_segments_file_name="extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
+    )
+    Alg.training(features, labels)
+
+    print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
+    print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
 
     # random.seed(10)
     # np.random.seed(10)
@@ -3116,19 +3119,19 @@ if __name__ == "__main__":
     # *********************
     # scenario 2
 
-    random.seed(10)
-    np.random.seed(10)
-
-    new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
-        epoch0=epoch0, epoch1=epoch1
-    )
-    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-
-    alg_scenario2 = PB_M3C2_scenario2()
-    X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
-    alg_scenario2.training(X, y)
-    print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
-    print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+    #     epoch0=epoch0, epoch1=epoch1
+    # )
+    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+    #
+    # alg_scenario2 = PB_M3C2_scenario2()
+    # X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
+    # alg_scenario2.training(X, y)
+    # print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
+    # print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
 
 # ***************
 
