@@ -149,7 +149,7 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
     :param seg_epoch1: segment from epoch1
     :return:
         angle, -> angle between plane normal vectors
-        points_density_diff, -> difference between points density segments of surfaces
+        points_density_diff, -> difference between points density between pairs of segments
         eigen_value_smallest_diff, -> difference in the quality of plane fit (smallest eigenvalue)
         eigen_value_largest_diff, -> difference in plane extension (largest eigenvalue)
         eigen_value_middle_diff, -> difference in orthogonal plane extension (middle eigenvalue)
@@ -991,7 +991,9 @@ class PostSegmentation(BaseTransformer):
         for i in range(0, max + 1):
 
             mask = X[:, Segment_ID_Column] == float(i)
-            set_cloud = X[mask, :3]  # all
+            set_cloud = X[
+                mask, :3
+            ]  # extract all points, that are part of the same segment
             eig_values, e0, e1, normal, position = self.pca_compute_normal_and_mean(
                 set_cloud
             )
@@ -1352,15 +1354,17 @@ class BuildSimilarityFeature_and_y(ABC):
             lambda y_row: self._build_X_similarity(y_row, X), 1, y_extended
         )
 
-        # return (X_similarity, y_extended[:, 2].reshape(-1, 1))
         return (X_similarity, y_extended[:, 2])
 
     def _build_X_similarity(self, y_row, X):
         """
 
         :param y_row:
+            ( segment epoch0 id, segment epoch1 id, label(0/1) )
         :param X:
+            numpy containing a segment on each row
         :return:
+            numpy array containing the similarity value between 2 segments
         """
 
         X_Column = 0
@@ -1415,11 +1419,11 @@ class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
         :param X:
             numpy array of segments.
         :param y:
-            numpy array of (segment ID epoch0, segment ID epoch1, label)
+            numpy array of ( segment ID epoch0, segment ID epoch1, label(0/1) )
         :return:
             touple of
-                similarity feature (as a function of segment ID epoch0, segment ID epoch1) numpy array
-                label (0/1) numpy array (n,)
+                similarity feature (as a function of segment ID epoch0, segment ID epoch1) -> numpy array
+                label (0/1) -> numpy array (n,)
         """
 
         assert y.shape[1] == 3, "rows of y must be of size 3!"
@@ -2062,12 +2066,18 @@ class PB_M3C2:
     ):
 
         """
-        :param add_LLSV_and_PCA: lowest local surface variation and PCA computattion. (computes the normal vector as well)
-        :param segmentation: The object used for the first segmentation.
-        :param second_segmentation: The object used for the second segmentation.
-        :param extract_segments: The object used for building the segments.
-        :param build_similarity_feature_and_y: The object used for extracting the features applied as part of similarity alg.
+        :param add_LLSV_and_PCA:
+            lowest local surface variation and PCA computattion. (computes the normal vector as well)
+        :param segmentation:
+            The object used for the first segmentation.
+        :param second_segmentation:
+            The object used for the second segmentation.
+        :param extract_segments:
+            The object used for building the segments.
+        :param build_similarity_feature_and_y:
+            The object used for extracting the features applied as part of similarity alg.
         :param classifier:
+            An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
         """
 
         if second_segmentation:
@@ -2081,10 +2091,8 @@ class PB_M3C2:
         self._extract_segments = extract_segments
         self._classifier = classifier
 
-        # expose the parameters as part of the costructor of this class... maybe??
         self._build_similarity_feature_and_y = build_similarity_feature_and_y
 
-        # self.valid_PB_M3C2 = False
         pass
 
     # def set_new_segmentation(self, segmentation):
@@ -2115,9 +2123,13 @@ class PB_M3C2:
 
         """
 
-        :param epoch: Epoch object.
-        :param epoch_id: is 0 or 1 and represents one of the epochs used as part of distance computation.
+        :param epoch:
+            Epoch object where each row is formed by: [x, y, z, N_x, N_y, N_z, Segment_ID]
+        :param epoch_id:
+            is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
+            adapter from [x, y, z, N_x, N_y, N_z, Segment_ID] to the output of the following pipeline computation:
+                ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
         """
 
         X_Column = 0
@@ -2145,20 +2157,21 @@ class PB_M3C2:
         # default standard deviation for points that are not "core points"
         Default_std_deviation_of_no_core_point = -1
 
+        # x, y, z, N_x, N_y, N_z, Segment_ID
         assert epoch.shape[1] == 3 + 3 + 1, "epoch size mismatch!"
 
         return np.hstack(
             (
-                epoch[:, :3],  # x,y,z     X 3
+                epoch[:, :3],  # x,y,z      X 3
                 # np.zeros((epoch.shape[0], 0)).reshape(-1, 1),
                 np.full(
                     (epoch.shape[0], 1), epoch_id, dtype=float
-                ),  # EpochID_Column X 1
+                ),  # EpochID_Column    X 1
                 np.full((epoch.shape[0], 3), 0, dtype=float),  # Eigenvalue X 3
                 np.full(
                     (epoch.shape[0], 6), 0, dtype=float
-                ),  # Eigenvector0, Eigenvector1 X 6
-                epoch[:, 3:6],  # Eigenvector2 X 3
+                ),  # Eigenvector0, Eigenvector1        X 6
+                epoch[:, 3:6],  # Eigenvector2      X 3
                 np.full((epoch.shape[0], 1), 0, dtype=float).reshape(
                     -1, 1
                 ),  # llsv_Column
@@ -2177,9 +2190,13 @@ class PB_M3C2:
 
         """
 
-        :param epoch: Epoch object.
-        :param epoch_id: is 0 or 1 and represents one of the epochs used as part of distance computation.
+        :param epoch:
+            Epoch object where each row is formed by: [x, y, z, Segment_ID]
+        :param epoch_id:
+            is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
+            adapter from [x, y, z, Segment_ID] to the output of the following pipeline computation:
+                ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
         """
 
         X_Column = 0
@@ -2243,7 +2260,8 @@ class PB_M3C2:
         Given 2 Epochs, it builds a pair of features and labels used for learning.
         :param epoch0:
         :param epoch1:
-        :return: parir of (X,y) (features, labels)
+        :return: parir
+            similarity features, labels
         """
 
         if not interactive_available:
@@ -2275,7 +2293,7 @@ class PB_M3C2:
     def build_labelled_similarity_features(
         self,
         extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_name="testdata-labelling.csv",
+        tuples_seg_epoch0_seg_epoch1_label_name=None,
         tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
     ):
 
@@ -2286,7 +2304,7 @@ class PB_M3C2:
         :param pair_segments_epoch0_epoch1_label:
             numpy array (m, 3)
         :return:
-            features, labels
+            similarity features, labels
         """
 
         # Resolve the given path
@@ -2337,7 +2355,9 @@ class PB_M3C2:
                     Eigenvector0x_Column, Eigenvector0y_Column, Eigenvector0z_Column,
                     Eigenvector1x_Column, Eigenvector1y_Column, Eigenvector1z_Column,
                     Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column, -> Normal vector
-                    llsv_Column, Segment_ID_Column, Standard_deviation_Column,
+                    llsv_Column,
+                    Segment_ID_Column,
+                    Standard_deviation_Column,
                     Nr_points_seg_Column,
 
         :param epoch0:
@@ -2738,24 +2758,15 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
 
     transform_pipeline.fit(X)
     out = transform_pipeline.transform(X)
-    new_epoch01 = np.hstack(
-        (
-            out[:, x_y_z_Columns],
-            out[:, EpochID_Column].reshape(-1, 1),
-            out[:, Normal_Columns],
-            out[:, Segment_ID_Column].reshape(-1, 1),
-        )
-    )
 
-    mask_epoch0 = new_epoch01[:, EpochID_Column] == 0
-    mask_epoch1 = new_epoch01[:, EpochID_Column] == 1
+    mask_epoch0 = out[:, EpochID_Column] == 0  # epoch0
+    mask_epoch1 = out[:, EpochID_Column] == 1  # epoch1
 
-    new_epoch0 = new_epoch01[mask_epoch0, :]  # all
-    new_epoch1 = new_epoch01[mask_epoch1, :]  # all
+    new_epoch0 = out[mask_epoch0, :]  # extract epoch0
+    new_epoch1 = out[mask_epoch1, :]  # extract epoch1
 
-    # cleaning Segment_ID_Column
-    new_epoch0 = np.delete(new_epoch0, EpochID_Column, 1)
-    new_epoch1 = np.delete(new_epoch1, EpochID_Column, 1)
+    new_epoch0 = new_epoch0[:, x_y_z_Columns + Normal_Columns + [Segment_ID_Column]]
+    new_epoch1 = new_epoch1[:, x_y_z_Columns + Normal_Columns + [Segment_ID_Column]]
 
     # x,y,z, N_x,N_y,N_z, Segment_ID
     return new_epoch0, new_epoch1
@@ -2817,26 +2828,17 @@ def build_input_scenario2_without_normals(epoch0, epoch1):
 
     transform_pipeline.fit(X)
     out = transform_pipeline.transform(X)
-    new_epoch01 = np.hstack(
-        (
-            out[:, x_y_z_Columns],  # X 3
-            out[:, EpochID_Column].reshape(-1, 1),  # X 1
-            out[:, Normal_Columns],  # X 3
-            out[:, Segment_ID_Column].reshape(-1, 1),  # X 1
-        )
-    )
 
-    mask_epoch0 = new_epoch01[:, EpochID_Column] == 0
-    mask_epoch1 = new_epoch01[:, EpochID_Column] == 1
+    mask_epoch0 = out[:, EpochID_Column] == 0  # epoch0
+    mask_epoch1 = out[:, EpochID_Column] == 1  # epoch1
 
-    new_epoch0 = new_epoch01[mask_epoch0, :]  # all
-    new_epoch1 = new_epoch01[mask_epoch1, :]  # all
+    new_epoch0 = out[mask_epoch0, :]  # extract epoch0
+    new_epoch1 = out[mask_epoch1, :]  # extract epoch1
 
-    # cleaning Segment_ID_Column and normals (4,5,6)
-    new_epoch0 = np.delete(new_epoch0, [4, 5, 6] + [EpochID_Column], 1)
-    new_epoch1 = np.delete(new_epoch1, [4, 5, 6] + [EpochID_Column], 1)
+    new_epoch0 = new_epoch0[:, x_y_z_Columns + [Segment_ID_Column]]
+    new_epoch1 = new_epoch1[:, x_y_z_Columns + [Segment_ID_Column]]
 
-    # x,y,z, N_x,N_y,N_z, Segment_ID
+    # x,y,z, Segment_ID
     return new_epoch0, new_epoch1
     pass
 
@@ -2851,6 +2853,7 @@ class PB_M3C2_scenario2(PB_M3C2):
         """
 
         :param post_segmentation:
+
         :param classifier:
         :param build_similarity_feature_and_y:
         """
@@ -2871,7 +2874,8 @@ class PB_M3C2_scenario2(PB_M3C2):
         Given 2 Epochs, it builds a pair of features and labels used for learning.
         :param epoch0:
         :param epoch1:
-        :return: parir of (X,y) (features, labels)
+        :return:
+            parir of (features, labels)
         """
 
         if self._post_segmentation.compute_normal:
@@ -2895,6 +2899,14 @@ class PB_M3C2_scenario2(PB_M3C2):
         return self._build_similarity_feature_and_y.compute(
             self.labeling_pipeline.transform(X)
         )
+
+    def build_labelled_similarity_features(
+        self,
+        extracted_segments_file_name="extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_name=None,
+        tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
+    ):
+        assert False, "Not implemented yet!"
         pass
 
     def training(self, X, y):
@@ -3145,7 +3157,6 @@ if __name__ == "__main__":
     new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
         epoch0=epoch0, epoch1=epoch1
     )
-
     # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
 
     alg_scenario2 = PB_M3C2_scenario2()
