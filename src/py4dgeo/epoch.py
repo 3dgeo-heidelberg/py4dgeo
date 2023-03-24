@@ -32,11 +32,21 @@ PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, timestamp=None):
+    def __init__(
+        self,
+        cloud: np.ndarray,
+        additional_dimensions: np.ndarray = None,
+        timestamp=None,
+    ):
         """
 
         :param cloud:
             The point cloud array of shape (n, 3).
+
+        :param additional_dimensions:
+            A numpy array of additional, per-point data in the point cloud. The
+            numpy data type is expected to be a structured dtype, so that the data
+            columns are accessible by their name.
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
@@ -48,6 +58,9 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set metadata properties
         self.timestamp = timestamp
+
+        # Set the additional information (e.g. segment ids, normals, etc)
+        self.additional_dimensions = additional_dimensions
 
         # Call base class constructor
         super().__init__(cloud)
@@ -73,6 +86,14 @@ class Epoch(_py4dgeo.Epoch):
         return {
             "timestamp": None if self.timestamp is None else str(self.timestamp),
         }
+
+    @property
+    def additional_dimensions(self):
+        return self._additional_dimensions
+
+    @additional_dimensions.setter
+    def additional_dimensions(self, additional_dimensions):
+        self._additional_dimensions = additional_dimensions
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
         """Build the search tree index
@@ -242,7 +263,7 @@ def _as_tuple(x):
     return (x,)
 
 
-def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
+def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **parse_opts):
     """Create an epoch from an xyz file
 
     :param filename:
@@ -256,6 +277,10 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         Additional options forwarded to numpy.genfromtxt. This can be used
         to e.g. change the delimiter character, remove header_lines or manually
         specify which columns of the input contain the XYZ coordinates.
+    :param additional_dimensions:
+        A dictionary, mapping column indices to names of additional data dimensions.
+        They will be read from the file and are accessible under their names from the
+        created Epoch objects.
     :type parse_opts: dict
     """
 
@@ -272,7 +297,19 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         )
 
     # Construct the new Epoch object
-    new_epoch = Epoch(cloud=cloud)
+    if additional_dimensions == {}:
+        new_epoch = Epoch(cloud=cloud)
+    else:
+        # build additional_dimensions dtype structure
+        additional_colomns = np.empty(
+            shape=(cloud.shape[0], 1),
+            dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+        )
+        # populate dtype structure
+        for column_id, column_name in additional_dimensions.items():
+            additional_colomns[column_name] = cloud[:, column_id].reshape(-1, 1)
+
+        new_epoch = Epoch(cloud=cloud[:, :3], additional_dimensions=additional_colomns)
 
     if len(filenames) == 1:
         # End recursion and return non-tuple to make the case that the user

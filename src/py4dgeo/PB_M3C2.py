@@ -51,8 +51,9 @@ __all__ = [
     "PB_M3C2",
     "build_input_scenario2_without_normals",
     "build_input_scenario2_with_normals",
-    "PB_M3C2_scenario2",
+    "PB_M3C2_with_segments",
     "set_interactive_backend",
+    "generate_random_y",
 ]
 
 
@@ -373,7 +374,7 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
         Generate a subset of random tuples of segment id from each epoch with a random label.
     :param X:
         (n, 20)
-        Each row contains a pair of segments.
+        Each row contains a segment.
     :param extended_y_file_name:
         Name of the file where the serialized result is saved.
     :return:
@@ -2810,7 +2811,7 @@ def build_input_scenario2_without_normals(epoch0, epoch1):
     pass
 
 
-class PB_M3C2_scenario2(PB_M3C2):
+class PB_M3C2_with_segments(PB_M3C2):
     def __init__(
         self,
         post_segmentation=PostSegmentation(compute_normal=True),
@@ -2833,6 +2834,41 @@ class PB_M3C2_scenario2(PB_M3C2):
         )
         self._post_segmentation = post_segmentation
 
+    # def build_labelled_similarity_features_interactively(
+    #     self,
+    #     epoch0,
+    #     epoch1,
+    #     build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
+    # ):
+    #
+    #     """
+    #     Given 2 Epochs, it builds a pair of features and labels used for learning.
+    #     :param epoch0:
+    #     :param epoch1:
+    #     :return:
+    #         parir of (features, labels)
+    #     """
+    #
+    #     if self._post_segmentation.compute_normal:
+    #         X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
+    #         X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
+    #     else:
+    #         X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
+    #         X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
+    #
+    #     X = np.vstack((X0, X1))
+    #
+    #     labeling_pipeline = Pipeline(
+    #         [
+    #             ("Transform Post Segmentation", self._post_segmentation),
+    #             ("Transform ExtractSegments", self._extract_segments),
+    #         ]
+    #     )
+    #
+    #     labeling_pipeline.fit(X)
+    #
+    #     return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
+
     def build_labelled_similarity_features_interactively(
         self,
         epoch0,
@@ -2840,13 +2876,21 @@ class PB_M3C2_scenario2(PB_M3C2):
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
     ):
 
-        """
-        Given 2 Epochs, it builds a pair of features and labels used for learning.
-        :param epoch0:
-        :param epoch1:
-        :return:
-            parir of (features, labels)
-        """
+        assert (
+            "segment_id" in epoch0.additional_dimensions.dtype.names
+        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+
+        epoch0 = np.concatenate(
+            (epoch0.cloud, epoch0.additional_dimensions["segment_id"]), axis=1
+        )
+
+        assert (
+            "segment_id" in epoch1.additional_dimensions.dtype.names
+        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+
+        epoch1 = np.concatenate(
+            (epoch1.cloud, epoch1.additional_dimensions["segment_id"]), axis=1
+        )
 
         if self._post_segmentation.compute_normal:
             X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
@@ -2857,25 +2901,90 @@ class PB_M3C2_scenario2(PB_M3C2):
 
         X = np.vstack((X0, X1))
 
-        labeling_pipeline = Pipeline(
+        transform_pipeline = Pipeline(
             [
                 ("Transform Post Segmentation", self._post_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
             ]
         )
 
-        labeling_pipeline.fit(X)
+        transform_pipeline.fit(X)
+        return build_similarity_feature_and_y.compute(transform_pipeline.transform(X))
 
-        return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
-
-    def build_labelled_similarity_features(
+    def reconstruct_post_segmentation_output(
         self,
+        epoch0,
+        epoch1,
         extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_file_name=None,
-        tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
     ):
-        assert False, "Not implemented yet!"
-        pass
+
+        assert (
+            "segment_id" in epoch0.additional_dimensions.dtype.names
+        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+
+        epoch0 = np.concatenate(
+            (epoch0.cloud, epoch0.additional_dimensions["segment_id"]), axis=1
+        )
+
+        assert (
+            "segment_id" in epoch1.additional_dimensions.dtype.names
+        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+
+        epoch1 = np.concatenate(
+            (epoch1.cloud, epoch1.additional_dimensions["segment_id"]), axis=1
+        )
+
+        if self._post_segmentation.compute_normal:
+            X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
+        else:
+            X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
+            X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
+
+        X = np.vstack((X0, X1))
+
+        transform_pipeline = Pipeline(
+            [
+                ("Transform Post Segmentation", self._post_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+            ]
+        )
+
+        transform_pipeline.fit(X)
+        extracted_segments = transform_pipeline.transform(X)
+
+        # return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
+
+        # self._post_segmentation.fit(X)
+        # out = self._post_segmentation.transform(X)
+        #
+        # self._extract_segments.fit(out)
+        # # 'extracted_segments' contains the new set of segments
+        # extracted_segments = self._extract_segments.transform(out)
+
+        # X_Column = 0
+        # Y_Column = 1
+        # Z_Column = 2
+        # EpochID_Column = 3
+        # Segment_ID_Column = 17
+        #
+        # Extract_Columns = [X_Column, Y_Column, Z_Column, Segment_ID_Column]
+        #
+        # mask_epoch0 = out[:, EpochID_Column] == 0
+        # mask_epoch1 = out[:, EpochID_Column] == 1
+        #
+        # out_epoch0 = out[mask_epoch0, :]
+        # out_epoch1 = out[mask_epoch1, :]
+        #
+        # x_y_z_id_epoch0 = out_epoch0[:, Extract_Columns]  # x,y,z, Seg_ID
+        # x_y_z_id_epoch1 = out_epoch1[:, Extract_Columns]  # x,y,z, Seg_ID
+        #
+        # np.savetxt(x_y_z_id_epoch0_file_name, x_y_z_id_epoch0, delimiter=",")
+        # np.savetxt(x_y_z_id_epoch1_file_name, x_y_z_id_epoch1, delimiter=",")
+        np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
+
+        # return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
+        return epoch0, epoch1, extracted_segments
 
     def training(self, X, y):
 
@@ -2886,20 +2995,17 @@ class PB_M3C2_scenario2(PB_M3C2):
         :return:
         """
 
-        # Is is a good idea to recreate the "Classifier" ??
-        # Maybe there is value in having multiple learning iterations??
-
         training_predicting_pipeline = Pipeline(
             [
-                ("Transform Post Segmentation", self._post_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                # ("Transform Post Segmentation", self._post_segmentation),
+                # ("Transform ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
 
         # training_predicting_pipeline.set_params()
-        self._post_segmentation.skip = True
-        self._extract_segments.skip = True
+        # self._post_segmentation.skip = True
+        # self._extract_segments.skip = True
 
         training_predicting_pipeline.fit(X, y)
 
@@ -2914,6 +3020,22 @@ class PB_M3C2_scenario2(PB_M3C2):
         :return: Return a vector of 0/1
         """
 
+        assert (
+            "segment_id" in epoch0.additional_dimensions.dtype.names
+        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+
+        epoch0 = np.concatenate(
+            (epoch0.cloud, epoch0.additional_dimensions["segment_id"]), axis=1
+        )
+
+        assert (
+            "segment_id" in epoch1.additional_dimensions.dtype.names
+        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+
+        epoch1 = np.concatenate(
+            (epoch1.cloud, epoch1.additional_dimensions["segment_id"]), axis=1
+        )
+
         if self._post_segmentation.compute_normal:
             X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
             X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
@@ -2923,14 +3045,13 @@ class PB_M3C2_scenario2(PB_M3C2):
 
         X = np.vstack((X0, X1))
 
-        # activate the entire pipeline
-        # training_predicting_pipeline.set_params()
-
-        self._post_segmentation.skip = False
-        self._extract_segments.skip = False
-
-        # self._classifier.cross_validation_is_active = False
-        # training_predicting_pipeline.set_params(estimator__Classifier__cross_validation_is_active= False)
+        training_predicting_pipeline = Pipeline(
+            [
+                ("Transform Post Segmentation", self._post_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+                ("Classifier", self._classifier),
+            ]
+        )
 
         return training_predicting_pipeline.predict(X)
         pass
@@ -3066,32 +3187,32 @@ if __name__ == "__main__":
     # ***************
     # Scenario 1
 
-    random.seed(10)
-    np.random.seed(10)
-
-    Alg = PB_M3C2()
-
-    # X, y = Alg.build_labelled_similarity_features_interactively(
-    #     epoch0=epoch0, epoch1=epoch1
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # Alg = PB_M3C2()
+    #
+    # # X, y = Alg.build_labelled_similarity_features_interactively(
+    # #     epoch0=epoch0, epoch1=epoch1
+    # # )
+    # # Alg.training(X, y)
+    #
+    # (
+    #     x_y_z_id_epoch0,
+    #     x_y_z_id_epoch1,
+    #     extracted_segments,
+    # ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
+    # extended_y = generate_random_y(
+    #     extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
     # )
-    # Alg.training(X, y)
-
-    (
-        x_y_z_id_epoch0,
-        x_y_z_id_epoch1,
-        extracted_segments,
-    ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
-    extended_y = generate_random_y(
-        extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
-    )
-    features, labels = Alg.build_labelled_similarity_features(
-        extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
-    )
-    Alg.training(features, labels)
-
-    print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
-    print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
+    # features, labels = Alg.build_labelled_similarity_features(
+    #     extracted_segments_file_name="extracted_segments.seg",
+    #     tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
+    # )
+    # Alg.training(features, labels)
+    #
+    # print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
+    # print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
 
     # random.seed(10)
     # np.random.seed(10)
@@ -3119,19 +3240,19 @@ if __name__ == "__main__":
     # *********************
     # scenario 2
 
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
-    #     epoch0=epoch0, epoch1=epoch1
-    # )
-    # # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-    #
-    # alg_scenario2 = PB_M3C2_scenario2()
-    # X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
-    # alg_scenario2.training(X, y)
-    # print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
-    # print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
+    random.seed(10)
+    np.random.seed(10)
+
+    new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+        epoch0=epoch0, epoch1=epoch1
+    )
+    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+
+    alg_scenario2 = PB_M3C2_scenario2()
+    X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
+    alg_scenario2.training(X, y)
+    print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
+    print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
 
 # ***************
 
