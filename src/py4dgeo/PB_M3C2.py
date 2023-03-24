@@ -2953,37 +2953,8 @@ class PB_M3C2_with_segments(PB_M3C2):
         transform_pipeline.fit(X)
         extracted_segments = transform_pipeline.transform(X)
 
-        # return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
-
-        # self._post_segmentation.fit(X)
-        # out = self._post_segmentation.transform(X)
-        #
-        # self._extract_segments.fit(out)
-        # # 'extracted_segments' contains the new set of segments
-        # extracted_segments = self._extract_segments.transform(out)
-
-        # X_Column = 0
-        # Y_Column = 1
-        # Z_Column = 2
-        # EpochID_Column = 3
-        # Segment_ID_Column = 17
-        #
-        # Extract_Columns = [X_Column, Y_Column, Z_Column, Segment_ID_Column]
-        #
-        # mask_epoch0 = out[:, EpochID_Column] == 0
-        # mask_epoch1 = out[:, EpochID_Column] == 1
-        #
-        # out_epoch0 = out[mask_epoch0, :]
-        # out_epoch1 = out[mask_epoch1, :]
-        #
-        # x_y_z_id_epoch0 = out_epoch0[:, Extract_Columns]  # x,y,z, Seg_ID
-        # x_y_z_id_epoch1 = out_epoch1[:, Extract_Columns]  # x,y,z, Seg_ID
-        #
-        # np.savetxt(x_y_z_id_epoch0_file_name, x_y_z_id_epoch0, delimiter=",")
-        # np.savetxt(x_y_z_id_epoch1_file_name, x_y_z_id_epoch1, delimiter=",")
         np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
 
-        # return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
         return epoch0, epoch1, extracted_segments
 
     def training(self, X, y):
@@ -3002,10 +2973,6 @@ class PB_M3C2_with_segments(PB_M3C2):
                 ("Classifier", self._classifier),
             ]
         )
-
-        # training_predicting_pipeline.set_params()
-        # self._post_segmentation.skip = True
-        # self._extract_segments.skip = True
 
         training_predicting_pipeline.fit(X, y)
 
@@ -3045,7 +3012,7 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         X = np.vstack((X0, X1))
 
-        training_predicting_pipeline = Pipeline(
+        predicting_pipeline = Pipeline(
             [
                 ("Transform Post Segmentation", self._post_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -3053,11 +3020,11 @@ class PB_M3C2_with_segments(PB_M3C2):
             ]
         )
 
-        return training_predicting_pipeline.predict(X)
+        return predicting_pipeline.predict(X)
         pass
 
     # the algorithm should be the same!
-    # def distance(self, epoch0, epoch1, alignment_error=1.1):
+    # def compute_distances(self, epoch0, epoch1, alignment_error=1.1):
 
 
 if __name__ == "__main__":
