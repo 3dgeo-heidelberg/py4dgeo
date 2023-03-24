@@ -318,7 +318,12 @@ def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **pars
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_xyz(*filenames[1:], other_epoch=new_epoch, **parse_opts)
+            read_from_xyz(
+                *filenames[1:],
+                other_epoch=new_epoch,
+                additional_dimensions=additional_dimensions,
+                **parse_opts,
+            )
         )
 
 

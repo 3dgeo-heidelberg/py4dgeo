@@ -20,4 +20,3 @@ RUN rm -rf ${HOME}/work && \
 
 # Make JupyterLab the default for this application
 ENV JUPYTER_ENABLE_LAB=yes
-
