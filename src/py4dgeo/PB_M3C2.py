@@ -962,6 +962,19 @@ class PostSegmentation(BaseTransformer):
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
 
+        """
+        Compute the orthogonal distance between the candidate point and the segment represented by its plane.
+
+        :param candidate_point:
+            numpy array (3, 1) candidate point during segmentation process.
+        :param plane_point:
+            numpy array (3, 1) representing a point (most likely, a core point), part of the segment.
+        :param plane_normal:
+            numpy array (3, 1)
+        :return:
+            True/False
+        """
+
         d = -plane_point.dot(plane_normal.T)
         distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(
             plane_normal
@@ -992,7 +1005,7 @@ class PostSegmentation(BaseTransformer):
 
         # Eig. values,
         # Eig. Vector0, Eig. Vector1, Eig. Vector2(Normal),
-        # initial guess for normal position
+        # initial guess for position of the normal vector
         return (
             S.reshape(1, -1),
             U[:, 0].reshape(1, -1),
@@ -1119,6 +1132,7 @@ class ExtractSegments(BaseTransformer):
         """
 
         :param skip:
+            Whether the current transform is applied or not.
         """
 
         super(ExtractSegments, self).__init__(skip=skip)
@@ -1137,9 +1151,33 @@ class ExtractSegments(BaseTransformer):
     def _transform(self, X):
 
         """
+        Transform the numpy array of 'point cloud' to numpy array of 'segments' and extend the structure by adding
+        a new column containing the 'number of points found in Segment_ID'. During this process, only one point
+        that is part of a segment ( the core point ) is maintained, while all the others are discarded.
 
         :param X:
-        :return: A vector of segments.
+            numpy array (n, 19) with the following column structure:
+            [
+                x, y, z ( 3 columns ), -> point from cloud
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column )
+            ]
+        :return:
+            numpy array (m, 20) with the following column structure:
+            [
+                x, y, z ( 3 columns ), -> segment, core point
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column ),
+                Number of points found in Segment_ID segment ( 1 column )
+            ]
         """
 
         X_Column = 0
@@ -1165,9 +1203,9 @@ class ExtractSegments(BaseTransformer):
         Standard_deviation_Column = 18
 
         # new column
-        Nr_points_seg_Column = 19  # 18
+        Nr_points_seg_Column = 19
 
-        nr_columns_segment = 20  # 19
+        nr_columns_segment = 20
 
         max = int(X[:, Segment_ID_Column].max())
         X_Segments = np.empty((int(max) + 1, nr_columns_segment), dtype=float)
@@ -1191,8 +1229,6 @@ class ExtractSegments(BaseTransformer):
             X_Segments[i, -1] = nr_points
 
         return X_Segments
-
-    pass
 
 
 # class ExtendedClassifier(RandomForestClassifier):
