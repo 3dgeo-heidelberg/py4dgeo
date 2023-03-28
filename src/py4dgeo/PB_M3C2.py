@@ -2078,7 +2078,7 @@ class PB_M3C2:
         if second_segmentation:
             assert (
                 second_segmentation.with_previously_computed_segments == True
-            ), "Second segmentation must have with_previously_computed_segments=True"
+            ), "Second segmentation must have: with_previously_computed_segments=True"
 
         self._add_LLSV_and_PCA = add_LLSV_and_PCA
         self._segmentation = segmentation
@@ -2092,6 +2092,13 @@ class PB_M3C2:
         It is an adapter from [x, y, z, N_x, N_y, N_z, Segment_ID] column structure of input 'epoch'
         to an output equivalent with the following pipeline computation:
                 ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
+
+        Note: When comparing distance results between this notebook and the base algorithm notebook, you might notice,
+        that results do not necessarily agree even if the given segmentation information is exactly
+        the same as the one computed in the base algorithm.
+        This is due to the reconstruction process in this algorithm being forced to select the segment position
+        (exported as the core point) from the segment points instead of reconstructing the correct position
+        from the base algorithm.
 
         :param epoch:
             Epoch object where each row has the following format: [x, y, z, N_x, N_y, N_z, Segment_ID]
@@ -2170,6 +2177,13 @@ class PB_M3C2:
         It is an adapter from [x, y, z, Segment_ID] column structure of input 'epoch'
         to an output equivalent with the following pipeline computation:
             ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
+
+        Note: When comparing distance results between this notebook and the base algorithm notebook, you might notice,
+        that results do not necessarily agree even if the given segmentation information is exactly
+        the same as the one computed in the base algorithm.
+        This is due to the reconstruction process in this algorithm being forced to select the segment position
+        (exported as the core point) from the segment points instead of reconstructing the correct position
+        from the base algorithm.
 
         :param epoch:
             Epoch object where each row contains by: [x, y, z, Segment_ID]
