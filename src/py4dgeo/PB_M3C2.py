@@ -599,6 +599,7 @@ class AddLLSVandPCA(BaseTransformer):
             Eigenvector2z_Column,
         ]
 
+        # this process can be parallelized!
         return np.apply_along_axis(
             lambda x: self._llsv_and_pca(
                 x,
