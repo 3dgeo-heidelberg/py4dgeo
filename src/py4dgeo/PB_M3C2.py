@@ -74,8 +74,11 @@ def angle_difference_compute(normal1, normal2):
     """
 
     :param normal1:
+        unit vector
     :param normal2:
+        unit vector
     :return:
+        numpy array of angles in degree.
     """
 
     # normal1, normal2 have to be unit vectors ( and that is the case as a result of the SVD process )
@@ -483,8 +486,10 @@ class AddLLSVandPCA(BaseTransformer):
 
         """
 
-        :param skip: Whether the current transform is applied or not.
-        :param radius: The radius used to extract the neighbour points using KD-tree.
+        :param skip:
+            Whether the current transform is applied or not.
+        :param radius:
+            The radius used to extract the neighbour points using KD-tree.
         """
 
         super(AddLLSVandPCA, self).__init__(skip=skip)
@@ -546,12 +551,15 @@ class AddLLSVandPCA(BaseTransformer):
     def _transform(self, X):
 
         """
-        Extending X matrix with eigenvalues, eigenvectors, and lowest local surface variation columns.
-        :param X: A numpy matrix with x,y,z,EpochID columns.
-        :return:  X numpy matrix extended containing the following columns:
-                x,y,z,EpochID columns and
-                Eigenvalues( 3 columns )
-                Eigenvectors( 3 columns ) X 3 [ in descending normal order ]
+        Extending X matrix by adding eigenvalues, eigenvectors, and lowest local surface variation columns.
+
+        :param X:
+            A numpy matrix with x, y, z, EpochID columns.
+        :return:
+            numpy matrix extended containing the following columns:
+                x, y, z, EpochID columns,
+                Eigenvalues( 3 columns ),
+                Eigenvectors( 3 columns ) X 3 [ in descending normal order ],
                 Lowest local surface variation( 1 column )
         """
 
@@ -624,7 +632,7 @@ class Segmentation(BaseTransformer):
         distance_orthogonal_threshold=1.5,
         llsv_threshold=1,
         roughness_threshold=5,
-        max_nr_points_neighbourhood=100,
+        max_nr_points_neighborhood=100,
         min_nr_points_per_segment=5,
         with_previously_computed_segments=False,
     ):
@@ -632,15 +640,31 @@ class Segmentation(BaseTransformer):
         """
 
         :param skip:
+            Whether the current transform is applied or not.
         :param radius:
+            The radius used to extract the neighbour points using KD-tree during segmentation process.
         :param angle_diff_threshold:
+            Angular deviation threshold for a point candidate’s local normal vector to the normal vector
+            of the initial seed point.
         :param disntance_3D_threshold:
+            Norm 2 distance threshold of the point candidate to the current set of points,
+            during the segmentation process.
         :param distance_orthogonal_threshold:
+            Orthogonal distance threshold of the point candidate to the current plane segment
+            used during the segmentation process.
         :param llsv_threshold:
+            The threshold on local surface variation.
         :param roughness_threshold:
-        :param max_nr_points_neighbourhood:
+            Threshold on local roughness.
+            ( not properly integrated as part of the segmentation process!!! )
+        :param max_nr_points_neighborhood:
+            The maximum number of points in the neighborhood of the point the candidate used
+            for checking during the segmentation process.
         :param min_nr_points_per_segment:
+            The minimum number of points required to consider a segment as valid.
         :param with_previously_computed_segments:
+            Used for differentiating between the first and the second segmentation.
+            ( must be refactored!!! )
         """
 
         super(Segmentation, self).__init__(skip=skip)
@@ -651,22 +675,25 @@ class Segmentation(BaseTransformer):
         self.distance_orthogonal_threshold = distance_orthogonal_threshold
         self.llsv_threshold = llsv_threshold
         self.roughness_threshold = roughness_threshold
-        self.max_nr_points_neighbourhood = max_nr_points_neighbourhood
+        self.max_nr_points_neighborhood = max_nr_points_neighborhood
         self.min_nr_points_per_segment = min_nr_points_per_segment
         self.with_previously_computed_segments = with_previously_computed_segments
 
     def angle_difference_check(self, normal1, normal2):
 
         """
+        Check whether the angle between 2 normalized vectors is less than
+        the used segmentation threshold "angle_diff_threshold" (in degrees)
 
         :param normal1:
+            normalized vector
         :param normal2:
+            normalized vector
         :return:
+            True/False
         """
 
-        # normal1, normal2 have to be unit vectors ( and that is the case as a result of the SVD process )
-
-        # return np.arccos(np.clip(np.dot(normal1, normal2), -1.0, 1.0)) * 180./np.pi <= self.angle_diff_threshold
+        # normal1, normal2 have to be unit vectors (and that is the case as a result of the SVD process)
         return angle_difference_compute(normal1, normal2) <= self.angle_diff_threshold
 
     def disntance_3D_set_check(
@@ -674,20 +701,25 @@ class Segmentation(BaseTransformer):
     ):
 
         """
+        Check whether the distance between the candidate point and all the points, currently part of the segment
+        is less than the 'disntance_3D_threshold'.
 
         :param point:
+            Numpy array (3, 1) candidate point during segmentation process.
         :param segment_id:
+            The segment ID for which the candidate point is considered.
         :param X:
+            numpy array (n, 19)
         :param X_Y_Z_Columns:
+            python list containing the indexes of the X,Y,Z columns.
         :param Segment_ID_Column:
+            The column index used as the segment id.
         :return:
+            True/False
         """
 
         point_mask = X[:, Segment_ID_Column] == segment_id
 
-        # x,y,z
-        # np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
-        # np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
         # can be optimized by changing the norm
         return (
             np.min(
@@ -697,6 +729,19 @@ class Segmentation(BaseTransformer):
         )
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
+
+        """
+        Compute the orthogonal distance between the candidate point and the segment represented by its plane.
+
+        :param candidate_point:
+            numpy array (3, 1) candidate point during segmentation process.
+        :param plane_point:
+            numpy array (3, 1) representing a point (most likely, a core point), part of the segment.
+        :param plane_normal:
+            numpy array (3, 1)
+        :return:
+            True/False
+        """
 
         d = -plane_point.dot(plane_normal)
         distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(
@@ -708,15 +753,18 @@ class Segmentation(BaseTransformer):
     def distance_orthogonal_check(self, candidate_point, plane_point, plane_normal):
 
         """
+        Check whether the orthogonal distance between the candidate point and the segment represented by its plane
+        is less than the 'disntance_3D_threshold'.
 
         :param candidate_point:
+            numpy array (3, 1) candidate point during segmentation process.
         :param plane_point:
+            numpy array (3, 1) representing a point (most likely, a core point), part of the segment.
         :param plane_normal:
+             numpy array (3, 1)
         :return:
+            True/False
         """
-
-        # d = -plane_point.dot(plane_normal)
-        # distance = (plane_normal.dot(candidate_point) + d) / np.linalg.norm(plane_normal)
 
         distance = self.compute_distance_orthogonal(
             candidate_point, plane_point, plane_normal
@@ -725,9 +773,11 @@ class Segmentation(BaseTransformer):
 
     def lowest_local_suface_variance_check(self, llsv):
         """
-
+            Check lowest local suface variance threshold.
         :param llsv:
+            lowest local suface variance
         :return:
+            True/False
         """
 
         return llsv <= self.llsv_threshold
@@ -740,8 +790,8 @@ class Segmentation(BaseTransformer):
         :return:
         """
 
-        # the 'Segment_ID_Column' was already added!
-        if X.shape[1] == 18:
+        # the 'Segment_ID_Column'(column id 17) and 'Standard_deviation_Column'(column id 18) were already added!
+        if X.shape[1] == 19:
             self.with_previously_computed_segments = True
 
         return self
@@ -751,7 +801,25 @@ class Segmentation(BaseTransformer):
         """
 
         :param X:
+            numpy array (n, 17) with the following column structure:
+            [
+                x, y, z ( 3 column ),
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column )
+            ]
         :return:
+            numpy array (n, 19) with the following column structure:
+            [
+                x, y, z ( 3 columns ),
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column )
+            ]
         """
 
         X_Column = 0
@@ -760,8 +828,6 @@ class Segmentation(BaseTransformer):
         X_Y_Z_Columns = [X_Column, Y_Column, Z_Column]
 
         EpochID_Column = 3
-        # Lowest local surface variation
-        # llsv_Column = -2  # the column ID
 
         Eigenvector2x_Column = 13
         Eigenvector2y_Column = 14
@@ -778,16 +844,18 @@ class Segmentation(BaseTransformer):
         # default standard deviation for points that are not "core points"
         Default_std_deviation_of_no_core_point = -1
 
-        # the new column is added only if it wasn't already added in previously
+        # the new columns are added only if it wasn't already added in previously
         if not self.with_previously_computed_segments:
 
-            new_columns = np.full((X.shape[0], 1), Default_No_Segment, dtype=float)
-            X = np.hstack((X, new_columns))
+            new_column_segment_id = np.full(
+                (X.shape[0], 1), Default_No_Segment, dtype=float
+            )
+            X = np.hstack((X, new_column_segment_id))
 
-            new_columns_std_deviation = np.full(
+            new_column_std_deviation = np.full(
                 (X.shape[0], 1), Default_std_deviation_of_no_core_point, dtype=float
             )
-            X = np.hstack((X, new_columns_std_deviation))
+            X = np.hstack((X, new_column_std_deviation))
 
         Segment_ID_Column = 17
         Standard_deviation_Column = 18
@@ -826,7 +894,7 @@ class Segmentation(BaseTransformer):
                     # this step can be preprocessed in a vectorized way!
                     indx_kd_tree_list = _epoch[epoch_id].kdtree.radius_search(
                         X[indx_row, X_Y_Z_Columns], self.radius
-                    )[: self.max_nr_points_neighbourhood]
+                    )[: self.max_nr_points_neighborhood]
                     for indx_kd_tree in indx_kd_tree_list:
                         if (
                             X[indx_kd_tree + offset_in_X[epoch_id], Segment_ID_Column]
