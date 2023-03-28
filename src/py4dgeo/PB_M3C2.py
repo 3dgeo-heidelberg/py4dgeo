@@ -554,10 +554,11 @@ class AddLLSVandPCA(BaseTransformer):
         Extending X matrix by adding eigenvalues, eigenvectors, and lowest local surface variation columns.
 
         :param X:
-            A numpy matrix with x, y, z, EpochID columns.
+            A numpy array with x, y, z, EpochID columns.
         :return:
             numpy matrix extended containing the following columns:
-                x, y, z, EpochID columns,
+                x, y, z ( 3 columns ),
+                EpochID ( 1 column ),
                 Eigenvalues( 3 columns ),
                 Eigenvectors( 3 columns ) X 3 [ in descending normal order ],
                 Lowest local surface variation( 1 column )
@@ -696,7 +697,7 @@ class Segmentation(BaseTransformer):
         # normal1, normal2 have to be unit vectors (and that is the case as a result of the SVD process)
         return angle_difference_compute(normal1, normal2) <= self.angle_diff_threshold
 
-    def disntance_3D_set_check(
+    def distance_3D_set_check(
         self, point, segment_id, X, X_Y_Z_Columns, Segment_ID_Column
     ):
 
@@ -841,10 +842,11 @@ class Segmentation(BaseTransformer):
 
         # default, the points are part of NO segment ( e.g. -1 )
         Default_No_Segment = -1
+
         # default standard deviation for points that are not "core points"
         Default_std_deviation_of_no_core_point = -1
 
-        # the new columns are added only if it wasn't already added in previously
+        # the new columns are added only if they weren't already been added previously
         if not self.with_previously_computed_segments:
 
             new_column_segment_id = np.full(
@@ -872,19 +874,19 @@ class Segmentation(BaseTransformer):
         _epoch[1].build_kdtree()
 
         # sort by "Lowest local surface variation"
-        Sort_indx_epoch0 = X[mask_epoch0, llsv_Column].argsort()
-        Sort_indx_epoch1 = X[mask_epoch1, llsv_Column].argsort()
-        Sort_indx_epoch = [Sort_indx_epoch0, Sort_indx_epoch1]
+        sort_indx_epoch0 = X[mask_epoch0, llsv_Column].argsort()
+        sort_indx_epoch1 = X[mask_epoch1, llsv_Column].argsort()
+        sort_indx_epoch = [sort_indx_epoch0, sort_indx_epoch1]
 
-        offset_in_X = [0, Sort_indx_epoch0.shape[0]]
+        offset_in_X = [0, sort_indx_epoch0.shape[0]]
 
-        # initialization required between multiple iterations of these transform
+        # initialization required between multiple Segmentations
         seg_id = np.max(X[:, Segment_ID_Column])
 
         for epoch_id in range(2):
-            # seg_id = -1
-            for indx_row in Sort_indx_epoch[epoch_id] + offset_in_X[epoch_id]:
-                if X[indx_row, Segment_ID_Column] < 0:  # not part of a segment yet
+            for indx_row in sort_indx_epoch[epoch_id] + offset_in_X[epoch_id]:
+                # no part of a segment yet
+                if X[indx_row, Segment_ID_Column] < 0:
                     seg_id += 1
                     X[indx_row, Segment_ID_Column] = seg_id
 
@@ -903,7 +905,7 @@ class Segmentation(BaseTransformer):
                                 X[indx_row, Normal_Columns],
                                 X[indx_kd_tree + offset_in_X[epoch_id], Normal_Columns],
                             )
-                            and self.disntance_3D_set_check(
+                            and self.distance_3D_set_check(
                                 X[indx_kd_tree + offset_in_X[epoch_id], X_Y_Z_Columns],
                                 seg_id,
                                 X,
@@ -943,7 +945,8 @@ class Segmentation(BaseTransformer):
                     if nr_points_segment < self.min_nr_points_per_segment:
                         mask_seg_id = X[:, Segment_ID_Column] == seg_id
                         X[mask_seg_id, Segment_ID_Column] = Default_No_Segment
-                        seg_id -= 1  # since we don't have a new segment
+                        # since we don't have a new segment
+                        seg_id -= 1
                     else:
                         X[indx_row, Standard_deviation_Column] = (
                             cumulative_distance_for_std_deviation
