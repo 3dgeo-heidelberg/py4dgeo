@@ -49,8 +49,8 @@ __all__ = [
     "SimplifiedClassifier",
     "ClassifierWrapper",
     "PB_M3C2",
-    "build_input_scenario2_without_normals",
-    "build_input_scenario2_with_normals",
+    #    "_build_input_scenario2_without_normals",
+    #    "_build_input_scenario2_with_normals",
     "PB_M3C2_with_segments",
     "set_interactive_backend",
     "generate_random_y",
@@ -2693,7 +2693,7 @@ class PB_M3C2:
         return (self.distances, self.uncertainties)
 
 
-def build_input_scenario2_with_normals(epoch0, epoch1):
+def _build_input_scenario2_with_normals(epoch0, epoch1):
 
     """
     :param epoch0: x,y,z point cloud
@@ -2763,7 +2763,7 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
     pass
 
 
-def build_input_scenario2_without_normals(epoch0, epoch1):
+def _build_input_scenario2_without_normals(epoch0, epoch1):
 
     """
     :param epoch0: x,y,z point cloud
@@ -3119,10 +3119,10 @@ if __name__ == "__main__":
     random.seed(10)
     np.random.seed(10)
 
-    new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+    new_epoch0, new_epoch1 = _build_input_scenario2_without_normals(
         epoch0=epoch0, epoch1=epoch1
     )
-    # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+    # new_epoch0, new_epoch1 = _build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
 
     alg_scenario2 = PB_M3C2_scenario2()
     X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
