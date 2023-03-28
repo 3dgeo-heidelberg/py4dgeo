@@ -2594,6 +2594,7 @@ class PB_M3C2:
         Standard_deviation_Column = 18
         Nr_points_seg_Column = 19  # 18
 
+        # Each row contains a pair of segments.
         segments_pair = self.predict(epoch0=epoch0, epoch1=epoch1)
 
         size_segment = int(segments_pair.shape[1] / 2)
