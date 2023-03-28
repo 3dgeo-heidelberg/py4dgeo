@@ -371,7 +371,8 @@ def segments_visualizer(X):
 def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"):
 
     """
-        Generate a subset of random tuples of segment id from each epoch with a random label.
+        Generate a subset (1/3 from the total possible pairs) of random tuples of segments ID
+        (where each ID gets to be extracted from a different epoch) which are randomly labeled (0/1)
     :param X:
         (n, 20)
         Each row contains a segment.
@@ -452,7 +453,8 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         self.n_features_ = X.shape[1]
 
         # Return the transformer
-        print("Transformer Fit")
+        logger = logging.getLogger("py4dgeo")
+        logger.info("Transformer Fit")
         return self._fit(X, y)
 
     def transform(self, X):
@@ -471,7 +473,8 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         if X.shape[1] != self.n_features_:
             raise ValueError("Shape of input is different from what was seen in `fit`")
 
-        print("Transformer Transform")
+        logger = logging.getLogger("py4dgeo")
+        logger.info("Transformer Transform")
         return self._transform(X)
 
 
@@ -2083,19 +2086,28 @@ class PB_M3C2:
         self._extract_segments = extract_segments
         self._classifier = classifier
 
-        # self._build_similarity_feature_and_y = build_similarity_feature_and_y
-
     def _reconstruct_input_with_normals(self, epoch, epoch_id):
 
         """
 
         :param epoch:
-            Epoch object where each row is formed by: [x, y, z, N_x, N_y, N_z, Segment_ID]
+            Epoch object where each row has the following format: [x, y, z, N_x, N_y, N_z, Segment_ID]
         :param epoch_id:
             is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
             adapter from [x, y, z, N_x, N_y, N_z, Segment_ID] to the output of the following pipeline computation:
                 ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
+                [
+                    x,y,z, -> Center of the Mass
+                    EpochID_Column, ->0/1
+                    Eigenvalue 1, Eigenvalue 2, Eigenvalue 3,
+                    Eigenvector0 (x,y,z),
+                    Eigenvector1 (x,y,z),
+                    Eigenvector2 (x,y,z), -> Normal vector
+                    llsv_Column, -> lowest local surface variation
+                    Segment_ID_Column,
+                    Standard_deviation_Column
+                ]
         """
 
         X_Column = 0
@@ -2129,7 +2141,6 @@ class PB_M3C2:
         return np.hstack(
             (
                 epoch[:, :3],  # x,y,z      X 3
-                # np.zeros((epoch.shape[0], 0)).reshape(-1, 1),
                 np.full(
                     (epoch.shape[0], 1), epoch_id, dtype=float
                 ),  # EpochID_Column    X 1
@@ -2157,12 +2168,23 @@ class PB_M3C2:
         """
 
         :param epoch:
-            Epoch object where each row is formed by: [x, y, z, Segment_ID]
+            Epoch object where each row contains by: [x, y, z, Segment_ID]
         :param epoch_id:
             is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
             adapter from [x, y, z, Segment_ID] to the output of the following pipeline computation:
                 ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
+                [
+                    x,y,z, -> Center of the Mass
+                    EpochID_Column, ->0/1
+                    Eigenvalue 1, Eigenvalue 2, Eigenvalue 3,
+                    Eigenvector0 (x,y,z),
+                    Eigenvector1 (x,y,z),
+                    Eigenvector2 (x,y,z), -> Normal vector
+                    llsv_Column, -> lowest local surface variation
+                    Segment_ID_Column,
+                    Standard_deviation_Column
+                ]
         """
 
         X_Column = 0
@@ -2190,6 +2212,7 @@ class PB_M3C2:
         # default standard deviation for points that are not "core points"
         Default_std_deviation_of_no_core_point = -1
 
+        # [x, y, z, Segment_ID] or [x, y, z, N_x, N_y, N_z, Segment_ID]
         assert (
             epoch.shape[1] == 3 + 1 or epoch.shape[1] == 3 + 3 + 1
         ), "epoch size mismatch!"
@@ -2197,7 +2220,6 @@ class PB_M3C2:
         return np.hstack(
             (
                 epoch[:, :3],  # x,y,z     X 3
-                # np.zeros((epoch.shape[0], 0)).reshape(-1, 1),
                 np.full(
                     (epoch.shape[0], 1), epoch_id, dtype=float
                 ),  # EpochID_Column X 1
@@ -2230,11 +2252,13 @@ class PB_M3C2:
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
         :param epoch0:
+            Epoch object.
         :param epoch1:
+            Epoch object.
         :param build_similarity_feature_and_y:
-            The object used for extracting the features applied as part of similarity alg.
-        :return: parir
-            similarity features, labels
+            The object used for extracting the features applied as part of similarity algorithm.
+        :return:
+            pairs of 'similarity features', labels
         """
 
         if not interactive_available:
@@ -2276,12 +2300,12 @@ class PB_M3C2:
 
         It also generates a numpy array of segments of the form:
                     X_Column, Y_Column, Z_Column, -> Center of Gravity
-                    EpochID_Column,
+                    EpochID_Column, -> 0/1
                     Eigenvalue0_Column, Eigenvalue1_Column, Eigenvalue2_Column,
                     Eigenvector0x_Column, Eigenvector0y_Column, Eigenvector0z_Column,
                     Eigenvector1x_Column, Eigenvector1y_Column, Eigenvector1z_Column,
                     Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column, -> Normal vector
-                    llsv_Column,
+                    llsv_Column, -> lowest local surface variation
                     Segment_ID_Column,
                     Standard_deviation_Column,
                     Nr_points_seg_Column,
@@ -2352,11 +2376,12 @@ class PB_M3C2:
         :param pair_segments_epoch0_epoch1_label:
             numpy array (m, 3)
         :return:
-            similarity features, labels
+            pairs of 'similarity features', labels
         """
 
         # Resolve the given path
         filename = find_file(extracted_segments_file_name)
+
         logger = logging.getLogger("py4dgeo")
 
         # Read it
@@ -2372,7 +2397,7 @@ class PB_M3C2:
         # Read it
         try:
             logger.info(
-                f"Reading tuples of (segment epoch0,segment epoch1,label) from file '{filename}'"
+                f"Reading tuples of (segment epoch0, segment epoch1, label) from file '{filename}'"
             )
             tuples_seg_epoch0_seg_epoch1_label = np.genfromtxt(filename, delimiter=",")
         except ValueError:
@@ -2386,39 +2411,30 @@ class PB_M3C2:
 
         """
         It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
-        :param X: features.
-        :param y: labels.
+
+        :param X:
+            features.
+        :param y:
+            labels.
         :return:
         """
 
-        training_predicting_pipeline = Pipeline(
+        training_pipeline = Pipeline(
             [
-                # ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
-                # ("Transform Segmentation", self._segmentation),
-                # ("Transform Second Segmentation", self._second_segmentation),
-                # ("Transform ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
-
-        # training_predicting_pipeline.set_params()
-        # self._add_LLSV_and_PCA.skip = True
-        # self._segmentation.skip = True
-        # self._second_segmentation.skip = True
-        # self._extract_segments.skip = True
-
-        training_predicting_pipeline.fit(X, y)
-
-        # check: https://scikit-learn.org/stable/modules/model_evaluation.html#scoring-parameter
-        # check: https://scikit-learn.org/stable/modules/cross_validation.html
-        # cross_val_score(training_predicting_pipeline, X, y, cv=2,
-        pass
+        training_pipeline.fit(X, y)
 
     def predict(self, epoch0, epoch1):
+
         """
         For a set of pairs of segments, between Epoch and Epoch 1, it predicts which one corresponds and which don't.
+
         :param epoch0:
+            Epoch object.
         :param epoch1:
+            Epoch object.
         :return: Return a vector of 0/1
         """
 
@@ -2428,7 +2444,7 @@ class PB_M3C2:
         # | x | y | z | epoch I.D.
         X = np.vstack((X0, X1))
 
-        training_predicting_pipeline = Pipeline(
+        predicting_pipeline = Pipeline(
             [
                 ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
@@ -2438,15 +2454,7 @@ class PB_M3C2:
             ]
         )
 
-        # activate the entire pipeline
-        # training_predicting_pipeline.set_params()
-        # self._add_LLSV_and_PCA.skip = False
-        # self._segmentation.skip = False
-        # self._second_segmentation.skip = False
-        # self._extract_segments.skip = False
-
-        # training_predicting_pipeline.fit(X)
-        return training_predicting_pipeline.predict(X)
+        return predicting_pipeline.predict(X)
         pass
 
     # predict_scenario4
@@ -2516,11 +2524,13 @@ class PB_M3C2:
         """
 
         :param epoch0:
+            Epoch object.
         :param epoch1:
+            Epoch object.
         :param alignment_error:
             alignment error reg between point clouds.
         :return:
-            distance, uncertaintie
+            distances, uncertainties
         """
 
         X_Column = 0
@@ -3036,119 +3046,6 @@ if __name__ == "__main__":
 
     epoch0, epoch1 = read_from_xyz("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
 
-    # if False:
-    #
-    #     Sample = 441
-    #
-    #     X0 = np.hstack((epoch0.cloud[:Sample, :], np.zeros((Sample, 1))))
-    #     X1 = np.hstack((epoch1.cloud[:Sample, :], np.ones( (Sample, 1))))
-    #
-    #     # | x | y | z | epoch I.D.
-    #     X = np.vstack((X0, X1))
-    #     y = np.vstack((epoch0.cloud[:Sample, 0], epoch1.cloud[:Sample, 0]))     # just some random input
-    #
-    #     Tr1 = AddLLSVandPCA()
-    #     #Tr1.fit(X, y)
-    #     Tr1.fit(X)
-    #     X_tr1 = Tr1.transform(X)
-    #
-    #     Tr2 = Segmentation(
-    #         radius=2,
-    #         angle_diff_threshold=1,
-    #         disntance_3D_threshold=1.5, distance_orthogonal_threshold=1.5,
-    #         min_nr_points_per_segment=9,
-    #         llsv_threshold=5.5,
-    #     )
-    #     #Tr2.fit(X_tr1, y)q
-    #     Tr2.fit(X_tr1)
-    #     X_tr2 = Tr2.transform(X_tr1)
-    #
-    #     # print segment ID
-    #     print(X_tr2[:, 17])
-    #     X_tr2_cpy = np.copy(X_tr2)
-    #
-    #     # visualizer of segmented points
-    #     points_segmentation_visualizer(X_tr2)
-    #
-    #     # Tr2_bis = Segmentation()
-    #     Tr2_bis = Segmentation(
-    #         radius=5,
-    #         angle_diff_threshold=10,
-    #         disntance_3D_threshold=10,
-    #        # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-    #         with_previously_computed_segments=True)
-    #     Tr2_bis.fit(X_tr2)
-    #     X_tr2_bis = Tr2_bis.transform(X_tr2)
-    #     print(X_tr2_bis[:, 17])
-    #
-    #     # check to see if there is any change between
-    #     print("-----------")
-    #     print("Number of points NOT part of a SEGMENT")
-    #     print(X_tr2_cpy[(X_tr2_cpy[:, 17] == -1)].shape)
-    #     print(X_tr2_bis[(X_tr2_bis[:, 17] == -1)].shape)
-    #     print("-----------")
-    #
-    #     # visualizer of segmented points
-    #     points_segmentation_visualizer(X_tr2_bis)
-    #
-    #     Tr3 = ExtractSegments()
-    #     #Tr3.fit(X_tr2, y)
-    #     #Tr3.fit(X_tr2)
-    #     Tr3.fit(X_tr2_bis)
-    #     #X_tr3 = Tr3.transform(X_tr2)
-    #     X_tr3 = Tr3.transform(X_tr2_bis)
-    #     print(X_tr3)
-    #     # visualizer for segments
-    #     segments_visualizer(X_tr3)
-    #
-    #
-    #     y_random =  generate_random_y(X_tr3)
-    #
-    #     # classifier = ExtendedClassifier()
-    #     # classifier.fit(X_tr3, y_random)
-    #     # segments_pairs = classifier.predict(X_tr3)
-    #     # print(segments_pairs.shape)
-    #     #
-    #     # pipe = Pipeline(
-    #     #     [
-    #     #         ("Transform 1", AddLLSVandPCA()),
-    #     #         ("Transform 2", Segmentation()),
-    #     #         ("Transform 4", Segmentation(
-    #     #             radius=10,
-    #     #             angle_diff_threshold=10,
-    #     #             disntance_3D_threshold=10,
-    #     #             with_previously_computed_segments=True)),
-    #     #         ("Transform 5", ExtractSegments()),
-    #     #         ("Classifier", ExtendedClassifier())
-    #     #     ]
-    #     # )
-    #     #
-    #     # print(pipe)
-    #
-    #     random_forest_wrapper_classifier = ClassifierWrapper()
-    #     random_forest_wrapper_classifier.fit(X_tr3, y_random)
-    #     segments_pairs = random_forest_wrapper_classifier.predict(X_tr3)
-    #     print(segments_pairs.shape)
-    #
-    #     pipe_wrapper_classier = Pipeline(
-    #         [
-    #             ("Transform 1", AddLLSVandPCA()),
-    #             ("Transform 2", Segmentation()),
-    #             ("Transform 4", Segmentation(
-    #                 radius=10,
-    #                 angle_diff_threshold=10,
-    #                 disntance_3D_threshold=10,
-    #                 with_previously_computed_segments=True)),
-    #             ("Transform 5", ExtractSegments()),
-    #             ("Classifier", ClassifierWrapper())
-    #         ]
-    #     )
-    #
-    #     print(pipe_wrapper_classier)
-    #
-    #     # we don't test anything else.
-    #     exit(0)
-
     # *********************
 
     # ***************
@@ -3220,18 +3117,3 @@ if __name__ == "__main__":
     alg_scenario2.training(X, y)
     print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
     print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
-
-# ***************
-
-# random.seed(10)
-# np.random.seed(10)
-#
-# Alg = PB_M3C2(classifier=ClassifierWrapper())
-# X, y = Alg.build_labels(epoch0=epoch0, epoch1=epoch1)
-# Alg.training(X, y)
-#
-# new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-# Alg.predict_update(previous_segmented_epoch=new_epoch0, epoch1=epoch1)
-#
-# print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
-# print(Alg.distance(epoch0=epoch0, epoch1=epoch1))
