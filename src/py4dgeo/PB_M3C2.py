@@ -78,7 +78,7 @@ def angle_difference_compute(normal1, normal2):
     :param normal2:
         unit vector
     :return:
-        numpy array of angles in degree.
+        numpy array of angles in degrees.
     """
 
     # normal1, normal2 have to be unit vectors ( and that is the case as a result of the SVD process )
