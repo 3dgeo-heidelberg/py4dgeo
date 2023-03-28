@@ -495,9 +495,21 @@ class AddLLSVandPCA(BaseTransformer):
         """
         Compute PCA (implicitly, the normal vector as well) and lowest local surface variation
         for point "x" using the set "X" as input.
+
         :param x:
+            a reference to a row, part of the returned structure, of the following form:
+                [
+                    x, y, z,
+                    EpochID,
+                    Eigenvalues( 3 columns ),
+                    Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                    Lowest local surface variation ( 1 column )
+                ]
         :param X:
+            Subset of the point cloud of numpy array (m,3), that is found around 'x' inside a 'radius'.
         :return:
+            return a populated x with
+            (Eigenvalues, Eigenvectors, Lowest local surface variation)
         """
 
         size = X.shape[0]
@@ -508,9 +520,6 @@ class AddLLSVandPCA(BaseTransformer):
 
         # Find principal components (SVD)
         U, S, VT = np.linalg.svd(B.T / np.sqrt(size), full_matrices=0)
-
-        # lowest local surface variation, normal vector
-        # return np.hstack(( S[-1] / np.sum(S), U[:,2] ))
 
         x[-13:] = np.hstack(
             (
@@ -533,7 +542,6 @@ class AddLLSVandPCA(BaseTransformer):
         """
 
         return self
-        pass
 
     def _transform(self, X):
 
@@ -603,8 +611,6 @@ class AddLLSVandPCA(BaseTransformer):
             1,
             X,
         )
-        # return X
-        pass
 
 
 class Segmentation(BaseTransformer):
