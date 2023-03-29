@@ -123,7 +123,7 @@ def get_distinct_colors(n):
     return [HSVToRGB(huePartition * value, 1.0, 1.0) for value in range(0, n)]
 
 
-def points_segmentation_visualizer(X):
+def segmented_point_cloud_visualizer(X):
 
     """
         Visualize a segmented point cloud. ( the result of the segmentation process )
@@ -480,7 +480,9 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         # Check that the input is of the same shape as the one passed
         # during fit.
         if X.shape[1] != self.n_features_:
-            raise ValueError("Shape of input is different from what was seen in `fit`")
+            raise Py4DGeoError(
+                "Shape of input is different from what was seen in `fit`"
+            )
 
         logger = logging.getLogger("py4dgeo")
         logger.info("Transformer Transform")
@@ -2407,11 +2409,16 @@ class PB_M3C2:
 def _build_input_scenario2_with_normals(epoch0, epoch1):
 
     """
-    :param epoch0: x,y,z point cloud
-    :param epoch1: x,y,z point cloud
+    Build a segmented point cloud with computed normals for each point.
+
+    :param epoch0:
+        x,y,z point cloud
+    :param epoch1:
+        x,y,z point cloud
     :return:
-        # x,y,z, N_x,N_y,N_z, Segment_ID
-        new_epoch0, new_epoch1
+        numpy array (n, 7) new_epoch0
+        numpy array (m, 7) new_epoch1
+        both containing: x,y,z, N_x,N_y,N_z, Segment_ID as columns.
     """
 
     X_Column = 0
@@ -2477,11 +2484,16 @@ def _build_input_scenario2_with_normals(epoch0, epoch1):
 def _build_input_scenario2_without_normals(epoch0, epoch1):
 
     """
-    :param epoch0: x,y,z point cloud
-    :param epoch1: x,y,z point cloud
+        Build a segmented point cloud.
+
+    :param epoch0:
+        x,y,z point cloud
+    :param epoch1:
+        x,y,z point cloud
     :return:
-        # x,y,z, Segment_ID
-        new_epoch0, new_epoch1
+        numpy array (n, 4) new_epoch0
+        numpy array (m, 4) new_epoch1
+        both containing: x,y,z,Segment_ID as columns.
     """
 
     X_Column = 0
@@ -2505,7 +2517,7 @@ def _build_input_scenario2_without_normals(epoch0, epoch1):
     Segment_ID_Column = 17
 
     Standard_deviation_Column = 18
-    Nr_points_seg_Column = 19  # 18
+    Nr_points_seg_Column = 19
 
     x_y_z_Columns = [X_Column, Y_Column, Z_Column]
 
