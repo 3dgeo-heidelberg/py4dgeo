@@ -2764,8 +2764,6 @@ if __name__ == "__main__":
 
     epoch0, epoch1 = read_from_xyz("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
 
-    # *********************
-
     # ***************
     # Scenario 1
 
@@ -2795,29 +2793,6 @@ if __name__ == "__main__":
     #
     # print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
     # print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
-
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg2 = PB_M3C2(
-    #     classifier=SimplifiedClassifier()
-    #     # add_LLSV_and_PCA = AddLLSVandPCA(),
-    #     # segmentation = Segmentation(),
-    #     # second_segmentation = Segmentation(
-    #     #     radius=5,
-    #     #     angle_diff_threshold=10,
-    #     #     disntance_3D_threshold=10,
-    #     #     # distance_orthogonal_threshold=10, llsv_threshold=10, roughness_threshold=10,
-    #     #     with_previously_computed_segments=True),
-    #     # extract_segments = Extract_segments(),
-    #     # build_similarity_feature_and_y = BuildSimilarityFeature_and_y_RandomPairs(),
-    #     # classifier=ClassifierWrapper()
-    # )
-    #
-    # X1, y1 = Alg2.build_labels(epoch0=epoch0, epoch1=epoch1)
-    # Alg2.training(X, y)
-    # print(Alg2.predict(epoch0=epoch0, epoch1=epoch1))
-    # print(Alg2.distance(epoch0=epoch0, epoch1=epoch1))
 
     # *********************
     # scenario 2
