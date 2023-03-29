@@ -46,7 +46,6 @@ __all__ = [
     "BuildSimilarityFeature_and_y",
     "BuildSimilarityFeature_and_y_RandomPairs",
     "BuildSimilarityFeature_and_y_Visually",
-    #   "SimplifiedClassifier",
     "ClassifierWrapper",
     "PB_M3C2",
     #    "_build_input_scenario2_without_normals",
@@ -378,6 +377,7 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
     """
         Generate a subset (1/3 from the total possible pairs) of random tuples of segments ID
         (where each ID gets to be extracted from a different epoch) which are randomly labeled (0/1)
+
     :param X:
         (n, 20)
         Each row contains a segment.
@@ -444,8 +444,6 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         Returns
         -------
         X_transformed : array, shape (n_samples, n_features)
-            The array containing the element-wise square roots of the values
-            in ``X``.
         """
         pass
 
@@ -460,6 +458,7 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         # Return the transformer
         logger = logging.getLogger("py4dgeo")
         logger.info("Transformer Fit")
+
         return self._fit(X, y)
 
     def transform(self, X):
@@ -987,27 +986,37 @@ class PostSegmentation(BaseTransformer):
     def pca_compute_normal_and_mean(self, X):
 
         """
+            Perform PCA.
+            The order of the eigenvalues and eigenvectors is consistent.
 
-        :param x:
         :param X:
+            numpy array of shape (n_points, 3) with [x, y, z] columns.
         :return:
+            a tuple of:
+                Eig. values as numpy array of shape (1, 3)
+                Eig. vector0 as numpy array of shape (1, 3)
+                Eig. vector1 as numpy array of shape (1, 3)
+                Eig. vector2 (normal vector) as numpy array of shape (1, 3)
+                Position of the normal vector as numpy array of shape (1, 3),
+                    approximated as the mean of the input points.
         """
 
         size = X.shape[0]
 
-        X_avg = np.mean(X, axis=0)  # compute mean
+        # compute mean
+        X_avg = np.mean(X, axis=0)
         B = X - np.tile(X_avg, (size, 1))
 
         # Find principal components (SVD)
         U, S, VT = np.linalg.svd(B.T / np.sqrt(size), full_matrices=0)
 
-        assert S[0] != 0
-        assert S[1] != 0
-        assert S[2] != 0
+        assert S[0] != 0, "eig. value should not be 0!"
+        assert S[1] != 0, "eig. value should not be 0!"
+        assert S[2] != 0, "eig. value should not be 0!"
 
         # Eig. values,
-        # Eig. Vector0, Eig. Vector1, Eig. Vector2(Normal),
-        # initial guess for position of the normal vector
+        # Eig. Vector0, Eig. Vector1, Eig. Vector2( the norma vector),
+        # 'position' of the normal vector
         return (
             S.reshape(1, -1),
             U[:, 0].reshape(1, -1),
@@ -1078,9 +1087,9 @@ class PostSegmentation(BaseTransformer):
             Eigenvector2z_Column,
         ]
 
-        # default, the points are part of NO segment ( e.g. -1 )
+        # default value for the points that are part of NO segment ( e.g. -1 )
         Default_No_Segment = -1
-        # default standard deviation for points that are not "core points"
+        # default value for standard deviation for points that are not "core points"
         Default_std_deviation_of_no_core_point = -1
 
         max = int(X[:, Segment_ID_Column].max())
@@ -1088,9 +1097,9 @@ class PostSegmentation(BaseTransformer):
         for i in range(0, max + 1):
 
             mask = X[:, Segment_ID_Column] == float(i)
-            set_cloud = X[
-                mask, :3
-            ]  # extract all points, that are part of the same segment
+            # extract all points, that are part of the same segment
+            set_cloud = X[mask, :3]
+
             eig_values, e0, e1, normal, position = self.pca_compute_normal_and_mean(
                 set_cloud
             )
