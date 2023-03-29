@@ -1,29 +1,22 @@
 import numpy as np
+
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.utils.multiclass import unique_labels
-
-# from sklearn.metrics import euclidean_distances
 
 from sklearn.pipeline import Pipeline, FeatureUnion
 from sklearn.compose import ColumnTransformer
 from sklearn.compose import make_column_selector
 
-from sklearn.model_selection import GridSearchCV
-from sklearn.model_selection import cross_val_score
-
 from sklearn.ensemble import RandomForestClassifier
-
-from sklearn.utils.estimator_checks import check_estimator
-
 from sklearn import set_config
 
 set_config(display="diagram")
 
 from abc import ABC, abstractmethod
 
-from py4dgeo.epoch import *
-from py4dgeo import *
+from py4dgeo import Epoch, read_from_xyz
+from py4dgeo.util import Py4DGeoError, find_file
 
 from IPython import display
 
@@ -35,7 +28,6 @@ except ImportError:
     interactive_available = False
 
 import colorsys
-
 import random
 
 __all__ = [
@@ -86,6 +78,17 @@ def angle_difference_compute(normal1, normal2):
 
 def geodesic_distance(v1, v2):
 
+    """
+        Compute the smallest angle between 2 unit vectors.
+
+    :param v1:
+        unit vector
+    :param v2:
+        unit vector
+    :return:
+        numpy array of angles in degrees.
+    """
+
     v1_u = unit_vector(v1)
     v2_u = unit_vector(v2)
 
@@ -98,7 +101,6 @@ def geodesic_distance(v1, v2):
 def HSVToRGB(h, s, v):
 
     """
-
     :param h:
     :param s:
     :param v:
@@ -110,9 +112,11 @@ def HSVToRGB(h, s, v):
 def get_distinct_colors(n):
 
     """
-
+        Return a python list with 'n' elements of distinct colors.
     :param n:
+        number of colors.
     :return:
+        python list.
     """
 
     huePartition = 1.0 / (n + 1)
@@ -122,8 +126,9 @@ def get_distinct_colors(n):
 def points_segmentation_visualizer(X):
 
     """
-
+        Visualize a segmented point cloud. ( the result of the segmentation process )
     :param X:
+        numpy array of shape ( n_points, point_info_size )
     :return:
     """
 
