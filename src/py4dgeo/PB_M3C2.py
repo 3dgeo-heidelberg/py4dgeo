@@ -1338,7 +1338,7 @@ class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
         """
 
         :param X:
-            numpy array of segments.
+            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
         :param y:
             numpy array where each row is of the following form ( segment ID epoch0, segment ID epoch1, label(0/1) )
         :return:
@@ -1366,9 +1366,13 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
     def generate_extended_y(self, X):
 
         """
+        It generates, randomly, tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
+        The number of tuples is 1/3 of the minimum number of segments from epoch 0 and epoch 1.
 
         :param X:
+            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
         :return:
+            numpy array with shape (n, 3)
         """
 
         Segment_ID_Column = 17
