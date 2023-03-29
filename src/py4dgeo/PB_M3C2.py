@@ -149,8 +149,10 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
 
     """
 
-    :param seg_epoch0: segment from epoch0
-    :param seg_epoch1: segment from epoch1
+    :param seg_epoch0:
+        segment from epoch0
+    :param seg_epoch1:
+        segment from epoch1
     :return:
         angle, -> angle between plane normal vectors
         points_density_diff, -> difference between points density between pairs of segments
