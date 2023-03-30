@@ -40,8 +40,8 @@ __all__ = [
     "BuildSimilarityFeature_and_y_Visually",
     "ClassifierWrapper",
     "PB_M3C2",
-    #    "_build_input_scenario2_without_normals",
-    #    "_build_input_scenario2_with_normals",
+    "_build_input_scenario2_without_normals",
+    "_build_input_scenario2_with_normals",
     "PB_M3C2_with_segments",
     "set_interactive_backend",
     "generate_random_y",
@@ -2474,8 +2474,8 @@ def _build_input_scenario2_with_normals(epoch0, epoch1):
 
     x_y_z_Columns = [X_Column, Y_Column, Z_Column]
 
-    X0 = np.hstack((Epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
-    X1 = np.hstack((Epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
+    X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+    X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
 
     X = np.vstack((X0, X1))
 
@@ -2587,7 +2587,8 @@ class PB_M3C2_with_segments(PB_M3C2):
         """
 
         :param post_segmentation:
-
+            A transform object that it is used to reconstruct the result that is achived using the "PB_P3C2 class"
+            until point cloud segmentation starting with
         :param classifier:
             An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
         """
