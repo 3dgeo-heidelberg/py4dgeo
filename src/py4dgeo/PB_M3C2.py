@@ -79,7 +79,7 @@ def angle_difference_compute(normal1, normal2):
 def geodesic_distance(v1, v2):
 
     """
-        Compute the smallest angle between 2 unit vectors.
+        Compute the shortest angular distance between 2 unit vectors.
 
     :param v1:
         unit vector
@@ -101,10 +101,13 @@ def geodesic_distance(v1, v2):
 def HSVToRGB(h, s, v):
 
     """
+    Convert from HSV ( Hue Saturation Value ) color to RGB ( Red Blue Green )
+
     :param h:
     :param s:
     :param v:
     :return:
+        tuple [ float, float, float ]
     """
     return colorsys.hsv_to_rgb(h, s, v)
 
@@ -116,7 +119,7 @@ def get_distinct_colors(n):
     :param n:
         number of colors.
     :return:
-        python list.
+        python list of tuple [ float, float, float ]
     """
 
     huePartition = 1.0 / (n + 1)
@@ -126,9 +129,19 @@ def get_distinct_colors(n):
 def segmented_point_cloud_visualizer(X):
 
     """
-        Visualize a segmented point cloud. ( the result of the segmentation process )
+    Visualize a segmented point cloud. ( the resulting point cloud after the segmentation process )
+
     :param X:
-        numpy array of shape ( n_points, point_info_size )
+        numpy array (n, 19) with the following column structure:
+        [
+            x, y, z ( 3 columns ),
+            EpochID ( 1 column ),
+            Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+            Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+            Lowest local surface variation ( 1 column ),
+            Segment_ID ( 1 column ),
+            Standard deviation ( 1 column )
+        ]
     :return:
     """
 
@@ -152,18 +165,30 @@ def segmented_point_cloud_visualizer(X):
 def compute_similarity_between(seg_epoch0, seg_epoch1):
 
     """
+    Similarity function between 2 segments.
 
     :param seg_epoch0:
-        segment from epoch0
+        segment from epoch0, numpy array (m, 20) with the following column structure:
+            [
+                x, y, z ( 3 columns ), -> segment, core point
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column ),
+                Number of points found in Segment_ID segment ( 1 column )
+            ]
     :param seg_epoch1:
-        segment from epoch1
+        segment from epoch1, same structure as 'seg_epoch0'
     :return:
-        angle, -> angle between plane normal vectors
-        points_density_diff, -> difference between points density between pairs of segments
-        eigen_value_smallest_diff, -> difference in the quality of plane fit (smallest eigenvalue)
-        eigen_value_largest_diff, -> difference in plane extension (largest eigenvalue)
-        eigen_value_middle_diff, -> difference in orthogonal plane extension (middle eigenvalue)
-        nr_points_diff, -> difference in number of points per plane
+        numpy array of shape (6,) containing:
+            angle, -> angle between plane normal vectors
+            points_density_diff, -> difference between points density between pairs of segments
+            eigen_value_smallest_diff, -> difference in the quality of plane fit (smallest eigenvalue)
+            eigen_value_largest_diff, -> difference in plane extension (largest eigenvalue)
+            eigen_value_middle_diff, -> difference in orthogonal plane extension (middle eigenvalue)
+            nr_points_diff, -> difference in number of points per plane
     """
 
     X_Column = 0
@@ -188,13 +213,10 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
 
     Standard_deviation_Column = 18
 
-    Nr_points_seg_Column = 19  # 18
+    Nr_points_seg_Column = 19
 
     Normal_Columns = [Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column]
 
-    # angle = np.arccos(
-    #     np.clip(np.dot(seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]), -1.0, 1.0)
-    # ) * 180./np.pi
     angle = angle_difference_compute(
         seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]
     )
