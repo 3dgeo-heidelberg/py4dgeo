@@ -32,7 +32,7 @@ import random
 
 __all__ = [
     "BaseTransformer",
-    "AddLLSVandPCA",
+    "LLSVandPCA",
     "Segmentation",
     "ExtractSegments",
     "BuildSimilarityFeature_and_y",
@@ -155,7 +155,8 @@ def segmented_point_cloud_visualizer(X):
     for i in range(0, max + 1):
 
         mask = X[:, 17] == float(i)
-        set_cloud = X[mask, :3]  # x,y,z
+        # x,y,z
+        set_cloud = X[mask, :3]
 
         sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
 
@@ -511,7 +512,7 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         return self._transform(X)
 
 
-class AddLLSVandPCA(BaseTransformer):
+class LLSVandPCA(BaseTransformer):
     def __init__(self, skip=False, radius=10):
 
         """
@@ -522,7 +523,7 @@ class AddLLSVandPCA(BaseTransformer):
             The radius used to extract the neighbour points using KD-tree.
         """
 
-        super(AddLLSVandPCA, self).__init__(skip=skip)
+        super(LLSVandPCA, self).__init__(skip=skip)
         self.radius = radius
 
     def _llsv_and_pca(self, x, X):
@@ -1789,7 +1790,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
 class PB_M3C2:
     def __init__(
         self,
-        add_LLSV_and_PCA=AddLLSVandPCA(),
+        add_LLSV_and_PCA=LLSVandPCA(),
         segmentation=Segmentation(),
         second_segmentation=Segmentation(with_previously_computed_segments=True),
         extract_segments=ExtractSegments(),
@@ -2024,7 +2025,7 @@ class PB_M3C2:
 
         labeling_pipeline = Pipeline(
             [
-                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2078,7 +2079,7 @@ class PB_M3C2:
 
         pipe_segmentation = Pipeline(
             [
-                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
@@ -2218,7 +2219,7 @@ class PB_M3C2:
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2258,7 +2259,7 @@ class PB_M3C2:
 
         pipe = Pipeline(
             [
-                ("Transform AddLLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
@@ -2481,7 +2482,7 @@ def _build_input_scenario2_with_normals(epoch0, epoch1):
 
     transform_pipeline = Pipeline(
         [
-            ("Transform AddLLSVandPCA", AddLLSVandPCA()),
+            ("Transform LLSVandPCA", LLSVandPCA()),
             ("Transform Segmentation", Segmentation()),
         ]
     )
@@ -2556,7 +2557,7 @@ def _build_input_scenario2_without_normals(epoch0, epoch1):
 
     transform_pipeline = Pipeline(
         [
-            ("Transform AddLLSVandPCA", AddLLSVandPCA()),
+            ("Transform LLSVandPCA", LLSVandPCA()),
             ("Transform Segmentation", Segmentation()),
         ]
     )
@@ -2782,7 +2783,7 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         """
         After the reconstruction of the result that is achieved using the "PB_P3C2 class" pipeline, by applying
-        ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation") ("Transform ExtractSegments")
+        ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation"), ("Transform ExtractSegments")
         applied to the segmented point cloud of epoch0 and epoch1, it returns a numpy array of corresponding
         pairs of segments between epoch 0 and epoch 1.
 
