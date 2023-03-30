@@ -2587,8 +2587,24 @@ class PB_M3C2_with_segments(PB_M3C2):
         """
 
         :param post_segmentation:
-            A transform object that it is used to reconstruct the result that is achived using the "PB_P3C2 class"
-            until point cloud segmentation starting with
+            A transform object used to 'reconstruct' the result that is achieved using the "PB_P3C2 class"
+            pipeline at the end of the point cloud segmentation.
+
+            The 'input' of this adapter is formed by 2 epochs that contain as 'additional_dimensions'
+            a segment_id column and optionally, precomputed normals as another 3 columns.
+
+            The 'output' of this adaptor is
+            numpy array (n, 19) with the following column structure:
+            [
+                x, y, z ( 3 columns ),
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column )
+            ]
+
         :param classifier:
             An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
         """
@@ -2600,42 +2616,8 @@ class PB_M3C2_with_segments(PB_M3C2):
             extract_segments=ExtractSegments(),
             classifier=classifier,
         )
-        self._post_segmentation = post_segmentation
 
-    # def build_labelled_similarity_features_interactively(
-    #     self,
-    #     epoch0,
-    #     epoch1,
-    #     build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
-    # ):
-    #
-    #     """
-    #     Given 2 Epochs, it builds a pair of features and labels used for learning.
-    #     :param epoch0:
-    #     :param epoch1:
-    #     :return:
-    #         parir of (features, labels)
-    #     """
-    #
-    #     if self._post_segmentation.compute_normal:
-    #         X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
-    #         X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
-    #     else:
-    #         X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
-    #         X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
-    #
-    #     X = np.vstack((X0, X1))
-    #
-    #     labeling_pipeline = Pipeline(
-    #         [
-    #             ("Transform Post Segmentation", self._post_segmentation),
-    #             ("Transform ExtractSegments", self._extract_segments),
-    #         ]
-    #     )
-    #
-    #     labeling_pipeline.fit(X)
-    #
-    #     return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
+        self._post_segmentation = post_segmentation
 
     def build_labelled_similarity_features_interactively(
         self,
@@ -2643,6 +2625,14 @@ class PB_M3C2_with_segments(PB_M3C2):
         epoch1,
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
     ):
+
+        """
+
+        :param epoch0:
+        :param epoch1:
+        :param build_similarity_feature_and_y:
+        :return:
+        """
 
         assert (
             "segment_id" in epoch0.additional_dimensions.dtype.names
@@ -2685,6 +2675,46 @@ class PB_M3C2_with_segments(PB_M3C2):
         epoch1,
         extracted_segments_file_name="extracted_segments.seg",
     ):
+
+        """
+        'reconstruct' the result that is achieved using the "PB_P3C2 class" pipeline, by applying
+            ("Transform LLSVandPCA"), ("Transform Segmentation"),
+            ("Transform Second Segmentation") ("Transform ExtractSegments")
+
+        :param epoch0:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column
+            and optionally, precomputed normals as another 3 columns.
+            ( the structure must be consistent with the structure of epoch1 parameter )
+        :param epoch1:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column
+            and optionally, precomputed normals as another 3 columns.
+            ( the structure must be consistent with the structure of epoch0 parameter )
+        :param extracted_segments_file_name:
+
+            The file has the following structure:
+            numpy array with shape (m, 20) where the column structure is as following:
+                [
+                    X_Column, Y_Column, Z_Column, -> Center of Gravity
+                    EpochID_Column, -> 0/1
+                    Eigenvalue0_Column, Eigenvalue1_Column, Eigenvalue2_Column,
+                    Eigenvector0x_Column, Eigenvector0y_Column, Eigenvector0z_Column,
+                    Eigenvector1x_Column, Eigenvector1y_Column, Eigenvector1z_Column,
+                    Eigenvector2x_Column, Eigenvector2y_Column, Eigenvector2z_Column, -> Normal vector
+                    llsv_Column, -> lowest local surface variation
+                    Segment_ID_Column,
+                    Standard_deviation_Column,
+                    Nr_points_seg_Column,
+                ]
+
+        :return:
+            numpy array with shape (n, 4|7) corresponding to epoch0 and
+                containing [x,y,z,N_x,N_y,N_z,segment_id] | [x,y,z,segment_id]
+            numpy array with shape (m, 4|7) corresponding to epoch1 and
+                containing [x,y,z,N_x,N_y,N_z,segment_id] | [x,y,z,segment_id]
+            numpy array with shape (p, 20) corresponding to extracted_segments
+        """
 
         assert (
             "segment_id" in epoch0.additional_dimensions.dtype.names
@@ -2729,30 +2759,45 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         """
         It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
-        :param X: features.
-        :param y: labels.
+
+        :param X:
+            features. numpy array of shape (n, p)
+
+            Where 'p' represents an arbitrary number of features
+            generated by 'tuple_feature_y' as part of 'build_labelled_similarity_features' call.
+        :param y:
+            labels. numpy array of shape (n,)
         :return:
         """
 
-        training_predicting_pipeline = Pipeline(
+        training_pipeline = Pipeline(
             [
-                # ("Transform Post Segmentation", self._post_segmentation),
-                # ("Transform ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
 
-        training_predicting_pipeline.fit(X, y)
-
-        pass
+        training_pipeline.fit(X, y)
 
     def predict(self, epoch0, epoch1):
 
         """
-        For a set of pairs of segments, between Epoch and Epoch 1, it predicts which one corresponds and which don't.
+        After the reconstruction of the result that is achieved using the "PB_P3C2 class" pipeline, by applying
+        ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation") ("Transform ExtractSegments")
+        applied to the segmented point cloud of epoch0 and epoch1, it returns a numpy array of corresponding
+        pairs of segments between epoch 0 and epoch 1.
+
         :param epoch0:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column
+            and optionally, precomputed normals as another 3 columns.
+            ( the structure must be consistent with the structure of epoch1 parameter )
         :param epoch1:
-        :return: Return a vector of 0/1
+            Epoch object.
+            contains as 'additional_dimensions' a segment_id column
+            and optionally, precomputed normals as another 3 columns.
+            ( the structure must be consistent with the structure of epoch0 parameter )
+        :return:
+            A numpy array ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
         """
 
         assert (
