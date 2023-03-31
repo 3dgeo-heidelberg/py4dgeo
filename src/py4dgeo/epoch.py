@@ -101,6 +101,20 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def radius_search(self, query, radius):
+        if len(query.shape) == 1 and query.shape[0] == 3:
+            return self.kdtree.radius_search(query, radius)
+
+        if len(query.shape) == 2 and query.shape[1] == 3:
+            neighbors = []
+            for i in range(query.shape[0]):
+                q = query[i]
+                result = self.kdtree.radius_search(q, radius)
+                neighbors.append(result)
+            return neighbors
+
+        return None
+
     def add_scan_position(self, scan_pos: np.ndarray, sp_info: list):
         """
         :param scan_pos:

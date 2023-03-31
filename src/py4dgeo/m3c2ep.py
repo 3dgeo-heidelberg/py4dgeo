@@ -33,6 +33,7 @@ class M3C2EP(M3C2):
         self.tfM = tfM
         self.Cxx = Cxx
         self.refPointMov = refPointMov
+        self.use_py4dgeo_kdtree = False
         super().__init__(**kwargs)
 
     def load_norms(self):
@@ -54,9 +55,6 @@ class M3C2EP(M3C2):
         p2_coords = self.epochs[1].cloud
         p2_positions = self.epochs[1].scan_pos
 
-        # build kd tree
-        p1_kdtree = KDTree(p1_coords, leaf_size=LEAF_SIZE)
-
         # set default M3C2Meta
         M3C2Meta = {'searchrad': 0.5, 'maxdist': 3, 'minneigh': 5, 'maxneigh': 100000}
         M3C2Meta['searchrad'] = self.cyl_radii[0]
@@ -70,11 +68,9 @@ class M3C2EP(M3C2):
         refPointMov = self.refPointMov
         tfM = self.tfM
 
-        # build kd tree
         # transform p2
         p2_coords = p2_coords - refPointMov
         p2_coords = np.dot(tfM[:3, :3], p2_coords.T).T + tfM[:, 3] + refPointMov
-        p2_kdtree = KDTree(p2_coords, leaf_size=LEAF_SIZE)
 
         # load query points
         query_coords = self.corepoints
@@ -117,6 +113,14 @@ class M3C2EP(M3C2):
         pbarProc.start()
         procs = []
 
+        # build py4dgeo kdtree
+        if self.use_py4dgeo_kdtree:
+            self.epochs[0].build_kdtree(LEAF_SIZE)
+            self.epochs[1].build_kdtree(LEAF_SIZE)
+        else:
+            p2_kdtree = KDTree(p2_coords, leaf_size=LEAF_SIZE)
+            p1_kdtree = KDTree(p1_coords, leaf_size=LEAF_SIZE)
+
         last_started_idx = -1
         running_ps = []
         while True:
@@ -124,8 +128,12 @@ class M3C2EP(M3C2):
                 last_started_idx += 1
                 if last_started_idx < len(query_coords_subs):
                     curr_subs = query_coords_subs[last_started_idx]
-                    p1_idx = p1_kdtree.query_radius(curr_subs, r=effective_search_radius)
-                    p2_idx = p2_kdtree.query_radius(curr_subs, r=effective_search_radius)
+                    if self.use_py4dgeo_kdtree:
+                        p1_idx = self.epochs[0].radius_search(curr_subs, effective_search_radius)
+                        p2_idx = self.epochs[1].radius_search(curr_subs, effective_search_radius)
+                    else:
+                        p1_idx = p1_kdtree.query_radius(curr_subs, r=effective_search_radius)
+                        p2_idx = p2_kdtree.query_radius(curr_subs, r=effective_search_radius)
 
                     p = mp.Process(target=process_corepoint_list, args=(
                         curr_subs, query_norms_subs[last_started_idx],
