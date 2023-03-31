@@ -11,6 +11,7 @@ import abc
 import logging
 import numpy as np
 import typing
+import laspy
 
 import py4dgeo._py4dgeo as _py4dgeo
 
@@ -110,6 +111,36 @@ class M3C2LikeAlgorithm(abc.ABC):
             return _py4dgeo.median_iqr_distance
         else:
             return _py4dgeo.mean_stddev_distance
+
+    def write_las(self, outfilepath, attribute_dict={}):
+        outpoints = self.corepoints
+        hdr = laspy.LasHeader(version="1.4", point_format=6)
+        hdr.x_scale = 0.00025
+        hdr.y_scale = 0.00025
+        hdr.z_scale = 0.00025
+        mean_extent = np.mean(outpoints, axis=0)
+        hdr.x_offset = int(mean_extent[0])
+        hdr.y_offset = int(mean_extent[1])
+        hdr.z_offset = int(mean_extent[2])
+
+        las = laspy.LasData(hdr)
+
+        las.x = outpoints[:, 0]
+        las.y = outpoints[:, 1]
+        las.z = outpoints[:, 2]
+        for key, vals in attribute_dict.items():
+            try:
+                las[key] = vals
+            except:
+                las.add_extra_dim(laspy.ExtraBytesParams(
+                    name=key,
+                    type=type(vals[0])
+                ))
+                las[key] = vals
+
+        las.write(outfilepath)
+
+        return
 
 
 class M3C2(M3C2LikeAlgorithm):
