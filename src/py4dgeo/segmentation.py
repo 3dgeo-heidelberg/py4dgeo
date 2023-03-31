@@ -79,7 +79,7 @@ class SpatiotemporalAnalysis:
         # If the filename does not already exist, we create a new archive
         if force or not os.path.exists(self.filename):
             logger.info(f"Creating analysis file {self.filename}")
-            with ziparchive.ZipFile(self.filename, mode="w") as zf:
+            with zipfile.ZipFile(self.filename, mode="w") as zf:
                 # Write the _segmentation file format version number
                 zf.writestr(
                     "SEGMENTATION_FILE_FORMAT",
@@ -90,7 +90,7 @@ class SpatiotemporalAnalysis:
                 zf.writestr("USE_COMPRESSION", str(self.compress))
 
         # Assert that the _segmentation file format is still valid
-        with ziparchive.ZipFile(self.filename, mode="r") as zf:
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
             # Read the _segmentation file version number and compare to current
             version = int(zf.read("SEGMENTATION_FILE_FORMAT").decode())
             if version != PY4DGEO_SEGMENTATION_FILE_FORMAT_VERSION:
@@ -104,7 +104,7 @@ class SpatiotemporalAnalysis:
         """Access the reference epoch of this analysis"""
 
         if self._reference_epoch is None:
-            with ziparchive.ZipFile(self.filename, mode="r") as zf:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
                 # Double check that the reference has already been set
                 if "reference_epoch.zip" not in zf.namelist():
                     raise Py4DGeoError("Reference epoch for analysis not yet set")
@@ -165,7 +165,7 @@ class SpatiotemporalAnalysis:
     @corepoints.setter
     def corepoints(self, _corepoints):
         """Set the corepoints for this analysis (only possible once)"""
-        with ziparchive.ZipFile(self.filename, mode="a") as zf:
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
             # If we already have corepoints in the archive, the user should start a
             # new analysis instead
             if "corepoints.zip" in zf.namelist():
@@ -221,7 +221,7 @@ class SpatiotemporalAnalysis:
         This is only possible exactly once and mutually exclusive with adding
         epochs via the :ref:`add_epochs` method.
         """
-        with ziparchive.ZipFile(self.filename, mode="a") as zf:
+        with zipfile.ZipFile(self.filename, mode="a") as zf:
             # If we already have timestamps in the archive, this is not possible
             if "timestamps.json" in zf.namelist():
                 raise Py4DGeoError(
@@ -297,7 +297,7 @@ class SpatiotemporalAnalysis:
     @property
     def smoothed_distances(self):
         if self._smoothed_distances is None:
-            with ziparchive.ZipFile(self.filename, mode="r") as zf:
+            with zipfile.ZipFile(self.filename, mode="r") as zf:
                 filename = self._numpy_filename("smoothed_distances")
                 if filename in zf.namelist():
                     with tempfile.TemporaryDirectory() as tmp_dir:
@@ -524,7 +524,7 @@ class SpatiotemporalAnalysis:
     def objects(self):
         """The list of objects by change for this analysis"""
 
-        with ziparchive.ZipFile(self.filename, mode="r") as zf:
+        with zipfile.ZipFile(self.filename, mode="r") as zf:
             if "objects.pickle" not in zf.namelist():
                 return None
 

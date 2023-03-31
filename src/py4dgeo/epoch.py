@@ -128,7 +128,7 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create the final archive
             with zipfile.ZipFile(
-                filename, mode="w", compression=ziparchive.ZIP_BZIP2
+                filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
 
                 # Write the epoch file format version number
@@ -172,7 +172,7 @@ class Epoch(_py4dgeo.Epoch):
         # Use temporary directory for extraction of files
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Open the ZIP archive
-            with ziparchive.ZipFile(filename, mode="r") as zf:
+            with zipfile.ZipFile(filename, mode="r") as zf:
 
                 # Read the epoch file version number and compare to current
                 version = int(zf.read("EPOCH_FILE_FORMAT").decode())
