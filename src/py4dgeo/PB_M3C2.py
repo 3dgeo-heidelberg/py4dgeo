@@ -10,6 +10,8 @@ from sklearn.compose import make_column_selector
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import set_config
 
+import py4dgeo.util
+
 set_config(display="diagram")
 
 from abc import ABC, abstractmethod
@@ -2854,7 +2856,7 @@ class PB_M3C2_with_segments(PB_M3C2):
 
 if __name__ == "__main__":
 
-    util.ensure_test_data_availability()
+    py4dgeo.util.ensure_test_data_availability()
 
     random.seed(10)
     np.random.seed(10)
@@ -2864,46 +2866,46 @@ if __name__ == "__main__":
     # ***************
     # Scenario 1
 
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # Alg = PB_M3C2()
-    #
-    # # X, y = Alg.build_labelled_similarity_features_interactively(
-    # #     epoch0=epoch0, epoch1=epoch1
-    # # )
-    # # Alg.training(X, y)
-    #
-    # (
-    #     x_y_z_id_epoch0,
-    #     x_y_z_id_epoch1,
-    #     extracted_segments,
-    # ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
-    # extended_y = generate_random_y(
-    #     extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
+    random.seed(10)
+    np.random.seed(10)
+
+    Alg = PB_M3C2()
+
+    # X, y = Alg.build_labelled_similarity_features_interactively(
+    #     epoch0=epoch0, epoch1=epoch1
     # )
-    # features, labels = Alg.build_labelled_similarity_features(
-    #     extracted_segments_file_name="extracted_segments.seg",
-    #     tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
-    # )
-    # Alg.training(features, labels)
-    #
-    # print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
-    # print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
+    # Alg.training(X, y)
+
+    (
+        x_y_z_id_epoch0,
+        x_y_z_id_epoch1,
+        extracted_segments,
+    ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
+    extended_y = generate_random_y(
+        extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
+    )
+    features, labels = Alg.build_labelled_similarity_features(
+        extracted_segments_file_name="extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
+    )
+    Alg.training(features, labels)
+
+    print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
+    print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
 
     # *********************
     # scenario 2
 
-    random.seed(10)
-    np.random.seed(10)
-
-    new_epoch0, new_epoch1 = _build_input_scenario2_without_normals(
-        epoch0=epoch0, epoch1=epoch1
-    )
-    # new_epoch0, new_epoch1 = _build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-
-    alg_scenario2 = PB_M3C2_scenario2()
-    X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
-    alg_scenario2.training(X, y)
-    print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
-    print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
+    # random.seed(10)
+    # np.random.seed(10)
+    #
+    # new_epoch0, new_epoch1 = _build_input_scenario2_without_normals(
+    #     epoch0=epoch0, epoch1=epoch1
+    # )
+    # # new_epoch0, new_epoch1 = _build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+    #
+    # alg_scenario2 = PB_M3C2_with_segments()
+    # X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
+    # alg_scenario2.training(X, y)
+    # print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
+    # print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
