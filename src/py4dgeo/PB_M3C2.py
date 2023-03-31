@@ -4,8 +4,7 @@ from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
 from sklearn.utils.validation import check_X_y, check_array, check_is_fitted
 from sklearn.utils.multiclass import unique_labels
 
-from sklearn.pipeline import Pipeline, FeatureUnion
-from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
 from sklearn.compose import make_column_selector
 
 from sklearn.ensemble import RandomForestClassifier
@@ -132,7 +131,7 @@ def segmented_point_cloud_visualizer(X):
     Visualize a segmented point cloud. ( the resulting point cloud after the segmentation process )
 
     :param X:
-        numpy array (n, 19) with the following column structure:
+        numpy array (n_points, 19) with the following column structure:
         [
             x, y, z ( 3 columns ),
             EpochID ( 1 column ),
@@ -169,7 +168,7 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
     Similarity function between 2 segments.
 
     :param seg_epoch0:
-        segment from epoch0, numpy array (m, 20) with the following column structure:
+        segment from epoch0, numpy array (1, 20) with the following column structure:
             [
                 x, y, z ( 3 columns ), -> segment, core point
                 EpochID ( 1 column ),
@@ -407,12 +406,12 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
         (where each ID gets to be extracted from a different epoch) which are randomly labeled (0/1)
 
     :param X:
-        (n, 20)
+        (n_segments, 20)
         Each row contains a segment.
     :param extended_y_file_name:
         Name of the file where the serialized result is saved.
     :return:
-        numpy (m, 3)
+        numpy (m_pairs, 3)
             Where each row contains tuples of set0 segment id, set1 segment id, rand 0/1.
     """
 
@@ -542,7 +541,7 @@ class LLSVandPCA(BaseTransformer):
                     Lowest local surface variation ( 1 column )
                 ]
         :param X:
-            Subset of the point cloud of numpy array (m,3), that is found around 'x' inside a 'radius'.
+            Subset of the point cloud of numpy array (m_samples, 3), that is found around 'x' inside a 'radius'.
         :return:
             return a populated x with
             (Eigenvalues, Eigenvectors, Lowest local surface variation)
@@ -741,7 +740,7 @@ class Segmentation(BaseTransformer):
         :param segment_id:
             The segment ID for which the candidate point is considered.
         :param X:
-            numpy array (n, 19)
+            numpy array (n_samples, 19)
         :param X_Y_Z_Columns:
             python list containing the indexes of the X,Y,Z columns.
         :param Segment_ID_Column:
@@ -805,7 +804,8 @@ class Segmentation(BaseTransformer):
 
     def lowest_local_suface_variance_check(self, llsv):
         """
-            Check lowest local suface variance threshold.
+        Check lowest local suface variance threshold.
+
         :param llsv:
             lowest local suface variance
         :return:
@@ -831,9 +831,10 @@ class Segmentation(BaseTransformer):
 
     def _transform(self, X):
         """
+        It applies the segmentation process.
 
         :param X:
-            numpy array (n, 17) with the following column structure:
+            numpy array (n_points, 17) with the following column structure:
             [
                 x, y, z ( 3 column ),
                 EpochID ( 1 column ),
@@ -842,7 +843,7 @@ class Segmentation(BaseTransformer):
                 Lowest local surface variation ( 1 column )
             ]
         :return:
-            numpy array (n, 19) with the following column structure:
+            numpy array (n_points, 19) with the following column structure:
             [
                 x, y, z ( 3 columns ),
                 EpochID ( 1 column ),
@@ -924,7 +925,6 @@ class Segmentation(BaseTransformer):
                     cumulative_distance_for_std_deviation = 0
                     nr_points_for_std_deviation = 0
 
-                    # this step can be preprocessed in a vectorized way!
                     indx_kd_tree_list = _epoch[epoch_id].kdtree.radius_search(
                         X[indx_row, X_Y_Z_Columns], self.radius
                     )[: self.max_nr_points_neighborhood]
@@ -1197,7 +1197,7 @@ class ExtractSegments(BaseTransformer):
         that is part of a segment ( the core point ) is maintained, while all the others are discarded.
 
         :param X:
-            numpy array (n, 19) with the following column structure:
+            numpy array (n_points, 19) with the following column structure:
             [
                 x, y, z ( 3 columns ), -> point from cloud
                 EpochID ( 1 column ),
@@ -1208,7 +1208,7 @@ class ExtractSegments(BaseTransformer):
                 Standard deviation ( 1 column )
             ]
         :return:
-            numpy array (m, 20) with the following column structure:
+            numpy array (n_segments, 20) with the following column structure:
             [
                 x, y, z ( 3 columns ), -> segment, core point
                 EpochID ( 1 column ),
@@ -1283,9 +1283,10 @@ class BuildSimilarityFeature_and_y(ABC):
         Generates tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
 
         :param X:
-            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
         :return:
-            numpy array with shape (n, 3)
+            numpy array with shape (n_segments, 3)
         """
         pass
 
@@ -1294,9 +1295,10 @@ class BuildSimilarityFeature_and_y(ABC):
         Generates pairs of 'similarity features' and 0/1 labels
 
         :param X:
-            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
         :return:
-            A pair of 'similarity feature' and labels.
+            tuple ['similarity feature', labels]
         """
 
         y_extended = self.generate_extended_y(X)
@@ -1313,7 +1315,8 @@ class BuildSimilarityFeature_and_y(ABC):
         :param y_row:
             numpy array of ( segment epoch0 id, segment epoch1 id, label(0/1) )
         :param X:
-            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
         :return:
             numpy array containing the similarity value between 2 segments.
         """
@@ -1368,11 +1371,12 @@ class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
         """
 
         :param X:
-            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
         :param y:
             numpy array where each row is of the following form ( segment ID epoch0, segment ID epoch1, label(0/1) )
         :return:
-            touple of
+            tuple of
                 similarity feature (as a function of segment ID epoch0, segment ID epoch1) -> numpy array
                 label (0/1) -> numpy array (n,)
         """
@@ -1400,9 +1404,10 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
         The number of tuples is 1/3 of the minimum number of segments from epoch 0 and epoch 1.
 
         :param X:
-            numpy array containing all the segments for both, epoch 0 and epoch 1. Each row is a segment.
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
         :return:
-            numpy array with shape (n, 3)
+            numpy array with shape (n_segments, 3)
         """
 
         Segment_ID_Column = 17
@@ -1662,11 +1667,11 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         :param neighborhood_search_radius:
             Maximum accepted Euclidean distance for any candidate segments.
         :param threshold_probability_most_similar:
-            Lower bound probability threshold for the most similar (candidate) plane.
+            Lower bound probability threshold for the most similar ( candidate ) plane.
         :param diff_between_most_similar_2:
             Lower bound threshold of difference between first 2, most similar planes.
         :param classifier:
-            The classifier used, default is RandomForestClassifier. ( sk-learn)
+            The classifier used, default is RandomForestClassifier. ( sk-learn )
         """
 
         super().__init__()
@@ -1718,7 +1723,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
             ]
 
         :return:
-            numpy array of pairs of segments where each row contains:
+            numpy array where each row contains a pair of segments:
                 [segment epoch 0, segment epoch 1]
         """
 
@@ -1840,6 +1845,7 @@ class PB_M3C2:
         :param epoch_id:
             is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
+            numpy array of shape (n_points, 19) with the following column structure:
                 [
                     x,y,z, -> Center of the Mass
                     EpochID_Column, ->0/1
@@ -1925,6 +1931,7 @@ class PB_M3C2:
         :param epoch_id:
             is 0 or 1 and represents one of the epochs used as part of distance computation.
         :return:
+            numpy array of shape (n_points, 19) with the following column structure:
                 [
                     x,y,z, -> Center of the Mass
                     EpochID_Column, ->0/1
@@ -2010,7 +2017,7 @@ class PB_M3C2:
         :param build_similarity_feature_and_y:
             The object used for extracting the features applied as part of similarity algorithm.
         :return:
-            pairs of 'similarity features', labels
+            tuple ['similarity features', labels]
         """
 
         if not interactive_available:
@@ -2046,7 +2053,7 @@ class PB_M3C2:
     ):
 
         """
-        For each epoch, it returns the segmentation of the point cloud as a numpy array (n,4)
+        For each epoch, it returns the segmentation of the point cloud as a numpy array (n_points, 4)
         and it also serializes them using the provided file names.
         where each row has the following structure: x, y, z, segment_id
 
@@ -2067,9 +2074,7 @@ class PB_M3C2:
         :param epoch1:
             Epoch object
         :return:
-            x_y_z_id_epoch0
-            x_y_z_id_epoch1
-            extracted_segments
+            tuple [ x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments ]
         """
 
         X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
@@ -2128,7 +2133,7 @@ class PB_M3C2:
 
         :param extracted_segments:
             same format as the one exported by export_segments_for_labelling()
-            numpy array with shape (m, 20) where the column structure is as following:
+            numpy array with shape (n_segments, 20) where the column structure is as following:
                 [
                     X_Column, Y_Column, Z_Column, -> Center of Gravity
                     EpochID_Column, -> 0/1
@@ -2142,9 +2147,9 @@ class PB_M3C2:
                     Nr_points_seg_Column,
                 ]
         :param pair_segments_epoch0_epoch1_label:
-            numpy array (m, 3)
+            numpy array (n_pairs, 3)
         :return:
-            pairs of 'similarity features', labels
+            tuple ['similarity features', labels]
         """
 
         # Resolve the given path
@@ -2181,12 +2186,11 @@ class PB_M3C2:
         It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
 
         :param X:
-            features. numpy array of shape (n, p)
+            features. numpy array of shape (n_feature_samples, feature_size)
 
-            Where 'p' represents an arbitrary number of features
             generated by 'tuple_feature_y' as part of 'build_labelled_similarity_features' call.
         :param y:
-            labels. numpy array of shape (n,)
+            labels (0/1). numpy array of shape (n_feature_samples,)
         :return:
         """
 
@@ -2208,7 +2212,7 @@ class PB_M3C2:
         :param epoch1:
             Epoch object.
         :return:
-            A numpy array ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
+            A numpy array ( n_pairs, segment_features_size*2 ) where each row contains a pair of segments.
         """
 
         X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
@@ -2304,7 +2308,7 @@ class PB_M3C2:
         :param alignment_error:
             alignment error reg between point clouds.
         :return:
-            distances, uncertainties
+            tuple [distances, uncertainties]
         """
 
         X_Column = 0
@@ -2439,8 +2443,10 @@ def _build_input_scenario2_with_normals(epoch0, epoch1):
     :param epoch1:
         x,y,z point cloud
     :return:
-        numpy array (n, 7) new_epoch0
-        numpy array (m, 7) new_epoch1
+        tuple [
+                numpy array (n_point_samples, 7) new_epoch0
+                numpy array (m_point_samples, 7) new_epoch1
+        ]
         both containing: x,y,z, N_x,N_y,N_z, Segment_ID as columns.
     """
 
@@ -2514,8 +2520,10 @@ def _build_input_scenario2_without_normals(epoch0, epoch1):
     :param epoch1:
         x,y,z point cloud
     :return:
-        numpy array (n, 4) new_epoch0
-        numpy array (m, 4) new_epoch1
+        tuple [
+            numpy array (n_point_samples, 4) new_epoch0
+            numpy array (m_point_samples, 4) new_epoch1
+        ]
         both containing: x,y,z,Segment_ID as columns.
     """
 
@@ -2595,7 +2603,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             a segment_id column and optionally, precomputed normals as another 3 columns.
 
             The 'output' of this adaptor is
-            numpy array (n, 19) with the following column structure:
+            numpy array (n_point_samples, 19) with the following column structure:
             [
                 x, y, z ( 3 columns ),
                 EpochID ( 1 column ),
@@ -2695,7 +2703,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         :param extracted_segments_file_name:
 
             The file has the following structure:
-            numpy array with shape (m, 20) where the column structure is as following:
+            numpy array with shape (n_segments_samples, 20) where the column structure is as following:
                 [
                     X_Column, Y_Column, Z_Column, -> Center of Gravity
                     EpochID_Column, -> 0/1
@@ -2710,11 +2718,14 @@ class PB_M3C2_with_segments(PB_M3C2):
                 ]
 
         :return:
-            numpy array with shape (n, 4|7) corresponding to epoch0 and
-                containing [x,y,z,N_x,N_y,N_z,segment_id] | [x,y,z,segment_id]
-            numpy array with shape (m, 4|7) corresponding to epoch1 and
-                containing [x,y,z,N_x,N_y,N_z,segment_id] | [x,y,z,segment_id]
-            numpy array with shape (p, 20) corresponding to extracted_segments
+            tuple
+            [
+                numpy array with shape (n, 4|7) corresponding to epoch0 and
+                    containing [x,y,z,N_x,N_y,N_z,segment_id] | [x,y,z,segment_id]
+                numpy array with shape (m, 4|7) corresponding to epoch1 and
+                    containing [x,y,z,N_x,N_y,N_z,segment_id] | [x,y,z,segment_id]
+                numpy array with shape (p, 20) corresponding to extracted_segments
+            ]
         """
 
         assert (
@@ -2762,12 +2773,12 @@ class PB_M3C2_with_segments(PB_M3C2):
         It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
 
         :param X:
-            features. numpy array of shape (n, p)
+            features. numpy array of shape (n_similarity_features_samples, n_features)
 
             Where 'p' represents an arbitrary number of features
             generated by 'tuple_feature_y' as part of 'build_labelled_similarity_features' call.
         :param y:
-            labels. numpy array of shape (n,)
+            labels. numpy array of shape (n_similarity_features_samples,)
         :return:
         """
 
@@ -2798,7 +2809,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             and optionally, precomputed normals as another 3 columns.
             ( the structure must be consistent with the structure of epoch0 parameter )
         :return:
-            A numpy array ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
+            A numpy array of shape ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
         """
 
         assert (
