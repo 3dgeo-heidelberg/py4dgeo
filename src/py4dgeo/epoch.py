@@ -436,8 +436,8 @@ def load_scan_positions_info(filename):
             print("SetJsonOperator load json error.")
             return None
     sps_list = []
-    for key in SPsdict_load:
-        sps_list.append(SPsdict_load[key])
+    for i in range(1, 1+len(SPsdict_load)):
+        sps_list.append(SPsdict_load[str(i)])
 
     for sp in sps_list:
         sp_check = True
