@@ -1,7 +1,7 @@
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
 from py4dgeo.util import Py4DGeoError, find_file
-from py4dgeo.ziparchive import UpdateableZipFile
+from py4dgeo.UpdateableZipFile import UpdateableZipFile
 
 import datetime
 import json
