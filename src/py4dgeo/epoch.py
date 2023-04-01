@@ -36,11 +36,11 @@ class Epoch(_py4dgeo.Epoch):
         :param cloud:
             The point cloud array of shape (n, 3).
         :param timestamp:
-            The point cloud timestamp, defualt is None.
+            The point cloud timestamp, default is None.
         :param scan_pos:
-            The point scan positions array of shape (n,).
+            The point scan positions array of shape (n,), default is None..
         :param sp_info:
-            The point scan positions information.
+            The point scan positions information, default is None..
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
@@ -102,6 +102,16 @@ class Epoch(_py4dgeo.Epoch):
             self.kdtree.build_tree(leaf_size)
 
     def radius_search(self, query, radius):
+        """Query the tree for neighbors within a radius r
+
+        :param query:
+            An array of points to query.
+            Array-like of shape (n_samples, 3) or query 1 sample point of shape (3,)
+        :type query: array
+        :param radius:
+            Rebuild the search tree even if it was already built before.
+        :type radius: float
+        """
         if len(query.shape) == 1 and query.shape[0] == 3:
             return self.kdtree.radius_search(query, radius)
 
@@ -116,11 +126,14 @@ class Epoch(_py4dgeo.Epoch):
         return None
 
     def add_scan_position(self, scan_pos: np.ndarray, sp_info: list):
-        """
+        """ Add scan position information of the cloud to the epoch
+
         :param scan_pos:
             The point scan positions array of shape (n,).
+        :type scan_pos: array
         :param sp_info:
             The point scan positions information.
+        :type scan_pos: list
         """
         self.scan_pos = scan_pos
         self.sp_info = sp_info
@@ -407,6 +420,12 @@ def normalize_timestamp(timestamp):
 
 
 def load_scan_positions_info(filename):
+    """Load scan positions information from a json format file
+
+    :param filename:
+        The filename to load the scan positions in.
+    :type filename: str
+    """
     if filename.rsplit(".", 1)[1] != "json":
         print("Not a json format file.")
         return None

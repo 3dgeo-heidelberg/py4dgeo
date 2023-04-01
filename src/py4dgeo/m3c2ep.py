@@ -25,6 +25,8 @@ class M3C2EP(M3C2):
         refPointMov,
         **kwargs,
     ):
+        """An M3C2-EP implementation
+         that push the limits of 3D topographic point cloud change detection by error propagation"""
         assert tfM.shape == (3, 4)
         assert refPointMov.shape == (3,)
         assert Cxx.shape == (12, 12)
@@ -43,6 +45,7 @@ class M3C2EP(M3C2):
         return self.corepoint_normals
 
     def run(self):
+        """Main entry point for running the algorithm"""
         print(self.name + " running")
 
         p1_coords = self.epochs[0].cloud

@@ -113,6 +113,15 @@ class M3C2LikeAlgorithm(abc.ABC):
             return _py4dgeo.mean_stddev_distance
 
     def write_las(self, outfilepath, attribute_dict={}):
+        """Save corepoints and distances to a given las filename
+
+        :param filename:
+            The filename to save the corepoints, distances and other attributes.
+        :type filename: str
+        :param attribute_dict:
+            The dictionary of attributes which will be saved together with corepoints.
+        :type filename: dict
+        """
         outpoints = self.corepoints
         hdr = laspy.LasHeader(version="1.4", point_format=6)
         hdr.x_scale = 0.00025
