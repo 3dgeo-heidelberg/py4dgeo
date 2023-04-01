@@ -12,6 +12,7 @@ import laspy
 from py4dgeo.epoch import Epoch
 from py4dgeo.util import (
     as_double_precision,
+    Py4DGeoError,
 )
 
 from py4dgeo import M3C2
@@ -44,21 +45,33 @@ class M3C2EP(M3C2):
 
         return self.corepoint_normals
 
-    def run(self):
-        """Main entry point for running the algorithm"""
+    def calculate_distances(self, epoch1, epoch2):
         print(self.name + " running")
+        """Calculate the distances between two epochs"""
 
-        p1_coords = self.epochs[0].cloud
-        p1_positions = self.epochs[0].scan_pos
-        p2_coords = self.epochs[1].cloud
-        p2_positions = self.epochs[1].scan_pos
+        if self.cyl_radii is None or len(self.cyl_radii) != 1:
+            raise Py4DGeoError(
+                f"{self.name} requires exactly one cylinder radius to be given"
+            )
+
+        # Ensure that the KDTree data structures have been built. This is no-op
+        # if it has already been triggered before - e.g. by a user with a custom
+        # leaf cutoff parameter.
+        # build py4dgeo kdtree.
+        epoch1.build_kdtree(self.LEAF_SIZE)
+        epoch2.build_kdtree(self.LEAF_SIZE)
+
+        p1_coords = epoch1.cloud
+        p1_positions = epoch1.scan_pos
+        p2_coords = epoch2.cloud
+        p2_positions = epoch2.scan_pos
 
         # set default M3C2Meta
         M3C2Meta = {'searchrad': 0.5, 'maxdist': 3, 'minneigh': 5, 'maxneigh': 100000}
         M3C2Meta['searchrad'] = self.cyl_radii[0]
         M3C2Meta['maxdist'] = self.max_distance
 
-        M3C2Meta['spInfos'] = [self.epochs[0].sp_info, self.epochs[1].sp_info]
+        M3C2Meta['spInfos'] = [epoch1.sp_info, epoch2.sp_info]
         M3C2Meta['tfM'] = self.tfM
         M3C2Meta['Cxx'] = self.Cxx
         M3C2Meta['redPoint'] = self.refPointMov
@@ -111,10 +124,6 @@ class M3C2EP(M3C2):
         pbarProc.start()
         procs = []
 
-        # build py4dgeo kdtree
-        self.epochs[0].build_kdtree(self.LEAF_SIZE)
-        self.epochs[1].build_kdtree(self.LEAF_SIZE)
-
         last_started_idx = -1
         running_ps = []
         while True:
@@ -122,8 +131,8 @@ class M3C2EP(M3C2):
                 last_started_idx += 1
                 if last_started_idx < len(query_coords_subs):
                     curr_subs = query_coords_subs[last_started_idx]
-                    p1_idx = self.epochs[0].radius_search(curr_subs, effective_search_radius)
-                    p2_idx = self.epochs[1].radius_search(curr_subs, effective_search_radius)
+                    p1_idx = epoch1.radius_search(curr_subs, effective_search_radius)
+                    p2_idx = epoch2.radius_search(curr_subs, effective_search_radius)
 
                     p = mp.Process(target=process_corepoint_list, args=(
                         curr_subs, query_norms_subs[last_started_idx],
@@ -154,8 +163,9 @@ class M3C2EP(M3C2):
         p2_coords_shm.close()
         p2_coords_shm.unlink()
 
-        out_attrs = {key: np.empty((query_coords.shape[0],3,3), dtype=val.dtype) if key=='m3c2_cov1' or key=='m3c2_cov2'
-                          else np.empty(query_coords.shape[0], dtype=val.dtype) for key, val in return_dict[0].items()}
+        out_attrs = {
+            key: np.empty((query_coords.shape[0], 3, 3), dtype=val.dtype) if key == 'm3c2_cov1' or key == 'm3c2_cov2'
+            else np.empty(query_coords.shape[0], dtype=val.dtype) for key, val in return_dict[0].items()}
         for key in out_attrs:
             curr_start = 0
             for i in range(NUM_BLOCKS):
@@ -186,7 +196,7 @@ class M3C2EP(M3C2):
                                  dtype=[('lodetection', 'f8'), ('spread1', 'f8'),
                                         ('num_samples1', 'i8'), ('spread2', 'f8'),
                                         ('num_samples2', 'i8')])
-        covariance = np.array(cov_list, dtype=[('cov1', 'f8', (3,3)), ('cov2', 'f8', (3,3))])
+        covariance = np.array(cov_list, dtype=[('cov1', 'f8', (3, 3)), ('cov2', 'f8', (3, 3))])
         print(self.name + " end")
         return distances, uncertainties, covariance
 
