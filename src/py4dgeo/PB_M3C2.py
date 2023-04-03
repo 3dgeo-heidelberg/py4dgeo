@@ -2543,7 +2543,9 @@ class PB_M3C2:
         predict_pipe.fit(X)
         return predict_pipe.predict(X)
 
-    def compute_distances(self, epoch0, epoch1, alignment_error=1.1):
+    def compute_distances(
+        self, epoch0: Epoch, epoch1: Epoch, alignment_error: float = 1.1
+    ) -> typing.Tuple[np.ndarray, np.ndarray]:
 
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
@@ -2557,6 +2559,19 @@ class PB_M3C2:
             alignment error reg between point clouds.
         :return:
             tuple [distances, uncertainties]
+
+            'distances' is np.array (nr_similar_pairs, 1)
+
+            'uncertainties' is np.array (nr_similar_pairs,1) and it has the following structure:
+                dtype=np.dtype(
+                    [
+                        ("lodetection", "<f8"),
+                        ("spread1", "<f8"),
+                        ("num_samples1", "<i8"),
+                        ("spread2", "<f8"),
+                        ("num_samples2", "<i8"),
+                    ]
+                )
         """
 
         X_Column = 0
