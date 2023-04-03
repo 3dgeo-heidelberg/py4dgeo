@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 
 from py4dgeo import Epoch, read_from_xyz
 from py4dgeo.util import Py4DGeoError, find_file
+import logging
 
 from IPython import display
 
@@ -30,8 +31,11 @@ except ImportError:
 
 import colorsys
 import random
+import typing
+
 
 __all__ = [
+    "Viewer",
     "BaseTransformer",
     "LLSVandPCA",
     "Segmentation",
@@ -41,16 +45,18 @@ __all__ = [
     "BuildSimilarityFeature_and_y_Visually",
     "ClassifierWrapper",
     "PB_M3C2",
-    "_build_input_scenario2_without_normals",
-    "_build_input_scenario2_with_normals",
+    "build_input_scenario2_without_normals",
+    "build_input_scenario2_with_normals",
     "PB_M3C2_with_segments",
     "set_interactive_backend",
     "generate_random_y",
 ]
 
+logger = logging.getLogger("py4dgeo")
+
 
 def set_interactive_backend(backend="vtk"):
-    """Set the interactive backend for selection of correspondent segements.
+    """Set the interactive backend for selection of correspondent segments.
 
     All backends that can be used with the vedo library can be given here.
     E.g. the following backends are available: vtk, ipyvtk, k3d, 2d, ipygany, panel, itk
@@ -90,78 +96,232 @@ def geodesic_distance(v1, v2):
         numpy array of angles in degrees.
     """
 
-    v1_u = unit_vector(v1)
-    v2_u = unit_vector(v2)
-
     return min(
-        np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0)) * 180.0 / np.pi,
-        np.arccos(np.clip(np.dot(v1_u, -v2_u), -1.0, 1.0)) * 180.0 / np.pi,
+        np.arccos(np.clip(np.dot(v1, v2), -1.0, 1.0)) * 180.0 / np.pi,
+        np.arccos(np.clip(np.dot(v1, -v2), -1.0, 1.0)) * 180.0 / np.pi,
     )
 
 
-def HSVToRGB(h, s, v):
-
-    """
-    Convert from HSV ( Hue Saturation Value ) color to RGB ( Red Blue Green )
-
-    :param h:
-    :param s:
-    :param v:
-    :return:
-        tuple [ float, float, float ]
-    """
-    return colorsys.hsv_to_rgb(h, s, v)
-
-
-def get_distinct_colors(n):
-
-    """
-        Return a python list with 'n' elements of distinct colors.
-    :param n:
-        number of colors.
-    :return:
-        python list of tuple [ float, float, float ]
-    """
-
-    huePartition = 1.0 / (n + 1)
-    return [HSVToRGB(huePartition * value, 1.0, 1.0) for value in range(0, n)]
-
-
-def segmented_point_cloud_visualizer(X):
-
-    """
-    Visualize a segmented point cloud. ( the resulting point cloud after the segmentation process )
-
-    :param X:
-        numpy array (n_points, 19) with the following column structure:
-        [
-            x, y, z ( 3 columns ),
-            EpochID ( 1 column ),
-            Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
-            Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
-            Lowest local surface variation ( 1 column ),
-            Segment_ID ( 1 column ),
-            Standard deviation ( 1 column )
-        ]
-    :return:
-    """
+class Viewer:
 
     sets = []
+    plt = None
 
-    max = int(X[:, 17].max())
-    colors = get_distinct_colors(max + 1)
+    @staticmethod
+    def HSVToRGB(h, s, v):
 
-    plt = Plotter(axes=3)
+        """
+        Convert from HSV ( Hue Saturation Value ) color to RGB ( Red Blue Green )
 
-    for i in range(0, max + 1):
+        :param h:
+        :param s:
+        :param v:
+        :return:
+            tuple [ float, float, float ]
+        """
+        return colorsys.hsv_to_rgb(h, s, v)
 
-        mask = X[:, 17] == float(i)
-        # x,y,z
-        set_cloud = X[mask, :3]
+    @staticmethod
+    def get_distinct_colors(n):
 
-        sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
+        """
+            Return a python list with 'n' elements of distinct colors.
+        :param n:
+            number of colors.
+        :return:
+            python list of tuple [ float, float, float ]
+        """
 
-    plt.show(sets).close()
+        huePartition = 1.0 / (n + 1)
+        return [
+            Viewer.HSVToRGB(huePartition * value, 1.0, 1.0) for value in range(0, n)
+        ]
+
+    @staticmethod
+    def read_np_ndarray_from_xyz(input_file_name: str) -> np.ndarray:
+
+        """
+        The reconstructed np.ndarray.
+
+        :param input_file_name:
+            The output file name.
+        :return:
+            np.ndarray
+        """
+
+        # Resolve the given path
+        filename = find_file(input_file_name)
+
+        logger = logging.getLogger("py4dgeo")
+
+        # Read it
+        try:
+            logger.info(f"Reading np.ndarray from file '{filename}'")
+            np_ndarray = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
+
+        return np_ndarray
+
+    @staticmethod
+    def segmented_point_cloud_visualizer(X: np.ndarray):
+
+        """
+        Visualize a segmented point cloud. ( the resulting point cloud after the segmentation process )
+
+        :param X:
+            numpy array (n_points, 19) with the following column structure:
+            [
+                x, y, z ( 3 columns ),
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column )
+            ]
+        :return:
+        """
+
+        sets = []
+
+        max = int(X[:, 17].max())
+        colors = Viewer.get_distinct_colors(max + 1)
+
+        plt = Plotter(axes=3)
+
+        for i in range(0, max + 1):
+
+            mask = X[:, 17] == float(i)
+            # x,y,z
+            set_cloud = X[mask, :3]
+
+            sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
+
+        plt.show(sets).close()
+
+    @staticmethod
+    def segments_visualizer(X):
+
+        """
+
+        :param X:
+        :return:
+        """
+
+        X_Column = 0
+        Y_Column = 1
+        Z_Column = 2
+        EpochID_Column = 3
+
+        Eigenvalue0_Column = 4
+        Eigenvalue1_Column = 5
+        Eigenvalue2_Column = 6
+        Eigenvector0x_Column = 7
+        Eigenvector0y_Column = 8
+        Eigenvector0z_Column = 9
+        Eigenvector1x_Column = 10
+        Eigenvector1y_Column = 11
+        Eigenvector1z_Column = 12
+        Eigenvector2x_Column = 13
+        Eigenvector2y_Column = 14
+        Eigenvector2z_Column = 15
+
+        Segment_ID_Column = 17
+
+        global sets
+        sets = []
+
+        max = X.shape[0]
+        # colors = getDistinctColors(max)
+        colors = [(1, 0, 0), (0, 1, 0)]
+
+        global plt
+        plt = Plotter(axes=3)
+
+        plt.add_callback("EndInteraction", Viewer.controller)
+        # plt.add_callback('KeyRelease', toggle_transparenct)
+        plt.add_callback("KeyPress", Viewer.toggle_transparenct)
+
+        for i in range(0, max):
+
+            # mask = X[:, 17] == float(i)
+            # set_cloud = X[mask, :3]  # x,y,z
+
+            if X[i, EpochID_Column] == 0:
+                color = colors[0]
+            else:
+                color = colors[1]
+
+            # sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
+
+            # sets = sets + [ Point( pos=(X[i, 0],X[i, 1],X[i, 2]), r=15, c=colors[i], alpha=1 ) ]
+            ellipsoid = Ellipsoid(
+                pos=(X[i, 0], X[i, 1], X[i, 2]),
+                axis1=[
+                    X[i, Eigenvector0x_Column] * X[i, Eigenvalue0_Column] * 0.5,
+                    X[i, Eigenvector0y_Column] * X[i, Eigenvalue0_Column] * 0.5,
+                    X[i, Eigenvector0z_Column] * X[i, Eigenvalue0_Column] * 0.3,
+                ],
+                axis2=[
+                    X[i, Eigenvector1x_Column] * X[i, Eigenvalue1_Column] * 0.5,
+                    X[i, Eigenvector1y_Column] * X[i, Eigenvalue1_Column] * 0.5,
+                    X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5,
+                ],
+                axis3=[
+                    X[i, Eigenvector2x_Column] * 0.1,
+                    X[i, Eigenvector2y_Column] * 0.1,
+                    X[i, Eigenvector2z_Column] * 0.1,
+                ],
+                res=24,
+                c=color,
+                alpha=1,
+            )
+            # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
+            ellipsoid.id = X[i, Segment_ID_Column]
+            ellipsoid.epoch = X[i, EpochID_Column]
+            ellipsoid.isOn = True
+            # ellipsoid.on()
+            sets = sets + [ellipsoid]
+
+        plt.show(sets).close()
+
+    @staticmethod
+    def toggle_transparenct(evt):
+
+        global sets
+        global plt
+
+        if evt.keyPressed == "z":
+            print("transparency toggle")
+            for segment in sets:
+                if segment.alpha() < 1.0:
+                    segment.alpha(1)
+                else:
+                    segment.alpha(0.5)
+            plt.render()
+
+        if evt.keyPressed == "g":
+            print("toggle red")
+            for segment in sets:
+                if segment.epoch == 0:
+                    if segment.isOn == True:
+                        segment.off()
+                    else:
+                        segment.on()
+                    segment.isOn = not segment.isOn
+            plt.render()
+
+        if evt.keyPressed == "d":
+            print("toggle green")
+            for segment in sets:
+                if segment.epoch == 1:
+                    if segment.isOn == True:
+                        segment.off()
+                    else:
+                        segment.on()
+                    segment.isOn = not segment.isOn
+            plt.render()
 
 
 def compute_similarity_between(seg_epoch0, seg_epoch1):
@@ -259,148 +419,6 @@ def compute_similarity_between(seg_epoch0, seg_epoch1):
     )
 
 
-sets = []
-plt = None
-
-
-def toggle_transparenct(evt):
-
-    global sets
-    global plt
-
-    if evt.keyPressed == "z":
-        print("transparency toggle")
-        for segment in sets:
-            if segment.alpha() < 1.0:
-                segment.alpha(1)
-            else:
-                segment.alpha(0.5)
-        plt.render()
-
-    if evt.keyPressed == "g":
-        print("toggle red")
-        for segment in sets:
-            if segment.epoch == 0:
-                if segment.isOn == True:
-                    segment.off()
-                else:
-                    segment.on()
-                segment.isOn = not segment.isOn
-        plt.render()
-
-    if evt.keyPressed == "d":
-        print("toggle green")
-        for segment in sets:
-            if segment.epoch == 1:
-                if segment.isOn == True:
-                    segment.off()
-                else:
-                    segment.on()
-                segment.isOn = not segment.isOn
-        plt.render()
-
-
-def controller(evt):
-
-    """
-
-    :param evt:
-    :return:
-    """
-    if not evt.actor:
-        return  # no hit, return
-    print("point coords =", evt.picked3d)
-    if evt.isPoints:
-        print(evt.actor)
-    # print("full event dump:", evt)
-
-
-def segments_visualizer(X):
-
-    """
-
-    :param X:
-    :return:
-    """
-
-    X_Column = 0
-    Y_Column = 1
-    Z_Column = 2
-    EpochID_Column = 3
-
-    Eigenvalue0_Column = 4
-    Eigenvalue1_Column = 5
-    Eigenvalue2_Column = 6
-    Eigenvector0x_Column = 7
-    Eigenvector0y_Column = 8
-    Eigenvector0z_Column = 9
-    Eigenvector1x_Column = 10
-    Eigenvector1y_Column = 11
-    Eigenvector1z_Column = 12
-    Eigenvector2x_Column = 13
-    Eigenvector2y_Column = 14
-    Eigenvector2z_Column = 15
-
-    Segment_ID_Column = 17
-
-    global sets
-    sets = []
-
-    max = X.shape[0]
-    # colors = getDistinctColors(max)
-    colors = [(1, 0, 0), (0, 1, 0)]
-
-    global plt
-    plt = Plotter(axes=3)
-
-    plt.add_callback("EndInteraction", controller)
-    # plt.add_callback('KeyRelease', toggle_transparenct)
-    plt.add_callback("KeyPress", toggle_transparenct)
-
-    for i in range(0, max):
-
-        # mask = X[:, 17] == float(i)
-        # set_cloud = X[mask, :3]  # x,y,z
-
-        if X[i, EpochID_Column] == 0:
-            color = colors[0]
-        else:
-            color = colors[1]
-
-        # sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
-
-        # sets = sets + [ Point( pos=(X[i, 0],X[i, 1],X[i, 2]), r=15, c=colors[i], alpha=1 ) ]
-        ellipsoid = Ellipsoid(
-            pos=(X[i, 0], X[i, 1], X[i, 2]),
-            axis1=(
-                X[i, Eigenvector0x_Column] * X[i, Eigenvalue0_Column] * 0.5,
-                X[i, Eigenvector0y_Column] * X[i, Eigenvalue0_Column] * 0.5,
-                X[i, Eigenvector0z_Column] * X[i, Eigenvalue0_Column] * 0.3,
-            ),
-            axis2=(
-                X[i, Eigenvector1x_Column] * X[i, Eigenvalue1_Column] * 0.5,
-                X[i, Eigenvector1y_Column] * X[i, Eigenvalue1_Column] * 0.5,
-                X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5,
-            ),
-            axis3=(
-                X[i, Eigenvector2x_Column] * 0.1,
-                X[i, Eigenvector2y_Column] * 0.1,
-                X[i, Eigenvector2z_Column] * 0.1,
-            ),
-            res=24,
-            c=color,
-            alpha=1,
-        )
-        # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
-        ellipsoid.id = X[i, Segment_ID_Column]
-        ellipsoid.epoch = X[i, EpochID_Column]
-        ellipsoid.isOn = True
-        # ellipsoid.on()
-        sets = sets + [ellipsoid]
-
-    plt.show(sets).close()
-
-
 def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"):
 
     """
@@ -446,8 +464,17 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
 
 
 class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
-    def __init__(self, skip=False):
+    def __init__(self, skip=False, output_file_name=None):
+
+        """
+        :param skip:
+            Whether the current transform is applied or not.
+        :param output_file_name:
+            File where the result of the 'Transform()' method, a numpy array, is dumped.
+        """
+
         self.skip = skip
+        self.output_file_name = output_file_name
         super(BaseTransformer, self).__init__()
 
     @abstractmethod
@@ -492,7 +519,18 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
 
     def transform(self, X):
 
+        """
+        param: X
+            numpy array
+        """
+
         if self.skip:
+            if self.output_file_name != None:
+                logger = logging.getLogger("py4dgeo")
+                logger.debug(
+                    f"The output file, {self.output_file_name} "
+                    f"was set but the transformation process is skipped! (no output)"
+                )
             return X
 
         # Check is fit had been called
@@ -510,11 +548,18 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
 
         logger = logging.getLogger("py4dgeo")
         logger.info("Transformer Transform")
-        return self._transform(X)
+
+        out = self._transform(X)
+
+        if self.output_file_name != None:
+            np.savetxt(self.output_file_name, out, delimiter=",")
+            logger.info(f"Saving Transform output in file: {self.output_file_name}")
+
+        return out
 
 
 class LLSVandPCA(BaseTransformer):
-    def __init__(self, skip=False, radius=10):
+    def __init__(self, skip=False, radius=10, output_file_name=None):
 
         """
 
@@ -522,9 +567,11 @@ class LLSVandPCA(BaseTransformer):
             Whether the current transform is applied or not.
         :param radius:
             The radius used to extract the neighbour points using KD-tree.
+        :param output_file_name:
+            File where the result of the 'Transform()' method, a numpy array, is dumped.
         """
 
-        super(LLSVandPCA, self).__init__(skip=skip)
+        super(LLSVandPCA, self).__init__(skip=skip, output_file_name=output_file_name)
         self.radius = radius
 
     def _llsv_and_pca(self, x, X):
@@ -668,6 +715,7 @@ class Segmentation(BaseTransformer):
         max_nr_points_neighborhood=100,
         min_nr_points_per_segment=5,
         with_previously_computed_segments=False,
+        output_file_name=None,
     ):
 
         """
@@ -698,9 +746,11 @@ class Segmentation(BaseTransformer):
         :param with_previously_computed_segments:
             Used for differentiating between the first and the second segmentation.
             ( must be refactored!!! )
+        param output_file_name:
+            File where the result of the 'Transform()' method, a numpy array, is dumped.
         """
 
-        super(Segmentation, self).__init__(skip=skip)
+        super(Segmentation, self).__init__(skip=skip, output_file_name=output_file_name)
 
         self.radius = radius
         self.angle_diff_threshold = angle_diff_threshold
@@ -806,10 +856,10 @@ class Segmentation(BaseTransformer):
 
     def lowest_local_suface_variance_check(self, llsv):
         """
-        Check lowest local suface variance threshold.
+        Check lowest local surface variance threshold.
 
         :param llsv:
-            lowest local suface variance
+            lowest local surface variance
         :return:
             True/False
         """
@@ -989,8 +1039,16 @@ class Segmentation(BaseTransformer):
 
 
 class PostSegmentation(BaseTransformer):
-    def __init__(self, skip=False, compute_normal=True):
-        super().__init__(skip=skip)
+    def __init__(self, skip=False, compute_normal=True, output_file_name=None):
+
+        """
+        :param skip:
+            Whether the current transform is applied or not.
+        :param output_file_name:
+            File where the result of the 'Transform()' method, a numpy array, is dumped.
+        """
+
+        super().__init__(skip=skip, output_file_name=output_file_name)
         self.compute_normal = compute_normal
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
@@ -1171,14 +1229,18 @@ class PostSegmentation(BaseTransformer):
 
 
 class ExtractSegments(BaseTransformer):
-    def __init__(self, skip=False):
+    def __init__(self, skip=False, output_file_name=None):
         """
 
         :param skip:
             Whether the current transform is applied or not.
+        :param output_file_name:
+            File where the result of the 'Transform()' method, a numpy array, is dumped.
         """
 
-        super(ExtractSegments, self).__init__(skip=skip)
+        super(ExtractSegments, self).__init__(
+            skip=skip, output_file_name=output_file_name
+        )
 
     def _fit(self, X, y=None):
         """
@@ -1585,21 +1647,21 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
             # self.sets = self.sets + [ Point( pos=(X[i, 0],X[i, 1],X[i, 2]), r=15, c=colors[i], alpha=1 ) ]
             ellipsoid = Ellipsoid(
                 pos=(X[i, 0], X[i, 1], X[i, 2]),
-                axis1=(
+                axis1=[
                     X[i, Eigenvector0x_Column] * X[i, Eigenvalue0_Column] * 0.5,
                     X[i, Eigenvector0y_Column] * X[i, Eigenvalue0_Column] * 0.5,
                     X[i, Eigenvector0z_Column] * X[i, Eigenvalue0_Column] * 0.3,
-                ),
-                axis2=(
+                ],
+                axis2=[
                     X[i, Eigenvector1x_Column] * X[i, Eigenvalue1_Column] * 0.5,
                     X[i, Eigenvector1y_Column] * X[i, Eigenvalue1_Column] * 0.5,
                     X[i, Eigenvector1z_Column] * X[i, Eigenvalue1_Column] * 0.5,
-                ),
-                axis3=(
+                ],
+                axis3=[
                     X[i, Eigenvector2x_Column] * 0.1,
                     X[i, Eigenvector2y_Column] * 0.1,
                     X[i, Eigenvector2z_Column] * 0.1,
-                ),
+                ],
                 res=24,
                 c=color,
                 alpha=1,
@@ -2435,7 +2497,7 @@ class PB_M3C2:
         return (self.distances, self.uncertainties)
 
 
-def _build_input_scenario2_with_normals(epoch0, epoch1):
+def build_input_scenario2_with_normals(epoch0, epoch1):
 
     """
     Build a segmented point cloud with computed normals for each point.
@@ -2512,7 +2574,7 @@ def _build_input_scenario2_with_normals(epoch0, epoch1):
     pass
 
 
-def _build_input_scenario2_without_normals(epoch0, epoch1):
+def build_input_scenario2_without_normals(epoch0, epoch1):
 
     """
         Build a segmented point cloud.
@@ -2854,58 +2916,22 @@ class PB_M3C2_with_segments(PB_M3C2):
     # def compute_distances(self, epoch0, epoch1, alignment_error=1.1):
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    py4dgeo.util.ensure_test_data_availability()
 
-    random.seed(10)
-    np.random.seed(10)
+# *********************
+# scenario 2
 
-    epoch0, epoch1 = read_from_xyz("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
-
-    # ***************
-    # Scenario 1
-
-    random.seed(10)
-    np.random.seed(10)
-
-    Alg = PB_M3C2()
-
-    # X, y = Alg.build_labelled_similarity_features_interactively(
-    #     epoch0=epoch0, epoch1=epoch1
-    # )
-    # Alg.training(X, y)
-
-    (
-        x_y_z_id_epoch0,
-        x_y_z_id_epoch1,
-        extracted_segments,
-    ) = Alg.export_segments_for_labelling(epoch0=epoch0, epoch1=epoch1)
-    extended_y = generate_random_y(
-        extracted_segments, extended_y_file_name="locally_generated_extended_y.csv"
-    )
-    features, labels = Alg.build_labelled_similarity_features(
-        extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_file_name="locally_generated_extended_y.csv",
-    )
-    Alg.training(features, labels)
-
-    print(Alg.predict(epoch0=epoch0, epoch1=epoch1))
-    print(Alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
-
-    # *********************
-    # scenario 2
-
-    # random.seed(10)
-    # np.random.seed(10)
-    #
-    # new_epoch0, new_epoch1 = _build_input_scenario2_without_normals(
-    #     epoch0=epoch0, epoch1=epoch1
-    # )
-    # # new_epoch0, new_epoch1 = _build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-    #
-    # alg_scenario2 = PB_M3C2_with_segments()
-    # X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
-    # alg_scenario2.training(X, y)
-    # print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
-    # print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
+# random.seed(10)
+# np.random.seed(10)
+#
+# new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
+#     epoch0=epoch0, epoch1=epoch1
+# )
+# # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
+#
+# alg_scenario2 = PB_M3C2_with_segments()
+# X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
+# alg_scenario2.training(X, y)
+# print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
+# print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
