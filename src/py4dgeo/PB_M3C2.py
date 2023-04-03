@@ -32,7 +32,9 @@ except ImportError:
 
 import colorsys
 import random
+import copy
 import typing
+import pprint
 
 
 __all__ = [
@@ -1988,7 +1990,7 @@ class PB_M3C2:
         """
         It is an adapter from [x, y, z, Segment_ID] column structure of input 'epoch'
         to an output equivalent with the following pipeline computation:
-            ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
+            ("Transform LLSV_and_PCA"), ("Transform Segmentation"), ("Transform Second Segmentation")
 
         Note: When comparing distance results between this notebook and the base algorithm notebook, you might notice,
         that results do not necessarily agree even if the given segmentation information is exactly
@@ -2073,10 +2075,11 @@ class PB_M3C2:
 
     def build_labelled_similarity_features_interactively(
         self,
-        epoch0,
-        epoch1,
-        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
-    ):
+        epoch0: Epoch | None = None,
+        epoch1: Epoch | None = None,
+        build_similarity_feature_and_y: BuildSimilarityFeature_and_y = BuildSimilarityFeature_and_y_Visually(),
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
 
         """
         Given 2 Epochs, it builds a pair of features and labels used for learning.
@@ -2087,32 +2090,88 @@ class PB_M3C2:
             Epoch object.
         :param build_similarity_feature_and_y:
             The object used for extracting the features applied as part of similarity algorithm.
+        :param kwargs:
+
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
         :return:
-            tuple ['similarity features', labels]
+            tuple ['similarity features', labels] | None
         """
 
+        logger = logging.getLogger("py4dgeo")
+
         if not interactive_available:
-            logger = logging.getLogger("py4dgeo")
             logger.error("Interactive session not available in this environment.")
             return
 
-        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
-
-        X = np.vstack((X0, X1))
-
         labeling_pipeline = Pipeline(
             [
-                ("Transform LLSVandPCA", self._LLSV_and_PCA),
+                ("Transform LLSV_and_PCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
             ]
         )
 
-        labeling_pipeline.fit(X)
+        pp = pprint.PrettyPrinter(depth=4)
+        # print the default parameters
+        if ("get_pipeline_options", True) in kwargs.items():
+            logger.info(
+                f"----\n "
+                f"The default parameters are:\n "
+                f"{pp.pformat(labeling_pipeline.get_params())} \n"
+                f"----\n"
+            )
+            del kwargs["get_pipeline_options"]
 
-        return build_similarity_feature_and_y.compute(labeling_pipeline.transform(X))
+        # no computation
+        if epoch0 is None or epoch1 is None:
+            # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
+            return
+
+        # save the default pipeline options
+        default_options = labeling_pipeline.get_params()
+
+        # if we have parameters
+        if len(kwargs.items()) > 0:
+            pipeline_params = labeling_pipeline.get_params()
+            # overwrite the default parameters
+            for key, value in kwargs.items():
+                if key in pipeline_params.keys():
+                    labeling_pipeline.set_params(**{key: value})
+                    logger.info(f"The pipeline parameter '{key}' is now '{value}'")
+                else:
+                    logger.error(
+                        f"The parameter '{key}' is not part of pipeline parameters: \n "
+                        f"{pp.pformat(pipeline_params)}"
+                    )
+            logger.info(
+                f"----\n "
+                f"The pipeline parameters after overwriting are: \n "
+                f"{pp.pformat(labeling_pipeline.get_params())} \n"
+                f"----\n"
+            )
+
+        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
+        X = np.vstack((X0, X1))
+        labeling_pipeline.fit(X)
+        out = labeling_pipeline.transform(X)
+
+        # restore the default pipeline options
+        labeling_pipeline.set_params(**default_options)
+
+        return build_similarity_feature_and_y.compute(out)
 
     def export_segments_for_labelling(
         self,
@@ -2155,7 +2214,7 @@ class PB_M3C2:
 
         pipe_segmentation = Pipeline(
             [
-                ("Transform LLSVandPCA", self._LLSV_and_PCA),
+                ("Transform LLSV_and_PCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
