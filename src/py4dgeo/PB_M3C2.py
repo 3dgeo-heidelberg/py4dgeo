@@ -2411,7 +2411,9 @@ class PB_M3C2:
         # apply the pipeline
         training_pipeline.fit(X, y)
 
-    def predict(self, epoch0, epoch1):
+    def predict(
+        self, epoch0: Epoch = None, epoch1: Epoch = None, **kwargs
+    ) -> np.ndarray | None:
 
         """
         After extracting the segments from epoch0 and epoch1, it returns a numpy array of corresponding
@@ -2421,19 +2423,28 @@ class PB_M3C2:
             Epoch object.
         :param epoch1:
             Epoch object.
+        :param kwargs:
+
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
         :return:
             A numpy array ( n_pairs, segment_features_size*2 ) where each row contains a pair of segments.
+            | None
         """
-
-        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
-
-        # | x | y | z | epoch I.D.
-        X = np.vstack((X0, X1))
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform LLSVandPCA", self._LLSV_and_PCA),
+                ("Transform LLSV_and_PCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2441,7 +2452,34 @@ class PB_M3C2:
             ]
         )
 
-        return predicting_pipeline.predict(X)
+        # print the default parameters
+        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=predicting_pipeline)
+
+        # no computation
+        if epoch0 is None or epoch1 is None:
+            # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
+            return
+
+        # save the default pipeline options
+        default_options = predicting_pipeline.get_params()
+
+        # overwrite the default parameters
+        PB_M3C2._overwrite_default_parameters(
+            kwargs=kwargs, pipeline=predicting_pipeline
+        )
+
+        # apply the pipeline
+
+        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
+        # | x | y | z | epoch I.D.
+        X = np.vstack((X0, X1))
+        out = predicting_pipeline.predict(X)
+
+        # restore the default pipeline options
+        predicting_pipeline.set_params(**default_options)
+
+        return out
 
     # predict_scenario4
     def predict_update(self, previous_segmented_epoch, epoch1):
