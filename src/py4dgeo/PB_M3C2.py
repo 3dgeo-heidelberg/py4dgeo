@@ -186,10 +186,11 @@ class Viewer:
 
         viewer = Viewer()
 
-        max = int(X[:, 17].max())
-        colors = Viewer.get_distinct_colors(max + 1)
+        # Segment_ID column
+        nr_segments = int(X[:, 17].max())
+        colors = Viewer.get_distinct_colors(nr_segments + 1)
 
-        for i in range(0, max + 1):
+        for i in range(0, nr_segments + 1):
 
             mask = X[:, 17] == float(i)
             # x,y,z
