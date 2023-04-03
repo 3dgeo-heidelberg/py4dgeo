@@ -52,7 +52,7 @@ __all__ = [
     "generate_random_y",
 ]
 
-logger = logging.getLogger("py4dgeo")
+# logger = logging.getLogger("py4dgeo")
 
 
 def set_interactive_backend(backend="vtk"):
@@ -103,9 +103,10 @@ def geodesic_distance(v1, v2):
 
 
 class Viewer:
+    def __init__(self):
 
-    sets = []
-    plt = None
+        self.sets = []
+        self.plt = Plotter(axes=3)
 
     @staticmethod
     def HSVToRGB(h, s, v):
@@ -183,12 +184,10 @@ class Viewer:
         :return:
         """
 
-        sets = []
+        viewer = Viewer()
 
         max = int(X[:, 17].max())
         colors = Viewer.get_distinct_colors(max + 1)
-
-        plt = Plotter(axes=3)
 
         for i in range(0, max + 1):
 
@@ -196,17 +195,28 @@ class Viewer:
             # x,y,z
             set_cloud = X[mask, :3]
 
-            sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
+            viewer.sets = viewer.sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
 
-        plt.show(sets).close()
+        viewer.plt.show(viewer.sets).close()
 
     @staticmethod
-    def segments_visualizer(X):
+    def segments_visualizer(X: np.ndarray):
 
         """
+        Segments visualizer.
 
         :param X:
-        :return:
+            Each row is a segment, numpy array (1, 20) with the following column structure:
+                [
+                    x, y, z ( 3 columns ), -> segment, core point
+                    EpochID ( 1 column ),
+                    Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                    Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                    Lowest local surface variation ( 1 column ),
+                    Segment_ID ( 1 column ),
+                    Standard deviation ( 1 column ),
+                    Number of points found in Segment_ID segment ( 1 column )
+                ]
         """
 
         X_Column = 0
@@ -229,33 +239,20 @@ class Viewer:
 
         Segment_ID_Column = 17
 
-        global sets
-        sets = []
+        viewer = Viewer()
 
-        max = X.shape[0]
-        # colors = getDistinctColors(max)
+        nr_segments = X.shape[0]
         colors = [(1, 0, 0), (0, 1, 0)]
 
-        global plt
-        plt = Plotter(axes=3)
+        viewer.plt.add_callback("KeyPress", viewer.toggle_transparency)
 
-        plt.add_callback("EndInteraction", Viewer.controller)
-        # plt.add_callback('KeyRelease', toggle_transparenct)
-        plt.add_callback("KeyPress", Viewer.toggle_transparenct)
-
-        for i in range(0, max):
-
-            # mask = X[:, 17] == float(i)
-            # set_cloud = X[mask, :3]  # x,y,z
+        for i in range(0, nr_segments):
 
             if X[i, EpochID_Column] == 0:
                 color = colors[0]
             else:
                 color = colors[1]
 
-            # sets = sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
-
-            # sets = sets + [ Point( pos=(X[i, 0],X[i, 1],X[i, 2]), r=15, c=colors[i], alpha=1 ) ]
             ellipsoid = Ellipsoid(
                 pos=(X[i, 0], X[i, 1], X[i, 2]),
                 axis1=[
@@ -277,51 +274,59 @@ class Viewer:
                 c=color,
                 alpha=1,
             )
-            # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
+            # ellipsoid.caption(txt=str(i), size=(0.1, 0.05))
             ellipsoid.id = X[i, Segment_ID_Column]
             ellipsoid.epoch = X[i, EpochID_Column]
             ellipsoid.isOn = True
-            # ellipsoid.on()
-            sets = sets + [ellipsoid]
 
-        plt.show(sets).close()
+            viewer.sets = viewer.sets + [ellipsoid]
 
-    @staticmethod
-    def toggle_transparenct(evt):
+        viewer.plt.show(
+            viewer.sets,
+            Text2D(
+                "'z' - toggle transparency on/off "
+                "'g' - toggle on/off red ellipsoids "
+                "'d' - toggle on/off green ellipsoids",
+                pos="top-left",
+                bg="k",
+                s=0.7,
+            ),
+        ).close()
 
-        global sets
-        global plt
+    def toggle_transparency(self, evt):
+
+        logger = logging.getLogger("py4dgeo")
 
         if evt.keyPressed == "z":
-            print("transparency toggle")
-            for segment in sets:
+            logger.info("transparency toggle")
+            for segment in self.sets:
                 if segment.alpha() < 1.0:
                     segment.alpha(1)
                 else:
                     segment.alpha(0.5)
-            plt.render()
+            self.plt.render()
 
         if evt.keyPressed == "g":
-            print("toggle red")
-            for segment in sets:
+            logger.info("toggle red")
+            for segment in self.sets:
                 if segment.epoch == 0:
                     if segment.isOn == True:
                         segment.off()
                     else:
                         segment.on()
                     segment.isOn = not segment.isOn
-            plt.render()
+            self.plt.render()
 
         if evt.keyPressed == "d":
-            print("toggle green")
-            for segment in sets:
+            logger.info("toggle green")
+            for segment in self.sets:
                 if segment.epoch == 1:
                     if segment.isOn == True:
                         segment.off()
                     else:
                         segment.on()
                     segment.isOn = not segment.isOn
-            plt.render()
+            self.plt.render()
 
 
 def compute_similarity_between(seg_epoch0, seg_epoch1):
