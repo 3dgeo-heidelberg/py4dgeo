@@ -2327,16 +2327,16 @@ class PB_M3C2:
 
     def build_labelled_similarity_features(
         self,
-        extracted_segments_file_name="extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_file_name=None,
-        tuple_feature_y=BuildTuplesOfSimilarityFeature_and_y(),
-    ):
+        extracted_segments_file_name: str = "extracted_segments.seg",
+        tuples_seg_epoch0_seg_epoch1_label_file_name: str = None,
+        tuple_feature_y: BuildSimilarityFeature_and_y = BuildTuplesOfSimilarityFeature_and_y(),
+    ) -> typing.Tuple[np.ndarray, np.ndarray]:
 
         """
         Build similarity features from pairs of segments and assign the corresponding labels.
 
-        :param extracted_segments:
-            same format as the one exported by export_segments_for_labelling()
+        :param extracted_segments_file_name:
+            The file has the same format as the one exported by export_segments_for_labelling()
             numpy array with shape (n_segments, 20) where the column structure is as following:
                 [
                     X_Column, Y_Column, Z_Column, -> Center of Gravity
@@ -2350,8 +2350,13 @@ class PB_M3C2:
                     Standard_deviation_Column,
                     Nr_points_seg_Column,
                 ]
-        :param pair_segments_epoch0_epoch1_label:
+        :param tuples_seg_epoch0_seg_epoch1_label_file_name:
             numpy array (n_pairs, 3)
+            Each row is of the following form:
+                (index segment epoch0, index segment epoch1, label)
+        :param tuple_feature_y:
+            An object that computes the 'similarity features' between segments from file extracted_segments_file_name
+            using tuples_seg_epoch0_seg_epoch1_label_file_name.
         :return:
             tuple ['similarity features', labels]
         """
