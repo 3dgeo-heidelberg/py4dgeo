@@ -18,6 +18,7 @@ from abc import ABC, abstractmethod
 
 from py4dgeo import Epoch, read_from_xyz
 from py4dgeo.util import Py4DGeoError, find_file
+
 import logging
 
 from IPython import display
@@ -86,7 +87,7 @@ def angle_difference_compute(normal1, normal2):
 def geodesic_distance(v1, v2):
 
     """
-        Compute the shortest angular distance between 2 unit vectors.
+    Compute the shortest angular distance between 2 unit vectors.
 
     :param v1:
         unit vector
@@ -791,7 +792,7 @@ class Segmentation(BaseTransformer):
 
         """
         Check whether the distance between the candidate point and all the points, currently part of the segment
-        is less than the 'disntance_3D_threshold'.
+        is less than the 'distance_3D_threshold'.
 
         :param point:
             Numpy array (3, 1) candidate point during segmentation process.
@@ -843,7 +844,7 @@ class Segmentation(BaseTransformer):
 
         """
         Check whether the orthogonal distance between the candidate point and the segment represented by its plane
-        is less than the 'disntance_3D_threshold'.
+        is less than the 'distance_orthogonal_threshold'.
 
         :param candidate_point:
             numpy array (3, 1) candidate point during segmentation process.
@@ -1865,7 +1866,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
 class PB_M3C2:
     def __init__(
         self,
-        add_LLSV_and_PCA=LLSVandPCA(),
+        LLSV_and_PCA=LLSVandPCA(),
         segmentation=Segmentation(),
         second_segmentation=Segmentation(with_previously_computed_segments=True),
         extract_segments=ExtractSegments(),
@@ -1873,8 +1874,8 @@ class PB_M3C2:
     ):
 
         """
-        :param add_LLSV_and_PCA:
-            lowest local surface variation and PCA computattion. (computes the normal vector as well)
+        :param LLSV_and_PCA:
+            lowest local surface variation and PCA computation. (computes the normal vector as well)
         :param segmentation:
             The object used for the first segmentation.
         :param second_segmentation:
@@ -1890,7 +1891,7 @@ class PB_M3C2:
                 second_segmentation.with_previously_computed_segments == True
             ), "Second segmentation must have: with_previously_computed_segments=True"
 
-        self._add_LLSV_and_PCA = add_LLSV_and_PCA
+        self._LLSV_and_PCA = LLSV_and_PCA
         self._segmentation = segmentation
         self._second_segmentation = second_segmentation
         self._extract_segments = extract_segments
@@ -2102,7 +2103,7 @@ class PB_M3C2:
 
         labeling_pipeline = Pipeline(
             [
-                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2154,7 +2155,7 @@ class PB_M3C2:
 
         pipe_segmentation = Pipeline(
             [
-                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
@@ -2293,7 +2294,7 @@ class PB_M3C2:
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2333,13 +2334,13 @@ class PB_M3C2:
 
         pipe = Pipeline(
             [
-                ("Transform LLSVandPCA", self._add_LLSV_and_PCA),
+                ("Transform LLSVandPCA", self._LLSV_and_PCA),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
         )
 
-        self._add_LLSV_and_PCA.skip = False
+        self._LLSV_and_PCA.skip = False
         self._segmentation.skip = False
         self._second_segmentation.skip = False
 
@@ -2689,7 +2690,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         """
 
         super().__init__(
-            add_LLSV_and_PCA=None,
+            LLSV_and_PCA=None,
             segmentation=None,
             second_segmentation=None,
             extract_segments=ExtractSegments(),
