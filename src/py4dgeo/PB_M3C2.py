@@ -2073,6 +2073,61 @@ class PB_M3C2:
             )
         )
 
+    @staticmethod
+    def _print_default_parameters(kwargs, pipeline):
+
+        """
+        :param kwargs:
+
+        :param pipeline
+        """
+
+        logger = logging.getLogger("py4dgeo")
+        pp = pprint.PrettyPrinter(depth=4)
+        # print the default parameters
+        if ("get_pipeline_options", True) in kwargs.items():
+            logger.info(
+                f"----\n "
+                f"The default parameters are:\n "
+                f"{pp.pformat(pipeline.get_params())} \n"
+                f"----\n"
+            )
+            del kwargs["get_pipeline_options"]
+
+    @staticmethod
+    def _overwrite_default_parameters(kwargs, pipeline):
+
+        """
+        :param kwargs:
+
+        :param pipeline
+        """
+
+        logger = logging.getLogger("py4dgeo")
+        pp = pprint.PrettyPrinter(depth=4)
+
+        # if we have parameters
+        if len(kwargs.items()) > 0:
+            pipeline_params = pipeline.get_params()
+            # overwrite the default parameters
+            for key, value in kwargs.items():
+                if key in pipeline_params.keys():
+                    pipeline.set_params(**{key: value})
+                    logger.info(f"The pipeline parameter '{key}' is now '{value}'")
+                else:
+                    logger.error(
+                        f"The parameter '{key}' is not part of pipeline parameters: \n "
+                        f"{pp.pformat(pipeline_params)}"
+                    )
+            logger.info(
+                f"----\n "
+                f"The pipeline parameters after overwriting are: \n "
+                f"{pp.pformat(pipeline.get_params())} \n"
+                f"----\n"
+            )
+        else:
+            logger.info("No pipeline parameter is overwritten")
+
     def build_labelled_similarity_features_interactively(
         self,
         epoch0: Epoch | None = None,
@@ -2123,16 +2178,8 @@ class PB_M3C2:
             ]
         )
 
-        pp = pprint.PrettyPrinter(depth=4)
         # print the default parameters
-        if ("get_pipeline_options", True) in kwargs.items():
-            logger.info(
-                f"----\n "
-                f"The default parameters are:\n "
-                f"{pp.pformat(labeling_pipeline.get_params())} \n"
-                f"----\n"
-            )
-            del kwargs["get_pipeline_options"]
+        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=labeling_pipeline)
 
         # no computation
         if epoch0 is None or epoch1 is None:
@@ -2142,26 +2189,10 @@ class PB_M3C2:
         # save the default pipeline options
         default_options = labeling_pipeline.get_params()
 
-        # if we have parameters
-        if len(kwargs.items()) > 0:
-            pipeline_params = labeling_pipeline.get_params()
-            # overwrite the default parameters
-            for key, value in kwargs.items():
-                if key in pipeline_params.keys():
-                    labeling_pipeline.set_params(**{key: value})
-                    logger.info(f"The pipeline parameter '{key}' is now '{value}'")
-                else:
-                    logger.error(
-                        f"The parameter '{key}' is not part of pipeline parameters: \n "
-                        f"{pp.pformat(pipeline_params)}"
-                    )
-            logger.info(
-                f"----\n "
-                f"The pipeline parameters after overwriting are: \n "
-                f"{pp.pformat(labeling_pipeline.get_params())} \n"
-                f"----\n"
-            )
+        # overwrite the default parameters
+        PB_M3C2._overwrite_default_parameters(kwargs=kwargs, pipeline=labeling_pipeline)
 
+        # apply the pipeline
         X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
         X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
         X = np.vstack((X0, X1))
@@ -2175,12 +2206,13 @@ class PB_M3C2:
 
     def export_segments_for_labelling(
         self,
-        epoch0,
-        epoch1,
-        x_y_z_id_epoch0_file_name="x_y_z_id_epoch0.xyz",
-        x_y_z_id_epoch1_file_name="x_y_z_id_epoch1.xyz",
-        extracted_segments_file_name="extracted_segments.seg",
-    ):
+        epoch0: Epoch = None,
+        epoch1: Epoch = None,
+        x_y_z_id_epoch0_file_name: str = "x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_name: str = "x_y_z_id_epoch1.xyz",
+        extracted_segments_file_name: str = "extracted_segments.seg",
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray] | None:
 
         """
         For each epoch, it returns the segmentation of the point cloud as a numpy array (n_points, 4)
@@ -2203,14 +2235,34 @@ class PB_M3C2:
             Epoch object
         :param epoch1:
             Epoch object
+        :param x_y_z_id_epoch0_file_name:
+            The output file name for epoch0, point cloud segmentation, saved as a numpy array (n_points, 4)
+            (x,y,z, segment_id)
+        :param x_y_z_id_epoch1_file_name:
+            The output file name for epoch1, point cloud segmentation, saved as a numpy array (n_points, 4)
+            (x,y,z, segment_id)
+        :param extracted_segments_file_name:
+            The output file name for the file containing the segments, saved as a numpy array containing
+            the column structure introduced above.
+        :param kwargs:
+
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
         :return:
-            tuple [ x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments ]
+            tuple [ x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments ] | None
         """
 
-        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
-        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
-
-        X = np.vstack((X0, X1))
+        logger = logging.getLogger("py4dgeo")
 
         pipe_segmentation = Pipeline(
             [
@@ -2220,6 +2272,25 @@ class PB_M3C2:
             ]
         )
 
+        # print the default parameters
+        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=pipe_segmentation)
+
+        # no computation
+        if epoch0 is None or epoch1 is None:
+            # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
+            return
+
+        # save the default pipeline options
+        default_options = pipe_segmentation.get_params()
+
+        # overwrite the default parameters
+        PB_M3C2._overwrite_default_parameters(kwargs=kwargs, pipeline=pipe_segmentation)
+
+        # apply the pipeline
+
+        X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+        X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
+        X = np.vstack((X0, X1))
         pipe_segmentation.fit(X)
         # 'out' contains the segmentation of the point cloud.
         out = pipe_segmentation.transform(X)
@@ -2227,6 +2298,9 @@ class PB_M3C2:
         self._extract_segments.fit(out)
         # 'extracted_segments' contains the new set of segments
         extracted_segments = self._extract_segments.transform(out)
+
+        # restore the default pipeline options
+        pipe_segmentation.set_params(**default_options)
 
         X_Column = 0
         Y_Column = 1
