@@ -1774,6 +1774,10 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         self.X_ = X
         self.y_ = y
 
+        logger = logging.getLogger("py4dgeo")
+
+        logger.info(f"Fit ClassifierWrapper")
+
         # Return the classifier
         return self.classifier.fit(X, y)
 
@@ -2865,7 +2869,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             The 'input' of this adapter is formed by 2 epochs that contain as 'additional_dimensions'
             a segment_id column and optionally, precomputed normals as another 3 columns.
 
-            The 'output' of this adaptor is
+            The 'output' of this adaptor is:
             numpy array (n_point_samples, 19) with the following column structure:
             [
                 x, y, z ( 3 columns ),
@@ -2893,9 +2897,10 @@ class PB_M3C2_with_segments(PB_M3C2):
 
     def build_labelled_similarity_features_interactively(
         self,
-        epoch0,
-        epoch1,
+        epoch0: Epoch = None,
+        epoch1: Epoch = None,
         build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
+        **kwargs,
     ):
 
         """
@@ -2903,6 +2908,20 @@ class PB_M3C2_with_segments(PB_M3C2):
         :param epoch0:
         :param epoch1:
         :param build_similarity_feature_and_y:
+        :param kwargs:
+
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
         :return:
         """
 
@@ -2943,26 +2962,28 @@ class PB_M3C2_with_segments(PB_M3C2):
 
     def reconstruct_post_segmentation_output(
         self,
-        epoch0,
-        epoch1,
-        extracted_segments_file_name="extracted_segments.seg",
-    ):
+        epoch0: Epoch = None,
+        epoch1: Epoch = None,
+        extracted_segments_file_name: str = "extracted_segments.seg",
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray] | None:
 
         """
         'reconstruct' the result that is achieved using the "PB_P3C2 class" pipeline, by applying
-            ("Transform LLSVandPCA"), ("Transform Segmentation"),
+            ("Transform LLSV_and_PCA"), ("Transform Segmentation"),
             ("Transform Second Segmentation") ("Transform ExtractSegments")
+        from segmented point clouds.
 
         :param epoch0:
             Epoch object,
             contains as 'additional_dimensions' a segment_id column
             and optionally, precomputed normals as another 3 columns.
-            ( the structure must be consistent with the structure of epoch1 parameter )
+            ( the structure must be consistent with the epoch1 parameter structure )
         :param epoch1:
             Epoch object,
             contains as 'additional_dimensions' a segment_id column
             and optionally, precomputed normals as another 3 columns.
-            ( the structure must be consistent with the structure of epoch0 parameter )
+            ( the structure must be consistent with the epoch0 parameter structure )
         :param extracted_segments_file_name:
 
             The file has the following structure:
@@ -2991,6 +3012,31 @@ class PB_M3C2_with_segments(PB_M3C2):
             ]
         """
 
+        transform_pipeline = Pipeline(
+            [
+                ("Transform Post Segmentation", self._post_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+            ]
+        )
+
+        # print the default parameters
+        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=transform_pipeline)
+
+        # no computation
+        if epoch0 is None or epoch1 is None:
+            # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
+            return
+
+        # save the default pipeline options
+        default_options = transform_pipeline.get_params()
+
+        # overwrite the default parameters
+        PB_M3C2._overwrite_default_parameters(
+            kwargs=kwargs, pipeline=transform_pipeline
+        )
+
+        # apply the pipeline
+
         assert (
             "segment_id" in epoch0.additional_dimensions.dtype.names
         ), "the epoch doesn't contain 'segment_id' as an additional dimension"
@@ -3015,18 +3061,13 @@ class PB_M3C2_with_segments(PB_M3C2):
             X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
 
         X = np.vstack((X0, X1))
-
-        transform_pipeline = Pipeline(
-            [
-                ("Transform Post Segmentation", self._post_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
-            ]
-        )
-
         transform_pipeline.fit(X)
         extracted_segments = transform_pipeline.transform(X)
 
         np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
+
+        # restore the default pipeline options
+        transform_pipeline.set_params(**default_options)
 
         return epoch0, epoch1, extracted_segments
 
