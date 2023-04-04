@@ -3029,6 +3029,7 @@ class PB_M3C2_with_segments(PB_M3C2):
                     containing [x,y,z,segment_id] | [x,y,z,N_x,N_y,N_z,segment_id]
                 numpy array with shape (p, 20) corresponding to extracted_segments
             ]
+            | None
         """
 
         logger = logging.getLogger("py4dgeo")
