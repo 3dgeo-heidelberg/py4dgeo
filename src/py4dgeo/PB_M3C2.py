@@ -3095,7 +3095,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             and normal_available_epoch1 == 0
             or normal_available_epoch1 == 3
             and normal_available_epoch0 == normal_available_epoch1
-        ), "Inconsisten number of columns used by the Normal vector"
+        ), "Inconsistent number of columns used by the Normal vector"
 
         # build columns required by the normal vectors.
         # N_x, N_y, N_z columns are available.
@@ -3135,7 +3135,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         assert (
             epoch_additional_dimensions_required["segment_id"]
             in epoch0.additional_dimensions.dtype.names
-        ), "the epoch0 doesn't contain 'segment_id' as an additional dimension"
+        ), "The epoch0 doesn't contain 'segment_id' as an additional dimension"
 
         epoch0 = np.concatenate(
             (
@@ -3151,7 +3151,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         assert (
             epoch_additional_dimensions_required["segment_id"]
             in epoch1.additional_dimensions.dtype.names
-        ), "the epoch1 doesn't contain 'segment_id' as an additional dimension"
+        ), "The epoch1 doesn't contain 'segment_id' as an additional dimension"
 
         epoch1 = np.concatenate(
             (
@@ -3168,15 +3168,15 @@ class PB_M3C2_with_segments(PB_M3C2):
             # [x, y, z, segment_id] columns
             logger.info(
                 "Reconstruct post segmentation output using [x, y, z, segment_id] "
-                "extracted input columns from epoch0 and epoch1"
+                "columns from epoch0 and epoch1"
             )
             X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
             X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
         else:
             # [x, y, z, N_x, N_y, N_z, segment_id] columns
             logger.info(
-                "Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] columns "
-                "extracted input columns from epoch0 and epoch1"
+                "Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
+                "columns from epoch0 and epoch1"
             )
             X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
             X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
