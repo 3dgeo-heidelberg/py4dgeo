@@ -3165,6 +3165,12 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         if epoch0.shape[1] == 4:
+
+            assert self._post_segmentation.compute_normal, (
+                "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
+                "the normal vector computation is mandatory."
+            )
+
             # [x, y, z, segment_id] columns
             logger.info(
                 "Reconstruct post segmentation output using [x, y, z, segment_id] "
@@ -3216,11 +3222,13 @@ class PB_M3C2_with_segments(PB_M3C2):
         # apply the pipeline
         training_pipeline.fit(X, y)
 
-    def predict(self, epoch0: Epoch = None, epoch1: Epoch = None, **kwargs):
+    def predict(
+        self, epoch0: Epoch = None, epoch1: Epoch = None, **kwargs
+    ) -> np.ndarray | None:
 
         """
         After the reconstruction of the result that is achieved using the "PB_P3C2 class" pipeline, by applying
-        ("Transform LLSVandPCA"), ("Transform Segmentation"), ("Transform Second Segmentation"), ("Transform ExtractSegments")
+        ("Transform LLSV_and_PCA"), ("Transform Segmentation"), ("Transform Second Segmentation"), ("Transform ExtractSegments")
         applied to the segmented point cloud of epoch0 and epoch1, it returns a numpy array of corresponding
         pairs of segments between epoch 0 and epoch 1.
 
@@ -3234,6 +3242,18 @@ class PB_M3C2_with_segments(PB_M3C2):
             contains as 'additional_dimensions' a segment_id column
             and optionally, precomputed normals as another 3 columns.
             ( the structure must be consistent with the structure of epoch0 parameter )
+        :param kwargs:
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
         :return:
             A numpy array of shape ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
         """
@@ -3272,28 +3292,6 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         return predicting_pipeline.predict(X)
-        pass
 
     # the algorithm should be the same!
     # def compute_distances(self, epoch0, epoch1, alignment_error=1.1):
-
-
-# if __name__ == "__main__":
-
-
-# *********************
-# scenario 2
-
-# random.seed(10)
-# np.random.seed(10)
-#
-# new_epoch0, new_epoch1 = build_input_scenario2_without_normals(
-#     epoch0=epoch0, epoch1=epoch1
-# )
-# # new_epoch0, new_epoch1 = build_input_scenario2_with_normals(epoch0=epoch0, epoch1=epoch1)
-#
-# alg_scenario2 = PB_M3C2_with_segments()
-# X, y = alg_scenario2.build_labels(epoch0=new_epoch0, epoch1=new_epoch1)
-# alg_scenario2.training(X, y)
-# print(alg_scenario2.predict(epoch0=new_epoch0, epoch1=new_epoch1))
-# print(alg_scenario2.distance(epoch0=new_epoch0, epoch1=new_epoch1))
