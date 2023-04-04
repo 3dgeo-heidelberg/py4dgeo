@@ -281,6 +281,7 @@ def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **pars
         A dictionary, mapping column indices to names of additional data dimensions.
         They will be read from the file and are accessible under their names from the
         created Epoch objects.
+        Additional column indexes start with 3.
     :type parse_opts: dict
     """
 
@@ -301,15 +302,16 @@ def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **pars
         new_epoch = Epoch(cloud=cloud)
     else:
         # build additional_dimensions dtype structure
-        additional_colomns = np.empty(
+        additional_columns = np.empty(
             shape=(cloud.shape[0], 1),
             dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
         )
         # populate dtype structure
         for column_id, column_name in additional_dimensions.items():
-            additional_colomns[column_name] = cloud[:, column_id].reshape(-1, 1)
+            assert column_id >= 3, "The first 3 indexes are used for x,y,z"
+            additional_columns[column_name] = cloud[:, column_id].reshape(-1, 1)
 
-        new_epoch = Epoch(cloud=cloud[:, :3], additional_dimensions=additional_colomns)
+        new_epoch = Epoch(cloud=cloud[:, :3], additional_dimensions=additional_columns)
 
     if len(filenames) == 1:
         # End recursion and return non-tuple to make the case that the user
