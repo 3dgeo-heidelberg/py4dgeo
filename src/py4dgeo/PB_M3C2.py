@@ -70,6 +70,47 @@ def set_interactive_backend(backend="vtk"):
         settings.default_backend = backend
 
 
+def _extract_from_additional_dimensions(
+    epoch, column_names, required_number_of_columns=[]
+):
+    """
+    Build a numpy array using 'column_names' which are part of the 'additional_dimensions' field.
+    The result will maintain the same order or the columns found in 'column_names'.
+
+    :param epoch:
+        Epoch class.
+    :param column_names:
+        list[ str ]
+    :param required_number_of_columns:
+        list[ int ]
+        default [] , any number of parameter found gets accepted.
+        The number of columns required to consider the output valid.
+    :return
+        numpy array
+    """
+
+    logger = logging.getLogger("py4dgeo")
+
+    result = np.empty(shape=(epoch.cloud.shape[0], 0), dtype=float)
+
+    for column in column_names:
+        if column in epoch.additional_dimensions.dtype.names:
+            result = np.concatenate(
+                (result, epoch.additional_dimensions[column]), axis=1
+            )
+        else:
+            logger.debug(
+                f"Column '{column}' not found during _extract_from_additional_dimensions()"
+            )
+
+    assert (
+        required_number_of_columns == []
+        or result.shape[1] in required_number_of_columns
+    ), "The number of column found is not a valid one."
+
+    return result
+
+
 def angle_difference_compute(normal1, normal2):
 
     """
@@ -2981,12 +3022,10 @@ class PB_M3C2_with_segments(PB_M3C2):
             Epoch object,
             contains as 'additional_dimensions' a segment_id column (mandatory)
             and optionally, precomputed normals as another 3 columns.
-            ( the structure must be consistent with the epoch1 parameter structure )
         :param epoch1:
             Epoch object,
             contains as 'additional_dimensions' a segment_id column (mandatory)
             and optionally, precomputed normals as another 3 columns.
-            ( the structure must be consistent with the epoch0 parameter structure )
         :param extracted_segments_file_name:
             The file has the following structure:
             numpy array with shape (n_segments_samples, 20) where the column structure is as following:
@@ -3057,137 +3096,107 @@ class PB_M3C2_with_segments(PB_M3C2):
             kwargs=kwargs, pipeline=transform_pipeline
         )
 
-        # apply the pipeline
+        # extract columns
 
-        # check for input consistency
-        normal_available_epoch0 = (
-            int(
-                epoch_additional_dimensions_required["N_x"]
-                in epoch0.additional_dimensions.dtype.names
-            )
-            + int(
-                epoch_additional_dimensions_required["N_y"]
-                in epoch0.additional_dimensions.dtype.names
-            )
-            + int(
-                epoch_additional_dimensions_required["N_x"]
-                in epoch0.additional_dimensions.dtype.names
-            )
-        )
-        normal_available_epoch1 = (
-            int(
-                epoch_additional_dimensions_required["N_x"]
-                in epoch1.additional_dimensions.dtype.names
-            )
-            + int(
-                epoch_additional_dimensions_required["N_y"]
-                in epoch1.additional_dimensions.dtype.names
-            )
-            + int(
-                epoch_additional_dimensions_required["N_x"]
-                in epoch1.additional_dimensions.dtype.names
-            )
+        epoch0_normals = _extract_from_additional_dimensions(
+            epoch=epoch0,
+            column_names=[
+                epoch_additional_dimensions_required["N_x"],
+                epoch_additional_dimensions_required["N_y"],
+                epoch_additional_dimensions_required["N_z"],
+            ],
+            required_number_of_columns=[0, 3],
         )
 
-        assert (
-            normal_available_epoch0 == 0
-            or normal_available_epoch0 == 3
-            and normal_available_epoch1 == 0
-            or normal_available_epoch1 == 3
-            and normal_available_epoch0 == normal_available_epoch1
-        ), "Inconsistent number of columns used by the Normal vector"
-
-        # build columns required by the normal vectors.
-        # N_x, N_y, N_z columns are available.
-        if normal_available_epoch0 == 3:
-            epoch0_normals = np.concatenate(
-                (
-                    epoch0.additional_dimensions[
-                        epoch_additional_dimensions_required["N_x"]
-                    ],
-                    epoch0.additional_dimensions[
-                        epoch_additional_dimensions_required["N_y"]
-                    ],
-                    epoch0.additional_dimensions[
-                        epoch_additional_dimensions_required["N_z"]
-                    ],
-                ),
-                axis=1,
-            )
-            epoch1_normals = np.concatenate(
-                (
-                    epoch1.additional_dimensions[
-                        epoch_additional_dimensions_required["N_x"]
-                    ],
-                    epoch1.additional_dimensions[
-                        epoch_additional_dimensions_required["N_y"]
-                    ],
-                    epoch1.additional_dimensions[
-                        epoch_additional_dimensions_required["N_z"]
-                    ],
-                ),
-                axis=1,
-            )
-        else:
-            epoch0_normals = np.empty(shape=(epoch0.cloud.shape[0], 0), dtype=float)
-            epoch1_normals = np.empty(shape=(epoch1.cloud.shape[0], 0), dtype=float)
-
-        assert (
-            epoch_additional_dimensions_required["segment_id"]
-            in epoch0.additional_dimensions.dtype.names
-        ), "The epoch0 doesn't contain 'segment_id' as an additional dimension"
+        epoch0_segment_id = _extract_from_additional_dimensions(
+            epoch=epoch0,
+            column_names=[
+                epoch_additional_dimensions_required["segment_id"],
+            ],
+            required_number_of_columns=[1],
+        )
 
         epoch0 = np.concatenate(
-            (
-                epoch0.cloud,
-                epoch0_normals,
-                epoch0.additional_dimensions[
-                    epoch_additional_dimensions_required["segment_id"]
-                ],
-            ),
+            (epoch0.cloud, epoch0_normals, epoch0_segment_id),
             axis=1,
         )
 
-        assert (
-            epoch_additional_dimensions_required["segment_id"]
-            in epoch1.additional_dimensions.dtype.names
-        ), "The epoch1 doesn't contain 'segment_id' as an additional dimension"
+        epoch1_normals = _extract_from_additional_dimensions(
+            epoch=epoch1,
+            column_names=[
+                epoch_additional_dimensions_required["N_x"],
+                epoch_additional_dimensions_required["N_y"],
+                epoch_additional_dimensions_required["N_z"],
+            ],
+            required_number_of_columns=[0, 3],
+        )
+
+        epoch1_segment_id = _extract_from_additional_dimensions(
+            epoch=epoch1,
+            column_names=[
+                epoch_additional_dimensions_required["segment_id"],
+            ],
+            required_number_of_columns=[1],
+        )
 
         epoch1 = np.concatenate(
-            (
-                epoch1.cloud,
-                epoch1_normals,
-                epoch1.additional_dimensions[
-                    epoch_additional_dimensions_required["segment_id"]
-                ],
-            ),
+            (epoch1.cloud, epoch1_normals, epoch1_segment_id),
             axis=1,
         )
 
-        if epoch0.shape[1] == 4:
+        X = None
+        for epoch_id, current_epoch in enumerate([epoch0, epoch1]):
 
-            assert self._post_segmentation.compute_normal, (
-                "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
-                "the normal vector computation is mandatory."
-            )
+            if current_epoch.shape[1] == 4:
 
-            # [x, y, z, segment_id] columns
-            logger.info(
-                "Reconstruct post segmentation output using [x, y, z, segment_id] "
-                "columns from epoch0 and epoch1"
-            )
-            X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
-        else:
-            # [x, y, z, N_x, N_y, N_z, segment_id] columns
-            logger.info(
-                "Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
-                "columns from epoch0 and epoch1"
-            )
-            X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
+                # [x, y, z, segment_id] columns
+                assert self._post_segmentation.compute_normal, (
+                    "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
+                    "the normal vector computation is mandatory."
+                )
 
-        X = np.vstack((X0, X1))
+                logger.info(
+                    f"Reconstruct post segmentation output using [x, y, z, segment_id] "
+                    f"columns from epoch{epoch_id} "
+                )
+
+                if X is not None:
+                    X = np.vstack(
+                        (
+                            X,
+                            self._reconstruct_input_without_normals(
+                                epoch=current_epoch, epoch_id=epoch_id
+                            ),
+                        )
+                    )
+                else:
+                    X = self._reconstruct_input_without_normals(
+                        epoch=current_epoch, epoch_id=epoch_id
+                    )
+            else:
+
+                # [x, y, z, N_x, N_y, N_z, segment_id] columns
+                logger.info(
+                    f"Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
+                    f"columns from epoch{epoch_id}"
+                )
+
+                if X is not None:
+                    X = np.vstack(
+                        (
+                            X,
+                            self._reconstruct_input_with_normals(
+                                epoch=epoch0, epoch_id=epoch_id
+                            ),
+                        )
+                    )
+                else:
+                    X = self._reconstruct_input_with_normals(
+                        epoch=epoch0, epoch_id=epoch_id
+                    )
+
+        # apply the pipeline
+
         transform_pipeline.fit(X)
         extracted_segments = transform_pipeline.transform(X)
 
@@ -3258,6 +3267,34 @@ class PB_M3C2_with_segments(PB_M3C2):
             A numpy array of shape ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
         """
 
+        logger = logging.getLogger("py4dgeo")
+
+        predicting_pipeline = Pipeline(
+            [
+                ("Transform Post Segmentation", self._post_segmentation),
+                ("Transform ExtractSegments", self._extract_segments),
+                ("Classifier", self._classifier),
+            ]
+        )
+
+        # print the default parameters
+        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=predicting_pipeline)
+
+        # no computation
+        if epoch0 is None or epoch1 is None:
+            # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
+            return
+
+        # save the default pipeline options
+        default_options = predicting_pipeline.get_params()
+
+        # overwrite the default parameters
+        PB_M3C2._overwrite_default_parameters(
+            kwargs=kwargs, pipeline=predicting_pipeline
+        )
+
+        # apply the pipeline
+
         assert (
             "segment_id" in epoch0.additional_dimensions.dtype.names
         ), "the epoch doesn't contain 'segment_id' as an additional dimension"
@@ -3283,15 +3320,9 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         X = np.vstack((X0, X1))
 
-        predicting_pipeline = Pipeline(
-            [
-                ("Transform Post Segmentation", self._post_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
-                ("Classifier", self._classifier),
-            ]
-        )
+        out = predicting_pipeline.predict(X)
 
-        return predicting_pipeline.predict(X)
+        # restore the default pipeline options
+        predicting_pipeline.set_params(**default_options)
 
-    # the algorithm should be the same!
-    # def compute_distances(self, epoch0, epoch1, alignment_error=1.1):
+        return out

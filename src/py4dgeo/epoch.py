@@ -19,9 +19,7 @@ import zipfile
 
 import py4dgeo._py4dgeo as _py4dgeo
 
-
 logger = logging.getLogger("py4dgeo")
-
 
 # This integer controls the versioning of the epoch file format. Whenever the
 # format is changed, this version should be increased, so that py4dgeo can warn
@@ -130,7 +128,6 @@ class Epoch(_py4dgeo.Epoch):
             with zipfile.ZipFile(
                 filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
-
                 # Write the epoch file format version number
                 zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
 
@@ -173,7 +170,6 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Open the ZIP archive
             with zipfile.ZipFile(filename, mode="r") as zf:
-
                 # Read the epoch file version number and compare to current
                 version = int(zf.read("EPOCH_FILE_FORMAT").decode())
                 if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
