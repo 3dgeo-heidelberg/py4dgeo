@@ -2177,7 +2177,7 @@ class PB_M3C2:
         self,
         epoch0: Epoch | None = None,
         epoch1: Epoch | None = None,
-        build_similarity_feature_and_y: BuildSimilarityFeature_and_y = BuildSimilarityFeature_and_y_Visually(),
+        build_similarity_feature_and_y: BuildSimilarityFeature_and_y_Visually = BuildSimilarityFeature_and_y_Visually(),
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
 
@@ -2976,15 +2976,32 @@ class PB_M3C2_with_segments(PB_M3C2):
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
-        build_similarity_feature_and_y=BuildSimilarityFeature_and_y_Visually(),
+        build_similarity_feature_and_y: BuildSimilarityFeature_and_y_Visually = BuildSimilarityFeature_and_y_Visually(),
+        epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
+            segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
+        ),
         **kwargs,
-    ):
+    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
 
         """
+        Given 2 Epochs, it builds a pair of features and labels used for learning.
 
         :param epoch0:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column (mandatory)
+            and optionally, precomputed normals as another 3 columns.
         :param epoch1:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column (mandatory)
+            and optionally, precomputed normals as another 3 columns.
         :param build_similarity_feature_and_y:
+        :param epoch_additional_dimensions_lookup:
+            A dictionary that maps between the names of the columns used internally to identify:
+                segment id of the points: "segment_id"  -> Mandatory part of the epochs
+                Normal x-axes vector: "N_x"             -> Optionally part of the epochs
+                Normal y-axes vector: "N_y"             -> Optionally part of the epochs
+                Normal z-axes vector: "N_z"             -> Optionally part of the epochs
+            and the names of the columns used by both epoch0 and epoch1.
         :param kwargs:
 
             Used for customize the default pipeline parameters.
@@ -3000,32 +3017,14 @@ class PB_M3C2_with_segments(PB_M3C2):
             this process is stateless
 
         :return:
+            tuple ['similarity features', labels] | None
         """
 
-        assert (
-            "segment_id" in epoch0.additional_dimensions.dtype.names
-        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
+        logger = logging.getLogger("py4dgeo")
 
-        epoch0 = np.concatenate(
-            (epoch0.cloud, epoch0.additional_dimensions["segment_id"]), axis=1
-        )
-
-        assert (
-            "segment_id" in epoch1.additional_dimensions.dtype.names
-        ), "the epoch doesn't contain 'segment_id' as an additional dimension"
-
-        epoch1 = np.concatenate(
-            (epoch1.cloud, epoch1.additional_dimensions["segment_id"]), axis=1
-        )
-
-        if self._post_segmentation.compute_normal:
-            X0 = self._reconstruct_input_without_normals(epoch=epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_without_normals(epoch=epoch1, epoch_id=1)
-        else:
-            X0 = self._reconstruct_input_with_normals(epoch=epoch0, epoch_id=0)
-            X1 = self._reconstruct_input_with_normals(epoch=epoch1, epoch_id=1)
-
-        X = np.vstack((X0, X1))
+        if not interactive_available:
+            logger.error("Interactive session not available in this environment.")
+            return
 
         transform_pipeline = Pipeline(
             [
@@ -3034,8 +3033,130 @@ class PB_M3C2_with_segments(PB_M3C2):
             ]
         )
 
+        # print the default parameters
+        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=transform_pipeline)
+
+        # no computation
+        if epoch0 is None or epoch1 is None:
+            # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
+            return
+
+        # save the default pipeline options
+        default_options = transform_pipeline.get_params()
+
+        # overwrite the default parameters
+        PB_M3C2._overwrite_default_parameters(
+            kwargs=kwargs, pipeline=transform_pipeline
+        )
+
+        # extract columns
+
+        epoch0_normals = _extract_from_additional_dimensions(
+            epoch=epoch0,
+            column_names=[
+                epoch_additional_dimensions_lookup["N_x"],
+                epoch_additional_dimensions_lookup["N_y"],
+                epoch_additional_dimensions_lookup["N_z"],
+            ],
+            required_number_of_columns=[0, 3],
+        )
+
+        epoch0_segment_id = _extract_from_additional_dimensions(
+            epoch=epoch0,
+            column_names=[
+                epoch_additional_dimensions_lookup["segment_id"],
+            ],
+            required_number_of_columns=[1],
+        )
+
+        epoch0 = np.concatenate(
+            (epoch0.cloud, epoch0_normals, epoch0_segment_id),
+            axis=1,
+        )
+
+        epoch1_normals = _extract_from_additional_dimensions(
+            epoch=epoch1,
+            column_names=[
+                epoch_additional_dimensions_lookup["N_x"],
+                epoch_additional_dimensions_lookup["N_y"],
+                epoch_additional_dimensions_lookup["N_z"],
+            ],
+            required_number_of_columns=[0, 3],
+        )
+
+        epoch1_segment_id = _extract_from_additional_dimensions(
+            epoch=epoch1,
+            column_names=[
+                epoch_additional_dimensions_lookup["segment_id"],
+            ],
+            required_number_of_columns=[1],
+        )
+
+        epoch1 = np.concatenate(
+            (epoch1.cloud, epoch1_normals, epoch1_segment_id),
+            axis=1,
+        )
+
+        X = None
+        for epoch_id, current_epoch in enumerate([epoch0, epoch1]):
+
+            if current_epoch.shape[1] == 4:
+
+                # [x, y, z, segment_id] columns
+                assert self._post_segmentation.compute_normal, (
+                    "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
+                    "the normal vector computation is mandatory."
+                )
+
+                logger.info(
+                    f"Reconstruct post segmentation output using [x, y, z, segment_id] "
+                    f"columns from epoch{epoch_id} "
+                )
+
+                if X is not None:
+                    X = np.vstack(
+                        (
+                            X,
+                            self._reconstruct_input_without_normals(
+                                epoch=current_epoch, epoch_id=epoch_id
+                            ),
+                        )
+                    )
+                else:
+                    X = self._reconstruct_input_without_normals(
+                        epoch=current_epoch, epoch_id=epoch_id
+                    )
+            else:
+
+                # [x, y, z, N_x, N_y, N_z, segment_id] columns
+                logger.info(
+                    f"Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
+                    f"columns from epoch{epoch_id}"
+                )
+
+                if X is not None:
+                    X = np.vstack(
+                        (
+                            X,
+                            self._reconstruct_input_with_normals(
+                                epoch=current_epoch, epoch_id=epoch_id
+                            ),
+                        )
+                    )
+                else:
+                    X = self._reconstruct_input_with_normals(
+                        epoch=current_epoch, epoch_id=epoch_id
+                    )
+
+        # apply the pipeline
+
         transform_pipeline.fit(X)
-        return build_similarity_feature_and_y.compute(transform_pipeline.transform(X))
+        out = transform_pipeline.transform(X)
+
+        # restore the default pipeline options
+        transform_pipeline.set_params(**default_options)
+
+        return build_similarity_feature_and_y.compute(out)
 
     def reconstruct_post_segmentation_output(
         self,
@@ -3284,12 +3405,12 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         :param epoch0:
             Epoch object,
-            contains as 'additional_dimensions' a segment_id column
+            contains as 'additional_dimensions' a segment_id column ( mandatory )
             and optionally, precomputed normals as another 3 columns.
             ( the structure must be consistent with the structure of epoch1 parameter )
         :param epoch1:
             Epoch object.
-            contains as 'additional_dimensions' a segment_id column
+            contains as 'additional_dimensions' a segment_id column ( mandatory )
             and optionally, precomputed normals as another 3 columns.
             ( the structure must be consistent with the structure of epoch0 parameter )
         :param epoch_additional_dimensions_lookup:
@@ -3465,9 +3586,13 @@ class PB_M3C2_with_segments(PB_M3C2):
             distances, corepoints (corepoints of epoch0), epochs (epoch0, epoch1), uncertainties
 
         :param epoch0:
-            Epoch object.
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column (mandatory)
+            and optionally, precomputed normals as another 3 columns.
         :param epoch1:
-            Epoch object.
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column (mandatory)
+            and optionally, precomputed normals as another 3 columns.
         :param alignment_error:
             alignment error reg between point clouds.
         :param epoch_additional_dimensions_lookup:
