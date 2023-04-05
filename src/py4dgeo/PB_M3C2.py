@@ -159,8 +159,11 @@ class Viewer:
         Convert from HSV ( Hue Saturation Value ) color to RGB ( Red Blue Green )
 
         :param h:
+            float [0, 1]
         :param s:
+            float [0, 1]
         :param v:
+            float [0, 1]
         :return:
             tuple [ float, float, float ]
         """
@@ -170,7 +173,8 @@ class Viewer:
     def get_distinct_colors(n):
 
         """
-            Return a python list with 'n' elements of distinct colors.
+        Return a python list with 'n' elements of distinct colors.
+
         :param n:
             number of colors.
         :return:
@@ -1392,13 +1396,15 @@ class BuildSimilarityFeature_and_y(ABC):
         super().__init__()
 
     @abstractmethod
-    def generate_extended_y(self, X):
+    def generate_extended_y(self, X, y):
         """
         Generates tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
 
         :param X:
             numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
             epoch 0 and epoch 1. Each row is a segment.
+        :param y:
+            numpy array
         :return:
             numpy array with shape (n_segments, 3)
         """
@@ -1411,11 +1417,13 @@ class BuildSimilarityFeature_and_y(ABC):
         :param X:
             numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
             epoch 0 and epoch 1. Each row is a segment.
+        :param y:
+            numpy array
         :return:
             tuple ['similarity feature', labels]
         """
 
-        y_extended = self.generate_extended_y(X)
+        y_extended = self.generate_extended_y(X, y)
 
         X_similarity = np.apply_along_axis(
             lambda y_row: self._build_X_similarity(y_row, X), 1, y_extended
@@ -1475,14 +1483,24 @@ class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
 
         super(BuildTuplesOfSimilarityFeature_and_y, self).__init__()
 
-    def generate_extended_y(self, X):
+    def generate_extended_y(self, X, y):
+        """
+        Generates tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
 
-        return X
-        pass
+        :param X:
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
+        :param y:
+            numpy array with shape (n_segments, 3)
+        :return:
+            numpy array with shape (n_segments, 3)
+        """
+        return y
 
     def compute(self, X, y):
 
         """
+        Generates pairs of 'similarity features' and 0/1 labels
 
         :param X:
             numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
@@ -1495,15 +1513,9 @@ class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
                 label (0/1) -> numpy array (n,)
         """
 
-        assert y.shape[1] == 3, "rows of y must be of size 3!"
+        assert y.shape[1] == 3, "the number of rows of y must be of size 3!"
 
-        y_extended = y
-
-        X_similarity = np.apply_along_axis(
-            lambda y_row: self._build_X_similarity(y_row, X), 1, y_extended
-        )
-
-        return (X_similarity, y_extended[:, 2])
+        return super().compute(X=X, y=y)
 
 
 class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
@@ -1511,7 +1523,7 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
 
         super(BuildSimilarityFeature_and_y_RandomPairs, self).__init__()
 
-    def generate_extended_y(self, X):
+    def generate_extended_y(self, X, y):
 
         """
         It generates, randomly, tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
@@ -1520,6 +1532,8 @@ class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
         :param X:
             numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
             epoch 0 and epoch 1. Each row is a segment.
+        :param y:
+            None
         :return:
             numpy array with shape (n_segments, 3)
         """
@@ -1754,7 +1768,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         ).close()
         return self.constructed_extended_y
 
-    def generate_extended_y(self, X):
+    def generate_extended_y(self, X, y):
 
         """
 
