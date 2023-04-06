@@ -1481,7 +1481,6 @@ class BuildSimilarityFeature_and_y(ABC):
         seg_epoch0 = X[int(y_row[0]), :]
         seg_epoch1 = X[int(y_row[1]), :]
 
-        # return compute_similarity_between(seg_epoch0, seg_epoch1)
         return self.similarity_function(seg_epoch0, seg_epoch1)
 
 
