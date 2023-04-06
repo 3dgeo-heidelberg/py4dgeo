@@ -793,7 +793,6 @@ class Segmentation(BaseTransformer):
             The threshold on local surface variation.
         :param roughness_threshold:
             Threshold on local roughness.
-            ( not properly integrated as part of the segmentation process!!! )
         :param max_nr_points_neighborhood:
             The maximum number of points in the neighborhood of the point the candidate used
             for checking during the segmentation process.
@@ -1080,17 +1079,25 @@ class Segmentation(BaseTransformer):
                         X[:, Segment_ID_Column] == seg_id
                     )
 
-                    # not enough points
-                    if nr_points_segment < self.min_nr_points_per_segment:
+                    # not enough points or 'roughness_threshold' exceeded
+                    if (
+                        nr_points_segment < self.min_nr_points_per_segment
+                        or cumulative_distance_for_std_deviation
+                        / nr_points_for_std_deviation
+                        >= self.roughness_threshold
+                    ):
+
                         mask_seg_id = X[:, Segment_ID_Column] == seg_id
                         X[mask_seg_id, Segment_ID_Column] = Default_No_Segment
                         # since we don't have a new segment
                         seg_id -= 1
+
                     else:
                         X[indx_row, Standard_deviation_Column] = (
                             cumulative_distance_for_std_deviation
                             / nr_points_for_std_deviation
                         )
+
         return X
 
 
