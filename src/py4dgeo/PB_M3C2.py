@@ -378,7 +378,9 @@ class Viewer:
             self.plt.render()
 
 
-def compute_similarity_between(seg_epoch0, seg_epoch1):
+def compute_similarity_between(
+    seg_epoch0: np.ndarray, seg_epoch1: np.ndarray
+) -> np.ndarray:
 
     """
     Similarity function between 2 segments.
@@ -1391,7 +1393,12 @@ class ExtractSegments(BaseTransformer):
 
 
 class BuildSimilarityFeature_and_y(ABC):
-    def __init__(self, similarity_function=compute_similarity_between):
+    def __init__(
+        self,
+        similarity_function: typing.Callable[
+            [np.ndarray, np.ndarray], np.ndarray
+        ] = compute_similarity_between,
+    ):
 
         """
         param similarity_function: python function with 2 arguments ( segment epoch0, segment epoch1 )
