@@ -1391,9 +1391,15 @@ class ExtractSegments(BaseTransformer):
 
 
 class BuildSimilarityFeature_and_y(ABC):
-    def __init__(self):
+    def __init__(self, similarity_function=compute_similarity_between):
+
+        """
+        param similarity_function: python function with 2 arguments ( segment epoch0, segment epoch1 )
+            The function is used for similarity computation between 2 segments.
+        """
 
         super().__init__()
+        self.similarity_function = similarity_function
 
     @abstractmethod
     def generate_extended_y(self, X, y):
@@ -1475,7 +1481,8 @@ class BuildSimilarityFeature_and_y(ABC):
         seg_epoch0 = X[int(y_row[0]), :]
         seg_epoch1 = X[int(y_row[1]), :]
 
-        return compute_similarity_between(seg_epoch0, seg_epoch1)
+        # return compute_similarity_between(seg_epoch0, seg_epoch1)
+        return self.similarity_function(seg_epoch0, seg_epoch1)
 
 
 class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
