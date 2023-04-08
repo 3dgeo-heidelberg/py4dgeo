@@ -1,3 +1,9 @@
+import colorsys
+import random
+import typing
+import pprint
+import logging
+
 import numpy as np
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
@@ -19,8 +25,6 @@ from abc import ABC, abstractmethod
 from py4dgeo import Epoch, read_from_xyz
 from py4dgeo.util import Py4DGeoError, find_file
 
-import logging
-
 from IPython import display
 
 try:
@@ -29,12 +33,6 @@ try:
     interactive_available = True
 except ImportError:
     interactive_available = False
-
-import colorsys
-import random
-import copy
-import typing
-import pprint
 
 
 __all__ = [
@@ -54,8 +52,6 @@ __all__ = [
     "set_interactive_backend",
     "generate_random_y",
 ]
-
-# logger = logging.getLogger("py4dgeo")
 
 
 def set_interactive_backend(backend="vtk"):
@@ -88,8 +84,6 @@ def _extract_from_additional_dimensions(
     :return
         numpy array
     """
-
-    logger = logging.getLogger("py4dgeo")
 
     result = np.empty(shape=(epoch.cloud.shape[0], 0), dtype=float)
 
@@ -200,8 +194,6 @@ class Viewer:
 
         # Resolve the given path
         filename = find_file(input_file_name)
-
-        logger = logging.getLogger("py4dgeo")
 
         # Read it
         try:
@@ -344,8 +336,6 @@ class Viewer:
 
     def toggle_transparency(self, evt):
 
-        logger = logging.getLogger("py4dgeo")
-
         if evt.keyPressed == "z":
             logger.info("transparency toggle")
             for segment in self.sets:
@@ -359,7 +349,7 @@ class Viewer:
             logger.info("toggle red")
             for segment in self.sets:
                 if segment.epoch == 0:
-                    if segment.isOn == True:
+                    if segment.isOn:
                         segment.off()
                     else:
                         segment.on()
@@ -370,7 +360,7 @@ class Viewer:
             logger.info("toggle green")
             for segment in self.sets:
                 if segment.epoch == 1:
-                    if segment.isOn == True:
+                    if segment.isOn:
                         segment.off()
                     else:
                         segment.on()
@@ -572,7 +562,6 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         self.n_features_ = X.shape[1]
 
         # Return the transformer
-        logger = logging.getLogger("py4dgeo")
         logger.info("Transformer Fit")
 
         return self._fit(X, y)
@@ -586,7 +575,6 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
 
         if self.skip:
             if self.output_file_name != None:
-                logger = logging.getLogger("py4dgeo")
                 logger.debug(
                     f"The output file, {self.output_file_name} "
                     f"was set but the transformation process is skipped! (no output)"
@@ -606,7 +594,6 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
                 "Shape of input is different from what was seen in `fit`"
             )
 
-        logger = logging.getLogger("py4dgeo")
         logger.info("Transformer Transform")
 
         out = self._transform(X)
@@ -1637,7 +1624,6 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         if not evt.actor:
             # no hit, return
             return
-        logger = logging.getLogger("py4dgeo")
         logger.debug("point coords =%s", str(evt.picked3d), exc_info=1)
         # print("point coords =", evt.picked3d)
         if evt.isPoints:
@@ -1682,7 +1668,6 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
                 self.add_pair_button.switch()
             except:
                 # print("You must select 0 or 1 as label!!!")
-                logger = logging.getLogger("py4dgeo")
                 logger.error("You must select 0 or 1 as label")
 
     def segments_visualizer(self, X):
@@ -1854,8 +1839,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
 
         self.X_ = X
         self.y_ = y
-
-        logger = logging.getLogger("py4dgeo")
 
         logger.info(f"Fit ClassifierWrapper")
 
@@ -2167,7 +2150,6 @@ class PB_M3C2:
         :param pipeline
         """
 
-        logger = logging.getLogger("py4dgeo")
         pp = pprint.PrettyPrinter(depth=4)
         # print the default parameters
         if ("get_pipeline_options", True) in kwargs.items():
@@ -2188,7 +2170,6 @@ class PB_M3C2:
         :param pipeline
         """
 
-        logger = logging.getLogger("py4dgeo")
         pp = pprint.PrettyPrinter(depth=4)
 
         # if we have parameters
@@ -2247,8 +2228,6 @@ class PB_M3C2:
         :return:
             tuple ['similarity features', labels] | None
         """
-
-        logger = logging.getLogger("py4dgeo")
 
         if not interactive_available:
             logger.error("Interactive session not available in this environment.")
@@ -2346,8 +2325,6 @@ class PB_M3C2:
         :return:
             tuple [ x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments ] | None
         """
-
-        logger = logging.getLogger("py4dgeo")
 
         pipe_segmentation = Pipeline(
             [
@@ -2448,8 +2425,6 @@ class PB_M3C2:
 
         # Resolve the given path
         filename = find_file(extracted_segments_file_name)
-
-        logger = logging.getLogger("py4dgeo")
 
         # Read it
         try:
@@ -3060,8 +3035,6 @@ class PB_M3C2_with_segments(PB_M3C2):
             tuple ['similarity features', labels] | None
         """
 
-        logger = logging.getLogger("py4dgeo")
-
         if not interactive_available:
             logger.error("Interactive session not available in this environment.")
             return
@@ -3266,8 +3239,6 @@ class PB_M3C2_with_segments(PB_M3C2):
             ]
             | None
         """
-
-        logger = logging.getLogger("py4dgeo")
 
         transform_pipeline = Pipeline(
             [
@@ -3475,8 +3446,6 @@ class PB_M3C2_with_segments(PB_M3C2):
         :return:
             A numpy array of shape ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
         """
-
-        logger = logging.getLogger("py4dgeo")
 
         predicting_pipeline = Pipeline(
             [
