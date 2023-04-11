@@ -55,30 +55,6 @@ __all__ = [
 
 logger = logging.getLogger("py4dgeo")
 
-SEGMENT_COLUMNS_DICT = dict(
-    X_COLUMN=0,
-    Y_COLUMN=1,
-    Z_COLUMN=2,
-    EPOCH_ID_COLUMN=3,
-    EIGENVALUE0_COLUMN=4,
-    EIGENVALUE1_COLUMN=5,
-    EIGENVALUE2_COLUMN=6,
-    EIGENVECTOR_0_X_COLUMN=7,
-    EIGENVECTOR_0_Y_COLUMN=8,
-    EIGENVECTOR_0_Z_COLUMN=9,
-    EIGENVECTOR_1_X_COLUMN=10,
-    EIGENVECTOR_1_Y_COLUMN=11,
-    EIGENVECTOR_1_Z_COLUMN=12,
-    EIGENVECTOR_2_X_COLUMN=13,
-    EIGENVECTOR_2_Y_COLUMN=14,
-    EIGENVECTOR_2_Z_COLUMN=15,
-    LLSV_COLUMN=16,
-    SEGMENT_ID_COLUMN=17,
-    STANDARD_DEVIATION_COLUMN=18,
-    NR_POINTS_PER_SEG_COLUMN=19,
-)
-SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
-
 LLSV_PCA_COLUMNS_DICT = dict(
     X_COLUMN=0,
     Y_COLUMN=1,
@@ -98,8 +74,8 @@ LLSV_PCA_COLUMNS_DICT = dict(
     EIGENVECTOR_2_Z_COLUMN=15,
     LLSV_COLUMN=16,
 )
-
 LLSV_PCA_COLUMNS = type("LLSV_PCA_COLUMNS", (), LLSV_PCA_COLUMNS_DICT)
+
 
 SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
     X_COLUMN=0,
@@ -125,6 +101,31 @@ SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
 SEGMENTED_POINT_CLOUD_COLUMNS = type(
     "SEGMENTED_POINT_CLOUD_COLUMNS", (), SEGMENTED_POINT_CLOUD_COLUMNS_DICT
 )
+
+
+SEGMENT_COLUMNS_DICT = dict(
+    X_COLUMN=0,
+    Y_COLUMN=1,
+    Z_COLUMN=2,
+    EPOCH_ID_COLUMN=3,
+    EIGENVALUE0_COLUMN=4,
+    EIGENVALUE1_COLUMN=5,
+    EIGENVALUE2_COLUMN=6,
+    EIGENVECTOR_0_X_COLUMN=7,
+    EIGENVECTOR_0_Y_COLUMN=8,
+    EIGENVECTOR_0_Z_COLUMN=9,
+    EIGENVECTOR_1_X_COLUMN=10,
+    EIGENVECTOR_1_Y_COLUMN=11,
+    EIGENVECTOR_1_Z_COLUMN=12,
+    EIGENVECTOR_2_X_COLUMN=13,
+    EIGENVECTOR_2_Y_COLUMN=14,
+    EIGENVECTOR_2_Z_COLUMN=15,
+    LLSV_COLUMN=16,
+    SEGMENT_ID_COLUMN=17,
+    STANDARD_DEVIATION_COLUMN=18,
+    NR_POINTS_PER_SEG_COLUMN=19,
+)
+SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
 
 
 def set_interactive_backend(backend="vtk"):
@@ -2733,7 +2734,7 @@ class PB_M3C2:
         predict_pipe.fit(X)
         return predict_pipe.predict(X)
 
-    def compute_distances(
+    def _compute_distances(
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
@@ -2755,8 +2756,6 @@ class PB_M3C2:
         :param epoch_additional_dimensions_lookup:
             A dictionary that maps between the names of the columns used internally
             and the names of the columns used by both epoch0 and epoch1.
-
-            No additional column is used.
         :param kwargs:
             Used for customize the default pipeline parameters.
 
@@ -2809,8 +2808,15 @@ class PB_M3C2:
         STANDARD_DEVIATION_COLUMN = 18
         NR_POINTS_PER_SEG_COLUMN = 19
 
+        logger.info(f"PB_M3C2._compute_distances(...)")
+
         # A numpy array where each row contains a pair of segments.
-        segments_pair = self.predict(epoch0=epoch0, epoch1=epoch1, **kwargs)
+        segments_pair = self.predict(
+            epoch0=epoch0,
+            epoch1=epoch1,
+            epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
+            **kwargs,
+        )
 
         # no computation
         if epoch0 is None or epoch1 is None:
@@ -2911,6 +2917,63 @@ class PB_M3C2:
         )
 
         return (self.distances, self.uncertainties)
+
+    def compute_distances(
+        self,
+        epoch0: Epoch = None,
+        epoch1: Epoch = None,
+        alignment_error: float = 1.1,
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+
+        """
+        Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
+            distances, corepoints (corepoints of epoch0), epochs (epoch0, epoch1), uncertainties
+
+        :param epoch0:
+            Epoch object.
+        :param epoch1:
+            Epoch object.
+        :param alignment_error:
+            alignment error reg between point clouds.
+        :param kwargs:
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
+        :return:
+            tuple [distances, uncertainties]
+                'distances' is np.array (nr_similar_pairs, 1)
+                'uncertainties' is np.array (nr_similar_pairs,1) and it has the following structure:
+                    dtype=np.dtype(
+                        [
+                            ("lodetection", "<f8"),
+                            ("spread1", "<f8"),
+                            ("num_samples1", "<i8"),
+                            ("spread2", "<f8"),
+                            ("num_samples2", "<i8"),
+                        ]
+                    )
+            | None
+        """
+
+        logger.info(f"PB_M3C2.compute_distances(...)")
+
+        return self._compute_distances(
+            epoch0=epoch0,
+            epoch1=epoch1,
+            alignment_error=alignment_error,
+            epoch_additional_dimensions_lookup=None,
+            **kwargs,
+        )
 
 
 def build_input_scenario2_with_normals(epoch0, epoch1):
@@ -3761,7 +3824,9 @@ class PB_M3C2_with_segments(PB_M3C2):
             | None
         """
 
-        return super().compute_distances(
+        logger.info(f"PB_M3C2_with_segments.compute_distances(...)")
+
+        return super()._compute_distances(
             epoch0=epoch0,
             epoch1=epoch1,
             alignment_error=alignment_error,
