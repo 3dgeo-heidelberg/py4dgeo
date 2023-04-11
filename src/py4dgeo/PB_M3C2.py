@@ -53,6 +53,79 @@ __all__ = [
     "generate_random_y",
 ]
 
+logger = logging.getLogger("py4dgeo")
+
+SEGMENT_COLUMNS_DICT = dict(
+    X_COLUMN=0,
+    Y_COLUMN=1,
+    Z_COLUMN=2,
+    EPOCH_ID_COLUMN=3,
+    EIGENVALUE0_COLUMN=4,
+    EIGENVALUE1_COLUMN=5,
+    EIGENVALUE2_COLUMN=6,
+    EIGENVECTOR_0_X_COLUMN=7,
+    EIGENVECTOR_0_Y_COLUMN=8,
+    EIGENVECTOR_0_Z_COLUMN=9,
+    EIGENVECTOR_1_X_COLUMN=10,
+    EIGENVECTOR_1_Y_COLUMN=11,
+    EIGENVECTOR_1_Z_COLUMN=12,
+    EIGENVECTOR_2_X_COLUMN=13,
+    EIGENVECTOR_2_Y_COLUMN=14,
+    EIGENVECTOR_2_Z_COLUMN=15,
+    LLSV_COLUMN=16,
+    SEGMENT_ID_COLUMN=17,
+    STANDARD_DEVIATION_COLUMN=18,
+    NR_POINTS_PER_SEG_COLUMN=19,
+)
+SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
+
+LLSV_PCA_COLUMNS_DICT = dict(
+    X_COLUMN=0,
+    Y_COLUMN=1,
+    Z_COLUMN=2,
+    EPOCH_ID_COLUMN=3,
+    EIGENVALUE0_COLUMN=4,
+    EIGENVALUE1_COLUMN=5,
+    EIGENVALUE2_COLUMN=6,
+    EIGENVECTOR_0_X_COLUMN=7,
+    EIGENVECTOR_0_Y_COLUMN=8,
+    EIGENVECTOR_0_Z_COLUMN=9,
+    EIGENVECTOR_1_X_COLUMN=10,
+    EIGENVECTOR_1_Y_COLUMN=11,
+    EIGENVECTOR_1_Z_COLUMN=12,
+    EIGENVECTOR_2_X_COLUMN=13,
+    EIGENVECTOR_2_Y_COLUMN=14,
+    EIGENVECTOR_2_Z_COLUMN=15,
+    LLSV_COLUMN=16,
+)
+
+LLSV_PCA_COLUMNS = type("LLSV_PCA_COLUMNS", (), LLSV_PCA_COLUMNS_DICT)
+
+SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
+    X_COLUMN=0,
+    Y_COLUMN=1,
+    Z_COLUMN=2,
+    EPOCH_ID_COLUMN=3,
+    EIGENVALUE0_COLUMN=4,
+    EIGENVALUE1_COLUMN=5,
+    EIGENVALUE2_COLUMN=6,
+    EIGENVECTOR_0_X_COLUMN=7,
+    EIGENVECTOR_0_Y_COLUMN=8,
+    EIGENVECTOR_0_Z_COLUMN=9,
+    EIGENVECTOR_1_X_COLUMN=10,
+    EIGENVECTOR_1_Y_COLUMN=11,
+    EIGENVECTOR_1_Z_COLUMN=12,
+    EIGENVECTOR_2_X_COLUMN=13,
+    EIGENVECTOR_2_Y_COLUMN=14,
+    EIGENVECTOR_2_Z_COLUMN=15,
+    LLSV_COLUMN=16,
+    SEGMENT_ID_COLUMN=17,
+    STANDARD_DEVIATION_COLUMN=18,
+)
+SEGMENTED_POINT_CLOUD_COLUMNS = type(
+    "SEGMENTED_POINT_CLOUD_COLUMNS", (), SEGMENTED_POINT_CLOUD_COLUMNS_DICT
+)
+
 
 def set_interactive_backend(backend="vtk"):
     """Set the interactive backend for selection of correspondent segments.
@@ -369,7 +442,7 @@ class Viewer:
 
 
 def compute_similarity_between(
-    seg_epoch0: np.ndarray, seg_epoch1: np.ndarray
+    seg_epoch0: np.ndarray, seg_epoch1: np.ndarray, columns=SEGMENT_COLUMNS
 ) -> np.ndarray:
 
     """
@@ -389,6 +462,8 @@ def compute_similarity_between(
             ]
     :param seg_epoch1:
         segment from epoch1, same structure as 'seg_epoch0'
+    :param columns:
+        Column mapping used by seg_epoch0 and seg_epoch0
     :return:
         numpy array of shape (6,) containing:
             angle, -> angle between plane normal vectors
@@ -399,62 +474,63 @@ def compute_similarity_between(
             nr_points_diff, -> difference in number of points per plane
     """
 
-    X_COLUMN = 0
-    Y_COLUMN = 1
-    Z_COLUMN = 2
-
-    EPOCH_ID_COLUMN = 3
-    EIGENVALUE0_COLUMN = 4
-    EIGENVALUE1_COLUMN = 5
-    EIGENVALUE2_COLUMN = 6
-    EIGENVECTOR_0_X_COLUMN = 7
-    EIGENVECTOR_0_Y_COLUMN = 8
-    EIGENVECTOR_0_Z_COLUMN = 9
-    EIGENVECTOR_1_X_COLUMN = 10
-    EIGENVECTOR_1_Y_COLUMN = 11
-    EIGENVECTOR_1_Z_COLUMN = 12
-    EIGENVECTOR_2_X_COLUMN = 13
-    EIGENVECTOR_2_Y_COLUMN = 14
-    EIGENVECTOR_2_Z_COLUMN = 15
-    LLSV_COLUMN = 16
-    SEGMENT_ID_COLUMN = 17
-
-    STANDARD_DEVIATION_COLUMN = 18
-
-    NR_POINTS_PER_SEG_COLUMN = 19
+    # X_COLUMN = 0
+    # Y_COLUMN = 1
+    # Z_COLUMN = 2
+    #
+    # EPOCH_ID_COLUMN = 3
+    # EIGENVALUE0_COLUMN = 4
+    # EIGENVALUE1_COLUMN = 5
+    # EIGENVALUE2_COLUMN = 6
+    # EIGENVECTOR_0_X_COLUMN = 7
+    # EIGENVECTOR_0_Y_COLUMN = 8
+    # EIGENVECTOR_0_Z_COLUMN = 9
+    # EIGENVECTOR_1_X_COLUMN = 10
+    # EIGENVECTOR_1_Y_COLUMN = 11
+    # EIGENVECTOR_1_Z_COLUMN = 12
+    # EIGENVECTOR_2_X_COLUMN = 13
+    # EIGENVECTOR_2_Y_COLUMN = 14
+    # EIGENVECTOR_2_Z_COLUMN = 15
+    # LLSV_COLUMN = 16
+    # SEGMENT_ID_COLUMN = 17
+    #
+    # STANDARD_DEVIATION_COLUMN = 18
+    #
+    # NR_POINTS_PER_SEG_COLUMN = 19
 
     Normal_Columns = [
-        EIGENVECTOR_2_X_COLUMN,
-        EIGENVECTOR_2_Y_COLUMN,
-        EIGENVECTOR_2_Z_COLUMN,
+        columns.EIGENVECTOR_2_X_COLUMN,
+        columns.EIGENVECTOR_2_Y_COLUMN,
+        columns.EIGENVECTOR_2_Z_COLUMN,
     ]
 
     angle = angle_difference_compute(
         seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]
     )
 
-    points_density_seg_epoch0 = seg_epoch0[NR_POINTS_PER_SEG_COLUMN] / (
-        seg_epoch0[EIGENVALUE0_COLUMN] * seg_epoch0[EIGENVALUE1_COLUMN]
+    points_density_seg_epoch0 = seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN] / (
+        seg_epoch0[columns.EIGENVALUE0_COLUMN] * seg_epoch0[columns.EIGENVALUE1_COLUMN]
     )
 
-    points_density_seg_epoch1 = seg_epoch1[NR_POINTS_PER_SEG_COLUMN] / (
-        seg_epoch1[EIGENVALUE0_COLUMN] * seg_epoch1[EIGENVALUE1_COLUMN]
+    points_density_seg_epoch1 = seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN] / (
+        seg_epoch1[columns.EIGENVALUE0_COLUMN] * seg_epoch1[columns.EIGENVALUE1_COLUMN]
     )
 
     points_density_diff = abs(points_density_seg_epoch0 - points_density_seg_epoch1)
 
     eigen_value_smallest_diff = abs(
-        seg_epoch0[EIGENVALUE2_COLUMN] - seg_epoch1[EIGENVALUE2_COLUMN]
+        seg_epoch0[columns.EIGENVALUE2_COLUMN] - seg_epoch1[columns.EIGENVALUE2_COLUMN]
     )
     eigen_value_largest_diff = abs(
-        seg_epoch0[EIGENVALUE0_COLUMN] - seg_epoch1[EIGENVALUE0_COLUMN]
+        seg_epoch0[columns.EIGENVALUE0_COLUMN] - seg_epoch1[columns.EIGENVALUE0_COLUMN]
     )
     eigen_value_middle_diff = abs(
-        seg_epoch0[EIGENVALUE1_COLUMN] - seg_epoch1[EIGENVALUE1_COLUMN]
+        seg_epoch0[columns.EIGENVALUE1_COLUMN] - seg_epoch1[columns.EIGENVALUE1_COLUMN]
     )
 
     nr_points_diff = abs(
-        seg_epoch0[NR_POINTS_PER_SEG_COLUMN] - seg_epoch1[NR_POINTS_PER_SEG_COLUMN]
+        seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN]
+        - seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN]
     )
 
     return np.array(
@@ -469,7 +545,9 @@ def compute_similarity_between(
     )
 
 
-def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"):
+def generate_random_y(
+    X, extended_y_file_name="locally_generated_extended_y.csv", columns=SEGMENT_COLUMNS
+):
 
     """
         Generate a subset (1/3 from the total possible pairs) of random tuples of segments ID
@@ -480,16 +558,18 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
         Each row contains a segment.
     :param extended_y_file_name:
         Name of the file where the serialized result is saved.
+    :param columns:
+        Column mapping used by each segment.
     :return:
         numpy (m_pairs, 3)
             Where each row contains tuples of set0 segment id, set1 segment id, rand 0/1.
     """
 
-    SEGMENT_ID_COLUMN = 17
-    EPOCH_ID_COLUMN = 3
+    # SEGMENT_ID_COLUMN = 17
+    # EPOCH_ID_COLUMN = 3
 
-    mask_epoch0 = X[:, EPOCH_ID_COLUMN] == 0
-    mask_epoch1 = X[:, EPOCH_ID_COLUMN] == 1
+    mask_epoch0 = X[:, columns.EPOCH_ID_COLUMN] == 0
+    mask_epoch1 = X[:, columns.EPOCH_ID_COLUMN] == 1
 
     epoch0_set = X[mask_epoch0, :]  # all
     epoch1_set = X[mask_epoch1, :]  # all
@@ -499,8 +579,8 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
     indx0_seg_id = random.sample(range(epoch0_set.shape[0]), nr_pairs)
     indx1_seg_id = random.sample(range(epoch1_set.shape[0]), nr_pairs)
 
-    set0_seg_id = epoch0_set[indx0_seg_id, SEGMENT_ID_COLUMN]
-    set1_seg_id = epoch1_set[indx1_seg_id, SEGMENT_ID_COLUMN]
+    set0_seg_id = epoch0_set[indx0_seg_id, columns.SEGMENT_ID_COLUMN]
+    set1_seg_id = epoch1_set[indx1_seg_id, columns.SEGMENT_ID_COLUMN]
 
     rand_y_01 = list(np.random.randint(0, 2, nr_pairs))
 
@@ -514,7 +594,7 @@ def generate_random_y(X, extended_y_file_name="locally_generated_extended_y.csv"
 
 
 class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
-    def __init__(self, skip=False, output_file_name=None):
+    def __init__(self, skip=False, output_file_name=None, columns=None):
 
         """
         :param skip:
@@ -525,6 +605,7 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
 
         self.skip = skip
         self.output_file_name = output_file_name
+        self.columns = columns
         super(BaseTransformer, self).__init__()
 
     @abstractmethod
@@ -606,7 +687,9 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
 
 
 class LLSVandPCA(BaseTransformer):
-    def __init__(self, skip=False, radius=10, output_file_name=None):
+    def __init__(
+        self, skip=False, radius=10, output_file_name=None, columns=LLSV_PCA_COLUMNS
+    ):
 
         """
 
@@ -618,7 +701,9 @@ class LLSVandPCA(BaseTransformer):
             File where the result of the 'Transform()' method, a numpy array, is dumped.
         """
 
-        super(LLSVandPCA, self).__init__(skip=skip, output_file_name=output_file_name)
+        super(LLSVandPCA, self).__init__(
+            skip=skip, output_file_name=output_file_name, columns=columns
+        )
         self.radius = radius
 
     def _llsv_and_pca(self, x, X):
@@ -637,7 +722,7 @@ class LLSVandPCA(BaseTransformer):
                     Lowest local surface variation ( 1 column )
                 ]
         :param X:
-            Subset of the point cloud of numpy array (m_samples, 3), that is found around 'x' inside a 'radius'.
+            Subset of the point cloud of numpy array (m_samples, 3), that is found around 'x'(x,y,z) inside a 'radius'.
         :return:
             return a populated x with
             (Eigenvalues, Eigenvectors, Lowest local surface variation)
@@ -690,14 +775,18 @@ class LLSVandPCA(BaseTransformer):
                 Lowest local surface variation( 1 column )
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-        EPOCH_ID_COLUMN = 3
-        X_Y_Z_Columns = [X_COLUMN, Y_COLUMN, Z_COLUMN]
+        # X_COLUMN = 0
+        # Y_COLUMN = 1
+        # Z_COLUMN = 2
+        # EPOCH_ID_COLUMN = 3
+        X_Y_Z_Columns = [
+            self.columns.X_COLUMN,
+            self.columns.Y_COLUMN,
+            self.columns.Z_COLUMN,
+        ]
 
-        mask_epoch0 = X[:, EPOCH_ID_COLUMN] == 0
-        mask_epoch1 = X[:, EPOCH_ID_COLUMN] == 1
+        mask_epoch0 = X[:, self.columns.EPOCH_ID_COLUMN] == 0
+        mask_epoch1 = X[:, self.columns.EPOCH_ID_COLUMN] == 1
 
         epoch0_set = X[mask_epoch0, :-1]
         epoch1_set = X[mask_epoch1, :-1]
@@ -715,31 +804,31 @@ class LLSVandPCA(BaseTransformer):
         new_columns = np.zeros((X.shape[0], 13))
         X = np.hstack((X, new_columns))
 
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        Normal_Columns = [
-            EIGENVECTOR_2_X_COLUMN,
-            EIGENVECTOR_2_Y_COLUMN,
-            EIGENVECTOR_2_Z_COLUMN,
-        ]
+        # EIGENVALUE0_COLUMN = 4
+        # EIGENVALUE1_COLUMN = 5
+        # EIGENVALUE2_COLUMN = 6
+        # EIGENVECTOR_0_X_COLUMN = 7
+        # EIGENVECTOR_0_Y_COLUMN = 8
+        # EIGENVECTOR_0_Z_COLUMN = 9
+        # EIGENVECTOR_1_X_COLUMN = 10
+        # EIGENVECTOR_1_Y_COLUMN = 11
+        # EIGENVECTOR_1_Z_COLUMN = 12
+        # EIGENVECTOR_2_X_COLUMN = 13
+        # EIGENVECTOR_2_Y_COLUMN = 14
+        # EIGENVECTOR_2_Z_COLUMN = 15
+        # LLSV_COLUMN = 16
+        # Normal_Columns = [
+        #     self.columns.EIGENVECTOR_2_X_COLUMN,
+        #     self.columns.EIGENVECTOR_2_Y_COLUMN,
+        #     self.columns.EIGENVECTOR_2_Z_COLUMN,
+        # ]
 
         # this process can be parallelized!
         return np.apply_along_axis(
             lambda x: self._llsv_and_pca(
                 x,
-                _epoch[int(x[EPOCH_ID_COLUMN])].cloud[
-                    _epoch[int(x[EPOCH_ID_COLUMN])].kdtree.radius_search(
+                _epoch[int(x[self.columns.EPOCH_ID_COLUMN])].cloud[
+                    _epoch[int(x[self.columns.EPOCH_ID_COLUMN])].kdtree.radius_search(
                         x[X_Y_Z_Columns], self.radius
                     )
                 ],
@@ -763,6 +852,7 @@ class Segmentation(BaseTransformer):
         min_nr_points_per_segment=5,
         with_previously_computed_segments=False,
         output_file_name=None,
+        columns=SEGMENTED_POINT_CLOUD_COLUMNS,
     ):
 
         """
@@ -796,7 +886,9 @@ class Segmentation(BaseTransformer):
             File where the result of the 'Transform()' method, a numpy array, is dumped.
         """
 
-        super(Segmentation, self).__init__(skip=skip, output_file_name=output_file_name)
+        super(Segmentation, self).__init__(
+            skip=skip, output_file_name=output_file_name, columns=columns
+        )
 
         self.radius = radius
         self.angle_diff_threshold = angle_diff_threshold
@@ -953,21 +1045,25 @@ class Segmentation(BaseTransformer):
             ]
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-        X_Y_Z_Columns = [X_COLUMN, Y_COLUMN, Z_COLUMN]
+        # X_COLUMN = 0
+        # Y_COLUMN = 1
+        # Z_COLUMN = 2
+        X_Y_Z_Columns = [
+            self.columns.X_COLUMN,
+            self.columns.Y_COLUMN,
+            self.columns.Z_COLUMN,
+        ]
 
-        EPOCH_ID_COLUMN = 3
-
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
+        # EPOCH_ID_COLUMN = 3
+        #
+        # EIGENVECTOR_2_X_COLUMN = 13
+        # EIGENVECTOR_2_Y_COLUMN = 14
+        # EIGENVECTOR_2_Z_COLUMN = 15
+        # LLSV_COLUMN = 16
         Normal_Columns = [
-            EIGENVECTOR_2_X_COLUMN,
-            EIGENVECTOR_2_Y_COLUMN,
-            EIGENVECTOR_2_Z_COLUMN,
+            self.columns.EIGENVECTOR_2_X_COLUMN,
+            self.columns.EIGENVECTOR_2_Y_COLUMN,
+            self.columns.EIGENVECTOR_2_Z_COLUMN,
         ]
 
         # default, the points are part of NO segment ( e.g. -1 )
@@ -989,11 +1085,11 @@ class Segmentation(BaseTransformer):
             )
             X = np.hstack((X, new_column_std_deviation))
 
-        SEGMENT_ID_COLUMN = 17
-        STANDARD_DEVIATION_COLUMN = 18
+        # SEGMENT_ID_COLUMN = 17
+        # STANDARD_DEVIATION_COLUMN = 18
 
-        mask_epoch0 = X[:, EPOCH_ID_COLUMN] == 0
-        mask_epoch1 = X[:, EPOCH_ID_COLUMN] == 1
+        mask_epoch0 = X[:, self.columns.EPOCH_ID_COLUMN] == 0
+        mask_epoch1 = X[:, self.columns.EPOCH_ID_COLUMN] == 1
 
         epoch0_set = X[mask_epoch0, :3]  # x,y,z
         epoch1_set = X[mask_epoch1, :3]  # x,y,z
@@ -1004,21 +1100,21 @@ class Segmentation(BaseTransformer):
         _epoch[1].build_kdtree()
 
         # sort by "Lowest local surface variation"
-        sort_indx_epoch0 = X[mask_epoch0, LLSV_COLUMN].argsort()
-        sort_indx_epoch1 = X[mask_epoch1, LLSV_COLUMN].argsort()
+        sort_indx_epoch0 = X[mask_epoch0, self.columns.LLSV_COLUMN].argsort()
+        sort_indx_epoch1 = X[mask_epoch1, self.columns.LLSV_COLUMN].argsort()
         sort_indx_epoch = [sort_indx_epoch0, sort_indx_epoch1]
 
         offset_in_X = [0, sort_indx_epoch0.shape[0]]
 
         # initialization required between multiple Segmentations
-        seg_id = np.max(X[:, SEGMENT_ID_COLUMN])
+        seg_id = np.max(X[:, self.columns.SEGMENT_ID_COLUMN])
 
         for epoch_id in range(2):
             for indx_row in sort_indx_epoch[epoch_id] + offset_in_X[epoch_id]:
                 # no part of a segment yet
-                if X[indx_row, SEGMENT_ID_COLUMN] < 0:
+                if X[indx_row, self.columns.SEGMENT_ID_COLUMN] < 0:
                     seg_id += 1
-                    X[indx_row, SEGMENT_ID_COLUMN] = seg_id
+                    X[indx_row, self.columns.SEGMENT_ID_COLUMN] = seg_id
 
                     cumulative_distance_for_std_deviation = 0
                     nr_points_for_std_deviation = 0
@@ -1028,7 +1124,10 @@ class Segmentation(BaseTransformer):
                     )[: self.max_nr_points_neighborhood]
                     for indx_kd_tree in indx_kd_tree_list:
                         if (
-                            X[indx_kd_tree + offset_in_X[epoch_id], SEGMENT_ID_COLUMN]
+                            X[
+                                indx_kd_tree + offset_in_X[epoch_id],
+                                self.columns.SEGMENT_ID_COLUMN,
+                            ]
                             < 0
                             and self.angle_difference_check(
                                 X[indx_row, Normal_Columns],
@@ -1039,7 +1138,7 @@ class Segmentation(BaseTransformer):
                                 seg_id,
                                 X,
                                 X_Y_Z_Columns,
-                                SEGMENT_ID_COLUMN,
+                                self.columns.SEGMENT_ID_COLUMN,
                             )
                             and self.distance_orthogonal_check(
                                 X[indx_kd_tree + offset_in_X[epoch_id], X_Y_Z_Columns],
@@ -1047,11 +1146,15 @@ class Segmentation(BaseTransformer):
                                 X[indx_row, Normal_Columns],
                             )
                             and self.lowest_local_suface_variance_check(
-                                X[indx_kd_tree + offset_in_X[epoch_id], LLSV_COLUMN]
+                                X[
+                                    indx_kd_tree + offset_in_X[epoch_id],
+                                    self.columns.LLSV_COLUMN,
+                                ]
                             )
                         ):
                             X[
-                                indx_kd_tree + offset_in_X[epoch_id], SEGMENT_ID_COLUMN
+                                indx_kd_tree + offset_in_X[epoch_id],
+                                self.columns.SEGMENT_ID_COLUMN,
                             ] = seg_id
                             cumulative_distance_for_std_deviation += (
                                 self.compute_distance_orthogonal(
@@ -1067,7 +1170,7 @@ class Segmentation(BaseTransformer):
                             nr_points_for_std_deviation += 1
 
                     nr_points_segment = np.count_nonzero(
-                        X[:, SEGMENT_ID_COLUMN] == seg_id
+                        X[:, self.columns.SEGMENT_ID_COLUMN] == seg_id
                     )
 
                     # not enough points or 'roughness_threshold' exceeded
@@ -1077,30 +1180,41 @@ class Segmentation(BaseTransformer):
                         / nr_points_for_std_deviation
                         >= self.roughness_threshold
                     ):
-                        mask_seg_id = X[:, SEGMENT_ID_COLUMN] == seg_id
-                        X[mask_seg_id, SEGMENT_ID_COLUMN] = DEFAULT_NO_SEGMENT
+                        mask_seg_id = X[:, self.columns.SEGMENT_ID_COLUMN] == seg_id
+                        X[
+                            mask_seg_id, self.columns.SEGMENT_ID_COLUMN
+                        ] = DEFAULT_NO_SEGMENT
                         # since we don't have a new segment
                         seg_id -= 1
                     else:
-                        X[indx_row, STANDARD_DEVIATION_COLUMN] = (
+                        X[indx_row, self.columns.STANDARD_DEVIATION_COLUMN] = (
                             cumulative_distance_for_std_deviation
                             / nr_points_for_std_deviation
                         )
-
         return X
 
 
 class PostSegmentation(BaseTransformer):
-    def __init__(self, skip=False, compute_normal=True, output_file_name=None):
+    def __init__(
+        self,
+        skip=False,
+        compute_normal=True,
+        output_file_name=None,
+        columns=SEGMENTED_POINT_CLOUD_COLUMNS,
+    ):
 
         """
         :param skip:
             Whether the current transform is applied or not.
+        :param compute_normal:
+
         :param output_file_name:
             File where the result of the 'Transform()' method, a numpy array, is dumped.
+        :param columns:
+
         """
 
-        super().__init__(skip=skip, output_file_name=output_file_name)
+        super().__init__(skip=skip, output_file_name=output_file_name, columns=columns)
         self.compute_normal = compute_normal
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
@@ -1186,51 +1300,55 @@ class PostSegmentation(BaseTransformer):
         :return:
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-        X_Y_Z_Columns = [X_COLUMN, Y_COLUMN, Z_COLUMN]
+        # X_COLUMN = 0
+        # Y_COLUMN = 1
+        # Z_COLUMN = 2
+        X_Y_Z_Columns = [
+            self.columns.X_COLUMN,
+            self.columns.Y_COLUMN,
+            self.columns.Z_COLUMN,
+        ]
 
-        EPOCH_ID_COLUMN = 3
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        SEGMENT_ID_COLUMN = 17
-
-        STANDARD_DEVIATION_COLUMN = 18
+        # EPOCH_ID_COLUMN = 3
+        # EIGENVALUE0_COLUMN = 4
+        # EIGENVALUE1_COLUMN = 5
+        # EIGENVALUE2_COLUMN = 6
+        # EIGENVECTOR_0_X_COLUMN = 7
+        # EIGENVECTOR_0_Y_COLUMN = 8
+        # EIGENVECTOR_0_Z_COLUMN = 9
+        # EIGENVECTOR_1_X_COLUMN = 10
+        # EIGENVECTOR_1_Y_COLUMN = 11
+        # EIGENVECTOR_1_Z_COLUMN = 12
+        # EIGENVECTOR_2_X_COLUMN = 13
+        # EIGENVECTOR_2_Y_COLUMN = 14
+        # EIGENVECTOR_2_Z_COLUMN = 15
+        # LLSV_COLUMN = 16
+        # SEGMENT_ID_COLUMN = 17
+        #
+        # STANDARD_DEVIATION_COLUMN = 18
 
         Eigval = [
-            EIGENVALUE0_COLUMN,
-            EIGENVALUE1_COLUMN,
-            EIGENVALUE2_COLUMN,
+            self.columns.EIGENVALUE0_COLUMN,
+            self.columns.EIGENVALUE1_COLUMN,
+            self.columns.EIGENVALUE2_COLUMN,
         ]
 
         Eigvec0 = [
-            EIGENVECTOR_0_X_COLUMN,
-            EIGENVECTOR_0_Y_COLUMN,
-            EIGENVECTOR_0_Z_COLUMN,
+            self.columns.EIGENVECTOR_0_X_COLUMN,
+            self.columns.EIGENVECTOR_0_Y_COLUMN,
+            self.columns.EIGENVECTOR_0_Z_COLUMN,
         ]
 
         Eigvec1 = [
-            EIGENVECTOR_1_X_COLUMN,
-            EIGENVECTOR_1_Y_COLUMN,
-            EIGENVECTOR_1_Z_COLUMN,
+            self.columns.EIGENVECTOR_1_X_COLUMN,
+            self.columns.EIGENVECTOR_1_Y_COLUMN,
+            self.columns.EIGENVECTOR_1_Z_COLUMN,
         ]
 
         Normal_Columns = [
-            EIGENVECTOR_2_X_COLUMN,
-            EIGENVECTOR_2_Y_COLUMN,
-            EIGENVECTOR_2_Z_COLUMN,
+            self.columns.EIGENVECTOR_2_X_COLUMN,
+            self.columns.EIGENVECTOR_2_Y_COLUMN,
+            self.columns.EIGENVECTOR_2_Z_COLUMN,
         ]
 
         # default value for the points that are part of NO segment ( e.g. -1 )
@@ -1238,11 +1356,11 @@ class PostSegmentation(BaseTransformer):
         # default value for standard deviation for points that are not "core points"
         DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
 
-        highest_segment_id_used = int(X[:, SEGMENT_ID_COLUMN].max())
+        highest_segment_id_used = int(X[:, self.columns.SEGMENT_ID_COLUMN].max())
 
         for i in range(0, highest_segment_id_used + 1):
 
-            mask = X[:, SEGMENT_ID_COLUMN] == float(i)
+            mask = X[:, self.columns.SEGMENT_ID_COLUMN] == float(i)
             # extract all points, that are part of the same segment
             set_cloud = X[mask, :3]
 
@@ -1277,7 +1395,7 @@ class PostSegmentation(BaseTransformer):
                     ** 2
                 )
 
-            X[indx_min_in_X, STANDARD_DEVIATION_COLUMN] = (
+            X[indx_min_in_X, self.columns.STANDARD_DEVIATION_COLUMN] = (
                 cumulative_distance_for_std_deviation / nr_points_for_std_deviation
             )
 
@@ -1285,7 +1403,7 @@ class PostSegmentation(BaseTransformer):
 
 
 class ExtractSegments(BaseTransformer):
-    def __init__(self, skip=False, output_file_name=None):
+    def __init__(self, skip=False, output_file_name=None, columns=SEGMENT_COLUMNS):
         """
 
         :param skip:
@@ -1295,7 +1413,7 @@ class ExtractSegments(BaseTransformer):
         """
 
         super(ExtractSegments, self).__init__(
-            skip=skip, output_file_name=output_file_name
+            skip=skip, output_file_name=output_file_name, columns=columns
         )
 
     def _fit(self, X, y=None):
@@ -1368,26 +1486,28 @@ class ExtractSegments(BaseTransformer):
 
         NR_COLUMNS_SEGMENT = 20
 
-        max = int(X[:, SEGMENT_ID_COLUMN].max())
-        X_Segments = np.empty((int(max) + 1, NR_COLUMNS_SEGMENT), dtype=float)
+        max_segment_id = int(X[:, self.columns.SEGMENT_ID_COLUMN].max())
+        X_Segments = np.empty(
+            (int(max_segment_id) + 1, NR_COLUMNS_SEGMENT), dtype=float
+        )
 
-        for i in range(0, max + 1):
+        for i in range(0, max_segment_id + 1):
 
-            mask = X[:, SEGMENT_ID_COLUMN] == float(i)
+            mask = X[:, self.columns.SEGMENT_ID_COLUMN] == float(i)
             set_cloud = X[mask, :]  # all
             nr_points = set_cloud.shape[0]
 
             # arg_min = set_cloud[:, LLSV_COLUMN].argmin()
             # X_Segments[i, :-1] = set_cloud[arg_min, :]
 
-            mask_std = set_cloud[:, STANDARD_DEVIATION_COLUMN] != float(-1)
+            mask_std = set_cloud[:, self.columns.STANDARD_DEVIATION_COLUMN] != float(-1)
             set_cloud_std = set_cloud[mask_std, :]
             assert (
                 set_cloud_std.shape[0] == 1
             ), "Only one element of the segment has standard deviation computed!"
             X_Segments[i, :-1] = set_cloud_std[0, :]
 
-            X_Segments[i, -1] = nr_points
+            X_Segments[i, self.columns.NR_POINTS_PER_SEG_COLUMN] = nr_points
 
         return X_Segments
 
@@ -1456,34 +1576,34 @@ class BuildSimilarityFeature_and_y(ABC):
             numpy array containing the similarity value between 2 segments.
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
+        # X_COLUMN = 0
+        # Y_COLUMN = 1
+        # Z_COLUMN = 2
+        #
+        # EPOCH_ID_COLUMN = 3
+        # EIGENVALUE0_COLUMN = 4
+        # EIGENVALUE1_COLUMN = 5
+        # EIGENVALUE2_COLUMN = 6
+        # EIGENVECTOR_0_X_COLUMN = 7
+        # EIGENVECTOR_0_Y_COLUMN = 8
+        # EIGENVECTOR_0_Z_COLUMN = 9
+        # EIGENVECTOR_1_X_COLUMN = 10
+        # EIGENVECTOR_1_Y_COLUMN = 11
+        # EIGENVECTOR_1_Z_COLUMN = 12
+        # EIGENVECTOR_2_X_COLUMN = 13
+        # EIGENVECTOR_2_Y_COLUMN = 14
+        # EIGENVECTOR_2_Z_COLUMN = 15
+        # LLSV_COLUMN = 16
+        # SEGMENT_ID_COLUMN = 17
+        #
+        # STANDARD_DEVIATION_COLUMN = 18
+        # NR_POINTS_PER_SEG_COLUMN = 19
 
-        EPOCH_ID_COLUMN = 3
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        SEGMENT_ID_COLUMN = 17
-
-        STANDARD_DEVIATION_COLUMN = 18
-        NR_POINTS_PER_SEG_COLUMN = 19
-
-        Normal_Columns = [
-            EIGENVECTOR_2_X_COLUMN,
-            EIGENVECTOR_2_Y_COLUMN,
-            EIGENVECTOR_2_Z_COLUMN,
-        ]
+        # Normal_Columns = [
+        #     EIGENVECTOR_2_X_COLUMN,
+        #     EIGENVECTOR_2_Y_COLUMN,
+        #     EIGENVECTOR_2_Z_COLUMN,
+        # ]
 
         seg_epoch0 = X[int(y_row[0]), :]
         seg_epoch1 = X[int(y_row[1]), :]
@@ -2268,6 +2388,7 @@ class PB_M3C2:
 
         return build_similarity_feature_and_y.compute(out)
 
+    # better name: export_segmented_point_cloud_for_labeling
     def export_segments_for_labelling(
         self,
         epoch0: Epoch = None,
@@ -3627,7 +3748,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         :return:
             tuple [distances, uncertainties]
                 'distances' is np.array (nr_similar_pairs, 1)
-                'uncertainties' is np array (nr_similar_pairs,1) and it has the following structure:
+                'uncertainties' is np array (nr_similar_pairs, 1) and it has the following structure:
                     dtype=np.dtype(
                         [
                             ("lodetection", "<f8"),
