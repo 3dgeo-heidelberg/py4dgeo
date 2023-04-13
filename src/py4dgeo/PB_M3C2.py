@@ -34,23 +34,21 @@ try:
 except ImportError:
     interactive_available = False
 
-
 __all__ = [
     "Viewer",
     "BaseTransformer",
     "LLSVandPCA",
     "Segmentation",
     "ExtractSegments",
-    "BuildSimilarityFeature_and_y",
-    "BuildSimilarityFeature_and_y_RandomPairs",
-    "BuildSimilarityFeature_and_y_Visually",
+    "BuilderExtended_y",
+    "BuilderExtended_y_Visually",
     "ClassifierWrapper",
     "PB_M3C2",
     "build_input_scenario2_without_normals",
     "build_input_scenario2_with_normals",
     "PB_M3C2_with_segments",
     "set_interactive_backend",
-    "generate_random_y",
+    "generate_random_extended_y",
 ]
 
 logger = logging.getLogger("py4dgeo")
@@ -76,7 +74,6 @@ LLSV_PCA_COLUMNS_DICT = dict(
 )
 LLSV_PCA_COLUMNS = type("LLSV_PCA_COLUMNS", (), LLSV_PCA_COLUMNS_DICT)
 
-
 SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
     X_COLUMN=0,
     Y_COLUMN=1,
@@ -101,7 +98,6 @@ SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
 SEGMENTED_POINT_CLOUD_COLUMNS = type(
     "SEGMENTED_POINT_CLOUD_COLUMNS", (), SEGMENTED_POINT_CLOUD_COLUMNS_DICT
 )
-
 
 SEGMENT_COLUMNS_DICT = dict(
     X_COLUMN=0,
@@ -141,7 +137,9 @@ def set_interactive_backend(backend="vtk"):
 
 
 def _extract_from_additional_dimensions(
-    epoch, column_names, required_number_of_columns=[]
+    epoch: Epoch,
+    column_names: typing.List[str],
+    required_number_of_columns: typing.List[int] = [],
 ):
     """
     Build a numpy array using 'column_names' which are part of the 'additional_dimensions' field.
@@ -180,7 +178,6 @@ def _extract_from_additional_dimensions(
 
 
 def angle_difference_compute(normal1, normal2):
-
     """
 
     :param normal1:
@@ -196,7 +193,6 @@ def angle_difference_compute(normal1, normal2):
 
 
 def geodesic_distance(v1, v2):
-
     """
     Compute the shortest angular distance between 2 unit vectors.
 
@@ -305,7 +301,6 @@ class Viewer:
         colors = Viewer.get_distinct_colors(nr_segments + 1)
 
         for i in range(0, nr_segments + 1):
-
             mask = X[:, 17] == float(i)
             # x,y,z
             set_cloud = X[mask, :3]
@@ -442,114 +437,9 @@ class Viewer:
             self.plt.render()
 
 
-def compute_similarity_between(
-    seg_epoch0: np.ndarray, seg_epoch1: np.ndarray, columns=SEGMENT_COLUMNS
-) -> np.ndarray:
-
-    """
-    Similarity function between 2 segments.
-
-    :param seg_epoch0:
-        segment from epoch0, numpy array (1, 20) with the following column structure:
-            [
-                x, y, z ( 3 columns ), -> segment, core point
-                EpochID ( 1 column ),
-                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
-                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
-                Lowest local surface variation ( 1 column ),
-                Segment_ID ( 1 column ),
-                Standard deviation ( 1 column ),
-                Number of points found in Segment_ID segment ( 1 column )
-            ]
-    :param seg_epoch1:
-        segment from epoch1, same structure as 'seg_epoch0'
-    :param columns:
-        Column mapping used by seg_epoch0 and seg_epoch0
-    :return:
-        numpy array of shape (6,) containing:
-            angle, -> angle between plane normal vectors
-            points_density_diff, -> difference between points density between pairs of segments
-            eigen_value_smallest_diff, -> difference in the quality of plane fit (smallest eigenvalue)
-            eigen_value_largest_diff, -> difference in plane extension (largest eigenvalue)
-            eigen_value_middle_diff, -> difference in orthogonal plane extension (middle eigenvalue)
-            nr_points_diff, -> difference in number of points per plane
-    """
-
-    # X_COLUMN = 0
-    # Y_COLUMN = 1
-    # Z_COLUMN = 2
-    #
-    # EPOCH_ID_COLUMN = 3
-    # EIGENVALUE0_COLUMN = 4
-    # EIGENVALUE1_COLUMN = 5
-    # EIGENVALUE2_COLUMN = 6
-    # EIGENVECTOR_0_X_COLUMN = 7
-    # EIGENVECTOR_0_Y_COLUMN = 8
-    # EIGENVECTOR_0_Z_COLUMN = 9
-    # EIGENVECTOR_1_X_COLUMN = 10
-    # EIGENVECTOR_1_Y_COLUMN = 11
-    # EIGENVECTOR_1_Z_COLUMN = 12
-    # EIGENVECTOR_2_X_COLUMN = 13
-    # EIGENVECTOR_2_Y_COLUMN = 14
-    # EIGENVECTOR_2_Z_COLUMN = 15
-    # LLSV_COLUMN = 16
-    # SEGMENT_ID_COLUMN = 17
-    #
-    # STANDARD_DEVIATION_COLUMN = 18
-    #
-    # NR_POINTS_PER_SEG_COLUMN = 19
-
-    Normal_Columns = [
-        columns.EIGENVECTOR_2_X_COLUMN,
-        columns.EIGENVECTOR_2_Y_COLUMN,
-        columns.EIGENVECTOR_2_Z_COLUMN,
-    ]
-
-    angle = angle_difference_compute(
-        seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]
-    )
-
-    points_density_seg_epoch0 = seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN] / (
-        seg_epoch0[columns.EIGENVALUE0_COLUMN] * seg_epoch0[columns.EIGENVALUE1_COLUMN]
-    )
-
-    points_density_seg_epoch1 = seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN] / (
-        seg_epoch1[columns.EIGENVALUE0_COLUMN] * seg_epoch1[columns.EIGENVALUE1_COLUMN]
-    )
-
-    points_density_diff = abs(points_density_seg_epoch0 - points_density_seg_epoch1)
-
-    eigen_value_smallest_diff = abs(
-        seg_epoch0[columns.EIGENVALUE2_COLUMN] - seg_epoch1[columns.EIGENVALUE2_COLUMN]
-    )
-    eigen_value_largest_diff = abs(
-        seg_epoch0[columns.EIGENVALUE0_COLUMN] - seg_epoch1[columns.EIGENVALUE0_COLUMN]
-    )
-    eigen_value_middle_diff = abs(
-        seg_epoch0[columns.EIGENVALUE1_COLUMN] - seg_epoch1[columns.EIGENVALUE1_COLUMN]
-    )
-
-    nr_points_diff = abs(
-        seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN]
-        - seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN]
-    )
-
-    return np.array(
-        [
-            angle,
-            points_density_diff,
-            eigen_value_smallest_diff,
-            eigen_value_largest_diff,
-            eigen_value_middle_diff,
-            nr_points_diff,
-        ]
-    )
-
-
-def generate_random_y(
+def generate_random_extended_y(
     X, extended_y_file_name="locally_generated_extended_y.csv", columns=SEGMENT_COLUMNS
 ):
-
     """
         Generate a subset (1/3 from the total possible pairs) of random tuples of segments ID
         (where each ID gets to be extracted from a different epoch) which are randomly labeled (0/1)
@@ -663,7 +553,7 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
                 )
             return X
 
-        # Check is fit had been called
+        # Check if fit had been called
         check_is_fitted(self, "n_features_")
 
         # Input validation
@@ -691,7 +581,6 @@ class LLSVandPCA(BaseTransformer):
     def __init__(
         self, skip=False, radius=10, output_file_name=None, columns=LLSV_PCA_COLUMNS
     ):
-
         """
 
         :param skip:
@@ -708,7 +597,6 @@ class LLSVandPCA(BaseTransformer):
         self.radius = radius
 
     def _llsv_and_pca(self, x, X):
-
         """
         Compute PCA (implicitly, the normal vector as well) and lowest local surface variation
         for point "x" using the set "X" as input.
@@ -761,7 +649,6 @@ class LLSVandPCA(BaseTransformer):
         return self
 
     def _transform(self, X):
-
         """
         Extending X matrix by adding eigenvalues, eigenvectors, and lowest local surface variation columns.
 
@@ -1075,7 +962,6 @@ class Segmentation(BaseTransformer):
 
         # the new columns are added only if they weren't already been added previously
         if not self.with_previously_computed_segments:
-
             new_column_segment_id = np.full(
                 (X.shape[0], 1), DEFAULT_NO_SEGMENT, dtype=float
             )
@@ -1429,7 +1315,6 @@ class ExtractSegments(BaseTransformer):
         pass
 
     def _transform(self, X):
-
         """
         Transform the numpy array of 'point cloud' to numpy array of 'segments' and extend the structure by adding
         a new column containing the 'number of points found in Segment_ID'. During this process, only one point
@@ -1493,7 +1378,6 @@ class ExtractSegments(BaseTransformer):
         )
 
         for i in range(0, max_segment_id + 1):
-
             mask = X[:, self.columns.SEGMENT_ID_COLUMN] == float(i)
             set_cloud = X[mask, :]  # all
             nr_points = set_cloud.shape[0]
@@ -1513,24 +1397,14 @@ class ExtractSegments(BaseTransformer):
         return X_Segments
 
 
-class BuildSimilarityFeature_and_y(ABC):
+class BuilderExtended_y(ABC):
     def __init__(
         self,
-        similarity_function: typing.Callable[
-            [np.ndarray, np.ndarray], np.ndarray
-        ] = compute_similarity_between,
     ):
-
-        """
-        param similarity_function: python function with 2 arguments ( segment epoch0, segment epoch1 )
-            The function is used for similarity computation between 2 segments.
-        """
-
         super().__init__()
-        self.similarity_function = similarity_function
 
     @abstractmethod
-    def generate_extended_y(self, X, y):
+    def generate_extended_y(self, X, y=None):
         """
         Generates tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
 
@@ -1544,160 +1418,11 @@ class BuildSimilarityFeature_and_y(ABC):
         """
         pass
 
-    def compute(self, X, y=None):
-        """
-        Generates pairs of 'similarity features' and 0/1 labels
 
-        :param X:
-            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
-            epoch 0 and epoch 1. Each row is a segment.
-        :param y:
-            numpy array
-        :return:
-            tuple ['similarity feature', labels]
-        """
-
-        y_extended = self.generate_extended_y(X, y)
-
-        X_similarity = np.apply_along_axis(
-            lambda y_row: self._build_X_similarity(y_row, X), 1, y_extended
-        )
-
-        return (X_similarity, y_extended[:, 2])
-
-    def _build_X_similarity(self, y_row, X):
-        """
-
-        :param y_row:
-            numpy array of ( segment epoch0 id, segment epoch1 id, label(0/1) )
-        :param X:
-            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
-            epoch 0 and epoch 1. Each row is a segment.
-        :return:
-            numpy array containing the similarity value between 2 segments.
-        """
-
-        # X_COLUMN = 0
-        # Y_COLUMN = 1
-        # Z_COLUMN = 2
-        #
-        # EPOCH_ID_COLUMN = 3
-        # EIGENVALUE0_COLUMN = 4
-        # EIGENVALUE1_COLUMN = 5
-        # EIGENVALUE2_COLUMN = 6
-        # EIGENVECTOR_0_X_COLUMN = 7
-        # EIGENVECTOR_0_Y_COLUMN = 8
-        # EIGENVECTOR_0_Z_COLUMN = 9
-        # EIGENVECTOR_1_X_COLUMN = 10
-        # EIGENVECTOR_1_Y_COLUMN = 11
-        # EIGENVECTOR_1_Z_COLUMN = 12
-        # EIGENVECTOR_2_X_COLUMN = 13
-        # EIGENVECTOR_2_Y_COLUMN = 14
-        # EIGENVECTOR_2_Z_COLUMN = 15
-        # LLSV_COLUMN = 16
-        # SEGMENT_ID_COLUMN = 17
-        #
-        # STANDARD_DEVIATION_COLUMN = 18
-        # NR_POINTS_PER_SEG_COLUMN = 19
-
-        # Normal_Columns = [
-        #     EIGENVECTOR_2_X_COLUMN,
-        #     EIGENVECTOR_2_Y_COLUMN,
-        #     EIGENVECTOR_2_Z_COLUMN,
-        # ]
-
-        seg_epoch0 = X[int(y_row[0]), :]
-        seg_epoch1 = X[int(y_row[1]), :]
-
-        return self.similarity_function(seg_epoch0, seg_epoch1)
-
-
-class BuildTuplesOfSimilarityFeature_and_y(BuildSimilarityFeature_and_y):
+class BuilderExtended_y_Visually(BuilderExtended_y):
     def __init__(self):
 
-        super(BuildTuplesOfSimilarityFeature_and_y, self).__init__()
-
-    def generate_extended_y(self, X, y):
-        """
-        Generates tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
-
-        :param X:
-            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
-            epoch 0 and epoch 1. Each row is a segment.
-        :param y:
-            numpy array with shape (n_segments, 3)
-        :return:
-            numpy array with shape (n_segments, 3)
-        """
-        return y
-
-    def compute(self, X, y):
-
-        """
-        Generates pairs of 'similarity features' and 0/1 labels
-
-        :param X:
-            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
-            epoch 0 and epoch 1. Each row is a segment.
-        :param y:
-            numpy array where each row is of the following form ( segment ID epoch0, segment ID epoch1, label(0/1) )
-        :return:
-            tuple of
-                similarity feature (as a function of segment ID epoch0, segment ID epoch1) -> numpy array
-                label (0/1) -> numpy array (n,)
-        """
-
-        assert y.shape[1] == 3, "the number of rows of y must be of size 3!"
-
-        return super().compute(X=X, y=y)
-
-
-class BuildSimilarityFeature_and_y_RandomPairs(BuildSimilarityFeature_and_y):
-    def __init__(self):
-
-        super(BuildSimilarityFeature_and_y_RandomPairs, self).__init__()
-
-    def generate_extended_y(self, X, y):
-
-        """
-        It generates, randomly, tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
-        The number of tuples is 1/3 of the minimum number of segments from epoch 0 and epoch 1.
-
-        :param X:
-            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
-            epoch 0 and epoch 1. Each row is a segment.
-        :param y:
-            None
-        :return:
-            numpy array with shape (n_segments, 3)
-        """
-
-        SEGMENT_ID_COLUMN = 17
-        EPOCH_ID_COLUMN = 3
-
-        mask_epoch0 = X[:, EPOCH_ID_COLUMN] == 0
-        mask_epoch1 = X[:, EPOCH_ID_COLUMN] == 1
-
-        epoch0_set = X[mask_epoch0, :]  # all
-        epoch1_set = X[mask_epoch1, :]  # all
-
-        nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0]) // 3
-
-        indx0_seg_id = random.sample(range(epoch0_set.shape[0]), nr_pairs)
-        indx1_seg_id = random.sample(range(epoch1_set.shape[0]), nr_pairs)
-
-        set0_seg_id = epoch0_set[indx0_seg_id, SEGMENT_ID_COLUMN]
-        set1_seg_id = epoch1_set[indx1_seg_id, SEGMENT_ID_COLUMN]
-
-        rand_y_01 = list(np.random.randint(0, 2, nr_pairs))
-
-        return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
-
-
-class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
-    def __init__(self):
-
-        super(BuildSimilarityFeature_and_y_Visually, self).__init__()
+        super(BuilderExtended_y_Visually, self).__init__()
 
         self.current_pair = [None] * 2
         self.constructed_extended_y = np.empty(shape=(0, 3))
@@ -1900,7 +1625,7 @@ class BuildSimilarityFeature_and_y_Visually(BuildSimilarityFeature_and_y):
         ).close()
         return self.constructed_extended_y
 
-    def generate_extended_y(self, X, y):
+    def generate_extended_y(self, X, y=None):
 
         """
 
@@ -1923,7 +1648,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
     ):
 
         """
-
         :param neighborhood_search_radius:
             Maximum accepted Euclidean distance for any candidate segments.
         :param threshold_probability_most_similar:
@@ -1941,30 +1665,161 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         self.diff_between_most_similar_2 = diff_between_most_similar_2
         self.classifier = classifier
 
+    # consider this as a python protocol!!!
+    def compute_similarity_between(
+        self, seg_epoch0: np.ndarray, seg_epoch1: np.ndarray, columns=SEGMENT_COLUMNS
+    ) -> np.ndarray:
+
+        """
+        Similarity function between 2 segments.
+
+        :param seg_epoch0:
+            segment from epoch0, numpy array (1, 20) with the following column structure:
+                [
+                    x, y, z ( 3 columns ), -> segment, core point
+                    EpochID ( 1 column ),
+                    Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                    Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                    Lowest local surface variation ( 1 column ),
+                    Segment_ID ( 1 column ),
+                    Standard deviation ( 1 column ),
+                    Number of points found in Segment_ID segment ( 1 column )
+                ]
+        :param seg_epoch1:
+            segment from epoch1, same structure as 'seg_epoch0'
+        :param columns:
+            Column mapping used by seg_epoch0 and seg_epoch0
+        :return:
+            numpy array of shape (6,) containing:
+                angle, -> angle between plane normal vectors
+                points_density_diff, -> difference between points density between pairs of segments
+                eigen_value_smallest_diff, -> difference in the quality of plane fit (smallest eigenvalue)
+                eigen_value_largest_diff, -> difference in plane extension (largest eigenvalue)
+                eigen_value_middle_diff, -> difference in orthogonal plane extension (middle eigenvalue)
+                nr_points_diff, -> difference in number of points per plane
+        """
+
+        # X_COLUMN = 0
+        # Y_COLUMN = 1
+        # Z_COLUMN = 2
+        #
+        # EPOCH_ID_COLUMN = 3
+        # EIGENVALUE0_COLUMN = 4
+        # EIGENVALUE1_COLUMN = 5
+        # EIGENVALUE2_COLUMN = 6
+        # EIGENVECTOR_0_X_COLUMN = 7
+        # EIGENVECTOR_0_Y_COLUMN = 8
+        # EIGENVECTOR_0_Z_COLUMN = 9
+        # EIGENVECTOR_1_X_COLUMN = 10
+        # EIGENVECTOR_1_Y_COLUMN = 11
+        # EIGENVECTOR_1_Z_COLUMN = 12
+        # EIGENVECTOR_2_X_COLUMN = 13
+        # EIGENVECTOR_2_Y_COLUMN = 14
+        # EIGENVECTOR_2_Z_COLUMN = 15
+        # LLSV_COLUMN = 16
+        # SEGMENT_ID_COLUMN = 17
+        #
+        # STANDARD_DEVIATION_COLUMN = 18
+        #
+        # NR_POINTS_PER_SEG_COLUMN = 19
+
+        Normal_Columns = [
+            columns.EIGENVECTOR_2_X_COLUMN,
+            columns.EIGENVECTOR_2_Y_COLUMN,
+            columns.EIGENVECTOR_2_Z_COLUMN,
+        ]
+
+        angle = angle_difference_compute(
+            seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]
+        )
+
+        points_density_seg_epoch0 = seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN] / (
+            seg_epoch0[columns.EIGENVALUE0_COLUMN]
+            * seg_epoch0[columns.EIGENVALUE1_COLUMN]
+        )
+
+        points_density_seg_epoch1 = seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN] / (
+            seg_epoch1[columns.EIGENVALUE0_COLUMN]
+            * seg_epoch1[columns.EIGENVALUE1_COLUMN]
+        )
+
+        points_density_diff = abs(points_density_seg_epoch0 - points_density_seg_epoch1)
+
+        eigen_value_smallest_diff = abs(
+            seg_epoch0[columns.EIGENVALUE2_COLUMN]
+            - seg_epoch1[columns.EIGENVALUE2_COLUMN]
+        )
+        eigen_value_largest_diff = abs(
+            seg_epoch0[columns.EIGENVALUE0_COLUMN]
+            - seg_epoch1[columns.EIGENVALUE0_COLUMN]
+        )
+        eigen_value_middle_diff = abs(
+            seg_epoch0[columns.EIGENVALUE1_COLUMN]
+            - seg_epoch1[columns.EIGENVALUE1_COLUMN]
+        )
+
+        nr_points_diff = abs(
+            seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN]
+            - seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN]
+        )
+
+        return np.array(
+            [
+                angle,
+                points_density_diff,
+                eigen_value_smallest_diff,
+                eigen_value_largest_diff,
+                eigen_value_middle_diff,
+                nr_points_diff,
+            ]
+        )
+
+    def _build_X_similarity(self, y_row, X):
+        """
+
+        :param y_row:
+            numpy array of ( segment epoch0 id, segment epoch1 id, label(0/1) )
+        :param X:
+            numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
+            epoch 0 and epoch 1. Each row is a segment.
+        :return:
+            numpy array containing the similarity value between 2 segments.
+        """
+
+        seg_epoch0 = X[int(y_row[0]), :]
+        seg_epoch1 = X[int(y_row[1]), :]
+
+        return self.compute_similarity_between(seg_epoch0, seg_epoch1)
+
     def fit(self, X, y):
 
         """
         This method takes care of the learning process by training the chosen 'classifier', using labeled data.
 
         :param X:
-            numpy array (n_similarity_feature, similarity_feature_size)
+            numpy array (n_segments, segment_size)
         :param y:
-            numpy array of shape (n_similarity_feature,) of 0 or 1
-        :return:
+            numpy array of shape (m_extended_y, 3) where 'extended y' has the following structure:
+        ( tuples of index segment from epoch0, index segment from epoch1, label(0/1) )
         """
 
-        # Check that X and y have correct shape
-        X, y = check_X_y(X, y)
-        # Store the classes seen during fit
-        self.classes_ = unique_labels(y)
+        X_similarity = np.apply_along_axis(
+            lambda y_row: self._build_X_similarity(y_row, X), 1, y
+        )
 
-        self.X_ = X
-        self.y_ = y
+        # Check that X and y have correct shape
+        # X_similarity, y = check_X_y(X_similarity, y, multi_output=True)
+
+        # Store the classes seen during fit
+        # self.classes_ = unique_labels(y[:, 2])
+
+        # self.X_ = X_similarity
+        # self.y_ = y[:, 2]
 
         logger.info(f"Fit ClassifierWrapper")
 
         # Return the classifier
-        return self.classifier.fit(X, y)
+        return self.classifier.fit(X_similarity, y[:, 2])
 
     def predict(self, X):
 
@@ -1990,10 +1845,10 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         """
 
         # Check if fit had been called
-        check_is_fitted(self, ["X_", "y_"])
+        # check_is_fitted(self, ["X_", "y_"])
 
         # Input validation
-        X = check_array(X)
+        # X = check_array(X)
 
         X_COLUMN = 0
         Y_COLUMN = 1
@@ -2023,7 +1878,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
             list_classified = np.array(
                 [
                     self.classifier.predict_proba(
-                        compute_similarity_between(
+                        self.compute_similarity_between(
                             epoch0_set_row, epoch1_set[candidate, :]
                         ).reshape(1, -1)
                     )[0][1]
@@ -2041,7 +1896,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
                 and abs(most_similar[1] - most_similar[0])
                 >= self.diff_between_most_similar_2
             ):
-
                 list_segments_pair = np.vstack(
                     (
                         list_segments_pair,
@@ -2315,23 +2169,23 @@ class PB_M3C2:
         else:
             logger.info("No pipeline parameter is overwritten")
 
-    def build_labelled_similarity_features_interactively(
+    def generate_extended_labels_interactively(
         self,
         epoch0: Epoch | None = None,
         epoch1: Epoch | None = None,
-        build_similarity_feature_and_y: BuildSimilarityFeature_and_y_Visually = BuildSimilarityFeature_and_y_Visually(),
+        builder_extended_y: BuilderExtended_y_Visually = BuilderExtended_y_Visually(),
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
 
         """
-        Given 2 Epochs, it builds a pair of features and labels used for learning.
+        Given 2 Epochs, it builds a pair of (segments and 'extended y').
 
         :param epoch0:
             Epoch object.
         :param epoch1:
             Epoch object.
-        :param build_similarity_feature_and_y:
-            The object used for extracting the features applied as part of similarity algorithm.
+        :param builder_extended_y:
+            The object is used for generating 'extended y', visually.
         :param kwargs:
 
             Used for customize the default pipeline parameters.
@@ -2347,7 +2201,24 @@ class PB_M3C2:
             this process is stateless
 
         :return:
-            tuple ['similarity features', labels] | None
+            tuple [Segments, 'extended y'] | None
+
+            where:
+
+            'Segments' has the following column structure:
+                    X_COLUMN, Y_COLUMN, Z_COLUMN, -> Center of Gravity
+                    EPOCH_ID_COLUMN, -> 0/1
+                    EIGENVALUE0_COLUMN, EIGENVALUE1_COLUMN, EIGENVALUE2_COLUMN,
+                    EIGENVECTOR_0_X_COLUMN, EIGENVECTOR_0_Y_COLUMN, EIGENVECTOR_0_Z_COLUMN,
+                    EIGENVECTOR_1_X_COLUMN, EIGENVECTOR_1_Y_COLUMN, EIGENVECTOR_1_Z_COLUMN,
+                    EIGENVECTOR_2_X_COLUMN, EIGENVECTOR_2_Y_COLUMN, EIGENVECTOR_2_Z_COLUMN, -> Normal vector
+                    LLSV_COLUMN, -> lowest local surface variation
+                    SEGMENT_ID_COLUMN,
+                    STANDARD_DEVIATION_COLUMN,
+                    NR_POINTS_PER_SEG_COLUMN,
+
+            'extended y' has the following structure: (tuples of index segment from epoch0, index segment from epoch1,
+            label(0/1)) used for learning.
         """
 
         if not interactive_available:
@@ -2382,15 +2253,14 @@ class PB_M3C2:
         X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
         X = np.vstack((X0, X1))
         labeling_pipeline.fit(X)
-        out = labeling_pipeline.transform(X)
+        segments = labeling_pipeline.transform(X)
 
         # restore the default pipeline options
         labeling_pipeline.set_params(**default_options)
 
-        return build_similarity_feature_and_y.compute(out)
+        return segments, builder_extended_y.generate_extended_y(segments)
 
-    # better name: export_segmented_point_cloud_for_labeling
-    def export_segments_for_labelling(
+    def export_segmented_point_cloud_and_segments(
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
@@ -2509,20 +2379,22 @@ class PB_M3C2:
 
         return x_y_z_id_epoch0, x_y_z_id_epoch1, extracted_segments
 
-    def build_labelled_similarity_features(
+    def training(
         self,
+        segments: np.ndarray = None,
+        extended_y: np.ndarray = None,
         extracted_segments_file_name: str = "extracted_segments.seg",
-        tuples_seg_epoch0_seg_epoch1_label_file_name: str = None,
-        tuple_feature_y: BuildSimilarityFeature_and_y = BuildTuplesOfSimilarityFeature_and_y(),
-    ) -> typing.Tuple[np.ndarray, np.ndarray]:
+        extended_y_file_name: str = "extended_y.csv",
+    ) -> None:
 
         """
-        Build similarity features from pairs of segments and assign the corresponding labels.
+        It applies the training algorithm for the input pairs of Segments 'segments'
+        and extended labels 'extended_y'.
 
-        :param extracted_segments_file_name:
-            The file has the same format as the one exported by export_segments_for_labelling()
-            numpy array with shape (n_segments, 20) where the column structure is as following:
-                [
+        :param segments:
+            'Segments' numpy array of shape (n_segments, segment_size)
+
+            It has the following column structure:
                     X_COLUMN, Y_COLUMN, Z_COLUMN, -> Center of Gravity
                     EPOCH_ID_COLUMN, -> 0/1
                     EIGENVALUE0_COLUMN, EIGENVALUE1_COLUMN, EIGENVALUE2_COLUMN,
@@ -2533,56 +2405,38 @@ class PB_M3C2:
                     SEGMENT_ID_COLUMN,
                     STANDARD_DEVIATION_COLUMN,
                     NR_POINTS_PER_SEG_COLUMN,
-                ]
-        :param tuples_seg_epoch0_seg_epoch1_label_file_name:
-            numpy array (n_pairs, 3)
-            Each row is of the following form:
-                (index segment epoch0, index segment epoch1, label)
-        :param tuple_feature_y:
-            An object that computes the 'similarity features' between segments from file extracted_segments_file_name
-            using tuples_seg_epoch0_seg_epoch1_label_file_name.
-        :return:
-            tuple ['similarity features', labels]
+
+        :param extended_y:
+            numpy array of shape (m_labels, 3)
+            has the following structure: (tuples of index segment from epoch0, index segment from epoch1,
+            label(0/1))
+        :param extracted_segments_file_name:
+            In case 'X' is None segments are loaded using 'extracted_segments_file_name'.
+        :param extended_y_file_name:
+            In case 'extended_y' is None, this file is used as input fallback.
         """
 
-        # Resolve the given path
-        filename = find_file(extracted_segments_file_name)
+        if segments is None:
+            # Resolve the given path
+            filename = find_file(extracted_segments_file_name)
+            # Read it
+            try:
+                logger.info(f"Reading segments from file '{filename}'")
+                segments = np.genfromtxt(filename, delimiter=",")
+            except ValueError:
+                raise Py4DGeoError("Malformed file: " + str(filename))
 
-        # Read it
-        try:
-            logger.info(f"Reading segments from file '{filename}'")
-            extracted_segments = np.genfromtxt(filename, delimiter=",")
-        except ValueError:
-            raise Py4DGeoError("Malformed file: " + str(filename))
-
-        # Resolve the given path
-        filename = find_file(tuples_seg_epoch0_seg_epoch1_label_file_name)
-
-        # Read it
-        try:
-            logger.info(
-                f"Reading tuples of (segment epoch0, segment epoch1, label) from file '{filename}'"
-            )
-            tuples_seg_epoch0_seg_epoch1_label = np.genfromtxt(filename, delimiter=",")
-        except ValueError:
-            raise Py4DGeoError("Malformed file: " + str(filename))
-
-        return tuple_feature_y.compute(
-            X=extracted_segments, y=tuples_seg_epoch0_seg_epoch1_label
-        )
-
-    def training(self, X: np.ndarray, y: np.ndarray) -> None:
-
-        """
-        It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
-
-        :param X:
-            features. numpy array of shape (n_feature_samples, feature_size)
-
-            generated by 'tuple_feature_y' as part of 'build_labelled_similarity_features' call.
-        :param y:
-            labels (0/1). numpy array of shape (n_feature_samples,)
-        """
+        if extended_y is None:
+            # Resolve the given path
+            filename = find_file(extended_y_file_name)
+            # Read it
+            try:
+                logger.info(
+                    f"Reading tuples of (segment epoch0, segment epoch1, label) from file '{filename}'"
+                )
+                extended_y = np.genfromtxt(filename, delimiter=",")
+            except ValueError:
+                raise Py4DGeoError("Malformed file: " + str(filename))
 
         training_pipeline = Pipeline(
             [
@@ -2591,7 +2445,7 @@ class PB_M3C2:
         )
 
         # apply the pipeline
-        training_pipeline.fit(X, y)
+        training_pipeline.fit(segments, extended_y)
 
     def predict(
         self,
@@ -2833,7 +2687,6 @@ class PB_M3C2:
         output = np.empty((0, 10), dtype=float)
 
         for indx in range(nr_pairs):
-
             segment_epoch0 = epoch0_segments[indx]
             segment_epoch1 = epoch1_segments[indx]
 
@@ -2977,7 +2830,6 @@ class PB_M3C2:
 
 
 def build_input_scenario2_with_normals(epoch0, epoch1):
-
     """
     Build a segmented point cloud with computed normals for each point.
 
@@ -3054,7 +2906,6 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
 
 
 def build_input_scenario2_without_normals(epoch0, epoch1):
-
     """
         Build a segmented point cloud.
 
@@ -3171,11 +3022,11 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         self._post_segmentation = post_segmentation
 
-    def build_labelled_similarity_features_interactively(
+    def generate_extended_labels_interactively(
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
-        build_similarity_feature_and_y: BuildSimilarityFeature_and_y_Visually = BuildSimilarityFeature_and_y_Visually(),
+        builder_extended_y: BuilderExtended_y_Visually = BuilderExtended_y_Visually(),
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
@@ -3193,7 +3044,8 @@ class PB_M3C2_with_segments(PB_M3C2):
             Epoch object,
             contains as 'additional_dimensions' a segment_id column (mandatory)
             and optionally, precomputed normals as another 3 columns.
-        :param build_similarity_feature_and_y:
+        :param builder_extended_y:
+            The object is used for generating 'extended y', visually.
         :param epoch_additional_dimensions_lookup:
             A dictionary that maps between the names of the columns used internally to identify:
                 segment id of the points: "segment_id"  -> Mandatory part of the epochs
@@ -3216,7 +3068,24 @@ class PB_M3C2_with_segments(PB_M3C2):
             this process is stateless
 
         :return:
-            tuple ['similarity features', labels] | None
+            tuple [Segments, 'extended y'] | None
+
+            where:
+
+            'Segments' has the following column structure:
+                    X_COLUMN, Y_COLUMN, Z_COLUMN, -> Center of Gravity
+                    EPOCH_ID_COLUMN, -> 0/1
+                    EIGENVALUE0_COLUMN, EIGENVALUE1_COLUMN, EIGENVALUE2_COLUMN,
+                    EIGENVECTOR_0_X_COLUMN, EIGENVECTOR_0_Y_COLUMN, EIGENVECTOR_0_Z_COLUMN,
+                    EIGENVECTOR_1_X_COLUMN, EIGENVECTOR_1_Y_COLUMN, EIGENVECTOR_1_Z_COLUMN,
+                    EIGENVECTOR_2_X_COLUMN, EIGENVECTOR_2_Y_COLUMN, EIGENVECTOR_2_Z_COLUMN, -> Normal vector
+                    LLSV_COLUMN, -> lowest local surface variation
+                    SEGMENT_ID_COLUMN,
+                    STANDARD_DEVIATION_COLUMN,
+                    NR_POINTS_PER_SEG_COLUMN,
+
+            'extended y' has the following structure: (tuples of index segment from epoch0, index segment from epoch1,
+            label(0/1)) used for learning.
         """
 
         if not interactive_available:
@@ -3348,12 +3217,12 @@ class PB_M3C2_with_segments(PB_M3C2):
         # apply the pipeline
 
         transform_pipeline.fit(X)
-        out = transform_pipeline.transform(X)
+        segments = transform_pipeline.transform(X)
 
         # restore the default pipeline options
         transform_pipeline.set_params(**default_options)
 
-        return build_similarity_feature_and_y.compute(out)
+        return segments, builder_extended_y.generate_extended_y(segments)
 
     def reconstruct_post_segmentation_output(
         self,
@@ -3551,36 +3420,16 @@ class PB_M3C2_with_segments(PB_M3C2):
         transform_pipeline.fit(X)
         extracted_segments = transform_pipeline.transform(X)
 
-        np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
+        if extracted_segments_file_name is not None:
+            logger.info(f"'Segments' saved in file: {extracted_segments_file_name}")
+            np.savetxt(extracted_segments_file_name, extracted_segments, delimiter=",")
+        else:
+            logger.debug(f"No file name set as output for 'segments'")
 
         # restore the default pipeline options
         transform_pipeline.set_params(**default_options)
 
         return epoch0, epoch1, extracted_segments
-
-    def training(self, X: np.ndarray, y: np.ndarray) -> None:
-
-        """
-        It applies the training algorithm for the input pairs of features 'X' and labels 'y'.
-
-        :param X:
-            features. numpy array of shape (n_similarity_features_samples, n_features)
-
-            Where 'p' represents an arbitrary number of features
-            generated by 'tuple_feature_y' as part of 'build_labelled_similarity_features' call.
-        :param y:
-            labels. numpy array of shape (n_similarity_features_samples,)
-        :return:
-        """
-
-        training_pipeline = Pipeline(
-            [
-                ("Classifier", self._classifier),
-            ]
-        )
-
-        # apply the pipeline
-        training_pipeline.fit(X, y)
 
     def predict(
         self,
