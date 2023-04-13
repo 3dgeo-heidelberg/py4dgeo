@@ -38,13 +38,6 @@ class M3C2EP(M3C2):
         self.LEAF_SIZE = 256
         super().__init__(**kwargs)
 
-    def load_norms(self):
-        if self.corepoint_normals is None:
-            self.epochs[0].build_kdtree(self.LEAF_SIZE)
-            self.corepoint_normals = self.directions()
-
-        return self.corepoint_normals
-
     def calculate_distances(self, epoch1, epoch2):
         print(self.name + " running")
         """Calculate the distances between two epochs"""
@@ -85,7 +78,7 @@ class M3C2EP(M3C2):
 
         # load query points
         query_coords = self.corepoints
-        query_norms = self.load_norms()
+        query_norms = self.directions()
 
         if query_norms is None:
             print("Core point point cloud needs normals set. Exiting.")
