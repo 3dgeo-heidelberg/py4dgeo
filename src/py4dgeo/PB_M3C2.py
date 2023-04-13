@@ -456,9 +456,6 @@ def generate_random_extended_y(
             Where each row contains tuples of set0 segment id, set1 segment id, rand 0/1.
     """
 
-    # SEGMENT_ID_COLUMN = 17
-    # EPOCH_ID_COLUMN = 3
-
     mask_epoch0 = X[:, columns.EPOCH_ID_COLUMN] == 0
     mask_epoch1 = X[:, columns.EPOCH_ID_COLUMN] == 1
 
@@ -732,7 +729,7 @@ class Segmentation(BaseTransformer):
         skip=False,
         radius=2,
         angle_diff_threshold=1,
-        disntance_3D_threshold=1.5,
+        distance_3D_threshold=1.5,
         distance_orthogonal_threshold=1.5,
         llsv_threshold=1,
         roughness_threshold=5,
@@ -752,7 +749,7 @@ class Segmentation(BaseTransformer):
         :param angle_diff_threshold:
             Angular deviation threshold for a point candidate’s local normal vector to the normal vector
             of the initial seed point.
-        :param disntance_3D_threshold:
+        :param distance_3D_threshold:
             Norm 2 distance threshold of the point candidate to the current set of points,
             during the segmentation process.
         :param distance_orthogonal_threshold:
@@ -780,7 +777,7 @@ class Segmentation(BaseTransformer):
 
         self.radius = radius
         self.angle_diff_threshold = angle_diff_threshold
-        self.disntance_3D_threshold = disntance_3D_threshold
+        self.distance_3D_threshold = distance_3D_threshold
         self.distance_orthogonal_threshold = distance_orthogonal_threshold
         self.llsv_threshold = llsv_threshold
         self.roughness_threshold = roughness_threshold
@@ -834,7 +831,7 @@ class Segmentation(BaseTransformer):
             np.min(
                 np.linalg.norm(X[point_mask, :3] - point.reshape(1, 3), ord=2, axis=1)
             )
-            <= self.disntance_3D_threshold
+            <= self.distance_3D_threshold
         )
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
@@ -880,7 +877,7 @@ class Segmentation(BaseTransformer):
         )
         return distance - self.distance_orthogonal_threshold <= 0
 
-    def lowest_local_suface_variance_check(self, llsv):
+    def lowest_local_surface_variance_check(self, llsv):
         """
         Check lowest local surface variance threshold.
 
@@ -933,21 +930,12 @@ class Segmentation(BaseTransformer):
             ]
         """
 
-        # X_COLUMN = 0
-        # Y_COLUMN = 1
-        # Z_COLUMN = 2
         X_Y_Z_Columns = [
             self.columns.X_COLUMN,
             self.columns.Y_COLUMN,
             self.columns.Z_COLUMN,
         ]
 
-        # EPOCH_ID_COLUMN = 3
-        #
-        # EIGENVECTOR_2_X_COLUMN = 13
-        # EIGENVECTOR_2_Y_COLUMN = 14
-        # EIGENVECTOR_2_Z_COLUMN = 15
-        # LLSV_COLUMN = 16
         Normal_Columns = [
             self.columns.EIGENVECTOR_2_X_COLUMN,
             self.columns.EIGENVECTOR_2_Y_COLUMN,
@@ -971,9 +959,6 @@ class Segmentation(BaseTransformer):
                 (X.shape[0], 1), DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT, dtype=float
             )
             X = np.hstack((X, new_column_std_deviation))
-
-        # SEGMENT_ID_COLUMN = 17
-        # STANDARD_DEVIATION_COLUMN = 18
 
         mask_epoch0 = X[:, self.columns.EPOCH_ID_COLUMN] == 0
         mask_epoch1 = X[:, self.columns.EPOCH_ID_COLUMN] == 1
@@ -1032,7 +1017,7 @@ class Segmentation(BaseTransformer):
                                 X[indx_row, X_Y_Z_Columns],
                                 X[indx_row, Normal_Columns],
                             )
-                            and self.lowest_local_suface_variance_check(
+                            and self.lowest_local_surface_variance_check(
                                 X[
                                     indx_kd_tree + offset_in_X[epoch_id],
                                     self.columns.LLSV_COLUMN,
@@ -1081,6 +1066,7 @@ class Segmentation(BaseTransformer):
         return X
 
 
+# better nam PostPointCloudSegmentation !!!
 class PostSegmentation(BaseTransformer):
     def __init__(
         self,
@@ -1187,32 +1173,11 @@ class PostSegmentation(BaseTransformer):
         :return:
         """
 
-        # X_COLUMN = 0
-        # Y_COLUMN = 1
-        # Z_COLUMN = 2
         X_Y_Z_Columns = [
             self.columns.X_COLUMN,
             self.columns.Y_COLUMN,
             self.columns.Z_COLUMN,
         ]
-
-        # EPOCH_ID_COLUMN = 3
-        # EIGENVALUE0_COLUMN = 4
-        # EIGENVALUE1_COLUMN = 5
-        # EIGENVALUE2_COLUMN = 6
-        # EIGENVECTOR_0_X_COLUMN = 7
-        # EIGENVECTOR_0_Y_COLUMN = 8
-        # EIGENVECTOR_0_Z_COLUMN = 9
-        # EIGENVECTOR_1_X_COLUMN = 10
-        # EIGENVECTOR_1_Y_COLUMN = 11
-        # EIGENVECTOR_1_Z_COLUMN = 12
-        # EIGENVECTOR_2_X_COLUMN = 13
-        # EIGENVECTOR_2_Y_COLUMN = 14
-        # EIGENVECTOR_2_Z_COLUMN = 15
-        # LLSV_COLUMN = 16
-        # SEGMENT_ID_COLUMN = 17
-        #
-        # STANDARD_DEVIATION_COLUMN = 18
 
         Eigval = [
             self.columns.EIGENVALUE0_COLUMN,
@@ -1345,30 +1310,8 @@ class ExtractSegments(BaseTransformer):
             ]
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-
-        EPOCH_ID_COLUMN = 3
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        SEGMENT_ID_COLUMN = 17
-
-        STANDARD_DEVIATION_COLUMN = 18
-
         # new column
-        NR_POINTS_PER_SEG_COLUMN = 19
+        # NR_POINTS_PER_SEG_COLUMN = 19
 
         NR_COLUMNS_SEGMENT = 20
 
@@ -1513,7 +1456,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
 
                 self.add_pair_button.switch()
             except:
-                # print("You must select 0 or 1 as label!!!")
                 logger.error("You must select 0 or 1 as label")
 
     def segments_visualizer(self, X):
@@ -1616,7 +1558,8 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         self.plt.show(
             self.sets,
             Text2D(
-                "Select multiple pairs of red-green Ellipsoids with their corresponding labels (0/1) and then press 'Select pair'\n"
+                "Select multiple pairs of red-green Ellipsoids with their corresponding labels (0/1) "
+                "and then press 'Select pair'\n"
                 "'z' - toggle transparency on/off 'g' - toggle on/off red ellipsoids 'd' toggle on/off red ellipsoids",
                 pos="top-left",
                 bg="k",
@@ -1630,6 +1573,7 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         """
 
         :param X:
+        :param y:
         :return:
         """
 
@@ -1645,6 +1589,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         threshold_probability_most_similar=0.8,
         diff_between_most_similar_2=0.1,
         classifier=RandomForestClassifier(),
+        columns=SEGMENT_COLUMNS,
     ):
 
         """
@@ -1656,6 +1601,8 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
             Lower bound threshold of difference between first 2, most similar planes.
         :param classifier:
             The classifier used, default is RandomForestClassifier. ( sk-learn )
+        :param columns:
+            Column mapping used by seg_epoch0 and seg_epoch0
         """
 
         super().__init__()
@@ -1664,10 +1611,11 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         self.threshold_probability_most_similar = threshold_probability_most_similar
         self.diff_between_most_similar_2 = diff_between_most_similar_2
         self.classifier = classifier
+        self.columns = columns
 
     # consider this as a python protocol!!!
     def compute_similarity_between(
-        self, seg_epoch0: np.ndarray, seg_epoch1: np.ndarray, columns=SEGMENT_COLUMNS
+        self, seg_epoch0: np.ndarray, seg_epoch1: np.ndarray
     ) -> np.ndarray:
 
         """
@@ -1687,8 +1635,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
                 ]
         :param seg_epoch1:
             segment from epoch1, same structure as 'seg_epoch0'
-        :param columns:
-            Column mapping used by seg_epoch0 and seg_epoch0
         :return:
             numpy array of shape (6,) containing:
                 angle, -> angle between plane normal vectors
@@ -1699,68 +1645,48 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
                 nr_points_diff, -> difference in number of points per plane
         """
 
-        # X_COLUMN = 0
-        # Y_COLUMN = 1
-        # Z_COLUMN = 2
-        #
-        # EPOCH_ID_COLUMN = 3
-        # EIGENVALUE0_COLUMN = 4
-        # EIGENVALUE1_COLUMN = 5
-        # EIGENVALUE2_COLUMN = 6
-        # EIGENVECTOR_0_X_COLUMN = 7
-        # EIGENVECTOR_0_Y_COLUMN = 8
-        # EIGENVECTOR_0_Z_COLUMN = 9
-        # EIGENVECTOR_1_X_COLUMN = 10
-        # EIGENVECTOR_1_Y_COLUMN = 11
-        # EIGENVECTOR_1_Z_COLUMN = 12
-        # EIGENVECTOR_2_X_COLUMN = 13
-        # EIGENVECTOR_2_Y_COLUMN = 14
-        # EIGENVECTOR_2_Z_COLUMN = 15
-        # LLSV_COLUMN = 16
-        # SEGMENT_ID_COLUMN = 17
-        #
-        # STANDARD_DEVIATION_COLUMN = 18
-        #
-        # NR_POINTS_PER_SEG_COLUMN = 19
-
         Normal_Columns = [
-            columns.EIGENVECTOR_2_X_COLUMN,
-            columns.EIGENVECTOR_2_Y_COLUMN,
-            columns.EIGENVECTOR_2_Z_COLUMN,
+            self.columns.EIGENVECTOR_2_X_COLUMN,
+            self.columns.EIGENVECTOR_2_Y_COLUMN,
+            self.columns.EIGENVECTOR_2_Z_COLUMN,
         ]
 
         angle = angle_difference_compute(
             seg_epoch0[Normal_Columns], seg_epoch1[Normal_Columns]
         )
 
-        points_density_seg_epoch0 = seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN] / (
-            seg_epoch0[columns.EIGENVALUE0_COLUMN]
-            * seg_epoch0[columns.EIGENVALUE1_COLUMN]
+        points_density_seg_epoch0 = seg_epoch0[
+            self.columns.NR_POINTS_PER_SEG_COLUMN
+        ] / (
+            seg_epoch0[self.columns.EIGENVALUE0_COLUMN]
+            * seg_epoch0[self.columns.EIGENVALUE1_COLUMN]
         )
 
-        points_density_seg_epoch1 = seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN] / (
-            seg_epoch1[columns.EIGENVALUE0_COLUMN]
-            * seg_epoch1[columns.EIGENVALUE1_COLUMN]
+        points_density_seg_epoch1 = seg_epoch1[
+            self.columns.NR_POINTS_PER_SEG_COLUMN
+        ] / (
+            seg_epoch1[self.columns.EIGENVALUE0_COLUMN]
+            * seg_epoch1[self.columns.EIGENVALUE1_COLUMN]
         )
 
         points_density_diff = abs(points_density_seg_epoch0 - points_density_seg_epoch1)
 
         eigen_value_smallest_diff = abs(
-            seg_epoch0[columns.EIGENVALUE2_COLUMN]
-            - seg_epoch1[columns.EIGENVALUE2_COLUMN]
+            seg_epoch0[self.columns.EIGENVALUE2_COLUMN]
+            - seg_epoch1[self.columns.EIGENVALUE2_COLUMN]
         )
         eigen_value_largest_diff = abs(
-            seg_epoch0[columns.EIGENVALUE0_COLUMN]
-            - seg_epoch1[columns.EIGENVALUE0_COLUMN]
+            seg_epoch0[self.columns.EIGENVALUE0_COLUMN]
+            - seg_epoch1[self.columns.EIGENVALUE0_COLUMN]
         )
         eigen_value_middle_diff = abs(
-            seg_epoch0[columns.EIGENVALUE1_COLUMN]
-            - seg_epoch1[columns.EIGENVALUE1_COLUMN]
+            seg_epoch0[self.columns.EIGENVALUE1_COLUMN]
+            - seg_epoch1[self.columns.EIGENVALUE1_COLUMN]
         )
 
         nr_points_diff = abs(
-            seg_epoch0[columns.NR_POINTS_PER_SEG_COLUMN]
-            - seg_epoch1[columns.NR_POINTS_PER_SEG_COLUMN]
+            seg_epoch0[self.columns.NR_POINTS_PER_SEG_COLUMN]
+            - seg_epoch1[self.columns.NR_POINTS_PER_SEG_COLUMN]
         )
 
         return np.array(
@@ -1850,20 +1776,17 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         # Input validation
         # X = check_array(X)
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-
-        SEGMENT_ID_COLUMN = 17
-        EPOCH_ID_COLUMN = 3
-
-        mask_epoch0 = X[:, EPOCH_ID_COLUMN] == 0
-        mask_epoch1 = X[:, EPOCH_ID_COLUMN] == 1
+        mask_epoch0 = X[:, self.columns.EPOCH_ID_COLUMN] == 0
+        mask_epoch1 = X[:, self.columns.EPOCH_ID_COLUMN] == 1
 
         epoch0_set = X[mask_epoch0, :]  # all
         epoch1_set = X[mask_epoch1, :]  # all
 
-        self.epoch1_segments = Epoch(epoch1_set[:, [X_COLUMN, Y_COLUMN, Z_COLUMN]])
+        self.epoch1_segments = Epoch(
+            epoch1_set[
+                :, [self.columns.X_COLUMN, self.columns.Y_COLUMN, self.columns.Z_COLUMN]
+            ]
+        )
         self.epoch1_segments.build_kdtree()
 
         list_segments_pair = np.empty((0, epoch0_set.shape[1] + epoch1_set.shape[1]))
@@ -1942,7 +1865,7 @@ class PB_M3C2:
         self._extract_segments = extract_segments
         self._classifier = classifier
 
-    def _reconstruct_input_with_normals(self, epoch, epoch_id):
+    def _reconstruct_input_with_normals(self, epoch, epoch_id, columns):
 
         """
         It is an adapter from [x, y, z, N_x, N_y, N_z, Segment_ID] column structure of input 'epoch'
@@ -1960,6 +1883,8 @@ class PB_M3C2:
             Epoch object where each row has the following format: [x, y, z, N_x, N_y, N_z, Segment_ID]
         :param epoch_id:
             is 0 or 1 and represents one of the epochs used as part of distance computation.
+        :param columns:
+
         :return:
             numpy array of shape (n_points, 19) with the following column structure:
                 [
@@ -2028,7 +1953,7 @@ class PB_M3C2:
             )
         )
 
-    def _reconstruct_input_without_normals(self, epoch, epoch_id):
+    def _reconstruct_input_without_normals(self, epoch, epoch_id, columns):
 
         """
         It is an adapter from [x, y, z, Segment_ID] column structure of input 'epoch'
@@ -2046,6 +1971,8 @@ class PB_M3C2:
             Epoch object where each row contains by: [x, y, z, Segment_ID]
         :param epoch_id:
             is 0 or 1 and represents one of the epochs used as part of distance computation.
+        :param columns
+
         :return:
             numpy array of shape (n_points, 19) with the following column structure:
                 [
@@ -2356,16 +2283,23 @@ class PB_M3C2:
         # restore the default pipeline options
         pipe_segmentation.set_params(**default_options)
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-        EPOCH_ID_COLUMN = 3
-        SEGMENT_ID_COLUMN = 17
+        # X_COLUMN = 0
+        # Y_COLUMN = 1
+        # Z_COLUMN = 2
+        # EPOCH_ID_COLUMN = 3
+        # SEGMENT_ID_COLUMN = 17
 
-        Extract_Columns = [X_COLUMN, Y_COLUMN, Z_COLUMN, SEGMENT_ID_COLUMN]
+        columns = self._second_segmentation.columns
 
-        mask_epoch0 = out[:, EPOCH_ID_COLUMN] == 0
-        mask_epoch1 = out[:, EPOCH_ID_COLUMN] == 1
+        Extract_Columns = [
+            columns.X_COLUMN,
+            columns.Y_COLUMN,
+            columns.Z_COLUMN,
+            columns.SEGMENT_ID_COLUMN,
+        ]
+
+        mask_epoch0 = out[:, columns.EPOCH_ID_COLUMN] == 0
+        mask_epoch1 = out[:, columns.EPOCH_ID_COLUMN] == 1
 
         out_epoch0 = out[mask_epoch0, :]
         out_epoch1 = out[mask_epoch1, :]
@@ -2542,7 +2476,7 @@ class PB_M3C2:
         SEGMENT_ID_COLUMN = 17
 
         X0 = self._reconstruct_input_with_normals(
-            epoch=previous_segmented_epoch, epoch_id=0
+            epoch=previous_segmented_epoch, epoch_id=0, columns=None
         )
 
         post_segmentation_transform = PostSegmentation(compute_normal=True)
@@ -3205,13 +3139,17 @@ class PB_M3C2_with_segments(PB_M3C2):
                         (
                             X,
                             self._reconstruct_input_with_normals(
-                                epoch=current_epoch, epoch_id=epoch_id
+                                epoch=current_epoch,
+                                epoch_id=epoch_id,
+                                columns=self._post_segmentation.columns,
                             ),
                         )
                     )
                 else:
                     X = self._reconstruct_input_with_normals(
-                        epoch=current_epoch, epoch_id=epoch_id
+                        epoch=current_epoch,
+                        epoch_id=epoch_id,
+                        columns=self._post_segmentation.columns,
                     )
 
         # apply the pipeline
@@ -3406,13 +3344,17 @@ class PB_M3C2_with_segments(PB_M3C2):
                         (
                             X,
                             self._reconstruct_input_with_normals(
-                                epoch=current_epoch, epoch_id=epoch_id
+                                epoch=current_epoch,
+                                epoch_id=epoch_id,
+                                columns=self._post_segmentation.columns,
                             ),
                         )
                     )
                 else:
                     X = self._reconstruct_input_with_normals(
-                        epoch=current_epoch, epoch_id=epoch_id
+                        epoch=current_epoch,
+                        epoch_id=epoch_id,
+                        columns=self._post_segmentation.columns,
                     )
 
         # apply the pipeline
@@ -3594,13 +3536,17 @@ class PB_M3C2_with_segments(PB_M3C2):
                         (
                             X,
                             self._reconstruct_input_with_normals(
-                                epoch=current_epoch, epoch_id=epoch_id
+                                epoch=current_epoch,
+                                epoch_id=epoch_id,
+                                columns=self._post_segmentation.columns,
                             ),
                         )
                     )
                 else:
                     X = self._reconstruct_input_with_normals(
-                        epoch=current_epoch, epoch_id=epoch_id
+                        epoch=current_epoch,
+                        epoch_id=epoch_id,
+                        columns=self._post_segmentation.columns,
                     )
 
         # apply the pipeline
