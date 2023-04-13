@@ -2763,7 +2763,9 @@ class PB_M3C2:
         )
 
 
-def build_input_scenario2_with_normals(epoch0, epoch1):
+def build_input_scenario2_with_normals(
+    epoch0, epoch1, columns=SEGMENTED_POINT_CLOUD_COLUMNS
+):
     """
     Build a segmented point cloud with computed normals for each point.
 
@@ -2771,6 +2773,8 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
         x,y,z point cloud
     :param epoch1:
         x,y,z point cloud
+    :param columns:
+
     :return:
         tuple [
                 numpy array (n_point_samples, 7) new_epoch0
@@ -2779,36 +2783,13 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
         both containing: x,y,z, N_x,N_y,N_z, Segment_ID as columns.
     """
 
-    X_COLUMN = 0
-    Y_COLUMN = 1
-    Z_COLUMN = 2
-
-    EPOCH_ID_COLUMN = 3
-    EIGENVALUE0_COLUMN = 4
-    EIGENVALUE1_COLUMN = 5
-    EIGENVALUE2_COLUMN = 6
-    EIGENVECTOR_0_X_COLUMN = 7
-    EIGENVECTOR_0_Y_COLUMN = 8
-    EIGENVECTOR_0_Z_COLUMN = 9
-    EIGENVECTOR_1_X_COLUMN = 10
-    EIGENVECTOR_1_Y_COLUMN = 11
-    EIGENVECTOR_1_Z_COLUMN = 12
-    EIGENVECTOR_2_X_COLUMN = 13
-    EIGENVECTOR_2_Y_COLUMN = 14
-    EIGENVECTOR_2_Z_COLUMN = 15
-    LLSV_COLUMN = 16
-    SEGMENT_ID_COLUMN = 17
-
-    STANDARD_DEVIATION_COLUMN = 18
-    NR_POINTS_PER_SEG_COLUMN = 19
-
     Normal_Columns = [
-        EIGENVECTOR_2_X_COLUMN,
-        EIGENVECTOR_2_Y_COLUMN,
-        EIGENVECTOR_2_Z_COLUMN,
+        columns.EIGENVECTOR_2_X_COLUMN,
+        columns.EIGENVECTOR_2_Y_COLUMN,
+        columns.EIGENVECTOR_2_Z_COLUMN,
     ]
 
-    x_y_z_Columns = [X_COLUMN, Y_COLUMN, Z_COLUMN]
+    x_y_z_Columns = [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
 
     X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
     X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
@@ -2825,21 +2806,27 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
     transform_pipeline.fit(X)
     out = transform_pipeline.transform(X)
 
-    mask_epoch0 = out[:, EPOCH_ID_COLUMN] == 0  # epoch0
-    mask_epoch1 = out[:, EPOCH_ID_COLUMN] == 1  # epoch1
+    mask_epoch0 = out[:, columns.EPOCH_ID_COLUMN] == 0  # epoch0
+    mask_epoch1 = out[:, columns.EPOCH_ID_COLUMN] == 1  # epoch1
 
     new_epoch0 = out[mask_epoch0, :]  # extract epoch0
     new_epoch1 = out[mask_epoch1, :]  # extract epoch1
 
-    new_epoch0 = new_epoch0[:, x_y_z_Columns + Normal_Columns + [SEGMENT_ID_COLUMN]]
-    new_epoch1 = new_epoch1[:, x_y_z_Columns + Normal_Columns + [SEGMENT_ID_COLUMN]]
+    new_epoch0 = new_epoch0[
+        :, x_y_z_Columns + Normal_Columns + [columns.SEGMENT_ID_COLUMN]
+    ]
+    new_epoch1 = new_epoch1[
+        :, x_y_z_Columns + Normal_Columns + [columns.SEGMENT_ID_COLUMN]
+    ]
 
     # x,y,z, N_x,N_y,N_z, Segment_ID
     return new_epoch0, new_epoch1
     pass
 
 
-def build_input_scenario2_without_normals(epoch0, epoch1):
+def build_input_scenario2_without_normals(
+    epoch0, epoch1, columns=SEGMENTED_POINT_CLOUD_COLUMNS
+):
     """
         Build a segmented point cloud.
 
@@ -2847,6 +2834,8 @@ def build_input_scenario2_without_normals(epoch0, epoch1):
         x,y,z point cloud
     :param epoch1:
         x,y,z point cloud
+    :param columns:
+
     :return:
         tuple [
             numpy array (n_point_samples, 4) new_epoch0
@@ -2855,35 +2844,12 @@ def build_input_scenario2_without_normals(epoch0, epoch1):
         both containing: x,y,z,Segment_ID as columns.
     """
 
-    X_COLUMN = 0
-    Y_COLUMN = 1
-    Z_COLUMN = 2
-
-    EPOCH_ID_COLUMN = 3
-    EIGENVALUE0_COLUMN = 4
-    EIGENVALUE1_COLUMN = 5
-    EIGENVALUE2_COLUMN = 6
-    EIGENVECTOR_0_X_COLUMN = 7
-    EIGENVECTOR_0_Y_COLUMN = 8
-    EIGENVECTOR_0_Z_COLUMN = 9
-    EIGENVECTOR_1_X_COLUMN = 10
-    EIGENVECTOR_1_Y_COLUMN = 11
-    EIGENVECTOR_1_Z_COLUMN = 12
-    EIGENVECTOR_2_X_COLUMN = 13
-    EIGENVECTOR_2_Y_COLUMN = 14
-    EIGENVECTOR_2_Z_COLUMN = 15
-    LLSV_COLUMN = 16
-    SEGMENT_ID_COLUMN = 17
-
-    STANDARD_DEVIATION_COLUMN = 18
-    NR_POINTS_PER_SEG_COLUMN = 19
-
-    x_y_z_Columns = [X_COLUMN, Y_COLUMN, Z_COLUMN]
+    x_y_z_Columns = [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
 
     Normal_Columns = [
-        EIGENVECTOR_2_X_COLUMN,
-        EIGENVECTOR_2_Y_COLUMN,
-        EIGENVECTOR_2_Z_COLUMN,
+        columns.EIGENVECTOR_2_X_COLUMN,
+        columns.EIGENVECTOR_2_Y_COLUMN,
+        columns.EIGENVECTOR_2_Z_COLUMN,
     ]
 
     X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
@@ -2901,14 +2867,14 @@ def build_input_scenario2_without_normals(epoch0, epoch1):
     transform_pipeline.fit(X)
     out = transform_pipeline.transform(X)
 
-    mask_epoch0 = out[:, EPOCH_ID_COLUMN] == 0  # epoch0
-    mask_epoch1 = out[:, EPOCH_ID_COLUMN] == 1  # epoch1
+    mask_epoch0 = out[:, columns.EPOCH_ID_COLUMN] == 0  # epoch0
+    mask_epoch1 = out[:, columns.EPOCH_ID_COLUMN] == 1  # epoch1
 
     new_epoch0 = out[mask_epoch0, :]  # extract epoch0
     new_epoch1 = out[mask_epoch1, :]  # extract epoch1
 
-    new_epoch0 = new_epoch0[:, x_y_z_Columns + [SEGMENT_ID_COLUMN]]
-    new_epoch1 = new_epoch1[:, x_y_z_Columns + [SEGMENT_ID_COLUMN]]
+    new_epoch0 = new_epoch0[:, x_y_z_Columns + [columns.SEGMENT_ID_COLUMN]]
+    new_epoch1 = new_epoch1[:, x_y_z_Columns + [columns.SEGMENT_ID_COLUMN]]
 
     # x,y,z, Segment_ID
     return new_epoch0, new_epoch1
@@ -2927,7 +2893,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             A transform object used to 'reconstruct' the result that is achieved using the "PB_P3C2 class"
             pipeline at the end of the point cloud segmentation.
 
-            The 'input' of this adapter is formed by 2 epochs that contain as 'additional_dimensions'
+            The 'input' of this adaptor is formed by 2 epochs that contain as 'additional_dimensions'
             a segment_id column and optionally, precomputed normals as another 3 columns.
 
             The 'output' of this adaptor is:
@@ -3118,13 +3084,17 @@ class PB_M3C2_with_segments(PB_M3C2):
                         (
                             X,
                             self._reconstruct_input_without_normals(
-                                epoch=current_epoch, epoch_id=epoch_id
+                                epoch=current_epoch,
+                                epoch_id=epoch_id,
+                                columns=self._post_segmentation.columns,
                             ),
                         )
                     )
                 else:
                     X = self._reconstruct_input_without_normals(
-                        epoch=current_epoch, epoch_id=epoch_id
+                        epoch=current_epoch,
+                        epoch_id=epoch_id,
+                        columns=self._post_segmentation.columns,
                     )
             else:
 
@@ -3323,13 +3293,17 @@ class PB_M3C2_with_segments(PB_M3C2):
                         (
                             X,
                             self._reconstruct_input_without_normals(
-                                epoch=current_epoch, epoch_id=epoch_id
+                                epoch=current_epoch,
+                                epoch_id=epoch_id,
+                                columns=self._post_segmentation.columns,
                             ),
                         )
                     )
                 else:
                     X = self._reconstruct_input_without_normals(
-                        epoch=current_epoch, epoch_id=epoch_id
+                        epoch=current_epoch,
+                        epoch_id=epoch_id,
+                        columns=self._post_segmentation.columns,
                     )
             else:
 
@@ -3515,13 +3489,17 @@ class PB_M3C2_with_segments(PB_M3C2):
                         (
                             X,
                             self._reconstruct_input_without_normals(
-                                epoch=current_epoch, epoch_id=epoch_id
+                                epoch=current_epoch,
+                                epoch_id=epoch_id,
+                                columns=self._post_segmentation.columns,
                             ),
                         )
                     )
                 else:
                     X = self._reconstruct_input_without_normals(
-                        epoch=current_epoch, epoch_id=epoch_id
+                        epoch=current_epoch,
+                        epoch_id=epoch_id,
+                        columns=self._post_segmentation.columns,
                     )
             else:
 
