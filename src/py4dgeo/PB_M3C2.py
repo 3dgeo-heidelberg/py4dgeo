@@ -37,7 +37,7 @@ except ImportError:
 __all__ = [
     "Viewer",
     "BaseTransformer",
-    "LLSVandPCA",
+    "PerPointComputation",
     "Segmentation",
     "ExtractSegments",
     "BuilderExtended_y",
@@ -577,7 +577,7 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         return out
 
 
-class LLSVandPCA(BaseTransformer):
+class PerPointComputation(BaseTransformer):
     def __init__(
         self, skip=False, radius=10, output_file_name=None, columns=LLSV_PCA_COLUMNS
     ):
@@ -591,7 +591,7 @@ class LLSVandPCA(BaseTransformer):
             File where the result of the 'Transform()' method, a numpy array, is dumped.
         """
 
-        super(LLSVandPCA, self).__init__(
+        super(PerPointComputation, self).__init__(
             skip=skip, output_file_name=output_file_name, columns=columns
         )
         self.radius = radius
@@ -1911,7 +1911,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
 class PB_M3C2:
     def __init__(
         self,
-        LLSV_and_PCA=LLSVandPCA(),
+        per_point_computation=PerPointComputation(),
         segmentation=Segmentation(),
         second_segmentation=Segmentation(with_previously_computed_segments=True),
         extract_segments=ExtractSegments(),
@@ -1919,7 +1919,7 @@ class PB_M3C2:
     ):
 
         """
-        :param LLSV_and_PCA:
+        :param per_point_computation:
             lowest local surface variation and PCA computation. (computes the normal vector as well)
         :param segmentation:
             The object used for the first segmentation.
@@ -1936,7 +1936,7 @@ class PB_M3C2:
                 second_segmentation.with_previously_computed_segments == True
             ), "Second segmentation must have: with_previously_computed_segments=True"
 
-        self._LLSV_and_PCA = LLSV_and_PCA
+        self._per_point_computation = per_point_computation
         self._segmentation = segmentation
         self._second_segmentation = second_segmentation
         self._extract_segments = extract_segments
@@ -2227,7 +2227,7 @@ class PB_M3C2:
 
         labeling_pipeline = Pipeline(
             [
-                ("Transform LLSV_and_PCA", self._LLSV_and_PCA),
+                ("Transform PerPointComputation", self._per_point_computation),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2320,7 +2320,7 @@ class PB_M3C2:
 
         pipe_segmentation = Pipeline(
             [
-                ("Transform LLSV_and_PCA", self._LLSV_and_PCA),
+                ("Transform PerPointComputation", self._per_point_computation),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
@@ -2489,7 +2489,7 @@ class PB_M3C2:
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform LLSV_and_PCA", self._LLSV_and_PCA),
+                ("Transform PerPointComputation", self._per_point_computation),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
                 ("Transform ExtractSegments", self._extract_segments),
@@ -2556,13 +2556,13 @@ class PB_M3C2:
 
         pipe = Pipeline(
             [
-                ("Transform LLSVandPCA", self._LLSV_and_PCA),
+                ("Transform PerPointComputation", self._per_point_computation),
                 ("Transform Segmentation", self._segmentation),
                 ("Transform Second Segmentation", self._second_segmentation),
             ]
         )
 
-        self._LLSV_and_PCA.skip = False
+        self._per_point_computation.skip = False
         self._segmentation.skip = False
         self._second_segmentation.skip = False
 
@@ -2883,7 +2883,7 @@ def build_input_scenario2_with_normals(epoch0, epoch1):
 
     transform_pipeline = Pipeline(
         [
-            ("Transform LLSV_and_PCA", LLSVandPCA()),
+            ("Transform PerPointComputation", PerPointComputation()),
             ("Transform Segmentation", Segmentation()),
         ]
     )
@@ -2959,7 +2959,7 @@ def build_input_scenario2_without_normals(epoch0, epoch1):
 
     transform_pipeline = Pipeline(
         [
-            ("Transform LLSV_and_PCA", LLSVandPCA()),
+            ("Transform PerPointComputation", PerPointComputation()),
             ("Transform Segmentation", Segmentation()),
         ]
     )
@@ -3013,7 +3013,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         """
 
         super().__init__(
-            LLSV_and_PCA=None,
+            per_point_computation=None,
             segmentation=None,
             second_segmentation=None,
             extract_segments=ExtractSegments(),
