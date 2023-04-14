@@ -49,6 +49,12 @@ __all__ = [
     "PB_M3C2_with_segments",
     "set_interactive_backend",
     "generate_random_extended_y",
+    "LLSV_PCA_COLUMNS_DICT",
+    "LLSV_PCA_COLUMNS",
+    "SEGMENTED_POINT_CLOUD_COLUMNS_DICT",
+    "SEGMENTED_POINT_CLOUD_COLUMNS",
+    "SEGMENT_COLUMNS_DICT",
+    "SEGMENT_COLUMNS",
 ]
 
 logger = logging.getLogger("py4dgeo")
@@ -237,7 +243,7 @@ class Viewer:
     def get_distinct_colors(n):
 
         """
-        Return a python list with 'n' elements of distinct colors.
+        Return a python list of 'n' distinct colors.
 
         :param n:
             number of colors.
@@ -249,30 +255,6 @@ class Viewer:
         return [
             Viewer.HSVToRGB(huePartition * value, 1.0, 1.0) for value in range(0, n)
         ]
-
-    @staticmethod
-    def read_np_ndarray_from_xyz(input_file_name: str) -> np.ndarray:
-
-        """
-        The reconstructed np.ndarray.
-
-        :param input_file_name:
-            The output file name.
-        :return:
-            np.ndarray
-        """
-
-        # Resolve the given path
-        filename = find_file(input_file_name)
-
-        # Read it
-        try:
-            logger.info(f"Reading np.ndarray from file '{filename}'")
-            np_ndarray = np.genfromtxt(filename, delimiter=",")
-        except ValueError:
-            raise Py4DGeoError("Malformed file: " + str(filename))
-
-        return np_ndarray
 
     @staticmethod
     def segmented_point_cloud_visualizer(X: np.ndarray):
@@ -310,7 +292,7 @@ class Viewer:
         viewer.plt.show(viewer.sets).close()
 
     @staticmethod
-    def segments_visualizer(X: np.ndarray):
+    def segments_visualizer(X: np.ndarray, columns=SEGMENT_COLUMNS):
 
         """
         Segments visualizer.
@@ -327,27 +309,8 @@ class Viewer:
                     Standard deviation ( 1 column ),
                     Number of points found in Segment_ID segment ( 1 column )
                 ]
+        :param columns:
         """
-
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-        EPOCH_ID_COLUMN = 3
-
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-
-        SEGMENT_ID_COLUMN = 17
 
         viewer = Viewer()
 
@@ -358,7 +321,7 @@ class Viewer:
 
         for i in range(0, nr_segments):
 
-            if X[i, EPOCH_ID_COLUMN] == 0:
+            if X[i, columns.EPOCH_ID_COLUMN] == 0:
                 color = colors[0]
             else:
                 color = colors[1]
@@ -366,27 +329,39 @@ class Viewer:
             ellipsoid = Ellipsoid(
                 pos=(X[i, 0], X[i, 1], X[i, 2]),
                 axis1=[
-                    X[i, EIGENVECTOR_0_X_COLUMN] * X[i, EIGENVALUE0_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_0_Y_COLUMN] * X[i, EIGENVALUE0_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_0_Z_COLUMN] * X[i, EIGENVALUE0_COLUMN] * 0.3,
+                    X[i, columns.EIGENVECTOR_0_X_COLUMN]
+                    * X[i, columns.EIGENVALUE0_COLUMN]
+                    * 0.5,
+                    X[i, columns.EIGENVECTOR_0_Y_COLUMN]
+                    * X[i, columns.EIGENVALUE0_COLUMN]
+                    * 0.5,
+                    X[i, columns.EIGENVECTOR_0_Z_COLUMN]
+                    * X[i, columns.EIGENVALUE0_COLUMN]
+                    * 0.3,
                 ],
                 axis2=[
-                    X[i, EIGENVECTOR_1_X_COLUMN] * X[i, EIGENVALUE1_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_1_Y_COLUMN] * X[i, EIGENVALUE1_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_1_Z_COLUMN] * X[i, EIGENVALUE1_COLUMN] * 0.5,
+                    X[i, columns.EIGENVECTOR_1_X_COLUMN]
+                    * X[i, columns.EIGENVALUE1_COLUMN]
+                    * 0.5,
+                    X[i, columns.EIGENVECTOR_1_Y_COLUMN]
+                    * X[i, columns.EIGENVALUE1_COLUMN]
+                    * 0.5,
+                    X[i, columns.EIGENVECTOR_1_Z_COLUMN]
+                    * X[i, columns.EIGENVALUE1_COLUMN]
+                    * 0.5,
                 ],
                 axis3=[
-                    X[i, EIGENVECTOR_2_X_COLUMN] * 0.1,
-                    X[i, EIGENVECTOR_2_Y_COLUMN] * 0.1,
-                    X[i, EIGENVECTOR_2_Z_COLUMN] * 0.1,
+                    X[i, columns.EIGENVECTOR_2_X_COLUMN] * 0.1,
+                    X[i, columns.EIGENVECTOR_2_Y_COLUMN] * 0.1,
+                    X[i, columns.EIGENVECTOR_2_Z_COLUMN] * 0.1,
                 ],
                 res=24,
                 c=color,
                 alpha=1,
             )
             # ellipsoid.caption(txt=str(i), size=(0.1, 0.05))
-            ellipsoid.id = X[i, SEGMENT_ID_COLUMN]
-            ellipsoid.epoch = X[i, EPOCH_ID_COLUMN]
+            ellipsoid.id = X[i, columns.SEGMENT_ID_COLUMN]
+            ellipsoid.epoch = X[i, columns.EPOCH_ID_COLUMN]
             ellipsoid.isOn = True
 
             viewer.sets = viewer.sets + [ellipsoid]
@@ -660,10 +635,6 @@ class PerPointComputation(BaseTransformer):
                 Lowest local surface variation( 1 column )
         """
 
-        # X_COLUMN = 0
-        # Y_COLUMN = 1
-        # Z_COLUMN = 2
-        # EPOCH_ID_COLUMN = 3
         X_Y_Z_Columns = [
             self.columns.X_COLUMN,
             self.columns.Y_COLUMN,
@@ -688,25 +659,6 @@ class PerPointComputation(BaseTransformer):
         # Total 13 new columns
         new_columns = np.zeros((X.shape[0], 13))
         X = np.hstack((X, new_columns))
-
-        # EIGENVALUE0_COLUMN = 4
-        # EIGENVALUE1_COLUMN = 5
-        # EIGENVALUE2_COLUMN = 6
-        # EIGENVECTOR_0_X_COLUMN = 7
-        # EIGENVECTOR_0_Y_COLUMN = 8
-        # EIGENVECTOR_0_Z_COLUMN = 9
-        # EIGENVECTOR_1_X_COLUMN = 10
-        # EIGENVECTOR_1_Y_COLUMN = 11
-        # EIGENVECTOR_1_Z_COLUMN = 12
-        # EIGENVECTOR_2_X_COLUMN = 13
-        # EIGENVECTOR_2_Y_COLUMN = 14
-        # EIGENVECTOR_2_Z_COLUMN = 15
-        # LLSV_COLUMN = 16
-        # Normal_Columns = [
-        #     self.columns.EIGENVECTOR_2_X_COLUMN,
-        #     self.columns.EIGENVECTOR_2_Y_COLUMN,
-        #     self.columns.EIGENVECTOR_2_Z_COLUMN,
-        # ]
 
         # this process can be parallelized!
         return np.apply_along_axis(
@@ -1066,8 +1018,7 @@ class Segmentation(BaseTransformer):
         return X
 
 
-# better nam PostPointCloudSegmentation !!!
-class PostSegmentation(BaseTransformer):
+class PostPointCloudSegmentation(BaseTransformer):
     def __init__(
         self,
         skip=False,
@@ -1341,10 +1292,9 @@ class ExtractSegments(BaseTransformer):
 
 
 class BuilderExtended_y(ABC):
-    def __init__(
-        self,
-    ):
+    def __init__(self, columns):
         super().__init__()
+        self.columns = columns
 
     @abstractmethod
     def generate_extended_y(self, X, y=None):
@@ -1363,9 +1313,9 @@ class BuilderExtended_y(ABC):
 
 
 class BuilderExtended_y_Visually(BuilderExtended_y):
-    def __init__(self):
+    def __init__(self, columns=SEGMENT_COLUMNS):
 
-        super(BuilderExtended_y_Visually, self).__init__()
+        super(BuilderExtended_y_Visually, self).__init__(columns=columns)
 
         self.current_pair = [None] * 2
         self.constructed_extended_y = np.empty(shape=(0, 3))
@@ -1487,20 +1437,20 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
 
         self.sets = []
 
-        max = X.shape[0]
-        # colors = getDistinctColors(max)
+        nr_segments = X.shape[0]
+        # colors = getDistinctColors(nr_segments)
         colors = [(1, 0, 0), (0, 1, 0)]
         self.plt = Plotter(axes=3)
 
         self.plt.add_callback("EndInteraction", self.controller)
         self.plt.add_callback("KeyPress", self.toggle_transparenct)
 
-        for i in range(0, max):
+        for i in range(0, nr_segments):
 
             # mask = X[:, 17] == float(i)
             # set_cloud = X[mask, :3]  # x,y,z
 
-            if X[i, EPOCH_ID_COLUMN] == 0:
+            if X[i, self.columns.EPOCH_ID_COLUMN] == 0:
                 color = colors[0]
             else:
                 color = colors[1]
@@ -1511,27 +1461,39 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             ellipsoid = Ellipsoid(
                 pos=(X[i, 0], X[i, 1], X[i, 2]),
                 axis1=[
-                    X[i, EIGENVECTOR_0_X_COLUMN] * X[i, EIGENVALUE0_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_0_Y_COLUMN] * X[i, EIGENVALUE0_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_0_Z_COLUMN] * X[i, EIGENVALUE0_COLUMN] * 0.3,
+                    X[i, self.columns.EIGENVECTOR_0_X_COLUMN]
+                    * X[i, self.columns.EIGENVALUE0_COLUMN]
+                    * 0.5,
+                    X[i, self.columns.EIGENVECTOR_0_Y_COLUMN]
+                    * X[i, self.columns.EIGENVALUE0_COLUMN]
+                    * 0.5,
+                    X[i, self.columns.EIGENVECTOR_0_Z_COLUMN]
+                    * X[i, self.columns.EIGENVALUE0_COLUMN]
+                    * 0.3,
                 ],
                 axis2=[
-                    X[i, EIGENVECTOR_1_X_COLUMN] * X[i, EIGENVALUE1_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_1_Y_COLUMN] * X[i, EIGENVALUE1_COLUMN] * 0.5,
-                    X[i, EIGENVECTOR_1_Z_COLUMN] * X[i, EIGENVALUE1_COLUMN] * 0.5,
+                    X[i, self.columns.EIGENVECTOR_1_X_COLUMN]
+                    * X[i, self.columns.EIGENVALUE1_COLUMN]
+                    * 0.5,
+                    X[i, self.columns.EIGENVECTOR_1_Y_COLUMN]
+                    * X[i, self.columns.EIGENVALUE1_COLUMN]
+                    * 0.5,
+                    X[i, self.columns.EIGENVECTOR_1_Z_COLUMN]
+                    * X[i, self.columns.EIGENVALUE1_COLUMN]
+                    * 0.5,
                 ],
                 axis3=[
-                    X[i, EIGENVECTOR_2_X_COLUMN] * 0.1,
-                    X[i, EIGENVECTOR_2_Y_COLUMN] * 0.1,
-                    X[i, EIGENVECTOR_2_Z_COLUMN] * 0.1,
+                    X[i, self.columns.EIGENVECTOR_2_X_COLUMN] * 0.1,
+                    X[i, self.columns.EIGENVECTOR_2_Y_COLUMN] * 0.1,
+                    X[i, self.columns.EIGENVECTOR_2_Z_COLUMN] * 0.1,
                 ],
                 res=24,
                 c=color,
                 alpha=1,
             )
             # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
-            ellipsoid.id = X[i, SEGMENT_ID_COLUMN]
-            ellipsoid.epoch = X[i, EPOCH_ID_COLUMN]
+            ellipsoid.id = X[i, self.columns.SEGMENT_ID_COLUMN]
+            ellipsoid.epoch = X[i, self.columns.EPOCH_ID_COLUMN]
             ellipsoid.isOn = True
             self.sets = self.sets + [ellipsoid]
 
@@ -1613,7 +1575,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         self.classifier = classifier
         self.columns = columns
 
-    # consider this as a python protocol!!!
+    # maybe a python protocol/interface is the right way to go!!!
     def compute_similarity_between(
         self, seg_epoch0: np.ndarray, seg_epoch1: np.ndarray
     ) -> np.ndarray:
@@ -1900,28 +1862,6 @@ class PB_M3C2:
                 ]
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-
-        EPOCH_ID_COLUMN = 3
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        SEGMENT_ID_COLUMN = 17
-
-        STANDARD_DEVIATION_COLUMN = 18
-
         # default standard deviation for points that are not "core points"
         DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
 
@@ -1987,28 +1927,6 @@ class PB_M3C2:
                     Standard deviation
                 ]
         """
-
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-
-        EPOCH_ID_COLUMN = 3
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        SEGMENT_ID_COLUMN = 17
-
-        STANDARD_DEVIATION_COLUMN = 18
 
         # default standard deviation for points that are not "core points"
         DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
@@ -2479,7 +2397,7 @@ class PB_M3C2:
             epoch=previous_segmented_epoch, epoch_id=0, columns=None
         )
 
-        post_segmentation_transform = PostSegmentation(compute_normal=True)
+        post_segmentation_transform = PostPointCloudSegmentation(compute_normal=True)
         post_segmentation_transform.fit(X0)
         X0_post_seg = post_segmentation_transform.transform(X0)
 
@@ -2884,7 +2802,7 @@ def build_input_scenario2_without_normals(
 class PB_M3C2_with_segments(PB_M3C2):
     def __init__(
         self,
-        post_segmentation=PostSegmentation(compute_normal=True),
+        post_segmentation=PostPointCloudSegmentation(compute_normal=True),
         classifier=ClassifierWrapper(),
     ):
         """
