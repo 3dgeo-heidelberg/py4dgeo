@@ -253,6 +253,29 @@ class Viewer:
         ]
 
     @staticmethod
+    def read_np_ndarray_from_xyz(input_file_name: str) -> np.ndarray:
+
+        """
+        The reconstructed np.ndarray.
+        :param input_file_name:
+            The output file name.
+        :return:
+            np.ndarray
+        """
+
+        # Resolve the given path
+        filename = find_file(input_file_name)
+
+        # Read it
+        try:
+            logger.info(f"Reading np.ndarray from file '{filename}'")
+            np_ndarray = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
+
+        return np_ndarray
+
+    @staticmethod
     def segmented_point_cloud_visualizer(X: np.ndarray):
 
         """

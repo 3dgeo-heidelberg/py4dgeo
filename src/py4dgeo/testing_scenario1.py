@@ -20,15 +20,33 @@ np.random.seed(10)
 
 alg = py4dgeo.PB_M3C2()
 
-# alg.export_segmented_point_cloud_and_segments(
-#     epoch0=epoch0, epoch1=epoch1,
-#     **{"Transform Segmentation__output_file_name": "seg_test_out_alex", "c": True})
-
 (
     x_y_z_id_epoch0,
     x_y_z_id_epoch1,
     extracted_segments,
-) = alg.export_segmented_point_cloud_and_segments(epoch0=epoch0, epoch1=epoch1)
+) = alg.export_segmented_point_cloud_and_segments(
+    epoch0=epoch0,
+    epoch1=epoch1,
+    **{
+        # "c": True, # used for testing
+        # "get_pipeline_options": True,
+        "Transform Segmentation__output_file_name": "segmented_point_cloud.out"
+    },
+)
+segmented_point_cloud = py4dgeo.Viewer.read_np_ndarray_from_xyz(
+    input_file_name="segmented_point_cloud.out"
+)
+py4dgeo.Viewer.segmented_point_cloud_visualizer(X=segmented_point_cloud)
+
+
+# (
+#     x_y_z_id_epoch0,
+#     x_y_z_id_epoch1,
+#     extracted_segments,
+# ) = alg.export_segmented_point_cloud_and_segments(
+#     epoch0=epoch0,
+#     epoch1=epoch1,
+# )
 
 extended_y = py4dgeo.generate_random_extended_y(
     extracted_segments, extended_y_file_name="extended_y.csv"
@@ -39,7 +57,6 @@ alg.training(
     extracted_segments_file_name="extracted_segments.seg",
     extended_y_file_name="extended_y.csv",
 )
-
 
 print(alg.predict(epoch0=epoch0, epoch1=epoch1))
 print(alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
