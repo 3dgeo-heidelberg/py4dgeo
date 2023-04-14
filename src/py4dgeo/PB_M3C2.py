@@ -2491,29 +2491,6 @@ class PB_M3C2:
             | None
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-
-        EPOCH_ID_COLUMN = 3
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-        LLSV_COLUMN = 16
-        SEGMENT_ID_COLUMN = 17
-
-        STANDARD_DEVIATION_COLUMN = 18
-        NR_POINTS_PER_SEG_COLUMN = 19
-
         logger.info(f"PB_M3C2._compute_distances(...)")
 
         # A numpy array where each row contains a pair of segments.
@@ -2523,6 +2500,8 @@ class PB_M3C2:
             epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
             **kwargs,
         )
+
+        columns = self._extract_segments.columns
 
         # no computation
         if epoch0 is None or epoch1 is None:
@@ -2542,20 +2521,28 @@ class PB_M3C2:
             segment_epoch0 = epoch0_segments[indx]
             segment_epoch1 = epoch1_segments[indx]
 
-            t0_CoG = segment_epoch0[[X_COLUMN, Y_COLUMN, Z_COLUMN]]
-            t1_CoG = segment_epoch1[[X_COLUMN, Y_COLUMN, Z_COLUMN]]
+            t0_CoG = segment_epoch0[
+                [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
+            ]
+            t1_CoG = segment_epoch1[
+                [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
+            ]
 
             Normal_Columns = [
-                EIGENVECTOR_2_X_COLUMN,
-                EIGENVECTOR_2_Y_COLUMN,
-                EIGENVECTOR_2_Z_COLUMN,
+                columns.EIGENVECTOR_2_X_COLUMN,
+                columns.EIGENVECTOR_2_Y_COLUMN,
+                columns.EIGENVECTOR_2_Z_COLUMN,
             ]
             normal_vector_t0 = segment_epoch0[Normal_Columns]
 
             M3C2_dist = normal_vector_t0.dot(t0_CoG - t1_CoG)
 
-            std_dev_normalized_squared_t0 = segment_epoch0[STANDARD_DEVIATION_COLUMN]
-            std_dev_normalized_squared_t1 = segment_epoch1[STANDARD_DEVIATION_COLUMN]
+            std_dev_normalized_squared_t0 = segment_epoch0[
+                columns.STANDARD_DEVIATION_COLUMN
+            ]
+            std_dev_normalized_squared_t1 = segment_epoch1[
+                columns.STANDARD_DEVIATION_COLUMN
+            ]
 
             LoDetection = 1.96 * (
                 np.sqrt(std_dev_normalized_squared_t0 + std_dev_normalized_squared_t1)
@@ -2564,9 +2551,9 @@ class PB_M3C2:
 
             # seg_id_epoch0, X_Column0, Y_Column0, Z_Column0, seg_id_epoch1, X_Column1, Y_Column1, Z_Column1, distance, uncertaintie
             args = (
-                np.array([segment_epoch0[SEGMENT_ID_COLUMN]]),
+                np.array([segment_epoch0[columns.SEGMENT_ID_COLUMN]]),
                 t0_CoG,
-                np.array([segment_epoch1[SEGMENT_ID_COLUMN]]),
+                np.array([segment_epoch1[columns.SEGMENT_ID_COLUMN]]),
                 t1_CoG,
                 np.array([M3C2_dist]),
                 np.array([LoDetection]),
@@ -2603,22 +2590,26 @@ class PB_M3C2:
 
         self.uncertainties["spread1"] = np.sqrt(
             np.multiply(
-                epoch0_segments[:, STANDARD_DEVIATION_COLUMN],
-                epoch0_segments[:, NR_POINTS_PER_SEG_COLUMN],
+                epoch0_segments[:, columns.STANDARD_DEVIATION_COLUMN],
+                epoch0_segments[:, columns.NR_POINTS_PER_SEG_COLUMN],
             )
         ).reshape(-1, 1)
         self.uncertainties["spread2"] = np.sqrt(
             np.multiply(
-                epoch1_segments[:, STANDARD_DEVIATION_COLUMN],
-                epoch1_segments[:, NR_POINTS_PER_SEG_COLUMN],
+                epoch1_segments[:, columns.STANDARD_DEVIATION_COLUMN],
+                epoch1_segments[:, columns.NR_POINTS_PER_SEG_COLUMN],
             )
         ).reshape(-1, 1)
 
         self.uncertainties["num_samples1"] = (
-            epoch0_segments[:, NR_POINTS_PER_SEG_COLUMN].astype(int).reshape(-1, 1)
+            epoch0_segments[:, columns.NR_POINTS_PER_SEG_COLUMN]
+            .astype(int)
+            .reshape(-1, 1)
         )
         self.uncertainties["num_samples2"] = (
-            epoch1_segments[:, NR_POINTS_PER_SEG_COLUMN].astype(int).reshape(-1, 1)
+            epoch1_segments[:, columns.NR_POINTS_PER_SEG_COLUMN]
+            .astype(int)
+            .reshape(-1, 1)
         )
 
         return (self.distances, self.uncertainties)
