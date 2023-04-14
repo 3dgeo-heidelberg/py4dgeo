@@ -461,8 +461,8 @@ def generate_random_extended_y(
     epoch0_set = X[mask_epoch0, :]  # all
     epoch1_set = X[mask_epoch1, :]  # all
 
-    nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0]) * ratio
-    nr_pairs = np.clip(nr_pairs, 0, 1)
+    ratio = np.clip(ratio, 0, 1)
+    nr_pairs = round(min(epoch0_set.shape[0], epoch1_set.shape[0]) * ratio)
 
     indx0_seg_id = random.sample(range(epoch0_set.shape[0]), nr_pairs)
     indx1_seg_id = random.sample(range(epoch1_set.shape[0]), nr_pairs)
