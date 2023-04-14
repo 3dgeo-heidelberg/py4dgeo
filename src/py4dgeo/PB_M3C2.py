@@ -2075,10 +2075,10 @@ class PB_M3C2:
 
         labeling_pipeline = Pipeline(
             [
-                ("Transform PerPointComputation", self._per_point_computation),
-                ("Transform Segmentation", self._segmentation),
-                ("Transform Second Segmentation", self._second_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                ("Transform_PerPointComputation", self._per_point_computation),
+                ("Transform_Segmentation", self._segmentation),
+                ("Transform_Second Segmentation", self._second_segmentation),
+                ("Transform_ExtractSegments", self._extract_segments),
             ]
         )
 
@@ -2168,9 +2168,9 @@ class PB_M3C2:
 
         pipe_segmentation = Pipeline(
             [
-                ("Transform PerPointComputation", self._per_point_computation),
-                ("Transform Segmentation", self._segmentation),
-                ("Transform Second Segmentation", self._second_segmentation),
+                ("Transform_PerPointComputation", self._per_point_computation),
+                ("Transform_Segmentation", self._segmentation),
+                ("Transform_Second Segmentation", self._second_segmentation),
             ]
         )
 
@@ -2344,10 +2344,10 @@ class PB_M3C2:
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform PerPointComputation", self._per_point_computation),
-                ("Transform Segmentation", self._segmentation),
-                ("Transform Second Segmentation", self._second_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                ("Transform_PerPointComputation", self._per_point_computation),
+                ("Transform_Segmentation", self._segmentation),
+                ("Transform_Second Segmentation", self._second_segmentation),
+                ("Transform_ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
@@ -2411,9 +2411,9 @@ class PB_M3C2:
 
         pipe = Pipeline(
             [
-                ("Transform PerPointComputation", self._per_point_computation),
-                ("Transform Segmentation", self._segmentation),
-                ("Transform Second Segmentation", self._second_segmentation),
+                ("Transform_PerPointComputation", self._per_point_computation),
+                ("Transform_Segmentation", self._segmentation),
+                ("Transform_Second Segmentation", self._second_segmentation),
             ]
         )
 
@@ -2432,7 +2432,7 @@ class PB_M3C2:
 
         predict_pipe = Pipeline(
             [
-                ("Transform ExtractSegments", self._extract_segments),
+                ("Transform_ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
@@ -2710,8 +2710,8 @@ def build_input_scenario2_with_normals(
 
     transform_pipeline = Pipeline(
         [
-            ("Transform PerPointComputation", PerPointComputation()),
-            ("Transform Segmentation", Segmentation()),
+            ("Transform_PerPointComputation", PerPointComputation()),
+            ("Transform_Segmentation", Segmentation()),
         ]
     )
 
@@ -2771,8 +2771,8 @@ def build_input_scenario2_without_normals(
 
     transform_pipeline = Pipeline(
         [
-            ("Transform PerPointComputation", PerPointComputation()),
-            ("Transform Segmentation", Segmentation()),
+            ("Transform_PerPointComputation", PerPointComputation()),
+            ("Transform_Segmentation", Segmentation()),
         ]
     )
 
@@ -2906,8 +2906,8 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         transform_pipeline = Pipeline(
             [
-                ("Transform Post Segmentation", self._post_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                ("Transform_Post Segmentation", self._post_segmentation),
+                ("Transform_ExtractSegments", self._extract_segments),
             ]
         )
 
@@ -3115,8 +3115,8 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         transform_pipeline = Pipeline(
             [
-                ("Transform Post Segmentation", self._post_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                ("Transform_Post Segmentation", self._post_segmentation),
+                ("Transform_ExtractSegments", self._extract_segments),
             ]
         )
 
@@ -3310,8 +3310,8 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform Post Segmentation", self._post_segmentation),
-                ("Transform ExtractSegments", self._extract_segments),
+                ("Transform_Post Segmentation", self._post_segmentation),
+                ("Transform_ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
