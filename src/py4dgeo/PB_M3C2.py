@@ -432,7 +432,10 @@ class Viewer:
 
 
 def generate_random_extended_y(
-    X, extended_y_file_name="locally_generated_extended_y.csv", columns=SEGMENT_COLUMNS
+    X,
+    extended_y_file_name="locally_generated_extended_y.csv",
+    ratio=1 / 3,
+    columns=SEGMENT_COLUMNS,
 ):
     """
         Generate a subset (1/3 from the total possible pairs) of random tuples of segments ID
@@ -443,6 +446,8 @@ def generate_random_extended_y(
         Each row contains a segment.
     :param extended_y_file_name:
         Name of the file where the serialized result is saved.
+    :param ratio:
+        The size of the pairs subset size.
     :param columns:
         Column mapping used by each segment.
     :return:
@@ -456,7 +461,8 @@ def generate_random_extended_y(
     epoch0_set = X[mask_epoch0, :]  # all
     epoch1_set = X[mask_epoch1, :]  # all
 
-    nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0]) // 3
+    nr_pairs = min(epoch0_set.shape[0], epoch1_set.shape[0]) * ratio
+    nr_pairs = np.clip(nr_pairs, 0, 1)
 
     indx0_seg_id = random.sample(range(epoch0_set.shape[0]), nr_pairs)
     indx1_seg_id = random.sample(range(epoch1_set.shape[0]), nr_pairs)
