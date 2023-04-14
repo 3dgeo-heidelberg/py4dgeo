@@ -16,16 +16,12 @@ from sklearn.compose import make_column_selector
 from sklearn.ensemble import RandomForestClassifier
 from sklearn import set_config
 
-import py4dgeo.util
-
 set_config(display="diagram")
 
 from abc import ABC, abstractmethod
 
-from py4dgeo import Epoch, read_from_xyz
+from py4dgeo import Epoch
 from py4dgeo.util import Py4DGeoError, find_file
-
-from IPython import display
 
 try:
     from vedo import *
@@ -1415,26 +1411,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         :return:
         """
 
-        X_COLUMN = 0
-        Y_COLUMN = 1
-        Z_COLUMN = 2
-        EPOCH_ID_COLUMN = 3
-
-        EIGENVALUE0_COLUMN = 4
-        EIGENVALUE1_COLUMN = 5
-        EIGENVALUE2_COLUMN = 6
-        EIGENVECTOR_0_X_COLUMN = 7
-        EIGENVECTOR_0_Y_COLUMN = 8
-        EIGENVECTOR_0_Z_COLUMN = 9
-        EIGENVECTOR_1_X_COLUMN = 10
-        EIGENVECTOR_1_Y_COLUMN = 11
-        EIGENVECTOR_1_Z_COLUMN = 12
-        EIGENVECTOR_2_X_COLUMN = 13
-        EIGENVECTOR_2_Y_COLUMN = 14
-        EIGENVECTOR_2_Z_COLUMN = 15
-
-        SEGMENT_ID_COLUMN = 17
-
         self.sets = []
 
         nr_segments = X.shape[0]
@@ -1540,8 +1516,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         """
 
         return self.segments_visualizer(X)
-
-        pass
 
 
 class ClassifierWrapper(ClassifierMixin, BaseEstimator):
