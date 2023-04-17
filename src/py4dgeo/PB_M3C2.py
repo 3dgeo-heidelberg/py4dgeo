@@ -45,11 +45,8 @@ __all__ = [
     "PB_M3C2_with_segments",
     "set_interactive_backend",
     "generate_random_extended_y",
-    "LLSV_PCA_COLUMNS_DICT",
     "LLSV_PCA_COLUMNS",
-    "SEGMENTED_POINT_CLOUD_COLUMNS_DICT",
     "SEGMENTED_POINT_CLOUD_COLUMNS",
-    "SEGMENT_COLUMNS_DICT",
     "SEGMENT_COLUMNS",
 ]
 
@@ -276,7 +273,9 @@ class Viewer:
         return np_ndarray
 
     @staticmethod
-    def segmented_point_cloud_visualizer(X: np.ndarray):
+    def segmented_point_cloud_visualizer(
+        X: np.ndarray, columns=SEGMENTED_POINT_CLOUD_COLUMNS
+    ):
 
         """
         Visualize a segmented point cloud. ( the resulting point cloud after the segmentation process )
@@ -298,11 +297,13 @@ class Viewer:
         viewer = Viewer()
 
         # Segment_ID column
-        nr_segments = int(X[:, 17].max())
+        # nr_segments = int(X[:, 17].max())
+        nr_segments = int(X[:, columns.SEGMENT_ID_COLUMN].max())
         colors = Viewer.get_distinct_colors(nr_segments + 1)
 
         for i in range(0, nr_segments + 1):
-            mask = X[:, 17] == float(i)
+            # mask = X[:, 17] == float(i)
+            mask = X[:, columns.SEGMENT_ID_COLUMN] == float(i)
             # x,y,z
             set_cloud = X[mask, :3]
 
@@ -479,6 +480,74 @@ def generate_random_extended_y(
     )
 
     return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
+
+
+def generate_extended_y_fromPriorKnowledge(
+    X: np.ndarray,
+    pair_of_points: np.ndarray,
+    threshold_max_distance: float,
+    columns=SEGMENT_COLUMNS,
+) -> np.ndarray:
+
+    """
+    :param X:
+        numpy array of shape (n_segments, segment_size)
+    :param pair_of_points:
+        numpy array of shape (m_pairs, 6) where each row contain:
+            pair_of_points[i, :3] -> a proposed position of a segment from epoch 0
+            pair_pf_points[i, 3:] -> a proposed position of a segment from epoch 1
+    :param threshold_max_distance:
+        the radios accepted threshold for possible segments
+    :param columns:
+        column structure of X
+    """
+
+    extended_y = np.empty(shape=(0, 3), dtype=float)
+
+    # split points(segments) between epoch0 and epoch 1
+    epoch0_mask = X[:, columns.EPOCH_ID_COLUMN] == 0
+    epoch1_mask = X[:, columns.EPOCH_ID_COLUMN] == 1
+
+    epoch0_set = X[epoch0_mask, :]
+    epoch1_set = X[epoch1_mask, :]
+
+    # generate kd-tree for each of the 2 sets
+    epoch0 = Epoch(epoch0_set)
+    epoch0.build_kdtree()
+    epoch1 = Epoch(epoch1_set)
+    epoch1.build_kdtree()
+
+    # search for the near segments and build the 'extended y'
+    for row in pair_of_points:
+
+        seg_epoch0, seg_epoch1 = np.split(ary=row, indices_or_sections=2)
+        sorted_candidates_seg_epoch0 = epoch0_set.kdtree.radius_search_with_distances(
+            seg_epoch0, threshold_max_distance
+        )
+        sorted_candidates_seg_epoch1 = epoch1_set.kdtree.radius_search_with_distances(
+            seg_epoch1, threshold_max_distance
+        )
+
+        if (
+            len(sorted_candidates_seg_epoch0) > 0
+            and len(sorted_candidates_seg_epoch1) > 0
+        ):
+
+            indx_epoch0 = sorted_candidates_seg_epoch0[0][0]
+            segment_id_epoch0 = epoch0_set[indx_epoch0, columns.SEGMENT_ID_COLUMN]
+
+            indx_epoch1 = sorted_candidates_seg_epoch1[0][0]
+            segment_id_epoch1 = epoch1_set[indx_epoch1, columns.SEGMENT_ID_COLUMN]
+
+            extended_y = np.vstack(
+                (
+                    extended_y,
+                    # indx_epoch0 , indx_epoch1, label=1
+                    np.array([indx_epoch0, indx_epoch1, 1]),
+                )
+            )
+
+    return extended_y
 
 
 class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
@@ -1322,15 +1391,13 @@ class BuilderExtended_y(ABC):
         self.columns = columns
 
     @abstractmethod
-    def generate_extended_y(self, X, y=None):
+    def generate_extended_y(self, X):
         """
         Generates tuples of ( segment index epoch 0, segment index epoch 1, 0/1 label )
 
         :param X:
             numpy array of shape (n_segments, segment_features_size) containing all the segments for both,
             epoch 0 and epoch 1. Each row is a segment.
-        :param y:
-            numpy array
         :return:
             numpy array with shape (n_segments, 3)
         """
@@ -1535,12 +1602,10 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         ).close()
         return self.constructed_extended_y
 
-    def generate_extended_y(self, X, y=None):
+    def generate_extended_y(self, X):
 
         """
-
         :param X:
-        :param y:
         :return:
         """
 
@@ -2382,6 +2447,7 @@ class PB_M3C2:
         return out
 
     # predict_scenario4
+    # incomplete
     def predict_update(self, previous_segmented_epoch, epoch1):
 
         """
@@ -2846,7 +2912,7 @@ class PB_M3C2_with_segments(PB_M3C2):
     ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
 
         """
-        Given 2 Epochs, it builds a pair of features and labels used for learning.
+        Given 2 Epochs, it builds a pair of (segments and 'extended y').
 
         :param epoch0:
             Epoch object,
