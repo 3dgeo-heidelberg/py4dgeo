@@ -741,10 +741,15 @@ class PerPointComputation(BaseTransformer):
         epoch0_set = X[mask_epoch0, :-1]
         epoch1_set = X[mask_epoch1, :-1]
 
-        _epoch = [Epoch(epoch0_set), Epoch(epoch1_set)]
+        # currently, Epoch class doesn't accept the empty point set, as a constructor parameter.
+        _epoch = [
+            Epoch(epoch_set)
+            for epoch_set in [epoch0_set, epoch1_set]
+            if epoch_set.shape[0] > 0
+        ]
 
-        _epoch[0].build_kdtree()
-        _epoch[1].build_kdtree()
+        for current_epoch in _epoch:
+            current_epoch.build_kdtree()
 
         # add extra columns
         # Eigenvalues( 3 columns ) |
@@ -3136,6 +3141,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             contains as 'additional_dimensions' a segment_id column (mandatory)
             and optionally, precomputed normals as another 3 columns.
         :param extracted_segments_file_name:
+            out file
             The file has the following structure:
             numpy array with shape (n_segments_samples, 20) where the column structure is as following:
                 [
