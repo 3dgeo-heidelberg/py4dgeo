@@ -30,13 +30,13 @@ alg = py4dgeo.PB_M3C2()
     **{
         # "c": True, # used for testing
         # "get_pipeline_options": True,
-        "Transform_Segmentation__output_file_name": "segmented_point_cloud.out"
+        # "Transform_Segmentation__output_file_name": "segmented_point_cloud.out"
     },
 )
-segmented_point_cloud = py4dgeo.Viewer.read_np_ndarray_from_xyz(
-    input_file_name="segmented_point_cloud.out"
-)
-py4dgeo.Viewer.segmented_point_cloud_visualizer(X=segmented_point_cloud)
+# segmented_point_cloud = py4dgeo.Viewer.read_np_ndarray_from_xyz(
+#     input_file_name="segmented_point_cloud.out"
+# )
+# py4dgeo.Viewer.segmented_point_cloud_visualizer(X=segmented_point_cloud)
 
 
 # (
