@@ -141,10 +141,7 @@ class M3C2LikeAlgorithm(abc.ABC):
             try:
                 las[key] = vals
             except:
-                las.add_extra_dim(laspy.ExtraBytesParams(
-                    name=key,
-                    type=type(vals[0])
-                ))
+                las.add_extra_dim(laspy.ExtraBytesParams(name=key, type=type(vals[0])))
                 las[key] = vals
 
         las.write(outfilepath)

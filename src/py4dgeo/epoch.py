@@ -30,8 +30,13 @@ PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, timestamp=None,
-                 scan_pos: np.ndarray = None, sp_info: list = None):
+    def __init__(
+        self,
+        cloud: np.ndarray,
+        timestamp=None,
+        scan_pos: np.ndarray = None,
+        sp_info: list = None,
+    ):
         """
         :param cloud:
             The point cloud array of shape (n, 3).
@@ -126,7 +131,7 @@ class Epoch(_py4dgeo.Epoch):
         return None
 
     def add_scan_position(self, scan_pos: np.ndarray, sp_info: list):
-        """ Add scan position information of the cloud to the epoch
+        """Add scan position information of the cloud to the epoch
 
         :param scan_pos:
             The point scan positions array of shape (n,).
@@ -154,7 +159,7 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create the final archive
             with zipfile.ZipFile(
-                    filename, mode="w", compression=zipfile.ZIP_BZIP2
+                filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
                 # Write the epoch file format version number
                 zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
@@ -373,7 +378,7 @@ def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
         ).transpose(),
         timestamp=lasfile.header.creation_date,
         scan_pos=scanpos,
-        sp_info=sp_info
+        sp_info=sp_info,
     )
 
     if len(filenames) == 1:
@@ -383,8 +388,9 @@ def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_las(*filenames[1:], other_epoch=new_epoch,
-                          sp_name=sp_name, sp_file=sp_file)
+            read_from_las(
+                *filenames[1:], other_epoch=new_epoch, sp_name=sp_name, sp_file=sp_file
+            )
         )
 
 
@@ -436,15 +442,15 @@ def load_scan_positions_info(filename):
             print("SetJsonOperator load json error.")
             return None
     sps_list = []
-    for i in range(1, 1+len(SPsdict_load)):
+    for i in range(1, 1 + len(SPsdict_load)):
         sps_list.append(SPsdict_load[str(i)])
 
     for sp in sps_list:
         sp_check = True
-        sp_check = False if len(sp['origin']) != 3 else sp_check
-        sp_check = False if not isinstance(sp['sigma_range'], float) else sp_check
-        sp_check = False if not isinstance(sp['sigma_scan'], float) else sp_check
-        sp_check = False if not isinstance(sp['sigma_yaw'], float) else sp_check
+        sp_check = False if len(sp["origin"]) != 3 else sp_check
+        sp_check = False if not isinstance(sp["sigma_range"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_scan"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_yaw"], float) else sp_check
         if not sp_check:
             print("Scan positions load failed, please check format. ")
 
