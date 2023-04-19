@@ -1,7 +1,5 @@
 import numpy as np
 import py4dgeo
-import typing
-import os
 import math
 import time
 import scipy.stats as sstats
