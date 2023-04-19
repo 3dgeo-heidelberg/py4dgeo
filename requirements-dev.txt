@@ -1,6 +1,7 @@
 breathe
 cmake
 ipykernel
+laspy
 lcov_cobertura
 matplotlib
 nbsphinx
@@ -11,6 +12,8 @@ pre-commit
 pytest
 pytest-cov
 ruptures
+scipy
 sphinx
 sphinx_mdinclude
 sphinx_rtd_theme
+tqdm
