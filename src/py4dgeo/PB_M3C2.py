@@ -123,6 +123,13 @@ SEGMENT_COLUMNS_DICT = dict(
 SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
 
 
+# default value, for the points that are part of NO segment ( e.g. -1 )
+DEFAULT_NO_SEGMENT = -1
+
+# default standard deviation for points that are not "core points"
+DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
+
+
 def set_interactive_backend(backend="vtk"):
     """Set the interactive backend for selection of correspondent segments.
 
@@ -960,6 +967,13 @@ class Segmentation(BaseTransformer):
         It applies the segmentation process.
 
         :param X:
+            Rows of points from Epoch0 and Epoch1
+            X = (
+                    X0, Rows of points from Epoch 0
+                    X1  Rows of points from Epoch 1     <- OPTIONAL
+                )
+            It is assumed that rows for Epoch0 and Epoch1 are not interleaved!
+
             numpy array (n_points, 17) with the following column structure:
             [
                 x, y, z ( 3 column ),
@@ -993,12 +1007,6 @@ class Segmentation(BaseTransformer):
             self.columns.EIGENVECTOR_2_Z_COLUMN,
         ]
 
-        # default, the points are part of NO segment ( e.g. -1 )
-        DEFAULT_NO_SEGMENT = -1
-
-        # default standard deviation for points that are not "core points"
-        DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
-
         # the new columns are added only if they weren't already been added previously
         if not self.with_previously_computed_segments:
             new_column_segment_id = np.full(
@@ -1014,25 +1022,39 @@ class Segmentation(BaseTransformer):
         mask_epoch0 = X[:, self.columns.EPOCH_ID_COLUMN] == 0
         mask_epoch1 = X[:, self.columns.EPOCH_ID_COLUMN] == 1
 
-        epoch0_set = X[mask_epoch0, :3]  # x,y,z
-        epoch1_set = X[mask_epoch1, :3]  # x,y,z
+        assert (
+            mask_epoch0.shape[0] > 0
+        ), "The input X must contain at least elements from Epoch 0, e.g. EPOCH_ID_COLUMN==0"
 
-        _epoch = [Epoch(epoch0_set), Epoch(epoch1_set)]
+        logger.debug(
+            f"'X' contains {np.count_nonzero(mask_epoch0)} elements from Epoch 0 "
+            f"and {np.count_nonzero(mask_epoch1)} from Epoch 1"
+        )
 
-        _epoch[0].build_kdtree()
-        _epoch[1].build_kdtree()
+        epoch0_set = X[mask_epoch0][:, X_Y_Z_Columns]
+        epoch1_set = X[mask_epoch1][:, X_Y_Z_Columns]
 
-        # sort by "Lowest local surface variation"
+        _epoch = [
+            Epoch(epoch_set)
+            for epoch_set in [epoch0_set, epoch1_set]
+            if epoch_set.shape[0] > 0
+        ]
+
+        for current_epoch in _epoch:
+            current_epoch.build_kdtree()
+
+        # sort by the "Lowest local surface variation"
         sort_indx_epoch0 = X[mask_epoch0, self.columns.LLSV_COLUMN].argsort()
         sort_indx_epoch1 = X[mask_epoch1, self.columns.LLSV_COLUMN].argsort()
         sort_indx_epoch = [sort_indx_epoch0, sort_indx_epoch1]
 
+        # it is assumed that the rows for Epoch0 and rows for Epoch1 are not interleaved!
         offset_in_X = [0, sort_indx_epoch0.shape[0]]
 
         # initialization required between multiple Segmentations
         seg_id = np.max(X[:, self.columns.SEGMENT_ID_COLUMN])
 
-        for epoch_id in range(2):
+        for epoch_id in range(len(_epoch)):
             for indx_row in sort_indx_epoch[epoch_id] + offset_in_X[epoch_id]:
                 # no part of a segment yet
                 if X[indx_row, self.columns.SEGMENT_ID_COLUMN] < 0:
@@ -1254,9 +1276,9 @@ class PostPointCloudSegmentation(BaseTransformer):
         ]
 
         # default value for the points that are part of NO segment ( e.g. -1 )
-        DEFAULT_NO_SEGMENT = -1
+        # DEFAULT_NO_SEGMENT = -1
         # default value for standard deviation for points that are not "core points"
-        DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
+        # DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
 
         highest_segment_id_used = int(X[:, self.columns.SEGMENT_ID_COLUMN].max())
 
