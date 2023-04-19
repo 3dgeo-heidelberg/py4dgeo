@@ -146,7 +146,6 @@ class M3C2EP(M3C2):
 
         for p in procs:
             p.join()
-        # print("\nAll threads terminated.")
 
         pbarQueue.put((0, 0))
         pbarProc.terminate()
@@ -587,7 +586,6 @@ def process_corepoint_list(corepoints, corepoint_normals,
         M3C2_cov1[cp_idx] = p1_CoG_Cxx
         M3C2_cov2[cp_idx] = p2_CoG_Cxx
 
-        # if cp_idx % 10 == 0: pbarQueue.put((10, 0))  # point processed
         pbarQueue.put((1, 0))  # point processed
 
     return_dict[idx] = {'lod_new': M3C2_LoD,
