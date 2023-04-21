@@ -56,25 +56,15 @@ epoch1_segmented = py4dgeo.read_from_xyz(
     **{"delimiter": ","}
 )
 
-alg = py4dgeo.PB_M3C2_with_segments()
+alg = py4dgeo.PB_M3C2_time_series()
 
-# alg.generate_extended_labels_interactively(
-#     epoch0=epoch0_segmented,
-#     epoch1=epoch1_segmented
-# )
-
-# xyz_epoch0, xyz_epoch1, segments = alg.reconstruct_post_segmentation_output(
-#     epoch0=epoch0_segmented,
-#     epoch1=epoch1_segmented,
-#     **{"Transform Post Segmentation__output_file_name": "seg_test_post_seg.out", "get_pipeline_options": True}
-# )
-
-xyz_epoch0, xyz_epoch1, segments = alg.reconstruct_post_segmentation_output(
-    epoch0=epoch0_segmented,
-    epoch1=epoch1_segmented,
+(xyz_epoch0, xyz_epoch1, segments) = alg.export_segmented_point_cloud_and_segments(
+    epoch0_xyz_id_normal=epoch0_segmented,
+    epoch1_xyz=epoch1,
+    #    **{"Transform Post Segmentation__output_file_name": "seg_test_post_seg.out", "get_pipeline_options": True}
 )
-# py4dgeo.Viewer.segments_visualizer(X=segments)
 
+# py4dgeo.Viewer.segments_visualizer(X=segments)
 
 extended_y = py4dgeo.generate_random_extended_y(
     segments, extended_y_file_name="extended_y.csv"
@@ -82,19 +72,10 @@ extended_y = py4dgeo.generate_random_extended_y(
 
 alg.training(segments=segments, extended_y=extended_y)
 
-alg.predict(epoch0=epoch0_segmented, epoch1=epoch1_segmented)
+alg.predict(epoch0=epoch0_segmented, epoch1=epoch1)
 
-distances, uncertainties = alg.compute_distances(
-    epoch0=epoch0_segmented, epoch1=epoch1_segmented
-)
+
+distances, uncertainties = alg.compute_distances(epoch0=epoch0_segmented, epoch1=epoch1)
 
 print(distances)
 print(uncertainties)
-
-
-# ----------------
-
-xyz_epoch0, xyz_epoch1, segments = alg.reconstruct_post_segmentation_output(
-    epoch0=epoch0_segmented,
-    epoch1=None,
-)

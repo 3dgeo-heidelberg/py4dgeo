@@ -3604,6 +3604,11 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         assert False, "Not implemented yet!"
         pass
 
+    def export_segmented_point_cloud_and_segments_no_reconstruction(self):
+
+        assert False, "Not yet implemented!"
+        pass
+
     def export_segmented_point_cloud_and_segments(
         self,
         epoch0_xyz_id_normal: Epoch = None,
@@ -3612,10 +3617,7 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         x_y_z_id_epoch1_file_name: str = "x_y_z_id_epoch1.xyz",
         extracted_segments_file_name: str = "extracted_segments.seg",
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
-            segment_id="segment_id",
-            N_x="",  # N_x="N_x",
-            N_y="",  # N_y="N_y",
-            N_z="",  # N_z="N_z"
+            segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray] | None:
@@ -3631,7 +3633,7 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
                     epoch_additional_dimensions_lookup["N_y"],
                     epoch_additional_dimensions_lookup["N_z"],
                 ],
-                required_number_of_columns=[1],
+                required_number_of_columns=[4],
             )
 
             # used as assert mechanism
@@ -3643,7 +3645,7 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         else:
             assert (
                 epoch0_xyz_id_normal == None and epoch1_xyz == None
-            ), "both inputs must be, or not, 'None'"
+            ), "both inputs must be 'None' or objects"
 
         out_for_epoch0_xyz_id_normal = (
             PB_M3C2_with_segments.reconstruct_post_segmentation_output(
@@ -3722,25 +3724,55 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
 
     def predict(
         self,
-        epoch0_xyz_id_normal: Epoch = None,
-        epoch1_xyz: Epoch = None,
+        epoch0: Epoch = None,  # epoch0_xyz_id_normal
+        epoch1: Epoch = None,  # epoch1_xyz
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
         **kwargs,
     ) -> np.ndarray | None:
 
-        pass
+        out_export = self.export_segmented_point_cloud_and_segments(
+            epoch0_xyz_id_normal=epoch0,
+            epoch1_xyz=epoch1,
+            x_y_z_id_epoch1_file_name=None,
+            extracted_segments_file_name=None,
+            epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
+            **kwargs,
+        )
 
-    def compute_distances(
-        self,
-        epoch0_xyz_id_normal: Epoch = None,
-        epoch1_xyz: Epoch = None,
-        alignment_error: float = 1.1,
-        epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
-            segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
-        ),
-        **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+        if out_export != None:
 
-        pass
+            _0, _1, extracted_segments = out_export
+
+            # print the default parameters
+            PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=self._classifier)
+
+            # save the default pipeline options
+            default_options = self._classifier.get_params()
+
+            # overwrite the default parameters
+            PB_M3C2._overwrite_default_parameters(
+                kwargs=kwargs, pipeline=self._classifier
+            )
+
+            # apply the classifier
+            out = self._classifier.predict(extracted_segments)
+
+            # restore the default pipeline options
+            self._classifier.set_params(**default_options)
+
+            return out
+
+    # def compute_distances(
+    #     self,
+    #     epoch0_xyz_id_normal: Epoch = None,
+    #     epoch1_xyz: Epoch = None,
+    #     alignment_error: float = 1.1,
+    #     epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
+    #         segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
+    #     ),
+    #     **kwargs,
+    # ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+    #
+    #     pass
