@@ -22,10 +22,15 @@ class M3C2EP(M3C2):
         tfM,
         Cxx,
         refPointMov,
+        perform_trans=True,
         **kwargs,
     ):
         """An M3C2-EP implementation
-        that push the limits of 3D topographic point cloud change detection by error propagation
+        that push the limits of 3D topographic point cloud change detection by error propagation.
+        The algorithm needs an alignment covariance matrix of shape 12 x 12, an affine transformation matrix 𝑇
+        of shape 3 x 4 and a reduction point  (𝑥0,𝑦0,𝑧0) (rotation origin, 3 parameters) obtained from
+        aligning the two point clouds. The formula of the transformation see in user docs.
+        The transformation can be set by a boolean flag 'perform_trans' and is performed by default.
         """
         assert tfM.shape == (3, 4)
         assert refPointMov.shape == (3,)
@@ -34,6 +39,7 @@ class M3C2EP(M3C2):
         self.tfM = tfM
         self.Cxx = Cxx
         self.refPointMov = refPointMov
+        self.perform_trans = perform_trans
         self.LEAF_SIZE = 256
         super().__init__(**kwargs)
 
@@ -72,8 +78,9 @@ class M3C2EP(M3C2):
         tfM = self.tfM
 
         # transform p2
-        p2_coords = p2_coords - refPointMov
-        p2_coords = np.dot(tfM[:3, :3], p2_coords.T).T + tfM[:, 3] + refPointMov
+        if self.perform_trans:
+            p2_coords = p2_coords - refPointMov
+            p2_coords = np.dot(tfM[:3, :3], p2_coords.T).T + tfM[:, 3] + refPointMov
 
         # load query points
         query_coords = self.corepoints
