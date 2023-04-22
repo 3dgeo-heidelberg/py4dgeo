@@ -79,3 +79,43 @@ distances, uncertainties = alg.compute_distances(epoch0=epoch0_segmented, epoch1
 
 print(distances)
 print(uncertainties)
+
+# -------------------------------------
+
+# auxiliary operation
+# compute the "segments" for "epoch0"
+alg1 = py4dgeo.PB_M3C2()
+_0, _1, extracted_segments = alg1.export_segmented_point_cloud_and_segments(
+    epoch0=epoch0,
+    epoch1=None,
+    x_y_z_id_epoch0_file_name=None,
+    x_y_z_id_epoch1_file_name=None,
+    extracted_segments_file_name=None,
+)
+
+alg4_no_reconstruction = py4dgeo.PB_M3C2_time_series_no_reconstruction()
+(
+    xyz_epoch0,
+    xyz_epoch1,
+    segments,
+) = alg4_no_reconstruction.export_segmented_point_cloud_and_segments(
+    epoch0_segments_output=extracted_segments,
+    epoch1_xyz=epoch1,
+    x_y_z_id_epoch1_file_name=None,
+    extracted_segments_file_name=None,
+)
+
+py4dgeo.Viewer.segments_visualizer(X=segments)
+
+extended_y = py4dgeo.generate_random_extended_y(
+    segments, extended_y_file_name="extended_y.csv"
+)
+
+alg4_no_reconstruction.training(segments=segments, extended_y=extended_y)
+
+distances, uncertainties = alg4_no_reconstruction.compute_distances(
+    epoch0=extracted_segments, epoch1=epoch1
+)
+
+print(distances)
+print(uncertainties)

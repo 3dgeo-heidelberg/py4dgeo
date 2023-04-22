@@ -50,6 +50,7 @@ __all__ = [
     "SEGMENTED_POINT_CLOUD_COLUMNS",
     "SEGMENT_COLUMNS",
     "PB_M3C2_time_series",
+    "PB_M3C2_time_series_no_reconstruction",
 ]
 
 logger = logging.getLogger("py4dgeo")
@@ -72,6 +73,7 @@ LLSV_PCA_COLUMNS_DICT = dict(
     EIGENVECTOR_2_Y_COLUMN=14,
     EIGENVECTOR_2_Z_COLUMN=15,
     LLSV_COLUMN=16,
+    NUMBER_OF_COLUMNS=17,
 )
 LLSV_PCA_COLUMNS = type("LLSV_PCA_COLUMNS", (), LLSV_PCA_COLUMNS_DICT)
 
@@ -95,6 +97,7 @@ SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
     LLSV_COLUMN=16,
     SEGMENT_ID_COLUMN=17,
     STANDARD_DEVIATION_COLUMN=18,
+    NUMBER_OF_COLUMNS=19,
 )
 SEGMENTED_POINT_CLOUD_COLUMNS = type(
     "SEGMENTED_POINT_CLOUD_COLUMNS", (), SEGMENTED_POINT_CLOUD_COLUMNS_DICT
@@ -121,6 +124,7 @@ SEGMENT_COLUMNS_DICT = dict(
     SEGMENT_ID_COLUMN=17,
     STANDARD_DEVIATION_COLUMN=18,
     NR_POINTS_PER_SEG_COLUMN=19,
+    NUMBER_OF_COLUMNS=20,
 )
 SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
 
@@ -2199,9 +2203,9 @@ class PB_M3C2:
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
-        x_y_z_id_epoch0_file_name: str = "x_y_z_id_epoch0.xyz",
-        x_y_z_id_epoch1_file_name: str = "x_y_z_id_epoch1.xyz",
-        extracted_segments_file_name: str = "extracted_segments.seg",
+        x_y_z_id_epoch0_file_name: str | None = "x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_name: str | None = "x_y_z_id_epoch1.xyz",
+        extracted_segments_file_name: str | None = "extracted_segments.seg",
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray | None, np.ndarray] | None:
 
@@ -2229,12 +2233,15 @@ class PB_M3C2:
         :param x_y_z_id_epoch0_file_name:
             The output file name for epoch0, point cloud segmentation, saved as a numpy array (n_points, 4)
             (x,y,z, segment_id)
+            | None
         :param x_y_z_id_epoch1_file_name:
             The output file name for epoch1, point cloud segmentation, saved as a numpy array (n_points, 4)
             (x,y,z, segment_id)
+            | None
         :param extracted_segments_file_name:
             The output file name for the file containing the segments, saved as a numpy array containing
             the column structure introduced above.
+            | None
         :param kwargs:
 
             Used for customize the default pipeline parameters.
@@ -3604,18 +3611,13 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         assert False, "Not implemented yet!"
         pass
 
-    def export_segmented_point_cloud_and_segments_no_reconstruction(self):
-
-        assert False, "Not yet implemented!"
-        pass
-
     def export_segmented_point_cloud_and_segments(
         self,
         epoch0_xyz_id_normal: Epoch = None,
         epoch1_xyz: Epoch = None,
-        # x_y_z_id_epoch0_file_name: str = "x_y_z_id_epoch0.xyz",
-        x_y_z_id_epoch1_file_name: str = "x_y_z_id_epoch1.xyz",
-        extracted_segments_file_name: str = "extracted_segments.seg",
+        # x_y_z_id_epoch0_file_name: str | None = "x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_name: str | None = "x_y_z_id_epoch1.xyz",
+        extracted_segments_file_name: str | None = "extracted_segments.seg",
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
@@ -3776,3 +3778,157 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
     # ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
     #
     #     pass
+
+
+class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
+    def __init__(
+        self,
+        per_point_computation=PerPointComputation(),
+        segmentation=Segmentation(),
+        second_segmentation=Segmentation(),
+        post_segmentation=PostPointCloudSegmentation(compute_normal=True),
+        extract_segments=ExtractSegments(),
+        classifier=ClassifierWrapper(),
+    ):
+        super(PB_M3C2_time_series_no_reconstruction, self).__init__(
+            per_point_computation=per_point_computation,
+            segmentation=segmentation,
+            second_segmentation=second_segmentation,
+            post_segmentation=post_segmentation,
+            extract_segments=extract_segments,
+            classifier=classifier,
+        )
+
+    def export_segmented_point_cloud_and_segments(
+        self,
+        epoch0_segments_output: np.ndarray = None,
+        epoch1_xyz: Epoch = None,
+        # x_y_z_id_epoch0_file_name: str | None = "x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_name: str | None = "x_y_z_id_epoch1.xyz",
+        extracted_segments_file_name: str | None = "extracted_segments.seg",
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray] | None:
+
+        if isinstance(epoch0_segments_output, np.ndarray) and epoch1_xyz != None:
+
+            columns = self._extract_segments.columns
+
+            assert (
+                epoch0_segments_output.shape[1] == columns.NUMBER_OF_COLUMNS
+            ), "The number of the columns as input is incorrect"
+
+            # used as assert mechanism
+            # _extract_from_additional_dimensions(
+            #     epoch=epoch1_xyz,
+            #     column_names=[],
+            #     required_number_of_columns=[0],
+            # )
+        else:
+            assert (
+                epoch0_segments_output == None and epoch1_xyz == None
+            ), "Both inputs must be 'None' or objects"
+
+        out_for_epoch1_xyz = PB_M3C2.export_segmented_point_cloud_and_segments(
+            self,
+            epoch0=epoch1_xyz,
+            epoch1=None,
+            x_y_z_id_epoch0_file_name=None,  # do not export yet
+            x_y_z_id_epoch1_file_name=None,  # do not export yet
+            extracted_segments_file_name=None,  # do not export yet
+            **kwargs,
+        )
+
+        # if both inputs are provided, and we get the proper number of out parameters
+        if (
+            isinstance(epoch0_segments_output, np.ndarray)
+            and out_for_epoch1_xyz != None
+        ):
+
+            epoch1_np_array, _1, extracted_segments_epoch1 = out_for_epoch1_xyz
+
+            columns = self._extract_segments.columns
+
+            # compute segment id offset
+            max_seg_id_epoch0 = np.max(
+                epoch0_segments_output[:, columns.SEGMENT_ID_COLUMN]
+            )
+            # apply offset to segment from epoch1
+            extracted_segments_epoch1[:, columns.SEGMENT_ID_COLUMN] += (
+                max_seg_id_epoch0 + 1
+            )
+
+            # enforce epoch ID as '0' for 'epoch0_segments_output'
+            epoch0_segments_output[:, columns.EPOCH_ID_COLUMN] = 0
+
+            # change the epoch ID from 0 (the default one used during the previous computation for both epochs)
+            # to 1 for 'extracted_segments_epoch1'
+            extracted_segments_epoch1[:, columns.EPOCH_ID_COLUMN] = 1
+
+            extracted_segments = np.vstack(
+                (epoch0_segments_output, extracted_segments_epoch1)
+            )
+
+            # if epoch0_segments_output != None:
+            #     logger.debug(f"Save 'epoch0_segments_output' in file: {x_y_z_id_epoch0_file_name}")
+            #     np.savetxt(x_y_z_id_epoch0_file_name, epoch0_segments_output, delimiter=",")
+            # else:
+            #     logger.debug(f"'epoch0_segments_output' is not saved")
+
+            if x_y_z_id_epoch1_file_name != None:
+                logger.debug(
+                    f"Save 'x_y_z_id_epoch1' in file: {x_y_z_id_epoch1_file_name}"
+                )
+                np.savetxt(x_y_z_id_epoch1_file_name, epoch1_np_array, delimiter=",")
+            else:
+                logger.debug(f"'x_y_z_id_epoch1' is not saved")
+
+            if extracted_segments_file_name != None:
+                logger.debug(
+                    f"Save 'extracted_segments' in file: {extracted_segments_file_name}"
+                )
+                np.savetxt(
+                    extracted_segments_file_name, extracted_segments, delimiter=","
+                )
+            else:
+                logger.debug(f"'extracted_segments' is not saved")
+
+            return epoch0_segments_output, epoch1_np_array, extracted_segments
+
+    def predict(
+        self,
+        epoch0: np.ndarray = None,  # epoch0_segments_output: np.ndarray = None,
+        epoch1: Epoch = None,  # epoch1_xyz
+        epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
+        **kwargs,
+    ) -> np.ndarray | None:
+
+        out_export = self.export_segmented_point_cloud_and_segments(
+            epoch0_segments_output=epoch0,
+            epoch1_xyz=epoch1,
+            x_y_z_id_epoch1_file_name=None,
+            extracted_segments_file_name=None,
+            **kwargs,
+        )
+
+        if out_export != None:
+
+            _0, _1, extracted_segments = out_export
+
+            # print the default parameters
+            PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=self._classifier)
+
+            # save the default pipeline options
+            default_options = self._classifier.get_params()
+
+            # overwrite the default parameters
+            PB_M3C2._overwrite_default_parameters(
+                kwargs=kwargs, pipeline=self._classifier
+            )
+
+            # apply the classifier
+            out = self._classifier.predict(extracted_segments)
+
+            # restore the default pipeline options
+            self._classifier.set_params(**default_options)
+
+            return out
