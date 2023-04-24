@@ -51,6 +51,8 @@ __all__ = [
     "SEGMENT_COLUMNS",
     "PB_M3C2_time_series",
     "PB_M3C2_time_series_no_reconstruction",
+    "generate_extended_y_fromPriorKnowledge",
+    "generate_possible_region_pairs",
 ]
 
 logger = logging.getLogger("py4dgeo")
@@ -495,68 +497,116 @@ def generate_random_extended_y(
     return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
 
 
+def generate_possible_region_pairs(
+    segments: np.ndarray, seg_id0_seg_id1_label: np.ndarray
+):
+
+    """
+    :param segments:
+        numpy array of shape (n_segments, segment_size)
+    :param seg_id0_seg_id1_label:
+        extended_y, numpy array (n_pairs, 3)
+            where each row contains: (id_segment_epoch0, id_segment_epoch1, label=0/1)
+    :return:
+        numpy array of shape (m_pairs, 7) where each row contain:
+            pair_of_points[i, :3] -> a proposed position of a segment from epoch 0
+            pair_pf_points[i, 3:] -> a proposed position of a segment from epoch 1
+            label: 0/1
+    """
+
+    # mask = seg_id0_seg_id1_label[:, 2] == 1
+    # segment_pairs = seg_id0_seg_id1_label[mask, :]
+    segment_pairs = seg_id0_seg_id1_label
+
+    out = np.empty(shape=(0, 7))
+    for row in range(segment_pairs.shape[0]):
+        id_epoch0 = int(segment_pairs[row, 0])
+        id_epoch1 = int(segment_pairs[row, 1])
+        label = int(segment_pairs[row, 2])
+        points = np.hstack(
+            (
+                segments[id_epoch0, 0:3] + np.random.normal(0, 1),
+                segments[id_epoch1, 3:6] + np.random.normal(0, 1),
+                label,
+            )
+        )
+        out = np.vstack((out, points))
+
+    return out
+
+
 def generate_extended_y_fromPriorKnowledge(
-    X: np.ndarray,
+    segments: np.ndarray,
     pair_of_points: np.ndarray,
     threshold_max_distance: float,
     columns=SEGMENT_COLUMNS,
 ) -> np.ndarray:
 
     """
-    :param X:
+    :param segments:
         numpy array of shape (n_segments, segment_size)
     :param pair_of_points:
-        numpy array of shape (m_pairs, 6) where each row contain:
+        numpy array of shape (m_pairs, 7) where each row contain:
             pair_of_points[i, :3] -> a proposed position of a segment from epoch 0
             pair_pf_points[i, 3:] -> a proposed position of a segment from epoch 1
+            label: 0/1
     :param threshold_max_distance:
         the radios accepted threshold for possible segments
     :param columns:
-        column structure of X
+        Column mapping used by each segment.
+    :return:
+        extended_y, numpy array (n_pairs, 3)
+            where each row contains: (id_segment_epoch0, id_segment_epoch1, label=0/1)
     """
 
     extended_y = np.empty(shape=(0, 3), dtype=float)
 
     # split points(segments) between epoch0 and epoch 1
-    epoch0_mask = X[:, columns.EPOCH_ID_COLUMN] == 0
-    epoch1_mask = X[:, columns.EPOCH_ID_COLUMN] == 1
+    epoch0_mask = segments[:, columns.EPOCH_ID_COLUMN] == 0
+    epoch1_mask = segments[:, columns.EPOCH_ID_COLUMN] == 1
 
-    epoch0_set = X[epoch0_mask, :]
-    epoch1_set = X[epoch1_mask, :]
+    X_Y_Z_Columns = [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
+
+    epoch0_set = segments[epoch0_mask][X_Y_Z_Columns]
+    epoch1_set = segments[epoch1_mask][X_Y_Z_Columns]
 
     # generate kd-tree for each of the 2 sets
-    epoch0 = Epoch(epoch0_set)
+    epoch0 = Epoch(epoch0_set.T)
     epoch0.build_kdtree()
-    epoch1 = Epoch(epoch1_set)
+    epoch1 = Epoch(epoch1_set.T)
     epoch1.build_kdtree()
 
     # search for the near segments and build the 'extended y'
     for row in pair_of_points:
 
-        seg_epoch0, seg_epoch1 = np.split(ary=row, indices_or_sections=2)
-        sorted_candidates_seg_epoch0 = epoch0_set.kdtree.radius_search_with_distances(
+        seg_epoch0, seg_epoch1, label = np.split(ary=row, indices_or_sections=[3, 6])
+        label = label[0]
+
+        candidates_seg_epoch0 = epoch0.kdtree.radius_search(
             seg_epoch0, threshold_max_distance
         )
-        sorted_candidates_seg_epoch1 = epoch1_set.kdtree.radius_search_with_distances(
+        candidates_seg_epoch1 = epoch1.kdtree.radius_search(
             seg_epoch1, threshold_max_distance
         )
 
-        if (
-            len(sorted_candidates_seg_epoch0) > 0
-            and len(sorted_candidates_seg_epoch1) > 0
-        ):
+        if len(candidates_seg_epoch0) > 0 and len(candidates_seg_epoch1) > 0:
 
-            indx_epoch0 = sorted_candidates_seg_epoch0[0][0]
-            segment_id_epoch0 = epoch0_set[indx_epoch0, columns.SEGMENT_ID_COLUMN]
-
-            indx_epoch1 = sorted_candidates_seg_epoch1[0][0]
-            segment_id_epoch1 = epoch1_set[indx_epoch1, columns.SEGMENT_ID_COLUMN]
+            indx_min_epoch0 = candidates_seg_epoch0[
+                np.linalg.norm(
+                    epoch0.cloud[candidates_seg_epoch0] - seg_epoch0
+                ).argmin()
+            ]
+            indx_min_epoch1 = candidates_seg_epoch1[
+                np.linalg.norm(
+                    epoch1.cloud[candidates_seg_epoch0] - seg_epoch1
+                ).argmin()
+            ]
 
             extended_y = np.vstack(
                 (
                     extended_y,
-                    # indx_epoch0 , indx_epoch1, label=1
-                    np.array([indx_epoch0, indx_epoch1, 1]),
+                    # index segment epoch0 , index segment epoch1, label=0/1
+                    np.array([indx_min_epoch0, indx_min_epoch1, label]),
                 )
             )
 
@@ -2095,7 +2145,7 @@ class PB_M3C2:
                     pipeline.set_params(**{key: value})
                     logger.info(f"The pipeline parameter '{key}' is now '{value}'")
                 else:
-                    logger.error(
+                    logger.warning(
                         f"The parameter '{key}' is not part of pipeline parameters: \n "
                         f"{pp.pformat(pipeline_params)}"
                     )
@@ -2168,7 +2218,7 @@ class PB_M3C2:
             [
                 ("Transform_PerPointComputation", self._per_point_computation),
                 ("Transform_Segmentation", self._segmentation),
-                ("Transform_Second Segmentation", self._second_segmentation),
+                ("Transform_Second_Segmentation", self._second_segmentation),
                 ("Transform_ExtractSegments", self._extract_segments),
             ]
         )
@@ -2206,6 +2256,7 @@ class PB_M3C2:
         x_y_z_id_epoch0_file_name: str | None = "x_y_z_id_epoch0.xyz",
         x_y_z_id_epoch1_file_name: str | None = "x_y_z_id_epoch1.xyz",
         extracted_segments_file_name: str | None = "extracted_segments.seg",
+        concatenate_name="",
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray | None, np.ndarray] | None:
 
@@ -2242,6 +2293,8 @@ class PB_M3C2:
             The output file name for the file containing the segments, saved as a numpy array containing
             the column structure introduced above.
             | None
+        :param concatenate_name:
+            String that is utilized to uniquely identify the same transformer between multiple pipelines.
         :param kwargs:
 
             Used for customize the default pipeline parameters.
@@ -2262,9 +2315,15 @@ class PB_M3C2:
 
         pipe_segmentation = Pipeline(
             [
-                ("Transform_PerPointComputation", self._per_point_computation),
-                ("Transform_Segmentation", self._segmentation),
-                ("Transform_Second Segmentation", self._second_segmentation),
+                (
+                    concatenate_name + "_Transform_PerPointComputation",
+                    self._per_point_computation,
+                ),
+                (concatenate_name + "_Transform_Segmentation", self._segmentation),
+                (
+                    concatenate_name + "_Transform_Second_Segmentation",
+                    self._second_segmentation,
+                ),
             ]
         )
 
@@ -2455,7 +2514,7 @@ class PB_M3C2:
             [
                 ("Transform_PerPointComputation", self._per_point_computation),
                 ("Transform_Segmentation", self._segmentation),
-                ("Transform_Second Segmentation", self._second_segmentation),
+                ("Transform_Second_Segmentation", self._second_segmentation),
                 ("Transform_ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
@@ -2492,7 +2551,7 @@ class PB_M3C2:
 
     def _compute_distances(
         self,
-        epoch0: Epoch = None,
+        epoch0_info: Epoch | np.ndarray = None,
         epoch1: Epoch = None,
         alignment_error: float = 1.1,
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
@@ -2503,8 +2562,9 @@ class PB_M3C2:
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
             distances, corepoints (corepoints of epoch0), epochs (epoch0, epoch1), uncertainties
 
-        :param epoch0:
+        :param epoch0_info:
             Epoch object.
+            | np.ndarray
         :param epoch1:
             Epoch object.
         :param alignment_error:
@@ -2545,8 +2605,8 @@ class PB_M3C2:
 
         # A numpy array where each row contains a pair of segments.
         segments_pair = self.predict(
-            epoch0=epoch0,
-            epoch1=epoch1,
+            epoch0_info,
+            epoch1,
             epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
             **kwargs,
         )
@@ -2554,7 +2614,7 @@ class PB_M3C2:
         columns = self._extract_segments.columns
 
         # no computation
-        if epoch0 is None or epoch1 is None:
+        if epoch0_info is None or epoch1 is None:
             # logger.info("epoch0 and epoch1 are required, no parameter changes applied")
             return
 
@@ -2621,7 +2681,7 @@ class PB_M3C2:
         self.corepoints = Epoch(output[:, [1, 2, 3]])
 
         # epochs
-        self.epochs = (epoch0, epoch1)
+        self.epochs = (epoch0_info, epoch1)
 
         self.uncertainties = np.empty(
             (output.shape[0], 1),
@@ -2714,7 +2774,7 @@ class PB_M3C2:
         logger.info(f"PB_M3C2.compute_distances(...)")
 
         return self._compute_distances(
-            epoch0=epoch0,
+            epoch0_info=epoch0,
             epoch1=epoch1,
             alignment_error=alignment_error,
             epoch_additional_dimensions_lookup=None,
@@ -3103,6 +3163,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
+        concatenate_name: str = "",
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray | None, np.ndarray] | None:
 
@@ -3143,6 +3204,8 @@ class PB_M3C2_with_segments(PB_M3C2):
                 Normal y-axes vector: "N_y"             -> Optionally part of the epochs
                 Normal z-axes vector: "N_z"             -> Optionally part of the epochs
             and the names of the columns used by both epoch0 and epoch1.
+        :param concatenate_name:
+            String that is utilized to uniquely identify the same transformer between multiple pipelines.
         :param kwargs:
             Used for customize the default pipeline parameters.
             Getting the default parameters:
@@ -3167,8 +3230,14 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         transform_pipeline = Pipeline(
             [
-                ("Transform_Post Segmentation", self._post_segmentation),
-                ("Transform_ExtractSegments", self._extract_segments),
+                (
+                    concatenate_name + "_Transform_Post Segmentation",
+                    self._post_segmentation,
+                ),
+                (
+                    concatenate_name + "_Transform_ExtractSegments",
+                    self._extract_segments,
+                ),
             ]
         )
 
@@ -3570,7 +3639,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         logger.info(f"PB_M3C2_with_segments.compute_distances(...)")
 
         return super()._compute_distances(
-            epoch0=epoch0,
+            epoch0_info=epoch0,
             epoch1=epoch1,
             alignment_error=alignment_error,
             epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
@@ -3608,8 +3677,22 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
 
-        assert False, "Not implemented yet!"
-        pass
+        out_export = self.export_segmented_point_cloud_and_segments(
+            epoch0_xyz_id_normal=epoch0_xyz_id_normal,
+            epoch1_xyz=epoch1_xyz,
+            x_y_z_id_epoch1_file_name=None,
+            extracted_segments_file_name=None,
+            epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
+            **kwargs,
+        )
+
+        if out_export != None:
+
+            _0, _1, extracted_segments = out_export
+
+            return extracted_segments, builder_extended_y.generate_extended_y(
+                extracted_segments
+            )
 
     def export_segmented_point_cloud_and_segments(
         self,
@@ -3656,6 +3739,7 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
                 epoch1=None,
                 extracted_segments_file_name=None,  # do not export yet
                 epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
+                concatenate_name="reconstruct",
                 **kwargs,
             )
         )
@@ -3667,6 +3751,7 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
             x_y_z_id_epoch0_file_name=None,  # do not export yet
             x_y_z_id_epoch1_file_name=None,  # do not export yet
             extracted_segments_file_name=None,  # do not export yet
+            concatenate_name="export",
             **kwargs,
         )
 
@@ -3726,8 +3811,8 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
 
     def predict(
         self,
-        epoch0: Epoch = None,  # epoch0_xyz_id_normal
-        epoch1: Epoch = None,  # epoch1_xyz
+        epoch0_xyz_id_normal: Epoch = None,
+        epoch1_xyz: Epoch = None,
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
@@ -3735,8 +3820,8 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
     ) -> np.ndarray | None:
 
         out_export = self.export_segmented_point_cloud_and_segments(
-            epoch0_xyz_id_normal=epoch0,
-            epoch1_xyz=epoch1,
+            epoch0_xyz_id_normal=epoch0_xyz_id_normal,
+            epoch1_xyz=epoch1_xyz,
             x_y_z_id_epoch1_file_name=None,
             extracted_segments_file_name=None,
             epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
@@ -3766,18 +3851,24 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
 
             return out
 
-    # def compute_distances(
-    #     self,
-    #     epoch0_xyz_id_normal: Epoch = None,
-    #     epoch1_xyz: Epoch = None,
-    #     alignment_error: float = 1.1,
-    #     epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
-    #         segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
-    #     ),
-    #     **kwargs,
-    # ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
-    #
-    #     pass
+    def compute_distances(
+        self,
+        epoch0_xyz_id_normal: Epoch = None,
+        epoch1_xyz: Epoch = None,
+        alignment_error: float = 1.1,
+        epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
+            segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
+        ),
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+
+        return super()._compute_distances(
+            epoch0_info=epoch0_xyz_id_normal,
+            epoch1=epoch1_xyz,
+            alignment_error=alignment_error,
+            epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
+            **kwargs,
+        )
 
 
 class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
@@ -3799,9 +3890,35 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
             classifier=classifier,
         )
 
+    def generate_extended_labels_interactively(
+        self,
+        epoch0_segments: np.ndarray = None,
+        epoch1_xyz: Epoch = None,
+        builder_extended_y: BuilderExtended_y_Visually = BuilderExtended_y_Visually(),
+        epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+
+        out_export = self.export_segmented_point_cloud_and_segments(
+            epoch0_xyz_id_normal=epoch0_segments,
+            epoch1_xyz=epoch1_xyz,
+            x_y_z_id_epoch1_file_name=None,
+            extracted_segments_file_name=None,
+            epoch_additional_dimensions_lookup=epoch_additional_dimensions_lookup,
+            **kwargs,
+        )
+
+        if out_export != None:
+
+            _0, _1, extracted_segments = out_export
+
+            return extracted_segments, builder_extended_y.generate_extended_y(
+                extracted_segments
+            )
+
     def export_segmented_point_cloud_and_segments(
         self,
-        epoch0_segments_output: np.ndarray = None,
+        epoch0_segments: np.ndarray = None,
         epoch1_xyz: Epoch = None,
         # x_y_z_id_epoch0_file_name: str | None = "x_y_z_id_epoch0.xyz",
         x_y_z_id_epoch1_file_name: str | None = "x_y_z_id_epoch1.xyz",
@@ -3809,12 +3926,12 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray] | None:
 
-        if isinstance(epoch0_segments_output, np.ndarray) and epoch1_xyz != None:
+        if isinstance(epoch0_segments, np.ndarray) and epoch1_xyz != None:
 
             columns = self._extract_segments.columns
 
             assert (
-                epoch0_segments_output.shape[1] == columns.NUMBER_OF_COLUMNS
+                epoch0_segments.shape[1] == columns.NUMBER_OF_COLUMNS
             ), "The number of the columns as input is incorrect"
 
             # used as assert mechanism
@@ -3825,7 +3942,7 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
             # )
         else:
             assert (
-                epoch0_segments_output == None and epoch1_xyz == None
+                epoch0_segments == None and epoch1_xyz == None
             ), "Both inputs must be 'None' or objects"
 
         out_for_epoch1_xyz = PB_M3C2.export_segmented_point_cloud_and_segments(
@@ -3839,38 +3956,31 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
         )
 
         # if both inputs are provided, and we get the proper number of out parameters
-        if (
-            isinstance(epoch0_segments_output, np.ndarray)
-            and out_for_epoch1_xyz != None
-        ):
+        if isinstance(epoch0_segments, np.ndarray) and out_for_epoch1_xyz != None:
 
             epoch1_np_array, _1, extracted_segments_epoch1 = out_for_epoch1_xyz
 
             columns = self._extract_segments.columns
 
             # compute segment id offset
-            max_seg_id_epoch0 = np.max(
-                epoch0_segments_output[:, columns.SEGMENT_ID_COLUMN]
-            )
+            max_seg_id_epoch0 = np.max(epoch0_segments[:, columns.SEGMENT_ID_COLUMN])
             # apply offset to segment from epoch1
             extracted_segments_epoch1[:, columns.SEGMENT_ID_COLUMN] += (
                 max_seg_id_epoch0 + 1
             )
 
             # enforce epoch ID as '0' for 'epoch0_segments_output'
-            epoch0_segments_output[:, columns.EPOCH_ID_COLUMN] = 0
+            epoch0_segments[:, columns.EPOCH_ID_COLUMN] = 0
 
             # change the epoch ID from 0 (the default one used during the previous computation for both epochs)
             # to 1 for 'extracted_segments_epoch1'
             extracted_segments_epoch1[:, columns.EPOCH_ID_COLUMN] = 1
 
-            extracted_segments = np.vstack(
-                (epoch0_segments_output, extracted_segments_epoch1)
-            )
+            extracted_segments = np.vstack((epoch0_segments, extracted_segments_epoch1))
 
             # if epoch0_segments_output != None:
-            #     logger.debug(f"Save 'epoch0_segments_output' in file: {x_y_z_id_epoch0_file_name}")
-            #     np.savetxt(x_y_z_id_epoch0_file_name, epoch0_segments_output, delimiter=",")
+            #     logger.debug(f"Save 'epoch0_segments' in file: {x_y_z_id_epoch0_file_name}")
+            #     np.savetxt(x_y_z_id_epoch0_file_name, epoch0_segments, delimiter=",")
             # else:
             #     logger.debug(f"'epoch0_segments_output' is not saved")
 
@@ -3892,19 +4002,19 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
             else:
                 logger.debug(f"'extracted_segments' is not saved")
 
-            return epoch0_segments_output, epoch1_np_array, extracted_segments
+            return epoch0_segments, epoch1_np_array, extracted_segments
 
     def predict(
         self,
-        epoch0: np.ndarray = None,  # epoch0_segments_output: np.ndarray = None,
-        epoch1: Epoch = None,  # epoch1_xyz
+        epoch0_segments: np.ndarray = None,
+        epoch1_xyz: Epoch = None,
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
         **kwargs,
     ) -> np.ndarray | None:
 
         out_export = self.export_segmented_point_cloud_and_segments(
-            epoch0_segments_output=epoch0,
-            epoch1_xyz=epoch1,
+            epoch0_segments_output=epoch0_segments,
+            epoch1_xyz=epoch1_xyz,
             x_y_z_id_epoch1_file_name=None,
             extracted_segments_file_name=None,
             **kwargs,
@@ -3932,3 +4042,19 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
             self._classifier.set_params(**default_options)
 
             return out
+
+    def compute_distances(
+        self,
+        epoch0_segments: np.ndarray = None,
+        epoch1_xyz: Epoch = None,
+        alignment_error: float = 1.1,
+        **kwargs,
+    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+
+        return super()._compute_distances(
+            epoch0_info=epoch0_segments,
+            epoch1=epoch1_xyz,
+            alignment_error=alignment_error,
+            epoch_additional_dimensions_lookup=None,
+            **kwargs,
+        )
