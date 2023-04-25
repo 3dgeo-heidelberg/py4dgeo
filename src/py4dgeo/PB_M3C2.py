@@ -51,7 +51,7 @@ __all__ = [
     "SEGMENT_COLUMNS",
     "PB_M3C2_time_series",
     "PB_M3C2_time_series_no_reconstruction",
-    "generate_extended_y_fromPriorKnowledge",
+    "generate_extended_y_from_prior_knowledge",
     "generate_possible_region_pairs",
 ]
 
@@ -509,8 +509,8 @@ def generate_possible_region_pairs(
             where each row contains: (id_segment_epoch0, id_segment_epoch1, label=0/1)
     :return:
         numpy array of shape (m_pairs, 7) where each row contain:
-            pair_of_points[i, :3] -> a proposed position of a segment from epoch 0
-            pair_pf_points[i, 3:] -> a proposed position of a segment from epoch 1
+            pairs_of_points[i, :3] -> a proposed position of a segment from epoch 0
+            pairs_pf_points[i, 3:] -> a proposed position of a segment from epoch 1
             label: 0/1
     """
 
@@ -535,9 +535,9 @@ def generate_possible_region_pairs(
     return out
 
 
-def generate_extended_y_fromPriorKnowledge(
+def generate_extended_y_from_prior_knowledge(
     segments: np.ndarray,
-    pair_of_points: np.ndarray,
+    pairs_of_points: np.ndarray,
     threshold_max_distance: float,
     columns=SEGMENT_COLUMNS,
 ) -> np.ndarray:
@@ -545,7 +545,7 @@ def generate_extended_y_fromPriorKnowledge(
     """
     :param segments:
         numpy array of shape (n_segments, segment_size)
-    :param pair_of_points:
+    :param pairs_of_points:
         numpy array of shape (m_pairs, 7) where each row contain:
             pair_of_points[i, :3] -> a proposed position of a segment from epoch 0
             pair_pf_points[i, 3:] -> a proposed position of a segment from epoch 1
@@ -577,7 +577,7 @@ def generate_extended_y_fromPriorKnowledge(
     epoch1.build_kdtree()
 
     # search for the near segments and build the 'extended y'
-    for row in pair_of_points:
+    for row in pairs_of_points:
 
         seg_epoch0, seg_epoch1, label = np.split(ary=row, indices_or_sections=[3, 6])
         label = label[0]

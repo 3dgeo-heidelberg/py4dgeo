@@ -58,10 +58,12 @@ extended_y = py4dgeo.generate_random_extended_y(
 #     extended_y_file_name="extended_y.csv",
 # )
 
-pair_of_points = py4dgeo.generate_possible_region_pairs(extracted_segments, extended_y)
+pairs_of_points = py4dgeo.generate_possible_region_pairs(extracted_segments, extended_y)
 
-new_extended_y = py4dgeo.generate_extended_y_fromPriorKnowledge(
-    segments=extracted_segments, pair_of_points=pair_of_points, threshold_max_distance=5
+new_extended_y = py4dgeo.generate_extended_y_from_prior_knowledge(
+    segments=extracted_segments,
+    pairs_of_points=pairs_of_points,
+    threshold_max_distance=5,
 )
 
 # second learning session: using 1 label
