@@ -56,9 +56,15 @@ epoch1_segmented = py4dgeo.read_from_xyz(
     **{"delimiter": ","}
 )
 
-alg = py4dgeo.PB_M3C2_time_series()
+# ------
 
-(xyz_epoch0, xyz_epoch1, segments) = alg.export_segmented_point_cloud_and_segments(
+alg_PB_M3C2_time_series = py4dgeo.PB_M3C2_time_series()
+
+(
+    xyz_epoch0,
+    xyz_epoch1,
+    segments,
+) = alg_PB_M3C2_time_series.export_segmented_point_cloud_and_segments(
     epoch0_xyz_id_normal=epoch0_segmented,
     epoch1_xyz=epoch1,
     #    **{"Transform Post Segmentation__output_file_name": "seg_test_post_seg.out", "get_pipeline_options": True}
@@ -70,12 +76,16 @@ extended_y = py4dgeo.generate_random_extended_y(
     segments, extended_y_file_name="extended_y.csv"
 )
 
-alg.training(segments=segments, extended_y=extended_y)
+alg_PB_M3C2_time_series.training(segments=segments, extended_y=extended_y)
 
-alg.predict(epoch0=epoch0_segmented, epoch1=epoch1)
+alg_PB_M3C2_time_series.predict(
+    epoch0_xyz_id_normal=epoch0_segmented, epoch1_xyz=epoch1
+)
 
 
-distances, uncertainties = alg.compute_distances(epoch0=epoch0_segmented, epoch1=epoch1)
+distances, uncertainties = alg_PB_M3C2_time_series.compute_distances(
+    epoch0_xyz_id_normal=epoch0_segmented, epoch1_xyz=epoch1
+)
 
 print(distances)
 print(uncertainties)
@@ -99,7 +109,7 @@ alg4_no_reconstruction = py4dgeo.PB_M3C2_time_series_no_reconstruction()
     xyz_epoch1,
     segments,
 ) = alg4_no_reconstruction.export_segmented_point_cloud_and_segments(
-    epoch0_segments_output=extracted_segments,
+    epoch0_segments=extracted_segments,
     epoch1_xyz=epoch1,
     x_y_z_id_epoch1_file_name=None,
     extracted_segments_file_name=None,
@@ -114,7 +124,7 @@ extended_y = py4dgeo.generate_random_extended_y(
 alg4_no_reconstruction.training(segments=segments, extended_y=extended_y)
 
 distances, uncertainties = alg4_no_reconstruction.compute_distances(
-    epoch0=extracted_segments, epoch1=epoch1
+    epoch0_segments=extracted_segments, epoch1_xyz=epoch1
 )
 
 print(distances)

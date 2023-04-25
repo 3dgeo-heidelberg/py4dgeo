@@ -2911,7 +2911,14 @@ class PB_M3C2_with_segments(PB_M3C2):
         classifier=ClassifierWrapper(),
     ):
         """
-
+        :param per_point_computation:
+            lowest local surface variation and PCA computation. (computes the normal vector as well)
+        :param segmentation:
+            The object used for the first segmentation.
+        :param second_segmentation:
+            The object used for the second segmentation.
+        :param extract_segments:
+            The object used for building the segments.
         :param post_segmentation:
             A transform object used to 'reconstruct' the result that is achieved using the "PB_P3C2 class"
             pipeline at the end of the point cloud segmentation.
@@ -2930,7 +2937,6 @@ class PB_M3C2_with_segments(PB_M3C2):
                 Segment_ID ( 1 column ),
                 Standard deviation ( 1 column )
             ]
-
         :param classifier:
             An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
         """
@@ -3657,6 +3663,38 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         extract_segments=ExtractSegments(),
         classifier=ClassifierWrapper(),
     ):
+
+        """
+        :param per_point_computation:
+            lowest local surface variation and PCA computation. (computes the normal vector as well)
+        :param segmentation:
+            The object used for the first segmentation.
+        :param second_segmentation:
+            The object used for the second segmentation.
+        :param extract_segments:
+            The object used for building the segments.
+        :param post_segmentation:
+            A transform object used to 'reconstruct' the result that is achieved using the "PB_P3C2 class"
+            pipeline at the end of the point cloud segmentation.
+
+            The 'input' of this adaptor is formed by 2 epochs that contain as 'additional_dimensions'
+            a segment_id column and optionally, precomputed normals as another 3 columns.
+
+            The 'output' of this adaptor is:
+            numpy array (n_point_samples, 19) with the following column structure:
+            [
+                x, y, z ( 3 columns ),
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column )
+            ]
+        :param classifier:
+            An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
+        """
+
         super(PB_M3C2_time_series, self).__init__(
             per_point_computation=per_point_computation,
             segmentation=segmentation,
@@ -3676,6 +3714,61 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         ),
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+
+        """
+        Given 2 Epochs, it builds a pair of (segments and 'extended y').
+
+        :param epoch0:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column (mandatory)
+            and optionally, precomputed normals as another 3 columns.
+        :param epoch1:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column (mandatory)
+            and optionally, precomputed normals as another 3 columns.
+        :param builder_extended_y:
+            The object is used for generating 'extended y', visually.
+        :param epoch_additional_dimensions_lookup:
+            A dictionary that maps between the names of the columns used internally to identify:
+                segment id of the points: "segment_id"  -> Mandatory part of the epochs
+                Normal x-axes vector: "N_x"             -> Optionally part of the epochs
+                Normal y-axes vector: "N_y"             -> Optionally part of the epochs
+                Normal z-axes vector: "N_z"             -> Optionally part of the epochs
+            and the names of the columns used by both epoch0 and epoch1.
+        :param kwargs:
+
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
+        :return:
+            tuple [Segments, 'extended y'] | None
+
+            where:
+
+            'Segments' has the following column structure:
+                    X_COLUMN, Y_COLUMN, Z_COLUMN, -> Center of Gravity
+                    EPOCH_ID_COLUMN, -> 0/1
+                    EIGENVALUE0_COLUMN, EIGENVALUE1_COLUMN, EIGENVALUE2_COLUMN,
+                    EIGENVECTOR_0_X_COLUMN, EIGENVECTOR_0_Y_COLUMN, EIGENVECTOR_0_Z_COLUMN,
+                    EIGENVECTOR_1_X_COLUMN, EIGENVECTOR_1_Y_COLUMN, EIGENVECTOR_1_Z_COLUMN,
+                    EIGENVECTOR_2_X_COLUMN, EIGENVECTOR_2_Y_COLUMN, EIGENVECTOR_2_Z_COLUMN, -> Normal vector
+                    LLSV_COLUMN, -> lowest local surface variation
+                    SEGMENT_ID_COLUMN,
+                    STANDARD_DEVIATION_COLUMN,
+                    NR_POINTS_PER_SEG_COLUMN,
+
+            'extended y' has the following structure: (tuples of index segment from epoch0, index segment from epoch1,
+            label(0/1)) used for learning.
+        """
 
         out_export = self.export_segmented_point_cloud_and_segments(
             epoch0_xyz_id_normal=epoch0_xyz_id_normal,
@@ -3706,6 +3799,64 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         ),
         **kwargs,
     ) -> typing.Tuple[np.ndarray, np.ndarray, np.ndarray] | None:
+
+        """
+        For each epoch, it returns the segmentation of the point cloud as a numpy array (n_points, 4)
+        and it also serializes them using the provided file names.
+        where each row has the following structure: x, y, z, segment_id
+
+        It also generates a numpy array of segments of the form:
+                    X_COLUMN, Y_COLUMN, Z_COLUMN, -> Center of Gravity
+                    EPOCH_ID_COLUMN, -> 0/1
+                    EIGENVALUE0_COLUMN, EIGENVALUE1_COLUMN, EIGENVALUE2_COLUMN,
+                    EIGENVECTOR_0_X_COLUMN, EIGENVECTOR_0_Y_COLUMN, EIGENVECTOR_0_Z_COLUMN,
+                    EIGENVECTOR_1_X_COLUMN, EIGENVECTOR_1_Y_COLUMN, EIGENVECTOR_1_Z_COLUMN,
+                    EIGENVECTOR_2_X_COLUMN, EIGENVECTOR_2_Y_COLUMN, EIGENVECTOR_2_Z_COLUMN, -> Normal vector
+                    LLSV_COLUMN, -> lowest local surface variation
+                    SEGMENT_ID_COLUMN,
+                    STANDARD_DEVIATION_COLUMN,
+                    NR_POINTS_PER_SEG_COLUMN,
+
+        :param epoch0_xyz_id_normal:
+            Epoch object with mandatory 'segment_id' as additional dimension.
+        :param epoch1_xyz:
+            Epoch object
+        :param x_y_z_id_epoch0_file_name:
+            The output file name for epoch0, point cloud segmentation, saved as a numpy array (n_points, 4)
+            (x,y,z, segment_id)
+            | None
+        :param x_y_z_id_epoch1_file_name:
+            The output file name for epoch1, point cloud segmentation, saved as a numpy array (n_points, 4)
+            (x,y,z, segment_id)
+            | None
+        :param extracted_segments_file_name:
+            The output file name for the file containing the segments, saved as a numpy array containing
+            the column structure introduced above.
+            | None
+        :param epoch_additional_dimensions_lookup:
+            A dictionary that maps between the names of the columns used internally to identify:
+                segment id of the points: "segment_id"  -> Mandatory part of the epochs
+                Normal x-axes vector: "N_x"             -> Optionally part of the epochs
+                Normal y-axes vector: "N_y"             -> Optionally part of the epochs
+                Normal z-axes vector: "N_z"             -> Optionally part of the epochs
+            and the names of the columns used by both epoch0 and epoch1.
+        :param kwargs:
+
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+
+        :return:
+            tuple [ x_y_z_id_epoch0, x_y_z_id_epoch1 | None, extracted_segments ] | None
+        """
 
         if epoch0_xyz_id_normal != None and epoch1_xyz != None:
 
@@ -3819,6 +3970,45 @@ class PB_M3C2_time_series(PB_M3C2_with_segments):
         **kwargs,
     ) -> np.ndarray | None:
 
+        """
+        After the reconstruction of the result that is achieved using the "PB_P3C2 class" pipeline, by applying
+        ("Transform LLSV_and_PCA"), ("Transform Segmentation"), ("Transform Second Segmentation"), ("Transform ExtractSegments")
+        applied to the segmented point cloud of epoch0 and epoch1, it returns a numpy array of corresponding
+        pairs of segments between epoch 0 and epoch 1.
+
+        :param epoch0_xyz_id_normal:
+            Epoch object,
+            contains as 'additional_dimensions' a segment_id column ( mandatory )
+            and optionally, precomputed normals as another 3 columns.
+            ( the structure must be consistent with the structure of epoch1 parameter )
+        :param epoch1_xyz:
+            Epoch object.
+            contains as 'additional_dimensions' a segment_id column ( mandatory )
+            and optionally, precomputed normals as another 3 columns.
+            ( the structure must be consistent with the structure of epoch0 parameter )
+        :param epoch_additional_dimensions_lookup:
+            A dictionary that maps between the names of the columns used internally to identify:
+                segment id of the points: "segment_id"  -> Mandatory part of the epochs
+                Normal x-axes vector: "N_x"             -> Optionally part of the epochs
+                Normal y-axes vector: "N_y"             -> Optionally part of the epochs
+                Normal z-axes vector: "N_z"             -> Optionally part of the epochs
+            and the names of the columns used by both epoch0 and epoch1.
+        :param kwargs:
+            Used for customize the default pipeline parameters.
+
+            Getting the default parameters:
+            e.g. "get_pipeline_options"
+                In case this parameter is True, the method will print the pipeline options as kwargs.
+
+            e.g. "output_file_name" (of a specific step in the pipeline) default value is "None".
+                In case of setting it, the result of computation at that step is dump as xyz file.
+            e.g. "distance_3D_threshold" (part of Segmentation Transform)
+
+            this process is stateless
+        :return:
+            A numpy array of shape ( n_pairs, segment_size*2 ) where each row contains a pair of segments.
+        """
+
         out_export = self.export_segmented_point_cloud_and_segments(
             epoch0_xyz_id_normal=epoch0_xyz_id_normal,
             epoch1_xyz=epoch1_xyz,
@@ -3881,6 +4071,38 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
         extract_segments=ExtractSegments(),
         classifier=ClassifierWrapper(),
     ):
+
+        """
+        :param per_point_computation:
+            lowest local surface variation and PCA computation. (computes the normal vector as well)
+        :param segmentation:
+            The object used for the first segmentation.
+        :param second_segmentation:
+            The object used for the second segmentation.
+        :param extract_segments:
+            The object used for building the segments.
+        :param post_segmentation:
+            A transform object used to 'reconstruct' the result that is achieved using the "PB_P3C2 class"
+            pipeline at the end of the point cloud segmentation.
+
+            The 'input' of this adaptor is formed by 2 epochs that contain as 'additional_dimensions'
+            a segment_id column and optionally, precomputed normals as another 3 columns.
+
+            The 'output' of this adaptor is:
+            numpy array (n_point_samples, 19) with the following column structure:
+            [
+                x, y, z ( 3 columns ),
+                EpochID ( 1 column ),
+                Eigenvalues( 3 columns ), -> that correspond to the next 3 Eigenvectors
+                Eigenvectors( 3 columns ) X 3 -> in descending order using vector norm 2,
+                Lowest local surface variation ( 1 column ),
+                Segment_ID ( 1 column ),
+                Standard deviation ( 1 column )
+            ]
+        :param classifier:
+            An instance of ClassifierWrapper class. The default wrapped classifier used is sk-learn RandomForest.
+        """
+
         super(PB_M3C2_time_series_no_reconstruction, self).__init__(
             per_point_computation=per_point_computation,
             segmentation=segmentation,
