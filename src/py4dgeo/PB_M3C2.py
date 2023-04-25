@@ -4235,7 +4235,7 @@ class PB_M3C2_time_series_no_reconstruction(PB_M3C2_with_segments):
     ) -> np.ndarray | None:
 
         out_export = self.export_segmented_point_cloud_and_segments(
-            epoch0_segments_output=epoch0_segments,
+            epoch0_segments=epoch0_segments,
             epoch1_xyz=epoch1_xyz,
             x_y_z_id_epoch1_file_name=None,
             extracted_segments_file_name=None,
