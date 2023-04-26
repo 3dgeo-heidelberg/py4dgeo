@@ -134,7 +134,7 @@ SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
 # default value, for the points that are part of NO segment ( e.g. -1 )
 DEFAULT_NO_SEGMENT = -1
 
-# default standard deviation for points that are not "core points"
+# default standard deviation value for points that are not "core points"
 DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
 
 
@@ -1435,14 +1435,9 @@ class ExtractSegments(BaseTransformer):
             ]
         """
 
-        # new column
-        # NR_POINTS_PER_SEG_COLUMN = 19
-
-        NR_COLUMNS_SEGMENT = 20
-
         max_segment_id = int(X[:, self.columns.SEGMENT_ID_COLUMN].max())
         X_Segments = np.empty(
-            (int(max_segment_id) + 1, NR_COLUMNS_SEGMENT), dtype=float
+            (int(max_segment_id) + 1, self.columns.NUMBER_OF_COLUMNS), dtype=float
         )
 
         for i in range(0, max_segment_id + 1):
@@ -1453,11 +1448,15 @@ class ExtractSegments(BaseTransformer):
             # arg_min = set_cloud[:, LLSV_COLUMN].argmin()
             # X_Segments[i, :-1] = set_cloud[arg_min, :]
 
-            mask_std = set_cloud[:, self.columns.STANDARD_DEVIATION_COLUMN] != float(-1)
+            # find the CoM point, e.g. the point which has STD != DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT
+            mask_std = (
+                set_cloud[:, self.columns.STANDARD_DEVIATION_COLUMN]
+                != DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT
+            )
             set_cloud_std = set_cloud[mask_std, :]
             assert (
                 set_cloud_std.shape[0] == 1
-            ), "Only one element of the segment has standard deviation computed!"
+            ), "Only one element within a segment should have the standard deviation computed!"
             X_Segments[i, :-1] = set_cloud_std[0, :]
 
             X_Segments[i, self.columns.NR_POINTS_PER_SEG_COLUMN] = nr_points
@@ -1495,7 +1494,7 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
     def toggle_transparenct(self, evt):
 
         if evt.keyPressed == "z":
-            # print("transparency toggle")
+            # transparency toggle
             for segment in self.sets:
                 if segment.alpha() < 1.0:
                     segment.alpha(1)
@@ -1504,7 +1503,7 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             self.plt.render()
 
         if evt.keyPressed == "g":
-            # print("toggle red")
+            # toggle red
             for segment in self.sets:
                 if segment.epoch == 0:
                     if segment.isOn == True:
@@ -1515,7 +1514,7 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             self.plt.render()
 
         if evt.keyPressed == "d":
-            # print("toggle green")
+            # toggle green
             for segment in self.sets:
                 if segment.epoch == 1:
                     if segment.isOn == True:
@@ -1536,10 +1535,8 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             # no hit, return
             return
         logger.debug("point coords =%s", str(evt.picked3d), exc_info=1)
-        # print("point coords =", evt.picked3d)
         if evt.isPoints:
             logger.debug("evt.actor = s", str(evt.actor))
-            # print(evt.actor)
             self.current_pair[int(evt.actor.epoch)] = evt.actor.id
 
         if self.current_pair[0] != None and self.current_pair[1] != None:
@@ -1590,7 +1587,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         self.sets = []
 
         nr_segments = X.shape[0]
-        # colors = getDistinctColors(nr_segments)
         colors = [(1, 0, 0), (0, 1, 0)]
         self.plt = Plotter(axes=3)
 
@@ -1643,7 +1639,7 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
                 c=color,
                 alpha=1,
             )
-            # ellipsoid.caption(txt=str(i), size=(0.1,0.05))
+
             ellipsoid.id = X[i, self.columns.SEGMENT_ID_COLUMN]
             ellipsoid.epoch = X[i, self.columns.EPOCH_ID_COLUMN]
             ellipsoid.isOn = True
