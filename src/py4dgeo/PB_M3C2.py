@@ -57,78 +57,73 @@ __all__ = [
 
 logger = logging.getLogger("py4dgeo")
 
-LLSV_PCA_COLUMNS_DICT = dict(
-    X_COLUMN=0,
-    Y_COLUMN=1,
-    Z_COLUMN=2,
-    EPOCH_ID_COLUMN=3,
-    EIGENVALUE0_COLUMN=4,
-    EIGENVALUE1_COLUMN=5,
-    EIGENVALUE2_COLUMN=6,
-    EIGENVECTOR_0_X_COLUMN=7,
-    EIGENVECTOR_0_Y_COLUMN=8,
-    EIGENVECTOR_0_Z_COLUMN=9,
-    EIGENVECTOR_1_X_COLUMN=10,
-    EIGENVECTOR_1_Y_COLUMN=11,
-    EIGENVECTOR_1_Z_COLUMN=12,
-    EIGENVECTOR_2_X_COLUMN=13,
-    EIGENVECTOR_2_Y_COLUMN=14,
-    EIGENVECTOR_2_Z_COLUMN=15,
-    LLSV_COLUMN=16,
-    NUMBER_OF_COLUMNS=17,
-)
-LLSV_PCA_COLUMNS = type("LLSV_PCA_COLUMNS", (), LLSV_PCA_COLUMNS_DICT)
 
-SEGMENTED_POINT_CLOUD_COLUMNS_DICT = dict(
-    X_COLUMN=0,
-    Y_COLUMN=1,
-    Z_COLUMN=2,
-    EPOCH_ID_COLUMN=3,
-    EIGENVALUE0_COLUMN=4,
-    EIGENVALUE1_COLUMN=5,
-    EIGENVALUE2_COLUMN=6,
-    EIGENVECTOR_0_X_COLUMN=7,
-    EIGENVECTOR_0_Y_COLUMN=8,
-    EIGENVECTOR_0_Z_COLUMN=9,
-    EIGENVECTOR_1_X_COLUMN=10,
-    EIGENVECTOR_1_Y_COLUMN=11,
-    EIGENVECTOR_1_Z_COLUMN=12,
-    EIGENVECTOR_2_X_COLUMN=13,
-    EIGENVECTOR_2_Y_COLUMN=14,
-    EIGENVECTOR_2_Z_COLUMN=15,
-    LLSV_COLUMN=16,
-    SEGMENT_ID_COLUMN=17,
-    STANDARD_DEVIATION_COLUMN=18,
-    NUMBER_OF_COLUMNS=19,
-)
-SEGMENTED_POINT_CLOUD_COLUMNS = type(
-    "SEGMENTED_POINT_CLOUD_COLUMNS", (), SEGMENTED_POINT_CLOUD_COLUMNS_DICT
-)
+class LLSV_PCA_COLUMNS:
+    X_COLUMN = 0
+    Y_COLUMN = 1
+    Z_COLUMN = 2
+    EPOCH_ID_COLUMN = 3
+    EIGENVALUE0_COLUMN = 4
+    EIGENVALUE1_COLUMN = 5
+    EIGENVALUE2_COLUMN = 6
+    EIGENVECTOR_0_X_COLUMN = 7
+    EIGENVECTOR_0_Y_COLUMN = 8
+    EIGENVECTOR_0_Z_COLUMN = 9
+    EIGENVECTOR_1_X_COLUMN = 10
+    EIGENVECTOR_1_Y_COLUMN = 11
+    EIGENVECTOR_1_Z_COLUMN = 12
+    EIGENVECTOR_2_X_COLUMN = 13
+    EIGENVECTOR_2_Y_COLUMN = 14
+    EIGENVECTOR_2_Z_COLUMN = 15
+    LLSV_COLUMN = 16
+    NUMBER_OF_COLUMNS = 17
 
-SEGMENT_COLUMNS_DICT = dict(
-    X_COLUMN=0,
-    Y_COLUMN=1,
-    Z_COLUMN=2,
-    EPOCH_ID_COLUMN=3,
-    EIGENVALUE0_COLUMN=4,
-    EIGENVALUE1_COLUMN=5,
-    EIGENVALUE2_COLUMN=6,
-    EIGENVECTOR_0_X_COLUMN=7,
-    EIGENVECTOR_0_Y_COLUMN=8,
-    EIGENVECTOR_0_Z_COLUMN=9,
-    EIGENVECTOR_1_X_COLUMN=10,
-    EIGENVECTOR_1_Y_COLUMN=11,
-    EIGENVECTOR_1_Z_COLUMN=12,
-    EIGENVECTOR_2_X_COLUMN=13,
-    EIGENVECTOR_2_Y_COLUMN=14,
-    EIGENVECTOR_2_Z_COLUMN=15,
-    LLSV_COLUMN=16,
-    SEGMENT_ID_COLUMN=17,
-    STANDARD_DEVIATION_COLUMN=18,
-    NR_POINTS_PER_SEG_COLUMN=19,
-    NUMBER_OF_COLUMNS=20,
-)
-SEGMENT_COLUMNS = type("SEGMENT_COLUMNS", (), SEGMENT_COLUMNS_DICT)
+
+class SEGMENTED_POINT_CLOUD_COLUMNS:
+    X_COLUMN = 0
+    Y_COLUMN = 1
+    Z_COLUMN = 2
+    EPOCH_ID_COLUMN = 3
+    EIGENVALUE0_COLUMN = 4
+    EIGENVALUE1_COLUMN = 5
+    EIGENVALUE2_COLUMN = 6
+    EIGENVECTOR_0_X_COLUMN = 7
+    EIGENVECTOR_0_Y_COLUMN = 8
+    EIGENVECTOR_0_Z_COLUMN = 9
+    EIGENVECTOR_1_X_COLUMN = 10
+    EIGENVECTOR_1_Y_COLUMN = 11
+    EIGENVECTOR_1_Z_COLUMN = 12
+    EIGENVECTOR_2_X_COLUMN = 13
+    EIGENVECTOR_2_Y_COLUMN = 14
+    EIGENVECTOR_2_Z_COLUMN = 15
+    LLSV_COLUMN = 16
+    SEGMENT_ID_COLUMN = 17
+    STANDARD_DEVIATION_COLUMN = 18
+    NUMBER_OF_COLUMNS = 19
+
+
+class SEGMENT_COLUMNS:
+    X_COLUMN = 0
+    Y_COLUMN = 1
+    Z_COLUMN = 2
+    EPOCH_ID_COLUMN = 3
+    EIGENVALUE0_COLUMN = 4
+    EIGENVALUE1_COLUMN = 5
+    EIGENVALUE2_COLUMN = 6
+    EIGENVECTOR_0_X_COLUMN = 7
+    EIGENVECTOR_0_Y_COLUMN = 8
+    EIGENVECTOR_0_Z_COLUMN = 9
+    EIGENVECTOR_1_X_COLUMN = 10
+    EIGENVECTOR_1_Y_COLUMN = 11
+    EIGENVECTOR_1_Z_COLUMN = 12
+    EIGENVECTOR_2_X_COLUMN = 13
+    EIGENVECTOR_2_Y_COLUMN = 14
+    EIGENVECTOR_2_Z_COLUMN = 15
+    LLSV_COLUMN = 16
+    SEGMENT_ID_COLUMN = 17
+    STANDARD_DEVIATION_COLUMN = 18
+    NR_POINTS_PER_SEG_COLUMN = 19
+    NUMBER_OF_COLUMNS = 20
 
 
 # default value, for the points that are part of NO segment ( e.g. -1 )
@@ -309,18 +304,17 @@ class Viewer:
         :return:
         """
 
+        X_Y_Z_Columns = [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
+
         viewer = Viewer()
 
-        # Segment_ID column
-        # nr_segments = int(X[:, 17].max())
         nr_segments = int(X[:, columns.SEGMENT_ID_COLUMN].max())
         colors = Viewer.get_distinct_colors(nr_segments + 1)
 
         for i in range(0, nr_segments + 1):
-            # mask = X[:, 17] == float(i)
             mask = X[:, columns.SEGMENT_ID_COLUMN] == float(i)
             # x,y,z
-            set_cloud = X[mask, :3]
+            set_cloud = X[mask, :][:, X_Y_Z_Columns]
 
             viewer.sets = viewer.sets + [Points(set_cloud, colors[i], alpha=1, r=10)]
 
@@ -514,8 +508,6 @@ def generate_possible_region_pairs(
             label: 0/1
     """
 
-    # mask = seg_id0_seg_id1_label[:, 2] == 1
-    # segment_pairs = seg_id0_seg_id1_label[mask, :]
     segment_pairs = seg_id0_seg_id1_label
 
     out = np.empty(shape=(0, 7))
@@ -561,7 +553,7 @@ def generate_extended_y_from_prior_knowledge(
 
     extended_y = np.empty(shape=(0, 3), dtype=float)
 
-    # split points(segments) between epoch0 and epoch 1
+    # split points(segments) between epoch0 and epoch1
     epoch0_mask = segments[:, columns.EPOCH_ID_COLUMN] == 0
     epoch1_mask = segments[:, columns.EPOCH_ID_COLUMN] == 1
 
@@ -1327,18 +1319,12 @@ class PostPointCloudSegmentation(BaseTransformer):
             self.columns.EIGENVECTOR_2_Z_COLUMN,
         ]
 
-        # default value for the points that are part of NO segment ( e.g. -1 )
-        # DEFAULT_NO_SEGMENT = -1
-        # default value for standard deviation for points that are not "core points"
-        # DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
-
         highest_segment_id_used = int(X[:, self.columns.SEGMENT_ID_COLUMN].max())
 
         for i in range(0, highest_segment_id_used + 1):
 
             mask = X[:, self.columns.SEGMENT_ID_COLUMN] == float(i)
             # extract all points, that are part of the same segment
-            # set_cloud = X[mask, :3]
             set_cloud = X[mask, :][:, X_Y_Z_Columns]
 
             eig_values, e0, e1, normal, position = self.pca_compute_normal_and_mean(
@@ -1646,8 +1632,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             self.sets = self.sets + [ellipsoid]
 
         self.label = self.plt.add_button(
-            # self.label.switch(),
-            # self.switch_label(),
             lambda: self.label.switch(),
             states=["Label (0/1)", "0", "1"],  # None
             c=["w", "w", "w"],
@@ -2002,9 +1986,6 @@ class PB_M3C2:
                 ]
         """
 
-        # default standard deviation for points that are not "core points"
-        # DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
-
         # x, y, z, N_x, N_y, N_z, Segment_ID
         assert epoch.shape[1] == 3 + 3 + 1, "epoch size mismatch!"
 
@@ -2067,9 +2048,6 @@ class PB_M3C2:
                     Standard deviation
                 ]
         """
-
-        # default standard deviation for points that are not "core points"
-        # DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT = -1
 
         # [x, y, z, Segment_ID] or [x, y, z, N_x, N_y, N_z, Segment_ID]
         assert (
