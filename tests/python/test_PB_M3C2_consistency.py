@@ -121,12 +121,12 @@ def test_consistency(epochs):
 
     out1_a = alg_original._per_point_computation.transform(X)
     out1_b = alg_original._segmentation.transform(out1_a)
-    out1_c = alg_cpy._second_segmentation.transform(out1_b)
-    out1_d = alg_cpy._extract_segments.transform(out1_c)
-    out1_e = alg_cpy._classifier.predict(out1_d)
+    out1_c = alg_original._second_segmentation.transform(out1_b)
+    out1_d = alg_original._extract_segments.transform(out1_c)
+    out1_e = alg_original._classifier.predict(out1_d)
 
-    out2_a = alg_original._per_point_computation.transform(X)
-    out2_b = alg_original._segmentation.transform(out2_a)
+    out2_a = alg_cpy._per_point_computation.transform(X)
+    out2_b = alg_cpy._segmentation.transform(out2_a)
     out2_c = alg_cpy._second_segmentation.transform(out2_b)
     out2_d = alg_cpy._extract_segments.transform(out2_c)
     out2_e = alg_cpy._classifier.predict(out2_d)
