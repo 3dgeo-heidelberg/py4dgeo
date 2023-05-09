@@ -16,6 +16,11 @@ def test_consistency(epochs):
 
     epoch0, epoch1 = epochs
 
+    X0 = np.hstack((epoch0.cloud[:, :], np.zeros((epoch0.cloud.shape[0], 1))))
+    X1 = np.hstack((epoch1.cloud[:, :], np.ones((epoch1.cloud.shape[0], 1))))
+    # | x | y | z | epoch I.D.
+    X = np.vstack((X0, X1))
+
     # ===============
 
     random.seed(10)
@@ -81,6 +86,9 @@ def test_consistency(epochs):
     assert hash(alg_original._extract_segments) == hash(alg_cpy._extract_segments)
     assert hash(alg_original._classifier) == hash(alg_cpy._classifier)
 
+    random.seed(10)
+    np.random.seed(10)
+
     original = Pipeline(
         [
             ("Transform_PerPointComputation", alg_original._per_point_computation),
@@ -110,6 +118,24 @@ def test_consistency(epochs):
             ("Classifier", alg_cpy._classifier),
         ]
     )
+
+    out1_a = alg_original._per_point_computation.transform(X)
+    out1_b = alg_original._segmentation.transform(out1_a)
+    out1_c = alg_cpy._second_segmentation.transform(out1_b)
+    out1_d = alg_cpy._extract_segments.transform(out1_c)
+    out1_e = alg_cpy._classifier.predict(out1_d)
+
+    out2_a = alg_original._per_point_computation.transform(X)
+    out2_b = alg_original._segmentation.transform(out2_a)
+    out2_c = alg_cpy._second_segmentation.transform(out2_b)
+    out2_d = alg_cpy._extract_segments.transform(out2_c)
+    out2_e = alg_cpy._classifier.predict(out2_d)
+
+    assert (out1_a == out2_a).all()
+    assert (out1_b == out2_b).all()
+    assert (out1_c == out2_c).all()
+    assert (out1_d == out2_d).all()
+    assert (out1_e == out2_e).all()
 
     assert hash(str(original.get_params())) == hash(str(cpy.get_params()))
     assert hash(str(original)) == hash(str(original2)), "not the same"
