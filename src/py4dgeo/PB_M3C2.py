@@ -4,7 +4,6 @@ import typing
 import pprint
 import logging
 
-import numpy
 import numpy as np
 
 from sklearn.base import BaseEstimator, ClassifierMixin, TransformerMixin
@@ -53,6 +52,8 @@ __all__ = [
     "PB_M3C2_time_series_no_reconstruction",
     "generate_extended_y_from_prior_knowledge",
     "generate_possible_region_pairs",
+    "DEFAULT_NO_SEGMENT",
+    "DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT",
 ]
 
 logger = logging.getLogger("py4dgeo")
@@ -3288,7 +3289,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             )
 
         epochs_list = [epoch0]
-        if isinstance(epoch1, numpy.ndarray):
+        if isinstance(epoch1, np.ndarray):
             epochs_list.append(epoch1)
 
         X = None
