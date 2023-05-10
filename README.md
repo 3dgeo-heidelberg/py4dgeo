@@ -121,7 +121,7 @@ Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11
 ## 📑 Citation
 Please cite py4dgeo when using it in your research and reference the appropriate release version.
 
-<!-- TODO: All releases of pytreedb are listed on Zenodo where you will find the citation information including DOI. -->
+<!-- TODO: All releases of py4dgeo are listed on Zenodo where you will find the citation information including DOI. -->
 
 ```
 article{py4dgeo,
@@ -137,7 +137,7 @@ url = {https://github.com/3dgeo-heidelberg/py4dgeo},
  ```
 
 ## 💟 Funding / Acknowledgements
-The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021.
+The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research project [**CharAct4D**](https://www.uni-heidelberg.de/charact4d).
 
 ## 🔔 Contact / Bugs / Feature Requests
 
