@@ -52,11 +52,20 @@ __all__ = [
     "generate_possible_region_pairs",
     "DEFAULT_NO_SEGMENT",
     "DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT",
+    "config_epoch0_as_segments",
 ]
 
 logger = logging.getLogger("py4dgeo")
 
 pp = pprint.PrettyPrinter(depth=4)
+
+config_epoch0_as_segments = {
+    "get_pipeline_options": True,
+    "epoch0_Transform_PerPointComputation__skip": True,
+    "epoch0_Transform_Segmentation__skip": True,
+    "epoch0_Transform_Second_Segmentation__skip": True,
+    "epoch0_Transform_ExtractSegments__skip": True,
+}
 
 
 class LLSV_PCA_COLUMNS:
