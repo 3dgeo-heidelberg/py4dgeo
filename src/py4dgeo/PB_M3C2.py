@@ -3133,13 +3133,15 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         transform_pipeline = Pipeline(
             [
-                ("Transform_Post Segmentation", self._post_segmentation),
+                ("Transform_Post_Segmentation", self._post_segmentation),
                 ("Transform_ExtractSegments", self._extract_segments),
             ]
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=transform_pipeline)
+        PB_M3C2._print_default_parameters(
+            kwargs=kwargs, pipeline_param_dict=transform_pipeline.get_params()
+        )
 
         # no computation
         if epoch0 is None or epoch1 is None:
@@ -3150,7 +3152,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         default_options = transform_pipeline.get_params()
 
         # overwrite the default parameters
-        PB_M3C2._overwrite_default_parameters(
+        PB_M3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=transform_pipeline
         )
 
@@ -3267,7 +3269,14 @@ class PB_M3C2_with_segments(PB_M3C2):
         segments = transform_pipeline.transform(X)
 
         # restore the default pipeline options
-        transform_pipeline.set_params(**default_options)
+        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+            kwargs=default_options,
+            pipeline=transform_pipeline,
+            message="The pipeline parameters after restoration are: ",
+        )
+        assert (
+            len(unused_kwargs) == 0
+        ), "All default options should be found when default parameter restoration is done"
 
         return segments, builder_extended_y.generate_extended_y(segments)
 
@@ -3358,7 +3367,9 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=transform_pipeline)
+        PB_M3C2._print_default_parameters(
+            kwargs=kwargs, pipeline_param_dict=transform_pipeline.get_params()
+        )
 
         # no computation
         if epoch0 is None:  # or epoch1 is None:
@@ -3369,7 +3380,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         default_options = transform_pipeline.get_params()
 
         # overwrite the default parameters
-        PB_M3C2._overwrite_default_parameters(
+        PB_M3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=transform_pipeline
         )
 
@@ -3498,7 +3509,14 @@ class PB_M3C2_with_segments(PB_M3C2):
             logger.debug(f"No file name set as output for 'segments'")
 
         # restore the default pipeline options
-        transform_pipeline.set_params(**default_options)
+        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+            kwargs=default_options,
+            pipeline=transform_pipeline,
+            message="The pipeline parameters after restoration are: ",
+        )
+        assert (
+            len(unused_kwargs) == 0
+        ), "All default options should be found when default parameter restoration is done"
 
         return epoch0, epoch1, extracted_segments
 
@@ -3553,14 +3571,16 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         predicting_pipeline = Pipeline(
             [
-                ("Transform_Post Segmentation", self._post_segmentation),
+                ("Transform_Post_Segmentation", self._post_segmentation),
                 ("Transform_ExtractSegments", self._extract_segments),
                 ("Classifier", self._classifier),
             ]
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(kwargs=kwargs, pipeline=predicting_pipeline)
+        PB_M3C2._print_default_parameters(
+            kwargs=kwargs, pipeline_param_dict=predicting_pipeline.get_params()
+        )
 
         # no computation
         if epoch0 is None or epoch1 is None:
@@ -3571,7 +3591,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         default_options = predicting_pipeline.get_params()
 
         # overwrite the default parameters
-        PB_M3C2._overwrite_default_parameters(
+        PB_M3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=predicting_pipeline
         )
 
@@ -3687,7 +3707,14 @@ class PB_M3C2_with_segments(PB_M3C2):
         out = predicting_pipeline.predict(X)
 
         # restore the default pipeline options
-        predicting_pipeline.set_params(**default_options)
+        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+            kwargs=default_options,
+            pipeline=predicting_pipeline,
+            message="The pipeline parameters after restoration are: ",
+        )
+        assert (
+            len(unused_kwargs) == 0
+        ), "All default options should be found when default parameter restoration is done"
 
         return out
 
