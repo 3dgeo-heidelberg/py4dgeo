@@ -2398,10 +2398,12 @@ class PB_M3C2:
         unused_default_options = PB_M3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=pipe_segmentation,
+            message="The pipeline parameters after restoration are: ",
         )
         unused_default_options = PB_M3C2._overwrite_pipeline_parameters(
             kwargs=unused_default_options,
             pipeline=pipe_extract_segments,
+            message="The pipeline parameters after restoration are: ",
         )
         assert (
             len(unused_default_options) == 0
@@ -2650,7 +2652,9 @@ class PB_M3C2:
 
         # restore the default pipeline options
         unused_default_options = PB_M3C2._overwrite_pipeline_parameters(
-            kwargs=default_options, pipeline=pipe_classifier
+            kwargs=default_options,
+            pipeline=pipe_classifier,
+            message="The pipeline parameters after restoration are: ",
         )
         assert (
             len(unused_default_options) == 0
