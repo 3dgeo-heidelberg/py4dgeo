@@ -49,7 +49,8 @@ alg = py4dgeo.PB_M3C2()
 # )
 
 extended_y = py4dgeo.generate_random_extended_y(
-    extracted_segments, extended_y_file_name="extended_y.csv"
+    extracted_segments,
+    extended_y_file_name="extended_y.csv",
 )
 
 # # first learning session: using 2 labels
@@ -75,3 +76,16 @@ alg.training(extracted_segments, new_extended_y)
 
 print(alg.predict(epoch0=epoch0, epoch1=epoch1))
 print(alg.compute_distances(epoch0=epoch0, epoch1=epoch1))
+
+# -----
+
+extended_y_with_label_1 = py4dgeo.generate_random_extended_y(
+    extracted_segments, extended_y_file_name="extended_y.csv", low=1, high=1
+)
+
+new_extended_y = py4dgeo.add_no_corresponding_seg(
+    segments=extracted_segments,
+    extended_y=extended_y_with_label_1,
+    threshold_max_distance=5,
+    algorithm="random",
+)

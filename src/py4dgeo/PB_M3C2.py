@@ -52,6 +52,7 @@ __all__ = [
     "generate_possible_region_pairs",
     "DEFAULT_NO_SEGMENT",
     "DEFAULT_STD_DEVIATION_OF_NO_CORE_POINT",
+    "add_no_corresponding_seg",
     "config_epoch0_as_segments",
 ]
 
@@ -455,6 +456,8 @@ def generate_random_extended_y(
     X,
     extended_y_file_name="locally_generated_extended_y.csv",
     ratio=1 / 3,
+    low=0,
+    high=1,
     columns=SEGMENT_COLUMNS,
 ):
     """
@@ -467,7 +470,11 @@ def generate_random_extended_y(
     :param extended_y_file_name:
         Name of the file where the serialized result is saved.
     :param ratio:
-        The size of the pairs subset size.
+        The size of the pairs' subset size.
+    :param low:
+        Default minimum random value used as label
+    :param high:
+        Default maximum random value used as label
     :param columns:
         Column mapping used by each segment.
     :return:
@@ -490,15 +497,15 @@ def generate_random_extended_y(
     set0_seg_id = epoch0_set[indx0_seg_id, columns.SEGMENT_ID_COLUMN]
     set1_seg_id = epoch1_set[indx1_seg_id, columns.SEGMENT_ID_COLUMN]
 
-    rand_y_01 = list(np.random.randint(0, 2, nr_pairs))
+    rand_y = list(np.random.randint(low, high + 1, nr_pairs))
 
     np.savetxt(
         extended_y_file_name,
-        np.array([set0_seg_id, set1_seg_id, rand_y_01]).T,
+        np.array([set0_seg_id, set1_seg_id, rand_y]).T,
         delimiter=",",
     )
 
-    return np.array([set0_seg_id, set1_seg_id, rand_y_01]).T
+    return np.array([set0_seg_id, set1_seg_id, rand_y]).T
 
 
 def generate_possible_region_pairs(
@@ -613,6 +620,113 @@ def generate_extended_y_from_prior_knowledge(
             )
 
     return extended_y
+
+
+def add_no_corresponding_seg(
+    segments,
+    extended_y,
+    threshold_max_distance: float = 3,
+    algorithm="closest",
+    columns=SEGMENT_COLUMNS,
+):
+    """
+    :param segments:
+        numpy array of shape (n_segments, segment_size)
+    :param extended_y:
+        numpy array (n_pairs, 3)
+            where each row contains: (id_segment_epoch0, id_segment_epoch1, label=0/1)
+    :param threshold_max_distance:
+        the radios accepted threshold for possible segments
+    :param algorithm:
+        closest - select the closest segment, not used as the corresponding segment
+        random - select a random segment, from proximity (threshold_max_distance),
+        not used already as a corresponding segment
+    :param columns:
+        Column mapping used by each segment.
+    :return:
+        extended_y, numpy array (n_pairs, 3)
+            where each row contains: (id_segment_epoch0, id_segment_epoch1, label=0/1)
+    """
+
+    assert (
+        algorithm == "closest" or algorithm == "random"
+    ), "'selection' parameter can be 'closest/random'"
+
+    # construct the corresponding pairs from the set of all pairs
+    extended_y_with_label_1 = extended_y[extended_y[:, 2] == 1]
+
+    new_extended_y = np.empty(shape=(0, 3), dtype=float)
+
+    # split points(segments) between epoch0 and epoch1
+    epoch0_mask = segments[:, columns.EPOCH_ID_COLUMN] == 0
+    epoch1_mask = segments[:, columns.EPOCH_ID_COLUMN] == 1
+
+    # compute index of each segment as part of 'segments'
+    epoch0_index = np.asarray(epoch0_mask).nonzero()[0]
+    epoch1_index = np.asarray(epoch1_mask).nonzero()[0]
+
+    X_Y_Z_Columns = [columns.X_COLUMN, columns.Y_COLUMN, columns.Z_COLUMN]
+
+    epoch0_set = segments[epoch0_mask][X_Y_Z_Columns]
+    epoch1_set = segments[epoch1_mask][X_Y_Z_Columns]
+
+    epoch0_set = epoch0_set.T
+    # generate kd-tree
+    epoch1 = Epoch(epoch1_set.T)
+    epoch1.build_kdtree()
+
+    # search for the near segments and build the 'extended y'
+    # for row in pairs_of_points:
+    for index, row in enumerate(epoch0_set):
+
+        index_seg_epoch0 = epoch0_index[index]
+
+        candidates_seg_epoch1 = epoch1.kdtree.radius_search(row, threshold_max_distance)
+
+        indexes_seg_epoch1 = epoch1_index[candidates_seg_epoch1]
+
+        if len(indexes_seg_epoch1) == 0:
+            continue
+
+        if algorithm == "closest":
+
+            index = (
+                (extended_y[:, 0] == index_seg_epoch0)
+                & (extended_y[:, 1] == indexes_seg_epoch1[0])
+                & (extended_y[:, 2] == 1)
+            )
+
+            if not index.any():
+                new_extended_y = np.vstack(
+                    (new_extended_y, (index_seg_epoch0, indexes_seg_epoch1[0], 0))
+                )
+            else:
+                if len(candidates_seg_epoch1) > 1:
+                    new_extended_y = np.vstack(
+                        (new_extended_y, (index_seg_epoch0, indexes_seg_epoch1[1], 0))
+                    )
+
+        if algorithm == "random":
+
+            while True:
+
+                rand_point = np.random.randint(0, len(indexes_seg_epoch1) + 1)
+                index = (
+                    (extended_y[:, 0] == index_seg_epoch0)
+                    & (extended_y[:, 1] == indexes_seg_epoch1[rand_point])
+                    & (extended_y[:, 2] == 1)
+                )
+
+                if not index.any():
+                    new_extended_y = np.vstack(
+                        (
+                            new_extended_y,
+                            (index_seg_epoch0, indexes_seg_epoch1[rand_point], 0),
+                        )
+                    )
+                    break
+
+    return np.vstack((extended_y, new_extended_y))
 
 
 class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
