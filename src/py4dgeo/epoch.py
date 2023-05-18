@@ -349,7 +349,7 @@ def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
         An attribute name to read scan positions id of cloud from LAS/LAZ file.
     :type sp_name: str
     :param sp_file:
-        An filename name to read scan positions information.
+        A json filename name to read scan positions information.
     :type sp_file: str
     """
 
