@@ -86,6 +86,10 @@ class M3C2EP(M3C2):
         query_coords = self.corepoints
         query_norms = self.directions()
 
+        # Repeat normals to shape of corepoints when the user explicitly provided one direction
+        if query_norms.shape[0] == 1:
+            query_norms = query_norms.repeat(self.corepoints.shape[0], axis=0)
+
         if query_norms is None:
             print("Core point point cloud needs normals set. Exiting.")
             exit(-1)
