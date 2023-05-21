@@ -433,13 +433,13 @@ def load_scan_positions_info(filename):
     :type filename: str
     """
     if filename.rsplit(".", 1)[1] != "json":
-        print("Not a json format file.")
+        raise Py4DGeoError("Not a json format file.")
         return None
     with open(filename, "r") as load_f:
         try:
             SPsdict_load = json.load(load_f)
         except ValueError as err:
-            print("SetJsonOperator load json error.")
+            raise Py4DGeoError("SetJsonOperator load json error.")
             return None
     sps_list = []
     for i in range(1, 1 + len(SPsdict_load)):
@@ -452,6 +452,6 @@ def load_scan_positions_info(filename):
         sp_check = False if not isinstance(sp["sigma_scan"], float) else sp_check
         sp_check = False if not isinstance(sp["sigma_yaw"], float) else sp_check
         if not sp_check:
-            print("Scan positions load failed, please check format. ")
+            raise Py4DGeoError("Scan positions load failed, please check format. ")
 
     return sps_list

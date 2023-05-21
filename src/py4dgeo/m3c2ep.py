@@ -93,7 +93,7 @@ class M3C2EP(M3C2):
             query_norms = query_norms.repeat(self.corepoints.shape[0], axis=0)
 
         if query_norms is None:
-            print("Core point point cloud needs normals set. Exiting.")
+            raise Py4DGeoError("Core point point cloud needs normals set. Exiting.")
             exit(-1)
         subsample = False
         if subsample:
