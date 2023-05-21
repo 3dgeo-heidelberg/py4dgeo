@@ -56,8 +56,10 @@ class M3C2EP(M3C2):
         # if it has already been triggered before - e.g. by a user with a custom
         # leaf cutoff parameter.
         # build py4dgeo kdtree.
-        epoch1.build_kdtree(self.LEAF_SIZE)
-        epoch2.build_kdtree(self.LEAF_SIZE)
+        if epoch1.kdtree.leaf_parameter() != self.LEAF_SIZE:
+            epoch1.build_kdtree(self.LEAF_SIZE, force_rebuild=True)
+        if epoch2.kdtree.leaf_parameter() != self.LEAF_SIZE:
+            epoch2.build_kdtree(self.LEAF_SIZE, force_rebuild=True)
 
         p1_coords = epoch1.cloud
         p1_positions = epoch1.scan_pos

@@ -199,6 +199,8 @@ class M3C2(M3C2LikeAlgorithm):
         if normals_epoch is None:
             normals_epoch = self.epochs[0]
         normals_epoch = as_epoch(normals_epoch)
+        # Ensure that the KDTree data structures have been built.
+        normals_epoch.build_kdtree()
 
         # Trigger the precomputation
         _py4dgeo.compute_multiscale_directions(

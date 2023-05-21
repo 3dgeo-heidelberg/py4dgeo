@@ -118,7 +118,7 @@ class Epoch(_py4dgeo.Epoch):
         :type radius: float
         """
         if len(query.shape) == 1 and query.shape[0] == 3:
-            return self.kdtree.radius_search(query, radius)
+            return [self.kdtree.radius_search(query, radius)]
 
         if len(query.shape) == 2 and query.shape[1] == 3:
             neighbors = []
