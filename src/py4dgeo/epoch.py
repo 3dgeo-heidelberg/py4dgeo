@@ -35,7 +35,7 @@ class Epoch(_py4dgeo.Epoch):
         cloud: np.ndarray,
         timestamp=None,
         scan_pos: np.ndarray = None,
-        sp_info: list = None,
+        sp_info: dict = None,
     ):
         """
         :param cloud:
@@ -60,7 +60,7 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set scan positions
         self.scan_pos = np.array(scan_pos)
-        self.sp_info = sp_info
+        self.sp_info = scan_positions_info_from_dict(sp_info)
 
         # Call base class constructor
         super().__init__(cloud)
@@ -130,18 +130,23 @@ class Epoch(_py4dgeo.Epoch):
 
         return None
 
-    def add_scan_position(self, scan_pos: np.ndarray, sp_info: list):
-        """Add scan position information of the cloud to the epoch
+    def add_scan_position(self, scan_pos: np.ndarray):
+        """Add scan position of the cloud to the epoch
 
         :param scan_pos:
             The point scan positions array of shape (n,).
         :type scan_pos: array
+        """
+        self.scan_pos = np.array(scan_pos)
+
+    def add_scan_position_info(self, sp_info: dict):
+        """Add scan position information of each scan sensor, sensor id starts from 1
         :param sp_info:
             The point scan positions information.
-        :type scan_pos: list
+        :type sp_info: dict
         """
-        self.scan_pos = scan_pos
-        self.sp_info = sp_info
+        sps_list = scan_positions_info_from_dict(sp_info)
+        self.sp_info = sps_list
 
     def save(self, filename):
         """Save this epoch to a file
@@ -425,6 +430,25 @@ def normalize_timestamp(timestamp):
     raise Py4DGeoError(f"The timestamp '{timestamp}' was not understood by py4dgeo.")
 
 
+def scan_positions_info_from_dict(info_dict: dict):
+    # Compatible with both integer key and string key as index of the scan positions in json file
+    # load scan positions from dictionary, standardize loading via json format dumps
+    SPsdict_load = json.loads(json.dumps(info_dict))
+    sps_list = []
+    for i in range(1, 1 + len(SPsdict_load)):
+        sps_list.append(SPsdict_load[str(i)])
+
+    for sp in sps_list:
+        sp_check = True
+        sp_check = False if len(sp["origin"]) != 3 else sp_check
+        sp_check = False if not isinstance(sp["sigma_range"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_scan"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_yaw"], float) else sp_check
+        if not sp_check:
+            raise Py4DGeoError("Scan positions load failed, please check format. ")
+    return sps_list
+
+
 def load_scan_positions_info(filename):
     """Load scan positions information from a json format file
 
@@ -438,23 +462,11 @@ def load_scan_positions_info(filename):
     with open(filename, "r") as load_f:
         try:
             # Compatible with both integer key and string key as index of the scan positions in json file
+            # standardize as dictionary
             json_str = load_f.read()
             json_dict = eval(json_str)
-            SPsdict_load = json.loads(json.dumps(json_dict))
         except ValueError as err:
             raise Py4DGeoError("SetJsonOperator load json error.")
             return None
-    sps_list = []
-    for i in range(1, 1 + len(SPsdict_load)):
-        sps_list.append(SPsdict_load[str(i)])
 
-    for sp in sps_list:
-        sp_check = True
-        sp_check = False if len(sp["origin"]) != 3 else sp_check
-        sp_check = False if not isinstance(sp["sigma_range"], float) else sp_check
-        sp_check = False if not isinstance(sp["sigma_scan"], float) else sp_check
-        sp_check = False if not isinstance(sp["sigma_yaw"], float) else sp_check
-        if not sp_check:
-            raise Py4DGeoError("Scan positions load failed, please check format. ")
-
-    return sps_list
+    return json_dict
