@@ -437,7 +437,10 @@ def load_scan_positions_info(filename):
         return None
     with open(filename, "r") as load_f:
         try:
-            SPsdict_load = json.load(load_f)
+            # Compatible with both integer key and string key as index of the scan positions in json file
+            json_str = load_f.read()
+            json_dict = eval(json_str)
+            SPsdict_load = json.loads(json.dumps(json_dict))
         except ValueError as err:
             raise Py4DGeoError("SetJsonOperator load json error.")
             return None
