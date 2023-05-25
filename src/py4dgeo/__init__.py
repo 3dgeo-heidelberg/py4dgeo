@@ -6,9 +6,8 @@ from py4dgeo.epoch import (
     read_from_xyz,
     save_epoch,
     load_epoch,
-    load_scan_positions_info,
 )
-from py4dgeo.m3c2 import M3C2
+from py4dgeo.m3c2 import M3C2, write_m3c2_results_to_las
 from py4dgeo.m3c2ep import M3C2EP
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,

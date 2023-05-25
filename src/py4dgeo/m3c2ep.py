@@ -16,12 +16,15 @@ from py4dgeo.util import (
 from py4dgeo import M3C2
 
 
+default_tfM = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
+
+
 class M3C2EP(M3C2):
     def __init__(
         self,
-        tfM,
-        Cxx,
-        refPointMov,
+        tfM=default_tfM,
+        Cxx=np.zeros((12, 12)),
+        refPointMov=np.array([0, 0, 0]),
         perform_trans=True,
         **kwargs,
     ):
@@ -40,7 +43,6 @@ class M3C2EP(M3C2):
         self.Cxx = Cxx
         self.refPointMov = refPointMov
         self.perform_trans = perform_trans
-        self.LEAF_SIZE = 256
         super().__init__(**kwargs)
 
     def calculate_distances(self, epoch1, epoch2):
@@ -52,26 +54,20 @@ class M3C2EP(M3C2):
                 f"{self.name} requires exactly one cylinder radius to be given"
             )
 
-        # Ensure that the KDTree data structures have been built. This is no-op
-        # if it has already been triggered before - e.g. by a user with a custom
-        # leaf cutoff parameter.
-        # build py4dgeo kdtree.
-        if epoch1.kdtree.leaf_parameter() != self.LEAF_SIZE:
-            epoch1.build_kdtree(self.LEAF_SIZE, force_rebuild=True)
-        if epoch2.kdtree.leaf_parameter() != self.LEAF_SIZE:
-            epoch2.build_kdtree(self.LEAF_SIZE, force_rebuild=True)
+        epoch1.build_kdtree()
+        epoch2.build_kdtree()
 
         p1_coords = epoch1.cloud
-        p1_positions = epoch1.scan_pos
+        p1_positions = epoch1.scanpos_id
         p2_coords = epoch2.cloud
-        p2_positions = epoch2.scan_pos
+        p2_positions = epoch2.scanpos_id
 
         # set default M3C2Meta
         M3C2Meta = {"searchrad": 0.5, "maxdist": 3, "minneigh": 5, "maxneigh": 100000}
         M3C2Meta["searchrad"] = self.cyl_radii[0]
         M3C2Meta["maxdist"] = self.max_distance
 
-        M3C2Meta["spInfos"] = [epoch1.sp_info, epoch2.sp_info]
+        M3C2Meta["spInfos"] = [epoch1.scanpos_info, epoch2.scanpos_info]
         M3C2Meta["tfM"] = self.tfM
         M3C2Meta["Cxx"] = self.Cxx
         M3C2Meta["redPoint"] = self.refPointMov

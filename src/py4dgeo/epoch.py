@@ -34,17 +34,17 @@ class Epoch(_py4dgeo.Epoch):
         self,
         cloud: np.ndarray,
         timestamp=None,
-        scan_pos: np.ndarray = None,
-        sp_info: dict = None,
+        scanpos_id: np.ndarray = None,
+        scanpos_info: dict = None,
     ):
         """
         :param cloud:
             The point cloud array of shape (n, 3).
         :param timestamp:
             The point cloud timestamp, default is None.
-        :param scan_pos:
+        :param scanpos:
             The point scan positions array of shape (n,), default is None..
-        :param sp_info:
+        :param scanpos_info:
             The point scan positions information, default is None..
         """
         # Check the given array shapes
@@ -59,8 +59,10 @@ class Epoch(_py4dgeo.Epoch):
         self.timestamp = timestamp
 
         # Set scan positions
-        self.scan_pos = np.array(scan_pos)
-        self.sp_info = scan_positions_info_from_dict(sp_info)
+        # Scanpos_id as attributes temporarily, replace by additional_dimensions in epoch in future
+        assert np.array(scanpos_id).shape[0] == cloud.shape[0]
+        self.scanpos_id = scanpos_id
+        self.scanpos_info = scanpos_info
 
         # Call base class constructor
         super().__init__(cloud)
@@ -74,6 +76,22 @@ class Epoch(_py4dgeo.Epoch):
         self._timestamp = normalize_timestamp(timestamp)
 
     @property
+    def scanpos_info(self):
+        return self._scanpos_info
+
+    @scanpos_info.setter
+    def scanpos_info(self, scanpos_info):
+        self._scanpos_info = scan_positions_info_from_dict(scanpos_info)
+
+    @property
+    def scanpos_id(self):
+        return self._scanpos_id
+
+    @scanpos_id.setter
+    def scanpos_id(self, scanpos_id):
+        self._scanpos_id = np.array(scanpos_id)
+
+    @property
     def metadata(self):
         """Provide the metadata of this epoch as a Python dictionary
 
@@ -85,8 +103,8 @@ class Epoch(_py4dgeo.Epoch):
 
         return {
             "timestamp": None if self.timestamp is None else str(self.timestamp),
-            "scan_pos": None if self.scan_pos is None else self.scan_pos.tolist(),
-            "sp_info": None if self.sp_info is None else self.sp_info,
+            "scanpos_id": None if self.scanpos_id is None else self.scanpos_id.tolist(),
+            "scanpos_info": None if self.scanpos_info is None else self.scanpos_info,
         }
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
@@ -108,7 +126,6 @@ class Epoch(_py4dgeo.Epoch):
 
     def radius_search(self, query, radius):
         """Query the tree for neighbors within a radius r
-
         :param query:
             An array of points to query.
             Array-like of shape (n_samples, 3) or query 1 sample point of shape (3,)
@@ -128,25 +145,12 @@ class Epoch(_py4dgeo.Epoch):
                 neighbors.append(result)
             return neighbors
 
+        raise Py4DGeoError(
+            "Please ensure queries are array-like of shape (n_samples, 3)"
+            " or of shape (3,) to query 1 sample point!"
+        )
+
         return None
-
-    def add_scan_position(self, scan_pos: np.ndarray):
-        """Add scan position of the cloud to the epoch
-
-        :param scan_pos:
-            The point scan positions array of shape (n,).
-        :type scan_pos: array
-        """
-        self.scan_pos = np.array(scan_pos)
-
-    def add_scan_position_info(self, sp_info: dict):
-        """Add scan position information of each scan sensor, sensor id starts from 1
-        :param sp_info:
-            The point scan positions information.
-        :type sp_info: dict
-        """
-        sps_list = scan_positions_info_from_dict(sp_info)
-        self.sp_info = sps_list
 
     def save(self, filename):
         """Save this epoch to a file
@@ -178,8 +182,15 @@ class Epoch(_py4dgeo.Epoch):
                 # Write the actual point cloud array using laspy - LAZ compression
                 # is far better than any compression numpy + zipfile can do.
                 cloudfile = os.path.join(tmp_dir, "cloud.laz")
-                header = laspy.LasHeader(version="1.4", point_format=6)
-                lasfile = laspy.LasData(header)
+                hdr = laspy.LasHeader(version="1.4", point_format=6)
+                hdr.x_scale = 0.00025
+                hdr.y_scale = 0.00025
+                hdr.z_scale = 0.00025
+                mean_extent = np.mean(self.cloud, axis=0)
+                hdr.x_offset = int(mean_extent[0])
+                hdr.y_offset = int(mean_extent[1])
+                hdr.z_offset = int(mean_extent[2])
+                lasfile = laspy.LasData(hdr)
                 lasfile.x = self.cloud[:, 0]
                 lasfile.y = self.cloud[:, 1]
                 lasfile.z = self.cloud[:, 2]
@@ -340,7 +351,7 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         )
 
 
-def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
+def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
@@ -366,11 +377,11 @@ def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
     lasfile = laspy.read(filename)
 
     # set scan positions
-    scanpos = None
-    sp_info = None
-    if sp_name is not None and sp_file is not None:
-        scanpos = lasfile.points[sp_name]
-        sp_info = load_scan_positions_info(sp_file)
+    scanpos_id = None
+    for key in additional_dimensions:
+        # Scanpos_id as attributes temporarily, replace by additional_dimensions in epoch in future
+        if key == "scanpos_id":
+            scanpos_id = lasfile.points[additional_dimensions["scanpos_id"]]
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
@@ -382,8 +393,7 @@ def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
             )
         ).transpose(),
         timestamp=lasfile.header.creation_date,
-        scan_pos=scanpos,
-        sp_info=sp_info,
+        scanpos_id=scanpos_id,
     )
 
     if len(filenames) == 1:
@@ -394,7 +404,9 @@ def read_from_las(*filenames, other_epoch=None, sp_name=None, sp_file=None):
         # Go into recursion
         return (new_epoch,) + _as_tuple(
             read_from_las(
-                *filenames[1:], other_epoch=new_epoch, sp_name=sp_name, sp_file=sp_file
+                *filenames[1:],
+                other_epoch=new_epoch,
+                additional_dimensions=additional_dimensions,
             )
         )
 
@@ -431,12 +443,14 @@ def normalize_timestamp(timestamp):
 
 
 def scan_positions_info_from_dict(info_dict: dict):
+    if info_dict is None:
+        return None
     # Compatible with both integer key and string key as index of the scan positions in json file
-    # load scan positions from dictionary, standardize loading via json format dumps
-    SPsdict_load = json.loads(json.dumps(info_dict))
+    # load scan positions from dictionary, standardize loading via json format dumps to string key
+    scanpos_dict_load = json.loads(json.dumps(info_dict))
     sps_list = []
-    for i in range(1, 1 + len(SPsdict_load)):
-        sps_list.append(SPsdict_load[str(i)])
+    for i in range(1, 1 + len(scanpos_dict_load)):
+        sps_list.append(scanpos_dict_load[str(i)])
 
     for sp in sps_list:
         sp_check = True
@@ -447,26 +461,3 @@ def scan_positions_info_from_dict(info_dict: dict):
         if not sp_check:
             raise Py4DGeoError("Scan positions load failed, please check format. ")
     return sps_list
-
-
-def load_scan_positions_info(filename):
-    """Load scan positions information from a json format file
-
-    :param filename:
-        The filename to load the scan positions in.
-    :type filename: str
-    """
-    if filename.rsplit(".", 1)[1] != "json":
-        raise Py4DGeoError("Not a json format file.")
-        return None
-    with open(filename, "r") as load_f:
-        try:
-            # Compatible with both integer key and string key as index of the scan positions in json file
-            # standardize as dictionary
-            json_str = load_f.read()
-            json_dict = eval(json_str)
-        except ValueError as err:
-            raise Py4DGeoError("SetJsonOperator load json error.")
-            return None
-
-    return json_dict
