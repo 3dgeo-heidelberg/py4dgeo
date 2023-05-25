@@ -4,7 +4,6 @@ import math
 import time
 import scipy.stats as sstats
 import multiprocessing as mp
-from tqdm import tqdm
 import laspy
 
 from py4dgeo.epoch import Epoch
@@ -15,6 +14,10 @@ from py4dgeo.util import (
 
 from py4dgeo import M3C2
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    tqdm = None
 
 default_tfM = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
 
@@ -248,17 +251,24 @@ class M3C2EP(M3C2):
 def updatePbar(total, queue, maxProc):
     desc = "Processing core points"
     pCount = 0
-    pbar = tqdm(
-        total=total,
-        ncols=100,
-        desc=desc + " (%02d/%02d Process(es))" % (pCount, maxProc),
-    )
+    if tqdm is None:
+        pbar = None
+    else:
+        pbar = tqdm(
+            total=total,
+            ncols=100,
+            desc=desc + " (%02d/%02d Process(es))" % (pCount, maxProc),
+        )
+
     while True:
         inc, process = queue.get()
-        pbar.update(inc)
-        if process != 0:
-            pCount += process
-            pbar.set_description(desc + " (%02d/%02d Process(es))" % (pCount, maxProc))
+        if pbar is not None:
+            pbar.update(inc)
+            if process != 0:
+                pCount += process
+                pbar.set_description(
+                    desc + " (%02d/%02d Process(es))" % (pCount, maxProc)
+                )
 
 
 eijk = np.zeros((3, 3, 3))
