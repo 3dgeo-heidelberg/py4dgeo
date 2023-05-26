@@ -60,7 +60,6 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set scan positions
         # Scanpos_id as attributes temporarily, replace by additional_dimensions in epoch in future
-        assert np.array(scanpos_id).shape[0] == cloud.shape[0]
         self.scanpos_id = scanpos_id
         self.scanpos_info = scanpos_info
 
@@ -89,7 +88,13 @@ class Epoch(_py4dgeo.Epoch):
 
     @scanpos_id.setter
     def scanpos_id(self, scanpos_id):
-        self._scanpos_id = np.array(scanpos_id)
+        if scanpos_id is None:
+            self._scanpos_id = None
+        elif isinstance(scanpos_id, list) or isinstance(scanpos_id, np.ndarray):
+            self._scanpos_id = np.array(scanpos_id)
+        else:
+            raise Py4DGeoError(f"The input scan position index should be array.")
+            self._scanpos_id = None
 
     @property
     def metadata(self):
@@ -361,12 +366,11 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
-    :param sp_name:
-        An attribute name to read scan positions id of cloud from LAS/LAZ file.
-    :type sp_name: str
-    :param sp_file:
-        A json filename name to read scan positions information.
-    :type sp_file: str
+    :param additional_dimensions:
+        A dictionary, mapping column indices to names of additional data dimensions.
+        They will be read from the and areaccessible under their names from the
+        created Epoch objects.
+    :type additional_dimensions: dict
     """
 
     # Resolve the given path
@@ -444,6 +448,9 @@ def normalize_timestamp(timestamp):
 
 def scan_positions_info_from_dict(info_dict: dict):
     if info_dict is None:
+        return None
+    if not isinstance(info_dict, dict):
+        raise Py4DGeoError(f"The input scan position information should be dictionary.")
         return None
     # Compatible with both integer key and string key as index of the scan positions in json file
     # load scan positions from dictionary, standardize loading via json format dumps to string key

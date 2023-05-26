@@ -1,13 +1,16 @@
 from py4dgeo.m3c2ep import *
 from py4dgeo.util import Py4DGeoError
+from py4dgeo import write_m3c2_results_to_las
 
 import pytest
 import tempfile
 import os
 
 
-def test_m3c2ep(epochs, Cxx, tfM, redPoint):
-    epoch1, epoch2 = epochs
+def test_m3c2ep(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info):
+    epoch1, epoch2 = epochs_m3c2ep
+    epoch1.scanpos_info = scanpos_info
+    epoch2.scanpos_info = scanpos_info
     corepoints = epoch1.cloud[::25]
 
     # Instantiate an M3C2 instance
@@ -22,7 +25,7 @@ def test_m3c2ep(epochs, Cxx, tfM, redPoint):
         refPointMov=redPoint,
     )
 
-    # Run it and check results shapes
+    # Run it and check results exists with correct shapes
     distances, uncertainties, covariance = m3c2ep.run()
 
     assert distances.shape[0] == corepoints.shape[0]
@@ -45,10 +48,13 @@ def test_m3c2ep(epochs, Cxx, tfM, redPoint):
     )
 
 
-def test_m3c2ep_external_normals(epochs, Cxx, tfM, redPoint):
-    epoch1, epoch2 = epochs
+def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info):
+    epoch1, epoch2 = epochs_m3c2ep
+    epoch1.scanpos_info = scanpos_info
+    epoch2.scanpos_info = scanpos_info
     corepoints = epoch1.cloud[::25]
 
+    # Run and check normals should be one direction or one normal per point.
     with pytest.raises(Py4DGeoError):
         d, u, c = M3C2EP(
             epochs=(epoch1, epoch2),
@@ -72,7 +78,6 @@ def test_m3c2ep_external_normals(epochs, Cxx, tfM, redPoint):
         tfM=tfM,
         refPointMov=redPoint,
     )
-    distances, uncertainties, covariance = m3c2ep.run()
 
     # Instantiate an M3C2 instance with specified corepoint normals
     corepoint_normals = m3c2ep.directions()
@@ -86,15 +91,13 @@ def test_m3c2ep_external_normals(epochs, Cxx, tfM, redPoint):
         tfM=tfM,
         refPointMov=redPoint,
     )
-    # Run it and check that distances is same when specify the same corepoint normals
+    # Run it and check that corepoint normals same as algorithm directions
     distances_n, uncertainties_n, covariance_n = m3c2ep_n.run()
-    diff = distances_n - distances
-    diff[np.isnan(diff)] = 0
-    assert np.allclose(diff, 0)
+    assert np.allclose(m3c2ep_n.directions(), corepoint_normals)
 
     # Instantiate an M3C2 instance with one direction
     corepoint_normals = np.array([[0, 0, 1]])
-    m3c2ep = py4dgeo.M3C2EP(
+    m = py4dgeo.M3C2EP(
         epochs=(epoch1, epoch2),
         corepoints=corepoints,
         corepoint_normals=corepoint_normals,
@@ -104,13 +107,13 @@ def test_m3c2ep_external_normals(epochs, Cxx, tfM, redPoint):
         tfM=tfM,
         refPointMov=redPoint,
     )
-    # Run it and check that corepoint normals same as directions
-    distances, uncertainties, covariance = m3c2ep.run()
-    assert np.allclose(m3c2ep.directions(), corepoint_normals)
+    # Run it and check that corepoint normals same as algorithm directions
+    distances, uncertainties, covariance = m.run()
+    assert np.allclose(m.directions(), corepoint_normals)
 
 
-def test_m3c2ep_epoch_saveload(epochs):
-    epoch1, epoch2 = epochs
+def test_m3c2ep_epoch_saveload(epochs_m3c2ep):
+    epoch1, epoch2 = epochs_m3c2ep
     epoch1.build_kdtree()
     epoch2.build_kdtree()
 
@@ -127,6 +130,9 @@ def test_m3c2ep_epoch_saveload(epochs):
         assert load1.cloud.shape[0] == epoch1.cloud.shape[0]
         assert load2.cloud.shape[0] == epoch2.cloud.shape[0]
 
+        assert np.allclose(load1.cloud - epoch1.cloud, 0)
+        assert np.allclose(load2.cloud - epoch2.cloud, 0)
+
         assert np.allclose(
             load1.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
@@ -137,8 +143,10 @@ def test_m3c2ep_epoch_saveload(epochs):
         )
 
 
-def test_m3c2ep_write_las(epochs, Cxx, tfM, redPoint):
-    epoch1, epoch2 = epochs
+def test_m3c2ep_write_las(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info):
+    epoch1, epoch2 = epochs_m3c2ep
+    epoch1.scanpos_info = scanpos_info
+    epoch2.scanpos_info = scanpos_info
     corepoints = epoch1.cloud[::25]
 
     # Instantiate an M3C2 instance
@@ -176,7 +184,7 @@ def test_m3c2ep_write_las(epochs, Cxx, tfM, redPoint):
     with tempfile.TemporaryDirectory() as dir:
         attr = {"distances": distances, "lod": uncertainties["lodetection"]}
         file = dir + "cp.las"
-        m3c2ep.write_las(file, attribute_dict=attr)
+        write_m3c2_results_to_las(file, m3c2ep, attribute_dict=attr)
         c, d, l = read_cp_from_las(file)
         diff_c = corepoints - c
         diff_d = distances - d

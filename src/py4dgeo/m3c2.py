@@ -188,6 +188,9 @@ def write_m3c2_results_to_las(outfilepath, m3c2, attribute_dict={}):
     :param outfilepath:
         The las file path to save the corepoints, distances and other attributes.
     :type outfilepath: str
+    :param m3c2:
+        The M3C2LikeAlgorithm object.
+    :type m3c2: M3C2LikeAlgorithm
     :param attribute_dict:
         The dictionary of attributes which will be saved together with corepoints.
     :type attribute_dict: dict
