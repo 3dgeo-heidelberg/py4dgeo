@@ -25,16 +25,16 @@ default_tfM = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
 class M3C2EP(M3C2):
     def __init__(
         self,
-        tfM=default_tfM,
-        Cxx=np.zeros((12, 12)),
-        refPointMov=np.array([0, 0, 0]),
-        perform_trans=True,
+        tfM: np.ndarray = default_tfM,
+        Cxx: np.ndarray = np.zeros((12, 12)),
+        refPointMov: np.ndarray = np.array([0, 0, 0]),
+        perform_trans: bool = True,
         **kwargs,
     ):
         """An M3C2-EP implementation
         that push the limits of 3D topographic point cloud change detection by error propagation.
-        The algorithm needs an alignment covariance matrix of shape 12 x 12, an affine transformation matrix 𝑇
-        of shape 3 x 4 and a reduction point  (𝑥0,𝑦0,𝑧0) (rotation origin, 3 parameters) obtained from
+        The algorithm needs an alignment covariance matrix of shape 12 x 12, an affine transformation matrix
+        of shape 3 x 4 and a reduction point  (x0,y0,z0) (rotation origin, 3 parameters) obtained from
         aligning the two point clouds. The formula of the transformation see in user docs.
         The transformation can be set by a boolean flag 'perform_trans' and is performed by default.
         """

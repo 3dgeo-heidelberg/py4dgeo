@@ -112,11 +112,12 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
     assert np.allclose(m.directions(), corepoint_normals)
 
 
-def test_m3c2ep_epoch_saveload(epochs_m3c2ep):
+def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
     epoch1, epoch2 = epochs_m3c2ep
     epoch1.build_kdtree()
     epoch2.build_kdtree()
-
+    epoch1.scanpos_info = scanpos_info
+    epoch2.scanpos_info = scanpos_info
     with tempfile.TemporaryDirectory() as dir:
         # Save and load it
         filename1 = os.path.join(dir, "epoch1")

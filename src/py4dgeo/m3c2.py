@@ -182,7 +182,9 @@ class M3C2(M3C2LikeAlgorithm):
         return "M3C2"
 
 
-def write_m3c2_results_to_las(outfilepath, m3c2, attribute_dict={}):
+def write_m3c2_results_to_las(
+    outfilepath: str, m3c2: M3C2LikeAlgorithm, attribute_dict: dict = {}
+):
     """Save the corepoints, distances and other attributes to a given las filename
 
     :param outfilepath:

@@ -80,7 +80,12 @@ class Epoch(_py4dgeo.Epoch):
 
     @scanpos_info.setter
     def scanpos_info(self, scanpos_info):
-        self._scanpos_info = scan_positions_info_from_dict(scanpos_info)
+        if isinstance(scanpos_info, list):
+            self._scanpos_info = scanpos_info
+        elif isinstance(scanpos_info, dict):
+            self._scanpos_info = scan_positions_info_from_dict(scanpos_info)
+        else:
+            self._scanpos_info = None
 
     @property
     def scanpos_id(self):
@@ -129,7 +134,7 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
-    def radius_search(self, query, radius):
+    def radius_search(self, query: np.ndarray, radius: float):
         """Query the tree for neighbors within a radius r
         :param query:
             An array of points to query.
