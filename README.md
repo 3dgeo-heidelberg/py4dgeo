@@ -1,9 +1,10 @@
 # Welcome to py4dgeo
 
-![logo](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo_mini.png?raw=true)
+<img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/py4dgeo_logo.png?raw=true" alt="logo" style="width:500px;"/>
+
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![GitHub Workflow Status](https://img.shields.io/github/workflow/status/3dgeo-heidelberg/py4dgeo/CI)](https://github.com/3dgeo-heidelberg/py4dgeo/actions?query=workflow%3ACI)
+[![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/3dgeo-heidelberg/py4dgeo/ci.yml?branch=main)](https://github.com/3dgeo-heidelberg/py4dgeo/actions/workflows/ci.yml)
 [![PyPI Release](https://img.shields.io/pypi/v/py4dgeo.svg)](https://pypi.org/project/py4dgeo)
 [![Documentation Status](https://readthedocs.org/projects/py4dgeo/badge/)](https://py4dgeo.readthedocs.io/)
 [![codecov](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo/branch/main/graph/badge.svg)](https://codecov.io/gh/3dgeo-heidelberg/py4dgeo)
@@ -21,14 +22,14 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-* **M3C2 algorithm** ([Lague et al., 2013](#literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
+* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
 
 
-* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
+* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
 
 **Coming next:**
-* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
 

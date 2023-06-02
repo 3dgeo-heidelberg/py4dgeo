@@ -19,7 +19,9 @@ import zipfile
 
 import py4dgeo._py4dgeo as _py4dgeo
 
+
 logger = logging.getLogger("py4dgeo")
+
 
 # This integer controls the versioning of the epoch file format. Whenever the
 # format is changed, this version should be increased, so that py4dgeo can warn
@@ -35,6 +37,7 @@ class Epoch(_py4dgeo.Epoch):
         cloud: np.ndarray,
         additional_dimensions: np.ndarray = None,
         timestamp=None,
+        scanpos_info: dict = None,
     ):
         """
 
@@ -45,6 +48,12 @@ class Epoch(_py4dgeo.Epoch):
             A numpy array of additional, per-point data in the point cloud. The
             numpy data type is expected to be a structured dtype, so that the data
             columns are accessible by their name.
+
+        :param timestamp:
+            The point cloud timestamp, default is None.
+
+        :param scanpos_info:
+            The point scan positions information, default is None..
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
@@ -56,6 +65,7 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set metadata properties
         self.timestamp = timestamp
+        self.scanpos_info = scanpos_info
 
         # Set the additional information (e.g. segment ids, normals, etc)
         self.additional_dimensions = additional_dimensions
@@ -72,6 +82,19 @@ class Epoch(_py4dgeo.Epoch):
         self._timestamp = normalize_timestamp(timestamp)
 
     @property
+    def scanpos_info(self):
+        return self._scanpos_info
+
+    @scanpos_info.setter
+    def scanpos_info(self, scanpos_info):
+        if isinstance(scanpos_info, list):
+            self._scanpos_info = scanpos_info
+        elif isinstance(scanpos_info, dict):
+            self._scanpos_info = scan_positions_info_from_dict(scanpos_info)
+        else:
+            self._scanpos_info = None
+
+    @property
     def metadata(self):
         """Provide the metadata of this epoch as a Python dictionary
 
@@ -83,15 +106,8 @@ class Epoch(_py4dgeo.Epoch):
 
         return {
             "timestamp": None if self.timestamp is None else str(self.timestamp),
+            "scanpos_info": None if self.scanpos_info is None else self.scanpos_info,
         }
-
-    @property
-    def additional_dimensions(self):
-        return self._additional_dimensions
-
-    @additional_dimensions.setter
-    def additional_dimensions(self, additional_dimensions):
-        self._additional_dimensions = additional_dimensions
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
         """Build the search tree index
@@ -128,6 +144,7 @@ class Epoch(_py4dgeo.Epoch):
             with zipfile.ZipFile(
                 filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
+
                 # Write the epoch file format version number
                 zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
 
@@ -140,8 +157,15 @@ class Epoch(_py4dgeo.Epoch):
                 # Write the actual point cloud array using laspy - LAZ compression
                 # is far better than any compression numpy + zipfile can do.
                 cloudfile = os.path.join(tmp_dir, "cloud.laz")
-                header = laspy.LasHeader(version="1.4", point_format=6)
-                lasfile = laspy.LasData(header)
+                hdr = laspy.LasHeader(version="1.4", point_format=6)
+                hdr.x_scale = 0.00025
+                hdr.y_scale = 0.00025
+                hdr.z_scale = 0.00025
+                mean_extent = np.mean(self.cloud, axis=0)
+                hdr.x_offset = int(mean_extent[0])
+                hdr.y_offset = int(mean_extent[1])
+                hdr.z_offset = int(mean_extent[2])
+                lasfile = laspy.LasData(hdr)
                 lasfile.x = self.cloud[:, 0]
                 lasfile.y = self.cloud[:, 1]
                 lasfile.z = self.cloud[:, 2]
@@ -170,6 +194,7 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Open the ZIP archive
             with zipfile.ZipFile(filename, mode="r") as zf:
+
                 # Read the epoch file version number and compare to current
                 version = int(zf.read("EPOCH_FILE_FORMAT").decode())
                 if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
@@ -325,7 +350,7 @@ def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **pars
         )
 
 
-def read_from_las(*filenames, other_epoch=None):
+def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
@@ -335,6 +360,11 @@ def read_from_las(*filenames, other_epoch=None):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
+    :param additional_dimensions:
+        A dictionary, mapping column indices to names of additional data dimensions.
+        They will be read from the and areaccessible under their names from the
+        created Epoch objects.
+    :type additional_dimensions: dict
     """
 
     # Resolve the given path
@@ -343,6 +373,13 @@ def read_from_las(*filenames, other_epoch=None):
     # Read the lasfile using laspy
     logger.info(f"Reading point cloud from file '{filename}'")
     lasfile = laspy.read(filename)
+
+    # set scan positions
+    scanpos_id = None
+    for key in additional_dimensions:
+        # Scanpos_id as attributes temporarily, replace by additional_dimensions in epoch in future
+        if key == "scanpos_id":
+            scanpos_id = lasfile.points[additional_dimensions["scanpos_id"]]
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
@@ -354,6 +391,7 @@ def read_from_las(*filenames, other_epoch=None):
             )
         ).transpose(),
         timestamp=lasfile.header.creation_date,
+        scanpos_id=scanpos_id,
     )
 
     if len(filenames) == 1:
@@ -363,7 +401,11 @@ def read_from_las(*filenames, other_epoch=None):
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_las(*filenames[1:], other_epoch=new_epoch)
+            read_from_las(
+                *filenames[1:],
+                other_epoch=new_epoch,
+                additional_dimensions=additional_dimensions,
+            )
         )
 
 

@@ -1,9 +1,10 @@
-from py4dgeo.epoch import read_from_xyz
+from py4dgeo.epoch import read_from_xyz, read_from_las
 from py4dgeo.logger import set_py4dgeo_logfile
 from py4dgeo.m3c2 import M3C2
 from py4dgeo.segmentation import SpatiotemporalAnalysis
 from py4dgeo.util import MemoryPolicy, set_memory_policy
 
+import numpy as np
 import os
 import pytest
 import shutil
@@ -54,3 +55,57 @@ def log_into_temporary_directory():
 def memory_policy_fixture():
     """This fixture ensures that all tests start with the default memory policy"""
     set_memory_policy(MemoryPolicy.COREPOINTS)
+
+
+@pytest.fixture()
+def scanpos_info():
+    filename = find_data_file("sps.json")
+    with open(filename, "r") as load_f:
+        try:
+            json_str = load_f.read()
+            json_dict = eval(json_str)
+        except ValueError as err:
+            return None
+    return json_dict
+
+
+def epoch_m3c2ep_fixture(*filenames, additional_dimensions):
+    """Wrap a given data file in an Epoch and make it a pytest fixture"""
+
+    @pytest.fixture
+    def _epoch_m3c2ep_fixture():
+        return read_from_las(
+            *tuple(find_data_file(fn) for fn in filenames),
+            additional_dimensions=additional_dimensions,
+        )
+
+    return _epoch_m3c2ep_fixture
+
+
+epochs_m3c2ep = epoch_m3c2ep_fixture(
+    "plane_t1.laz",
+    "plane_t2.laz",
+    additional_dimensions={"scanpos_id": "point_source_id"},
+)
+
+
+@pytest.fixture()
+def Cxx():
+    covariance_matrix = np.loadtxt(
+        find_data_file("Cxx.csv"), dtype=np.float64, delimiter=","
+    )
+    return covariance_matrix
+
+
+@pytest.fixture()
+def tfM():
+    tf_matrix = np.loadtxt(find_data_file("tfM.csv"), dtype=np.float64, delimiter=",")
+    return tf_matrix
+
+
+@pytest.fixture()
+def redPoint():
+    reduction_point = np.loadtxt(
+        find_data_file("redPoint.csv"), dtype=np.float64, delimiter=","
+    )
+    return reduction_point

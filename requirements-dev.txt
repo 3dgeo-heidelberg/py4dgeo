@@ -2,7 +2,6 @@ breathe
 cmake
 ipykernel
 lcov_cobertura
-m2r2
 nbsphinx
 nbsphinx-link
 nbval
@@ -12,4 +11,5 @@ pytest
 pytest-cov
 ruptures
 sphinx
+sphinx_mdinclude
 sphinx_rtd_theme
