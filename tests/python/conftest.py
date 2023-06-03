@@ -85,7 +85,7 @@ def epoch_m3c2ep_fixture(*filenames, additional_dimensions):
 epochs_m3c2ep = epoch_m3c2ep_fixture(
     "plane_t1.laz",
     "plane_t2.laz",
-    additional_dimensions={"scanpos_id": "point_source_id"},
+    additional_dimensions={"point_source_id": "scanpos_id"},
 )
 
 

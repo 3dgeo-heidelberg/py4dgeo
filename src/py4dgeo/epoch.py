@@ -85,6 +85,14 @@ class Epoch(_py4dgeo.Epoch):
     def scanpos_info(self):
         return self._scanpos_info
 
+    @property
+    def scanpos_id(self):
+        return (
+            self.additional_dimensions["scanpos_id"]
+            .reshape(self.cloud.shape[0])
+            .astype(np.int32)
+        )
+
     @scanpos_info.setter
     def scanpos_info(self, scanpos_info):
         if isinstance(scanpos_info, list):
@@ -144,7 +152,6 @@ class Epoch(_py4dgeo.Epoch):
             with zipfile.ZipFile(
                 filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
-
                 # Write the epoch file format version number
                 zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
 
@@ -194,7 +201,6 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Open the ZIP archive
             with zipfile.ZipFile(filename, mode="r") as zf:
-
                 # Read the epoch file version number and compare to current
                 version = int(zf.read("EPOCH_FILE_FORMAT").decode())
                 if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
@@ -218,6 +224,34 @@ class Epoch(_py4dgeo.Epoch):
                 epoch.kdtree.load_index(kdtreefile)
 
         return epoch
+
+    def radius_search(self, query: np.ndarray, radius: float):
+        """Query the tree for neighbors within a radius r
+        :param query:
+            An array of points to query.
+            Array-like of shape (n_samples, 3) or query 1 sample point of shape (3,)
+        :type query: array
+        :param radius:
+            Rebuild the search tree even if it was already built before.
+        :type radius: float
+        """
+        if len(query.shape) == 1 and query.shape[0] == 3:
+            return [self.kdtree.radius_search(query, radius)]
+
+        if len(query.shape) == 2 and query.shape[1] == 3:
+            neighbors = []
+            for i in range(query.shape[0]):
+                q = query[i]
+                result = self.kdtree.radius_search(q, radius)
+                neighbors.append(result)
+            return neighbors
+
+        raise Py4DGeoError(
+            "Please ensure queries are array-like of shape (n_samples, 3)"
+            " or of shape (3,) to query 1 sample point!"
+        )
+
+        return None
 
     def __getstate__(self):
         return (
@@ -364,6 +398,7 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
         A dictionary, mapping column indices to names of additional data dimensions.
         They will be read from the and areaccessible under their names from the
         created Epoch objects.
+        Additional column indexes are corresponding indexes in the LAS/LAZ file.
     :type additional_dimensions: dict
     """
 
@@ -374,24 +409,29 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     logger.info(f"Reading point cloud from file '{filename}'")
     lasfile = laspy.read(filename)
 
+    cloud = np.vstack(
+        (
+            lasfile.x,
+            lasfile.y,
+            lasfile.z,
+        )
+    ).transpose()
     # set scan positions
-    scanpos_id = None
-    for key in additional_dimensions:
-        # Scanpos_id as attributes temporarily, replace by additional_dimensions in epoch in future
-        if key == "scanpos_id":
-            scanpos_id = lasfile.points[additional_dimensions["scanpos_id"]]
+    # build additional_dimensions dtype structure
+    additional_columns = np.empty(
+        shape=(cloud.shape[0], 1),
+        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+    )
+    for column_id, column_name in additional_dimensions.items():
+        additional_columns[column_name] = np.array(
+            lasfile.points[column_id], dtype=np.int32
+        ).reshape(-1, 1)
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
-        np.vstack(
-            (
-                lasfile.x,
-                lasfile.y,
-                lasfile.z,
-            )
-        ).transpose(),
+        cloud,
         timestamp=lasfile.header.creation_date,
-        scanpos_id=scanpos_id,
+        additional_dimensions=additional_columns,
     )
 
     if len(filenames) == 1:
@@ -438,3 +478,27 @@ def normalize_timestamp(timestamp):
             return parsed
 
     raise Py4DGeoError(f"The timestamp '{timestamp}' was not understood by py4dgeo.")
+
+
+def scan_positions_info_from_dict(info_dict: dict):
+    if info_dict is None:
+        return None
+    if not isinstance(info_dict, dict):
+        raise Py4DGeoError(f"The input scan position information should be dictionary.")
+        return None
+    # Compatible with both integer key and string key as index of the scan positions in json file
+    # load scan positions from dictionary, standardize loading via json format dumps to string key
+    scanpos_dict_load = json.loads(json.dumps(info_dict))
+    sps_list = []
+    for i in range(1, 1 + len(scanpos_dict_load)):
+        sps_list.append(scanpos_dict_load[str(i)])
+
+    for sp in sps_list:
+        sp_check = True
+        sp_check = False if len(sp["origin"]) != 3 else sp_check
+        sp_check = False if not isinstance(sp["sigma_range"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_scan"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_yaw"], float) else sp_check
+        if not sp_check:
+            raise Py4DGeoError("Scan positions load failed, please check format. ")
+    return sps_list
