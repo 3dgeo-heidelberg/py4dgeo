@@ -6,6 +6,7 @@ from py4dgeo.util import (
     make_contiguous,
     is_iterable,
 )
+from numpy.lib.recfunctions import append_fields
 
 import dateparser
 import datetime
@@ -85,14 +86,6 @@ class Epoch(_py4dgeo.Epoch):
     def scanpos_info(self):
         return self._scanpos_info
 
-    @property
-    def scanpos_id(self):
-        return (
-            self.additional_dimensions["scanpos_id"]
-            .reshape(self.cloud.shape[0])
-            .astype(np.int32)
-        )
-
     @scanpos_info.setter
     def scanpos_info(self, scanpos_info):
         if isinstance(scanpos_info, list):
@@ -101,6 +94,33 @@ class Epoch(_py4dgeo.Epoch):
             self._scanpos_info = scan_positions_info_from_dict(scanpos_info)
         else:
             self._scanpos_info = None
+
+    @property
+    def scanpos_id(self):
+        return (
+            self.additional_dimensions["scanpos_id"]
+            .reshape(self.cloud.shape[0])
+            .astype(np.int32)
+        )
+
+    @scanpos_id.setter
+    def scanpos_id(self, scanpos_id):
+        if self.additional_dimensions is None:
+            additional_columns = np.empty(
+                shape=(self.cloud.shape[0], 1),
+                dtype=np.dtype([("scanpos_id", "<i4")]),
+            )
+            additional_columns["scanpos_id"] = np.array(
+                scanpos_id, dtype=np.int32
+            ).reshape(-1, 1)
+            self.additional_dimensions = additional_columns
+        else:
+            scanpos_id = np.array(scanpos_id, dtype=np.int32)
+            new_additional_dimensions = append_fields(
+                self.additional_dimensions, "scanpos_id", scanpos_id, usemask=False
+            )
+
+            self.additional_dimensions = new_additional_dimensions
 
     @property
     def metadata(self):
