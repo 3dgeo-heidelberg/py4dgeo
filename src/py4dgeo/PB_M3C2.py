@@ -2275,11 +2275,11 @@ class PB_M3C2:
 
     def generate_extended_labels_interactively(
         self,
-        epoch0: Epoch | None = None,
-        epoch1: Epoch | None = None,
+        epoch0: typing.Union[Epoch, None] = None,
+        epoch1: typing.Union[Epoch, None] = None,
         builder_extended_y: BuilderExtended_y_Visually = BuilderExtended_y_Visually(),
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+    ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
 
         """
         Given 2 Epochs, it builds a pair of (segments and 'extended y').
@@ -2384,12 +2384,16 @@ class PB_M3C2:
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
-        x_y_z_id_epoch0_file_name: str | None = "x_y_z_id_epoch0.xyz",
-        x_y_z_id_epoch1_file_name: str | None = "x_y_z_id_epoch1.xyz",
-        extracted_segments_file_name: str | None = "extracted_segments.seg",
+        x_y_z_id_epoch0_file_name: typing.Union[str, None] = "x_y_z_id_epoch0.xyz",
+        x_y_z_id_epoch1_file_name: typing.Union[str, None] = "x_y_z_id_epoch1.xyz",
+        extracted_segments_file_name: typing.Union[
+            str, None
+        ] = "extracted_segments.seg",
         concatenate_name="",
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray | None, np.ndarray] | None:
+    ) -> typing.Union[
+        typing.Tuple[np.ndarray, typing.Union[np.ndarray, None], np.ndarray], None
+    ]:
 
         """
         For each epoch, it returns the segmentation of the point cloud as a numpy array (n_points, 4)
@@ -2653,7 +2657,7 @@ class PB_M3C2:
         epoch1: Epoch = None,
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
         **kwargs,
-    ) -> np.ndarray | None:
+    ) -> typing.Union[np.ndarray, None]:
 
         """
         After extracting the segments from epoch0 and epoch1, it returns a numpy array of corresponding
@@ -2794,12 +2798,12 @@ class PB_M3C2:
 
     def _compute_distances(
         self,
-        epoch0_info: Epoch | np.ndarray = None,
+        epoch0_info: typing.Union[Epoch, np.ndarray] = None,
         epoch1: Epoch = None,
         alignment_error: float = 1.1,
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+    ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
 
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
@@ -2969,11 +2973,11 @@ class PB_M3C2:
 
     def compute_distances(
         self,
-        epoch0: Epoch | np.ndarray = None,
+        epoch0: typing.Union[Epoch, np.ndarray] = None,
         epoch1: Epoch = None,
         alignment_error: float = 1.1,
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+    ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
 
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
@@ -3204,7 +3208,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+    ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
 
         """
         Given 2 Epochs, it builds a pair of (segments and 'extended y').
@@ -3418,13 +3422,17 @@ class PB_M3C2_with_segments(PB_M3C2):
         self,
         epoch0: Epoch = None,
         epoch1: Epoch = None,
-        extracted_segments_file_name: str | None = "extracted_segments.seg",
+        extracted_segments_file_name: typing.Union[
+            str, None
+        ] = "extracted_segments.seg",
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = dict(
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
         concatenate_name: str = "",
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray | None, np.ndarray] | None:
+    ) -> typing.Union[
+        typing.Tuple[np.ndarray, typing.Union[np.ndarray, None], np.ndarray], None
+    ]:
 
         """
         'reconstruct' the result that is achieved using the "PB_P3C2 class" pipeline, by applying
@@ -3662,7 +3670,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
         **kwargs,
-    ) -> np.ndarray | None:
+    ) -> typing.Union[np.ndarray, None]:
 
         """
         After the reconstruction of the result that is achieved using the "PB_P3C2 class" pipeline, by applying
@@ -3861,7 +3869,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             segment_id="segment_id", N_x="N_x", N_y="N_y", N_z="N_z"
         ),
         **kwargs,
-    ) -> typing.Tuple[np.ndarray, np.ndarray] | None:
+    ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
 
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
