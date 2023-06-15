@@ -462,7 +462,8 @@ def generate_random_extended_y(
 ):
     """
         Generate a subset (1/3 from the total possible pairs) of random tuples of segments ID
-        (where each ID gets to be extracted from a different epoch) which are randomly labeled (0/1)
+        (where each ID gets to be extracted from a different epoch) which are randomly labeled
+        between low and high)
 
     :param X:
         (n_segments, 20)
@@ -623,10 +624,11 @@ def generate_extended_y_from_prior_knowledge(
 
 
 def add_no_corresponding_seg(
-    segments,
-    extended_y,
+    segments: np.ndarray,
+    extended_y: np.ndarray = None,
     threshold_max_distance: float = 3,
     algorithm="closest",
+    extended_y_file_name: str = "extended_y.csv",
     columns=SEGMENT_COLUMNS,
 ):
     """
@@ -643,6 +645,8 @@ def add_no_corresponding_seg(
         not used already as a corresponding segment
     :param columns:
         Column mapping used by each segment.
+    :param extended_y_file_name:
+        In case 'extended_y' is None, this file is used as input fallback.
     :return:
         extended_y, numpy array (n_pairs, 3)
             where each row contains: (id_segment_epoch0, id_segment_epoch1, label=0/1)
@@ -651,6 +655,18 @@ def add_no_corresponding_seg(
     assert (
         algorithm == "closest" or algorithm == "random"
     ), "'selection' parameter can be 'closest/random'"
+
+    if extended_y is None:
+        # Resolve the given path
+        filename = find_file(extended_y_file_name)
+        # Read it
+        try:
+            logger.info(
+                f"Reading tuples of (segment epoch0, segment epoch1, label) from file '{filename}'"
+            )
+            extended_y = np.genfromtxt(filename, delimiter=",")
+        except ValueError:
+            raise Py4DGeoError("Malformed file: " + str(filename))
 
     # construct the corresponding pairs from the set of all pairs
     extended_y_with_label_1 = extended_y[extended_y[:, 2] == 1]
@@ -710,7 +726,7 @@ def add_no_corresponding_seg(
 
             while True:
 
-                rand_point = np.random.randint(0, len(indexes_seg_epoch1) + 1)
+                rand_point = np.random.randint(low=0, high=len(indexes_seg_epoch1))
                 index = (
                     (extended_y[:, 0] == index_seg_epoch0)
                     & (extended_y[:, 1] == indexes_seg_epoch1[rand_point])
