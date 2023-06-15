@@ -85,7 +85,16 @@ extended_y_with_label_1 = py4dgeo.generate_random_extended_y(
 
 new_extended_y = py4dgeo.add_no_corresponding_seg(
     segments=extracted_segments,
-    extended_y=extended_y_with_label_1,
+    # extended_y=extended_y_with_label_1,
     threshold_max_distance=5,
     algorithm="random",
 )
+
+new_extended_y = py4dgeo.add_no_corresponding_seg(
+    segments=extracted_segments,
+    # extended_y=extended_y_with_label_1,
+    threshold_max_distance=5,
+    algorithm="random",
+)
+
+print(new_extended_y)
