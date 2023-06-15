@@ -32,18 +32,6 @@ def test_predict(epochs):
     # )
     # py4dgeo.Viewer.segmented_point_cloud_visualizer(X=segmented_point_cloud)
 
-    (
-        _0,
-        _1,
-        extracted_segments_epoch0,
-    ) = alg.export_segmented_point_cloud_and_segments(
-        epoch0=epoch0,
-        # epoch1=None,
-        x_y_z_id_epoch0_file_name=None,
-        x_y_z_id_epoch1_file_name=None,
-        extracted_segments_file_name=None,
-    )
-
     extended_y = py4dgeo.generate_random_extended_y(
         extracted_segments, extended_y_file_name="extended_y.csv"
     )
@@ -56,6 +44,18 @@ def test_predict(epochs):
 
     rez0 = alg.predict(epoch0=epoch0, epoch1=epoch1)
     # print(alg.predict(epoch0=epoch0, epoch1=epoch1, get_pipeline_option=True))
+
+    (
+        _0,
+        _1,
+        extracted_segments_epoch0,
+    ) = alg.export_segmented_point_cloud_and_segments(
+        epoch0=epoch0,
+        # epoch1=None,
+        x_y_z_id_epoch0_file_name=None,
+        x_y_z_id_epoch1_file_name=None,
+        extracted_segments_file_name=None,
+    )
 
     rez1 = alg.predict(
         epoch0=extracted_segments_epoch0,
