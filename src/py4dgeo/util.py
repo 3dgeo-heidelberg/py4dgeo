@@ -16,8 +16,8 @@ import py4dgeo._py4dgeo as _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2023-04-25/data.tar.gz"
-TEST_DATA_CHECKSUM = "ada5e9e0d7effd6c2b5bf1c4d8bc4b814c97f808bf79463611df9a358e489b4a"
+TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2023-06-19/data.tar.gz"
+TEST_DATA_CHECKSUM = "5678cd1743d011c06e9ae52a56facee0270785b9fe0d9ad3bbf4b669f3cf37b8"
 
 # The directory where to place
 _test_data_dir = tempfile.TemporaryDirectory()
