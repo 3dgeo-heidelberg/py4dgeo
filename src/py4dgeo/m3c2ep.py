@@ -14,6 +14,10 @@ from py4dgeo.util import (
 
 from py4dgeo import M3C2
 
+import warnings
+
+warnings.filterwarnings("ignore")
+
 try:
     from tqdm import tqdm
 except ImportError:
@@ -303,17 +307,17 @@ def get_local_mean_and_Cxx_nocorr(
     A = np.tile(np.eye(3), (nPts, 1))
     ATP = np.zeros((3, 3 * nPts))
     tfM = tfM if tf else np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]])
-    dx = np.zeros((nPts,), dtype=np.float)
-    dy = np.zeros((nPts,), dtype=np.float)
-    dz = np.zeros((nPts,), dtype=np.float)
-    rrange = np.zeros((nPts,), dtype=np.float)
-    sinscan = np.zeros((nPts,), dtype=np.float)
-    cosscan = np.zeros((nPts,), dtype=np.float)
-    cosyaw = np.zeros((nPts,), dtype=np.float)
-    sinyaw = np.zeros((nPts,), dtype=np.float)
-    sigmaRange = np.zeros((nPts,), dtype=np.float)
-    sigmaYaw = np.zeros((nPts,), dtype=np.float)
-    sigmaScan = np.zeros((nPts,), dtype=np.float)
+    dx = np.zeros((nPts,), dtype=np.float64)
+    dy = np.zeros((nPts,), dtype=np.float64)
+    dz = np.zeros((nPts,), dtype=np.float64)
+    rrange = np.zeros((nPts,), dtype=np.float64)
+    sinscan = np.zeros((nPts,), dtype=np.float64)
+    cosscan = np.zeros((nPts,), dtype=np.float64)
+    cosyaw = np.zeros((nPts,), dtype=np.float64)
+    sinyaw = np.zeros((nPts,), dtype=np.float64)
+    sigmaRange = np.zeros((nPts,), dtype=np.float64)
+    sigmaYaw = np.zeros((nPts,), dtype=np.float64)
+    sigmaScan = np.zeros((nPts,), dtype=np.float64)
 
     for scanPosId in np.unique(curr_pos):
         scanPos = np.array(origins[scanPosId - 1, :])
@@ -644,8 +648,8 @@ def process_corepoint_list(
     pbarQueue.put((0, 1))
     p1_shm = mp.shared_memory.SharedMemory(name=p1_shm_name)
     p2_shm = mp.shared_memory.SharedMemory(name=p2_shm_name)
-    p1_coords = np.ndarray(p1_size, dtype=np.float, buffer=p1_shm.buf)
-    p2_coords = np.ndarray(p2_size, dtype=np.float, buffer=p2_shm.buf)
+    p1_coords = np.ndarray(p1_size, dtype=np.float64, buffer=p1_shm.buf)
+    p2_coords = np.ndarray(p2_size, dtype=np.float64, buffer=p2_shm.buf)
 
     max_dist = M3C2Meta["maxdist"]
     search_radius = M3C2Meta["searchrad"]
