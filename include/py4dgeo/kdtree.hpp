@@ -28,7 +28,7 @@ public:
   using RadiusSearchResult = std::vector<IndexType>;
 
   //! Return type used for radius searches that export calculated distances
-  using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
+  using RadiusSearchDistanceResult = std::vector<nanoflann::ResultItem<IndexType, double>>;
 
 private:
   /** @brief An adaptor between our Eigen data structures and NanoFLANN */

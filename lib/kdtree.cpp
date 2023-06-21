@@ -23,6 +23,9 @@ KDTree::build_tree(int leaf)
 {
   search = std::make_shared<KDTreeImpl>(
     3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(leaf));
+#ifdef PY4DGEO_WITH_OPENMP
+  search->n_thread_build_ = omp_get_max_threads();
+#endif
   search->buildIndex();
   leaf_parameter = leaf;
 }
@@ -59,7 +62,7 @@ KDTree::radius_search(const double* query,
                       RadiusSearchResult& result) const
 {
   NoDistancesReturnSet set{ radius * radius, result };
-  nanoflann::SearchParams params;
+  nanoflann::SearchParameters params;
   params.sorted = false;
   return search->radiusSearchCustomCallback(query, set, params);
 }
@@ -69,7 +72,7 @@ KDTree::radius_search_with_distances(const double* query,
                                      double radius,
                                      RadiusSearchDistanceResult& result) const
 {
-  nanoflann::SearchParams params;
+  nanoflann::SearchParameters params;
   return search->radiusSearch(query, radius * radius, result, params);
 }
 
