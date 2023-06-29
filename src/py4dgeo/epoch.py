@@ -28,7 +28,7 @@ logger = logging.getLogger("py4dgeo")
 # about incompatibilities of py4dgeo with loaded data. This version is intentionally
 # different from py4dgeo's version, because not all releases of py4dgeo necessarily
 # change the epoch file format and we want to be as compatible as possible.
-PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 3
 
 
 class Epoch(_py4dgeo.Epoch):
@@ -45,6 +45,9 @@ class Epoch(_py4dgeo.Epoch):
         # Make sure that cloud is double precision and contiguous in memory
         cloud = as_double_precision(cloud)
         cloud = make_contiguous(cloud)
+
+        # Set identity transformation
+        self._transformation = np.identity(4, dtype=np.float64)
 
         # Set metadata properties
         self.timestamp = timestamp
@@ -91,6 +94,26 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def transform(self, transformation):
+        """Transform the epoch with an affine transformation
+
+        :param transformation:
+            A 4x4 matrix representing the affine transformation. Given
+            as a numpy array.
+        """
+        transformation = as_double_precision(make_contiguous(transformation))
+        _py4dgeo.transform_pointcloud_inplace(self.cloud, transformation)
+        self._transformation = np.dot(self.transformation, transformation)
+
+    @property
+    def transformation(self):
+        """Access the affine transformation that was applied to this epoch
+
+        In order to set this property please use the transform method instead,
+        which will make sure to also apply the transformation.
+        """
+        return self._transformation
+
     def save(self, filename):
         """Save this epoch to a file
 
@@ -117,6 +140,11 @@ class Epoch(_py4dgeo.Epoch):
                 with open(metadatafile, "w") as f:
                     json.dump(self.metadata, f)
                 zf.write(metadatafile, arcname="metadata.json")
+
+                # Write the transformation into a file
+                trafofile = os.path.join(tmp_dir, "trafo.npy")
+                np.save(trafofile, self._transformation)
+                zf.write(trafofile, arcname="trafo.npy")
 
                 # Write the actual point cloud array using laspy - LAZ compression
                 # is far better than any compression numpy + zipfile can do.
@@ -153,8 +181,10 @@ class Epoch(_py4dgeo.Epoch):
             with zipfile.ZipFile(filename, mode="r") as zf:
                 # Read the epoch file version number and compare to current
                 version = int(zf.read("EPOCH_FILE_FORMAT").decode())
-                if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
-                    raise Py4DGeoError("Epoch file format is out of date!")
+                if version > PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
+                    raise Py4DGeoError(
+                        "Epoch file format not known - please update py4dgeo!"
+                    )
 
                 # Read the metadata JSON file
                 metadatafile = zf.extract("metadata.json", path=tmp_dir)
@@ -172,6 +202,12 @@ class Epoch(_py4dgeo.Epoch):
                 # Restore the KDTree object
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
                 epoch.kdtree.load_index(kdtreefile)
+
+                # Read the transformation if it exists
+                if version >= 3:
+                    trafofile = zf.extract("trafo.npy", path=tmp_dir)
+                    trafo = np.load(trafofile)
+                    epoch._transformation = trafo
 
         return epoch
 

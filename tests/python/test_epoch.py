@@ -154,3 +154,11 @@ def test_normalize_timestamp():
 
     with pytest.raises(Py4DGeoError):
         normalize_timestamp(42)
+
+
+def test_affine_trafo(epochs):
+    epoch, _ = epochs
+
+    trafo = np.identity(4, dtype=np.float64)
+    trafo[0, 3] = 1
+    epoch.transform(trafo)
