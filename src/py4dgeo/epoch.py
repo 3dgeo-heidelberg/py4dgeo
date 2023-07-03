@@ -36,6 +36,7 @@ class Epoch(_py4dgeo.Epoch):
     def __init__(
         self,
         cloud: np.ndarray,
+        normals: np.ndarray = None,
         additional_dimensions: np.ndarray = None,
         timestamp=None,
         scanpos_info: dict = None,
@@ -44,6 +45,10 @@ class Epoch(_py4dgeo.Epoch):
 
         :param cloud:
             The point cloud array of shape (n, 3).
+
+        :param normals:
+            The point cloud normals of shape (n, 3) where n is the
+            same as the number of points in the point cloud.
 
         :param additional_dimensions:
             A numpy array of additional, per-point data in the point cloud. The
