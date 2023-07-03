@@ -164,3 +164,9 @@ def test_radius_search(epochs):
     queries = epoch1.cloud[::25]
     neighbors = epoch1.radius_search(queries, 1)
     assert len(neighbors) == queries.shape[0]
+
+
+def test_normal_computation(epochs):
+    epoch, _ = epochs
+    normals = epoch.calculate_normals(radius=1.5)
+    assert normals.shape == epoch.cloud.shape

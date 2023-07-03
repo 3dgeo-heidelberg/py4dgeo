@@ -1,3 +1,4 @@
+from py4dgeo.logger import logger_context
 from py4dgeo.util import (
     Py4DGeoError,
     append_file_extension,
@@ -69,6 +70,11 @@ class Epoch(_py4dgeo.Epoch):
         cloud = as_double_precision(cloud)
         cloud = make_contiguous(cloud)
 
+        # Make sure that given normals are DP and contiguous as well
+        if normals is not None:
+            normals = make_contiguous(as_double_precision(normals))
+        self._normals = normals
+
         # Set metadata properties
         self.timestamp = timestamp
         self.scanpos_info = scanpos_info
@@ -78,6 +84,48 @@ class Epoch(_py4dgeo.Epoch):
 
         # Call base class constructor
         super().__init__(cloud)
+
+    @property
+    def normals(self):
+        # Maybe calculate normals
+        if self._normals is None:
+            raise Py4DGeoError(
+                "Normals for this Epoch have not been calculated! Please use Epoch.calculate_normals or load externally calculated normals."
+            )
+
+        return self._normals
+
+    def calculate_normals(
+        self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
+    ):
+        """Calculate point cloud normals
+
+        :param radius:
+            The radius used to determine the neighborhood of a point.
+
+        :param orientation_vector:
+            A vector to determine orientation of the normals. It should point "up".
+        """
+
+        # Ensure that the KDTree is built
+        if self.kdtree.leaf_parameter() == 0:
+            self.build_kdtree()
+
+        # Allocate memory for the normals
+        self._normals = np.empty(self.cloud.shape, dtype=np.float64)
+
+        # Reuse the multiscale code with a single radius in order to
+        # avoid code duplication.
+        with logger_context("Calculating point cloud normals:"):
+            _py4dgeo.compute_multiscale_directions(
+                self,
+                self.cloud,
+                [radius],
+                orientation_vector,
+                self._normals,
+            )
+
+        return self.normals
 
     @property
     def timestamp(self):
@@ -343,13 +391,28 @@ def _as_tuple(x):
     return (x,)
 
 
-def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **parse_opts):
+def read_from_xyz(
+    *filenames,
+    other_epoch=None,
+    xyz_columns=[0, 1, 2],
+    normal_columns=[],
+    additional_dimensions={},
+    **parse_opts,
+):
     """Create an epoch from an xyz file
 
     :param filename:
         The filename to read from. Each line in the input file is expected
         to contain three space separated numbers.
     :type filename: str
+    :param xyz_columns:
+        The column indices of X, Y and Z coordinates. Defaults to [0, 1, 2].
+    :type xyz_columns: list
+    :param normal_columns:
+        The column indices of the normal vector components. Leave empty, if
+        your data file does not contain normals, otherwise exactly three indices
+        for the x, y and z components need to be given.
+    :type normal_columns: list
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
@@ -368,30 +431,56 @@ def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **pars
     # Resolve the given path
     filename = find_file(filenames[0])
 
-    # Read the first cloud
-    try:
-        logger.info(f"Reading point cloud from file '{filename}'")
-        cloud = np.genfromtxt(filename, dtype=np.float64, **parse_opts)
-    except ValueError:
+    # Ensure that usecols is not passed by the user, we need to use this
+    if "usecols" in parse_opts:
         raise Py4DGeoError(
-            "Malformed XYZ file - all rows are expected to have exactly three columns"
+            "read_from_xyz cannot be customized by using usecols, please use xyz_columns, normal_columns or additional_dimensions instead!"
         )
 
-    # Construct the new Epoch object
-    if additional_dimensions == {}:
-        new_epoch = Epoch(cloud=cloud)
-    else:
-        # build additional_dimensions dtype structure
-        additional_columns = np.empty(
-            shape=(cloud.shape[0], 1),
-            dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
-        )
-        # populate dtype structure
-        for column_id, column_name in additional_dimensions.items():
-            assert column_id >= 3, "The first 3 indexes are used for x,y,z"
-            additional_columns[column_name] = cloud[:, column_id].reshape(-1, 1)
+    # Read the point cloud
+    logger.info(f"Reading point cloud from file '{filename}'")
 
-        new_epoch = Epoch(cloud=cloud[:, :3], additional_dimensions=additional_columns)
+    try:
+        cloud = np.genfromtxt(
+            filename, dtype=np.float64, usecols=xyz_columns, **parse_opts
+        )
+    except ValueError:
+        raise Py4DGeoError("Malformed XYZ file")
+
+    # Potentially read normals
+    normals = None
+    if normal_columns:
+        if len(normal_columns) != 3:
+            raise Py4DGeoError("normal_columns need to be a list of three integers!")
+
+        try:
+            normals = np.genfromtxt(
+                filename, dtype=np.float64, usecols=normal_columns, **parse_opts
+            )
+        except ValueError:
+            raise Py4DGeoError("Malformed XYZ file")
+
+    # Potentially read additional_dimensions passed by the user
+    additional_columns = np.empty(
+        shape=(cloud.shape[0], 1),
+        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+    )
+
+    add_cols = list(sorted(additional_dimensions.keys()))
+    try:
+        parsed_additionals = np.genfromtxt(
+            filename, dtype=np.float64, usecols=add_cols, **parse_opts
+        )
+    except ValueError:
+        raise Py4DGeoError("Malformed XYZ file")
+
+    for i, col in enumerate(add_cols):
+        additional_columns[additional_dimensions[col]] = parsed_additionals[
+            :, i
+        ].reshape(-1, 1)
+
+    # Finalize the construction of the new epoch
+    new_epoch = Epoch(cloud, normals=normals, additional_dimensions=additional_columns)
 
     if len(filenames) == 1:
         # End recursion and return non-tuple to make the case that the user
@@ -403,6 +492,8 @@ def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **pars
             read_from_xyz(
                 *filenames[1:],
                 other_epoch=new_epoch,
+                xyz_columns=xyz_columns,
+                normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
                 **parse_opts,
             )
