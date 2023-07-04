@@ -122,6 +122,15 @@ PYBIND11_MODULE(_py4dgeo, m)
     },
     "Search point in given radius!");
 
+  kdtree.def(
+    "nearest_neighbors",
+    [](const KDTree& self, EigenPointCloudConstRef cloud) {
+      KDTree::NearestNeighborsDistanceResult result;
+      self.nearest_neighbors_with_distances(cloud, result);
+      return result;
+    },
+    "Find nearest neighbors for all points in a cloud!");
+
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {
     // If a user pickles KDTree itself, we end up redundantly storing
