@@ -5,7 +5,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 def test_predict(epochs):
-
     epoch0, epoch1 = epochs
 
     alg = py4dgeo.PB_M3C2(

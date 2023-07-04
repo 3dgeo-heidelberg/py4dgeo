@@ -5,7 +5,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 def test_consistency(epochs):
-
     epoch0, epoch1 = epochs
 
     # ===============

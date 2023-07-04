@@ -5,7 +5,6 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 def test_compute_distances(epochs):
-
     epoch0, epoch1 = epochs
 
     alg = py4dgeo.PB_M3C2(
