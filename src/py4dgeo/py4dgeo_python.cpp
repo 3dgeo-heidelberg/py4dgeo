@@ -127,7 +127,9 @@ PYBIND11_MODULE(_py4dgeo, m)
     [](const KDTree& self, EigenPointCloudConstRef cloud) {
       KDTree::NearestNeighborsDistanceResult result;
       self.nearest_neighbors_with_distances(cloud, result);
-      return result;
+
+      return std::make_tuple(as_pyarray(std::move(result.first)),
+                             as_pyarray(std::move(result.second)));
     },
     "Find nearest neighbors for all points in a cloud!");
 

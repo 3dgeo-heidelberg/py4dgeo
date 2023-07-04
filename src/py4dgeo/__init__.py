@@ -2,6 +2,7 @@ from py4dgeo.logger import set_py4dgeo_logfile
 from py4dgeo.cloudcompare import CloudCompareM3C2
 from py4dgeo.epoch import Epoch, read_from_las, read_from_xyz, save_epoch, load_epoch
 from py4dgeo.m3c2 import M3C2
+from py4dgeo.registration import iterative_closest_point
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
     SpatiotemporalAnalysis,
