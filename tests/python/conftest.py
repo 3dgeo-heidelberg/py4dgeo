@@ -83,8 +83,8 @@ def epoch_m3c2ep_fixture(*filenames, additional_dimensions):
 
 
 epochs_m3c2ep = epoch_m3c2ep_fixture(
-    "plane_t1.laz",
-    "plane_t2.laz",
+    "ahk_2017_652900_5189100_gnd_subarea.laz",
+    "ahk_2018A_652900_5189100_gnd_subarea.laz",
     additional_dimensions={"point_source_id": "scanpos_id"},
 )
 
