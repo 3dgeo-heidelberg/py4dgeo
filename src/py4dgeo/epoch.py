@@ -245,34 +245,6 @@ class Epoch(_py4dgeo.Epoch):
 
         return epoch
 
-    def radius_search(self, query: np.ndarray, radius: float):
-        """Query the tree for neighbors within a radius r
-        :param query:
-            An array of points to query.
-            Array-like of shape (n_samples, 3) or query 1 sample point of shape (3,)
-        :type query: array
-        :param radius:
-            Rebuild the search tree even if it was already built before.
-        :type radius: float
-        """
-        if len(query.shape) == 1 and query.shape[0] == 3:
-            return [self.kdtree.radius_search(query, radius)]
-
-        if len(query.shape) == 2 and query.shape[1] == 3:
-            neighbors = []
-            for i in range(query.shape[0]):
-                q = query[i]
-                result = self.kdtree.radius_search(q, radius)
-                neighbors.append(result)
-            return neighbors
-
-        raise Py4DGeoError(
-            "Please ensure queries are array-like of shape (n_samples, 3)"
-            " or of shape (3,) to query 1 sample point!"
-        )
-
-        return None
-
     def __getstate__(self):
         return (
             PY4DGEO_EPOCH_FILE_FORMAT_VERSION,

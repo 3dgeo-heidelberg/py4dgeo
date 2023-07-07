@@ -149,8 +149,8 @@ class M3C2EP(M3C2):
                 last_started_idx += 1
                 if last_started_idx < len(query_coords_subs):
                     curr_subs = query_coords_subs[last_started_idx]
-                    p1_idx = epoch1.radius_search(curr_subs, effective_search_radius)
-                    p2_idx = epoch2.radius_search(curr_subs, effective_search_radius)
+                    p1_idx = radius_search(epoch1, curr_subs, effective_search_radius)
+                    p2_idx = radius_search(epoch2, curr_subs, effective_search_radius)
 
                     p = mp.Process(
                         target=process_corepoint_list,
@@ -822,3 +822,32 @@ def process_corepoint_list(
     pbarQueue.put((0, -1))
     p1_shm.close()
     p2_shm.close()
+
+
+def radius_search(epoch: Epoch, query: np.ndarray, radius: float):
+    """Query the tree for neighbors within a radius r
+    :param query:
+        An array of points to query.
+        Array-like of shape (n_samples, 3) or query 1 sample point of shape (3,)
+    :type query: array
+    :param radius:
+        Rebuild the search tree even if it was already built before.
+    :type radius: float
+    """
+    if len(query.shape) == 1 and query.shape[0] == 3:
+        return [epoch.kdtree.radius_search(query, radius)]
+
+    if len(query.shape) == 2 and query.shape[1] == 3:
+        neighbors = []
+        for i in range(query.shape[0]):
+            q = query[i]
+            result = epoch.kdtree.radius_search(q, radius)
+            neighbors.append(result)
+        return neighbors
+
+    raise Py4DGeoError(
+        "Please ensure queries are array-like of shape (n_samples, 3)"
+        " or of shape (3,) to query 1 sample point!"
+    )
+
+    return None
