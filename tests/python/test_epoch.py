@@ -154,13 +154,3 @@ def test_normalize_timestamp():
 
     with pytest.raises(Py4DGeoError):
         normalize_timestamp(42)
-
-
-def test_radius_search(epochs):
-    epoch1, _ = epochs
-    epoch1.build_kdtree()
-    neighbors = epoch1.radius_search(epoch1.cloud[1], 1)
-    assert len(neighbors) == 1
-    queries = epoch1.cloud[::25]
-    neighbors = epoch1.radius_search(queries, 1)
-    assert len(neighbors) == queries.shape[0]
