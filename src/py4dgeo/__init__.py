@@ -25,4 +25,4 @@ from py4dgeo.util import (
     set_num_threads,
 )
 
-from py4dgeo.PB_M3C2 import *
+from py4dgeo.pbm3c2 import *

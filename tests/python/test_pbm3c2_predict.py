@@ -5,10 +5,9 @@ from sklearn.ensemble import RandomForestClassifier
 
 
 def test_predict(epochs):
-
     epoch0, epoch1 = epochs
 
-    alg = py4dgeo.PB_M3C2(
+    alg = py4dgeo.PBM3C2(
         classifier=py4dgeo.ClassifierWrapper(
             classifier=RandomForestClassifier(random_state=42)
         )

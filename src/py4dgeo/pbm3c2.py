@@ -39,10 +39,10 @@ __all__ = [
     "BuilderExtended_y",
     "BuilderExtended_y_Visually",
     "ClassifierWrapper",
-    "PB_M3C2",
+    "PBM3C2",
     "build_input_scenario2_without_normals",
     "build_input_scenario2_with_normals",
-    "PB_M3C2_with_segments",
+    "PBM3C2WithSegments",
     "set_interactive_backend",
     "generate_random_extended_y",
     "LLSV_PCA_COLUMNS",
@@ -232,13 +232,11 @@ def geodesic_distance(v1, v2):
 
 class Viewer:
     def __init__(self):
-
         self.sets = []
         self.plt = Plotter(axes=3)
 
     @staticmethod
     def HSVToRGB(h, s, v):
-
         """
         Convert from HSV ( Hue Saturation Value ) color to RGB ( Red Blue Green )
 
@@ -255,7 +253,6 @@ class Viewer:
 
     @staticmethod
     def get_distinct_colors(n):
-
         """
         Return a python list of 'n' distinct colors.
 
@@ -272,7 +269,6 @@ class Viewer:
 
     @staticmethod
     def read_np_ndarray_from_xyz(input_file_name: str) -> np.ndarray:
-
         """
         The reconstructed np.ndarray.
         :param input_file_name:
@@ -297,7 +293,6 @@ class Viewer:
     def segmented_point_cloud_visualizer(
         X: np.ndarray, columns=SEGMENTED_POINT_CLOUD_COLUMNS
     ):
-
         """
         Visualize a segmented point cloud. ( the resulting point cloud after the segmentation process )
 
@@ -333,7 +328,6 @@ class Viewer:
 
     @staticmethod
     def segments_visualizer(X: np.ndarray, columns=SEGMENT_COLUMNS):
-
         """
         Segments visualizer.
 
@@ -360,7 +354,6 @@ class Viewer:
         viewer.plt.add_callback("KeyPress", viewer.toggle_transparency)
 
         for i in range(0, nr_segments):
-
             if X[i, columns.EPOCH_ID_COLUMN] == 0:
                 color = colors[0]
             else:
@@ -419,7 +412,6 @@ class Viewer:
         ).close()
 
     def toggle_transparency(self, evt):
-
         if evt.keyPressed == "z":
             logger.info("transparency toggle")
             for segment in self.sets:
@@ -512,7 +504,6 @@ def generate_random_extended_y(
 def generate_possible_region_pairs(
     segments: np.ndarray, seg_id0_seg_id1_label: np.ndarray
 ):
-
     """
     :param segments:
         numpy array of shape (n_segments, segment_size)
@@ -551,7 +542,6 @@ def generate_extended_y_from_prior_knowledge(
     threshold_max_distance: float,
     columns=SEGMENT_COLUMNS,
 ) -> np.ndarray:
-
     """
     :param segments:
         numpy array of shape (n_segments, segment_size)
@@ -588,7 +578,6 @@ def generate_extended_y_from_prior_knowledge(
 
     # search for the near segments and build the 'extended y'
     for row in pairs_of_points:
-
         seg_epoch0, seg_epoch1, label = np.split(ary=row, indices_or_sections=[3, 6])
         label = label[0]
 
@@ -600,7 +589,6 @@ def generate_extended_y_from_prior_knowledge(
         )
 
         if len(candidates_seg_epoch0) > 0 and len(candidates_seg_epoch1) > 0:
-
             indx_min_epoch0 = candidates_seg_epoch0[
                 np.linalg.norm(
                     epoch0.cloud[candidates_seg_epoch0] - seg_epoch0
@@ -694,7 +682,6 @@ def add_no_corresponding_seg(
     # search for the near segments and build the 'extended y'
     # for row in pairs_of_points:
     for index, row in enumerate(epoch0_set):
-
         index_seg_epoch0 = epoch0_index[index]
 
         candidates_seg_epoch1 = epoch1.kdtree.radius_search(row, threshold_max_distance)
@@ -705,7 +692,6 @@ def add_no_corresponding_seg(
             continue
 
         if algorithm == "closest":
-
             index = (
                 (extended_y[:, 0] == index_seg_epoch0)
                 & (extended_y[:, 1] == indexes_seg_epoch1[0])
@@ -723,9 +709,7 @@ def add_no_corresponding_seg(
                     )
 
         if algorithm == "random":
-
             while True:
-
                 rand_point = np.random.randint(low=0, high=len(indexes_seg_epoch1))
                 index = (
                     (extended_y[:, 0] == index_seg_epoch0)
@@ -747,7 +731,6 @@ def add_no_corresponding_seg(
 
 class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
     def __init__(self, skip=False, output_file_name=None, columns=None):
-
         """
         :param skip:
             Whether the current transform is applied or not.
@@ -787,7 +770,6 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         pass
 
     def fit(self, X, y=None):
-
         if self.skip:
             return self
 
@@ -800,7 +782,6 @@ class BaseTransformer(TransformerMixin, BaseEstimator, ABC):
         return self._fit(X, y)
 
     def transform(self, X):
-
         """
         param: X
             numpy array
@@ -985,7 +966,6 @@ class Segmentation(BaseTransformer):
         output_file_name=None,
         columns=SEGMENTED_POINT_CLOUD_COLUMNS,
     ):
-
         """
 
         :param skip:
@@ -1032,7 +1012,6 @@ class Segmentation(BaseTransformer):
         self.with_previously_computed_segments = with_previously_computed_segments
 
     def angle_difference_check(self, normal1, normal2):
-
         """
         Check whether the angle between 2 normalized vectors is less than
         the used segmentation threshold "angle_diff_threshold" (in degrees)
@@ -1051,7 +1030,6 @@ class Segmentation(BaseTransformer):
     def distance_3D_set_check(
         self, point, segment_id, X, X_Y_Z_Columns, SEGMENT_ID_COLUMN
     ):
-
         """
         Check whether the distance between the candidate point and all the points, currently part of the segment
         is less than the 'distance_3D_threshold'.
@@ -1081,7 +1059,6 @@ class Segmentation(BaseTransformer):
         )
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
-
         """
         Compute the orthogonal distance between the candidate point and the segment represented by its plane.
 
@@ -1103,7 +1080,6 @@ class Segmentation(BaseTransformer):
         return distance
 
     def distance_orthogonal_check(self, candidate_point, plane_point, plane_normal):
-
         """
         Check whether the orthogonal distance between the candidate point and the segment represented by its plane
         is less than the 'distance_orthogonal_threshold'.
@@ -1331,7 +1307,6 @@ class PostPointCloudSegmentation(BaseTransformer):
         output_file_name=None,
         columns=SEGMENTED_POINT_CLOUD_COLUMNS,
     ):
-
         """
         :param skip:
             Whether the current transform is applied or not.
@@ -1347,7 +1322,6 @@ class PostPointCloudSegmentation(BaseTransformer):
         self.compute_normal = compute_normal
 
     def compute_distance_orthogonal(self, candidate_point, plane_point, plane_normal):
-
         """
         Compute the orthogonal distance between the candidate point and the segment represented by its plane.
 
@@ -1369,7 +1343,6 @@ class PostPointCloudSegmentation(BaseTransformer):
         return distance
 
     def pca_compute_normal_and_mean(self, X):
-
         """
             Perform PCA.
             The order of the eigenvalues and eigenvectors is consistent.
@@ -1411,7 +1384,6 @@ class PostPointCloudSegmentation(BaseTransformer):
         )
 
     def _fit(self, X, y=None):
-
         """
         :param X:
         :param y:
@@ -1422,7 +1394,6 @@ class PostPointCloudSegmentation(BaseTransformer):
         pass
 
     def _transform(self, X):
-
         """
 
         :param X:
@@ -1462,7 +1433,6 @@ class PostPointCloudSegmentation(BaseTransformer):
         highest_segment_id_used = int(X[:, self.columns.SEGMENT_ID_COLUMN].max())
 
         for i in range(0, highest_segment_id_used + 1):
-
             mask = X[:, self.columns.SEGMENT_ID_COLUMN] == float(i)
             # extract all points, that are part of the same segment
             set_cloud = X[mask, :][:, X_Y_Z_Columns]
@@ -1611,14 +1581,12 @@ class BuilderExtended_y(ABC):
 
 class BuilderExtended_y_Visually(BuilderExtended_y):
     def __init__(self, columns=SEGMENT_COLUMNS):
-
         super(BuilderExtended_y_Visually, self).__init__(columns=columns)
 
         self.current_pair = [None] * 2
         self.constructed_extended_y = np.empty(shape=(0, 3))
 
     def toggle_transparenct(self, evt):
-
         if evt.keyPressed == "z":
             # transparency toggle
             for segment in self.sets:
@@ -1651,7 +1619,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             self.plt.render()
 
     def controller(self, evt):
-
         """
 
         :param evt:
@@ -1666,7 +1633,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
             self.current_pair[int(evt.actor.epoch)] = evt.actor.id
 
         if self.current_pair[0] != None and self.current_pair[1] != None:
-
             # we have a pair
             self.add_pair_button.status(self.add_pair_button.states[1])
         else:
@@ -1680,7 +1646,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         """
 
         if self.current_pair[0] != None and self.current_pair[1] != None:
-
             try:
                 self.constructed_extended_y = np.vstack(
                     (
@@ -1720,7 +1685,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         self.plt.add_callback("KeyPress", self.toggle_transparenct)
 
         for i in range(0, nr_segments):
-
             # mask = X[:, 17] == float(i)
             # set_cloud = X[mask, :3]  # x,y,z
 
@@ -1803,7 +1767,6 @@ class BuilderExtended_y_Visually(BuilderExtended_y):
         return self.constructed_extended_y
 
     def generate_extended_y(self, X):
-
         """
         :param X:
         :return:
@@ -1821,7 +1784,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         classifier=RandomForestClassifier(),
         columns=SEGMENT_COLUMNS,
     ):
-
         """
         :param neighborhood_search_radius:
             Maximum accepted Euclidean distance for any candidate segments.
@@ -1846,7 +1808,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
     def compute_similarity_between(
         self, seg_epoch0: np.ndarray, seg_epoch1: np.ndarray
     ) -> np.ndarray:
-
         """
         Similarity function between 2 segments.
 
@@ -1947,7 +1908,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         return self.compute_similarity_between(seg_epoch0, seg_epoch1)
 
     def fit(self, X, y):
-
         """
         This method takes care of the learning process by training the chosen 'classifier', using labeled data.
 
@@ -1977,7 +1937,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         return self.classifier.fit(X_similarity, y[:, 2])
 
     def predict(self, X):
-
         """
         For a set of segments from epoch 0 and epoch 1 it computes which one corresponds.
 
@@ -2022,7 +1981,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
 
         # this operation can be parallelized
         for epoch0_set_row in epoch0_set:
-
             list_candidates = self.epoch1_segments.kdtree.radius_search(
                 epoch0_set_row, self.neighborhood_search_radius
             )
@@ -2060,7 +2018,7 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
         return list_segments_pair
 
 
-class PB_M3C2:
+class PBM3C2:
     def __init__(
         self,
         per_point_computation=PerPointComputation(),
@@ -2069,7 +2027,6 @@ class PB_M3C2:
         extract_segments=ExtractSegments(),
         classifier=ClassifierWrapper(),
     ):
-
         """
         :param per_point_computation:
             lowest local surface variation and PCA computation. (computes the normal vector as well)
@@ -2092,7 +2049,6 @@ class PB_M3C2:
         self._second_segmentation.set_params(with_previously_computed_segments=True)
 
     def _reconstruct_input_with_normals(self, epoch, epoch_id, columns):
-
         """
         It is an adapter from [x, y, z, N_x, N_y, N_z, Segment_ID] column structure of input 'epoch'
         to an output equivalent with the following pipeline computation:
@@ -2155,7 +2111,6 @@ class PB_M3C2:
         )
 
     def _reconstruct_input_without_normals(self, epoch, epoch_id, columns):
-
         """
         It is an adapter from [x, y, z, Segment_ID] column structure of input 'epoch'
         to an output equivalent with the following pipeline computation:
@@ -2221,7 +2176,6 @@ class PB_M3C2:
 
     @staticmethod
     def _print_default_parameters(kwargs, pipeline_param_dict):
-
         """
         :param kwargs:
         :param pipeline_param_dict
@@ -2241,7 +2195,6 @@ class PB_M3C2:
     def _overwrite_pipeline_parameters(
         kwargs, pipeline, message="The pipeline parameters after overwriting are:"
     ):
-
         """
         :param kwargs:
         :param pipeline:
@@ -2280,7 +2233,6 @@ class PB_M3C2:
         builder_extended_y: BuilderExtended_y_Visually = BuilderExtended_y_Visually(),
         **kwargs,
     ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
-
         """
         Given 2 Epochs, it builds a pair of (segments and 'extended y').
 
@@ -2339,7 +2291,7 @@ class PB_M3C2:
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(
+        PBM3C2._print_default_parameters(
             kwargs=kwargs, pipeline_param_dict=labeling_pipeline.get_params()
         )
 
@@ -2352,7 +2304,7 @@ class PB_M3C2:
         default_options = labeling_pipeline.get_params()
 
         # overwrite the default parameters
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=labeling_pipeline
         )
         if len(unused_kwargs) > 0:
@@ -2369,7 +2321,7 @@ class PB_M3C2:
         segments = labeling_pipeline.transform(X)
 
         # restore the default pipeline options
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=labeling_pipeline,
             message="The pipeline parameters after restoration are: ",
@@ -2394,7 +2346,6 @@ class PB_M3C2:
     ) -> typing.Union[
         typing.Tuple[np.ndarray, typing.Union[np.ndarray, None], np.ndarray], None
     ]:
-
         """
         For each epoch, it returns the segmentation of the point cloud as a numpy array (n_points, 4)
         and it also serializes them using the provided file names.
@@ -2472,7 +2423,7 @@ class PB_M3C2:
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(
+        PBM3C2._print_default_parameters(
             kwargs=kwargs,
             pipeline_param_dict={
                 **pipe_segmentation.get_params(),
@@ -2495,10 +2446,10 @@ class PB_M3C2:
         del default_options["verbose"]
 
         # overwrite the default parameters
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=pipe_segmentation
         )
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=unused_kwargs, pipeline=pipe_extract_segments
         )
         if len(unused_kwargs) > 0:
@@ -2529,12 +2480,12 @@ class PB_M3C2:
         extracted_segments = pipe_extract_segments.transform(out)
 
         # restore the default pipeline options
-        unused_default_options = PB_M3C2._overwrite_pipeline_parameters(
+        unused_default_options = PBM3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=pipe_segmentation,
             message="The pipeline parameters after restoration are: ",
         )
-        unused_default_options = PB_M3C2._overwrite_pipeline_parameters(
+        unused_default_options = PBM3C2._overwrite_pipeline_parameters(
             kwargs=unused_default_options,
             pipeline=pipe_extract_segments,
             message="The pipeline parameters after restoration are: ",
@@ -2590,7 +2541,6 @@ class PB_M3C2:
         extracted_segments_file_name: str = "extracted_segments.seg",
         extended_y_file_name: str = "extended_y.csv",
     ) -> None:
-
         """
         It applies the training algorithm for the input pairs of Segments 'segments'
         and extended labels 'extended_y'.
@@ -2658,7 +2608,6 @@ class PB_M3C2:
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
         **kwargs,
     ) -> typing.Union[np.ndarray, None]:
-
         """
         After extracting the segments from epoch0 and epoch1, it returns a numpy array of corresponding
         pairs of segments between epoch 0 and epoch 1.
@@ -2741,7 +2690,7 @@ class PB_M3C2:
         }
 
         # print the default parameters for 'pipe_classifier'
-        PB_M3C2._print_default_parameters(
+        PBM3C2._print_default_parameters(
             kwargs=kwargs_classifier, pipeline_param_dict=pipe_classifier.get_params()
         )
 
@@ -2754,7 +2703,7 @@ class PB_M3C2:
         default_options = pipe_classifier.get_params()
 
         # overwrite the default parameters
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=kwargs_classifier, pipeline=pipe_classifier
         )
         if len(unused_kwargs) > 0:
@@ -2785,7 +2734,7 @@ class PB_M3C2:
         out = pipe_classifier.predict(extracted_segments)
 
         # restore the default pipeline options
-        unused_default_options = PB_M3C2._overwrite_pipeline_parameters(
+        unused_default_options = PBM3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=pipe_classifier,
             message="The pipeline parameters after restoration are: ",
@@ -2804,7 +2753,6 @@ class PB_M3C2:
         epoch_additional_dimensions_lookup: typing.Dict[str, str] = None,
         **kwargs,
     ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
-
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
             distances, corepoints (corepoints of epoch0), epochs (epoch0, epoch1), uncertainties
@@ -2848,7 +2796,7 @@ class PB_M3C2:
             | None
         """
 
-        logger.info(f"PB_M3C2._compute_distances(...)")
+        logger.info(f"PBM3C2._compute_distances(...)")
 
         # A numpy array where each row contains a pair of segments.
         segments_pair = self.predict(
@@ -2978,7 +2926,6 @@ class PB_M3C2:
         alignment_error: float = 1.1,
         **kwargs,
     ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
-
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
             distances, corepoints (corepoints of epoch0), epochs (epoch0, epoch1), uncertainties
@@ -3019,7 +2966,7 @@ class PB_M3C2:
             | None
         """
 
-        logger.info(f"PB_M3C2.compute_distances(...)")
+        logger.info(f"PBM3C2.compute_distances(...)")
 
         return self._compute_distances(
             epoch0_info=epoch0,
@@ -3148,7 +3095,7 @@ def build_input_scenario2_without_normals(
     pass
 
 
-class PB_M3C2_with_segments(PB_M3C2):
+class PBM3C2WithSegments(PBM3C2):
     def __init__(
         self,
         per_point_computation=PerPointComputation(),
@@ -3209,7 +3156,6 @@ class PB_M3C2_with_segments(PB_M3C2):
         ),
         **kwargs,
     ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
-
         """
         Given 2 Epochs, it builds a pair of (segments and 'extended y').
 
@@ -3277,7 +3223,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(
+        PBM3C2._print_default_parameters(
             kwargs=kwargs, pipeline_param_dict=transform_pipeline.get_params()
         )
 
@@ -3290,7 +3236,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         default_options = transform_pipeline.get_params()
 
         # overwrite the default parameters
-        PB_M3C2._overwrite_pipeline_parameters(
+        PBM3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=transform_pipeline
         )
 
@@ -3344,9 +3290,7 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         X = None
         for epoch_id, current_epoch in enumerate([epoch0, epoch1]):
-
             if current_epoch.shape[1] == 4:
-
                 # [x, y, z, segment_id] columns
                 assert self._post_segmentation.compute_normal, (
                     "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
@@ -3376,7 +3320,6 @@ class PB_M3C2_with_segments(PB_M3C2):
                         columns=self._post_segmentation.columns,
                     )
             else:
-
                 # [x, y, z, N_x, N_y, N_z, segment_id] columns
                 logger.info(
                     f"Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
@@ -3407,7 +3350,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         segments = transform_pipeline.transform(X)
 
         # restore the default pipeline options
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=transform_pipeline,
             message="The pipeline parameters after restoration are: ",
@@ -3433,7 +3376,6 @@ class PB_M3C2_with_segments(PB_M3C2):
     ) -> typing.Union[
         typing.Tuple[np.ndarray, typing.Union[np.ndarray, None], np.ndarray], None
     ]:
-
         """
         'reconstruct' the result that is achieved using the "PB_P3C2 class" pipeline, by applying
             ("Transform LLSV_and_PCA"), ("Transform Segmentation"),
@@ -3509,7 +3451,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(
+        PBM3C2._print_default_parameters(
             kwargs=kwargs, pipeline_param_dict=transform_pipeline.get_params()
         )
 
@@ -3522,7 +3464,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         default_options = transform_pipeline.get_params()
 
         # overwrite the default parameters
-        PB_M3C2._overwrite_pipeline_parameters(
+        PBM3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=transform_pipeline
         )
 
@@ -3552,7 +3494,6 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         if epoch1 != None:
-
             epoch1_normals = _extract_from_additional_dimensions(
                 epoch=epoch1,
                 column_names=[
@@ -3582,9 +3523,7 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         X = None
         for epoch_id, current_epoch in enumerate(epochs_list):
-
             if current_epoch.shape[1] == 4:
-
                 # [x, y, z, segment_id] columns
                 assert self._post_segmentation.compute_normal, (
                     "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
@@ -3614,7 +3553,6 @@ class PB_M3C2_with_segments(PB_M3C2):
                         columns=self._post_segmentation.columns,
                     )
             else:
-
                 # [x, y, z, N_x, N_y, N_z, segment_id] columns
                 logger.info(
                     f"Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
@@ -3651,7 +3589,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             logger.debug(f"No file name set as output for 'segments'")
 
         # restore the default pipeline options
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=transform_pipeline,
             message="The pipeline parameters after restoration are: ",
@@ -3671,7 +3609,6 @@ class PB_M3C2_with_segments(PB_M3C2):
         ),
         **kwargs,
     ) -> typing.Union[np.ndarray, None]:
-
         """
         After the reconstruction of the result that is achieved using the "PB_P3C2 class" pipeline, by applying
         ("Transform LLSV_and_PCA"), ("Transform Segmentation"), ("Transform Second Segmentation"), ("Transform ExtractSegments")
@@ -3720,7 +3657,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         )
 
         # print the default parameters
-        PB_M3C2._print_default_parameters(
+        PBM3C2._print_default_parameters(
             kwargs=kwargs, pipeline_param_dict=predicting_pipeline.get_params()
         )
 
@@ -3733,7 +3670,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         default_options = predicting_pipeline.get_params()
 
         # overwrite the default parameters
-        PB_M3C2._overwrite_pipeline_parameters(
+        PBM3C2._overwrite_pipeline_parameters(
             kwargs=kwargs, pipeline=predicting_pipeline
         )
 
@@ -3787,9 +3724,7 @@ class PB_M3C2_with_segments(PB_M3C2):
 
         X = None
         for epoch_id, current_epoch in enumerate([epoch0, epoch1]):
-
             if current_epoch.shape[1] == 4:
-
                 # [x, y, z, segment_id] columns
                 assert self._post_segmentation.compute_normal, (
                     "The reconstruction process doesn't have, as input, the Normal vector columns, hence, "
@@ -3819,7 +3754,6 @@ class PB_M3C2_with_segments(PB_M3C2):
                         columns=self._post_segmentation.columns,
                     )
             else:
-
                 # [x, y, z, N_x, N_y, N_z, segment_id] columns
                 logger.info(
                     f"Reconstruct post segmentation output using [x, y, z, N_x, N_y, N_z, segment_id] "
@@ -3849,7 +3783,7 @@ class PB_M3C2_with_segments(PB_M3C2):
         out = predicting_pipeline.predict(X)
 
         # restore the default pipeline options
-        unused_kwargs = PB_M3C2._overwrite_pipeline_parameters(
+        unused_kwargs = PBM3C2._overwrite_pipeline_parameters(
             kwargs=default_options,
             pipeline=predicting_pipeline,
             message="The pipeline parameters after restoration are: ",
@@ -3870,7 +3804,6 @@ class PB_M3C2_with_segments(PB_M3C2):
         ),
         **kwargs,
     ) -> typing.Union[typing.Tuple[np.ndarray, np.ndarray], None]:
-
         """
         Compute the distance between 2 epochs. It also adds the following properties at the end of the computation:
             distances, corepoints (corepoints of epoch0), epochs (epoch0, epoch1), uncertainties
@@ -3921,7 +3854,7 @@ class PB_M3C2_with_segments(PB_M3C2):
             | None
         """
 
-        logger.info(f"PB_M3C2_with_segments.compute_distances(...)")
+        logger.info(f"PBM3C2WithSegments.compute_distances(...)")
 
         return super()._compute_distances(
             epoch0_info=epoch0,
