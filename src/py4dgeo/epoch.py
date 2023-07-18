@@ -6,6 +6,7 @@ from py4dgeo.util import (
     make_contiguous,
     is_iterable,
 )
+from numpy.lib.recfunctions import append_fields
 
 import dateparser
 import datetime
@@ -32,11 +33,28 @@ PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
 
 
 class Epoch(_py4dgeo.Epoch):
-    def __init__(self, cloud: np.ndarray, timestamp=None):
+    def __init__(
+        self,
+        cloud: np.ndarray,
+        additional_dimensions: np.ndarray = None,
+        timestamp=None,
+        scanpos_info: dict = None,
+    ):
         """
 
         :param cloud:
             The point cloud array of shape (n, 3).
+
+        :param additional_dimensions:
+            A numpy array of additional, per-point data in the point cloud. The
+            numpy data type is expected to be a structured dtype, so that the data
+            columns are accessible by their name.
+
+        :param timestamp:
+            The point cloud timestamp, default is None.
+
+        :param scanpos_info:
+            The point scan positions information, default is None..
         """
         # Check the given array shapes
         if len(cloud.shape) != 2 or cloud.shape[1] != 3:
@@ -48,6 +66,10 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set metadata properties
         self.timestamp = timestamp
+        self.scanpos_info = scanpos_info
+
+        # Set the additional information (e.g. segment ids, normals, etc)
+        self.additional_dimensions = additional_dimensions
 
         # Call base class constructor
         super().__init__(cloud)
@@ -61,6 +83,46 @@ class Epoch(_py4dgeo.Epoch):
         self._timestamp = normalize_timestamp(timestamp)
 
     @property
+    def scanpos_info(self):
+        return self._scanpos_info
+
+    @scanpos_info.setter
+    def scanpos_info(self, scanpos_info):
+        if isinstance(scanpos_info, list):
+            self._scanpos_info = scanpos_info
+        elif isinstance(scanpos_info, dict):
+            self._scanpos_info = scan_positions_info_from_dict(scanpos_info)
+        else:
+            self._scanpos_info = None
+
+    @property
+    def scanpos_id(self):
+        return (
+            self.additional_dimensions["scanpos_id"]
+            .reshape(self.cloud.shape[0])
+            .astype(np.int32)
+        )
+
+    @scanpos_id.setter
+    def scanpos_id(self, scanpos_id):
+        if self.additional_dimensions is None:
+            additional_columns = np.empty(
+                shape=(self.cloud.shape[0], 1),
+                dtype=np.dtype([("scanpos_id", "<i4")]),
+            )
+            additional_columns["scanpos_id"] = np.array(
+                scanpos_id, dtype=np.int32
+            ).reshape(-1, 1)
+            self.additional_dimensions = additional_columns
+        else:
+            scanpos_id = np.array(scanpos_id, dtype=np.int32)
+            new_additional_dimensions = append_fields(
+                self.additional_dimensions, "scanpos_id", scanpos_id, usemask=False
+            )
+
+            self.additional_dimensions = new_additional_dimensions
+
+    @property
     def metadata(self):
         """Provide the metadata of this epoch as a Python dictionary
 
@@ -72,6 +134,7 @@ class Epoch(_py4dgeo.Epoch):
 
         return {
             "timestamp": None if self.timestamp is None else str(self.timestamp),
+            "scanpos_info": None if self.scanpos_info is None else self.scanpos_info,
         }
 
     def build_kdtree(self, leaf_size=10, force_rebuild=False):
@@ -121,8 +184,15 @@ class Epoch(_py4dgeo.Epoch):
                 # Write the actual point cloud array using laspy - LAZ compression
                 # is far better than any compression numpy + zipfile can do.
                 cloudfile = os.path.join(tmp_dir, "cloud.laz")
-                header = laspy.LasHeader(version="1.4", point_format=6)
-                lasfile = laspy.LasData(header)
+                hdr = laspy.LasHeader(version="1.4", point_format=6)
+                hdr.x_scale = 0.00025
+                hdr.y_scale = 0.00025
+                hdr.z_scale = 0.00025
+                mean_extent = np.mean(self.cloud, axis=0)
+                hdr.x_offset = int(mean_extent[0])
+                hdr.y_offset = int(mean_extent[1])
+                hdr.z_offset = int(mean_extent[2])
+                lasfile = laspy.LasData(hdr)
                 lasfile.x = self.cloud[:, 0]
                 lasfile.y = self.cloud[:, 1]
                 lasfile.z = self.cloud[:, 2]
@@ -240,7 +310,7 @@ def _as_tuple(x):
     return (x,)
 
 
-def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
+def read_from_xyz(*filenames, other_epoch=None, additional_dimensions={}, **parse_opts):
     """Create an epoch from an xyz file
 
     :param filename:
@@ -254,6 +324,11 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         Additional options forwarded to numpy.genfromtxt. This can be used
         to e.g. change the delimiter character, remove header_lines or manually
         specify which columns of the input contain the XYZ coordinates.
+    :param additional_dimensions:
+        A dictionary, mapping column indices to names of additional data dimensions.
+        They will be read from the file and are accessible under their names from the
+        created Epoch objects.
+        Additional column indexes start with 3.
     :type parse_opts: dict
     """
 
@@ -270,7 +345,20 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
         )
 
     # Construct the new Epoch object
-    new_epoch = Epoch(cloud=cloud)
+    if additional_dimensions == {}:
+        new_epoch = Epoch(cloud=cloud)
+    else:
+        # build additional_dimensions dtype structure
+        additional_columns = np.empty(
+            shape=(cloud.shape[0], 1),
+            dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+        )
+        # populate dtype structure
+        for column_id, column_name in additional_dimensions.items():
+            assert column_id >= 3, "The first 3 indexes are used for x,y,z"
+            additional_columns[column_name] = cloud[:, column_id].reshape(-1, 1)
+
+        new_epoch = Epoch(cloud=cloud[:, :3], additional_dimensions=additional_columns)
 
     if len(filenames) == 1:
         # End recursion and return non-tuple to make the case that the user
@@ -279,11 +367,16 @@ def read_from_xyz(*filenames, other_epoch=None, **parse_opts):
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_xyz(*filenames[1:], other_epoch=new_epoch, **parse_opts)
+            read_from_xyz(
+                *filenames[1:],
+                other_epoch=new_epoch,
+                additional_dimensions=additional_dimensions,
+                **parse_opts,
+            )
         )
 
 
-def read_from_las(*filenames, other_epoch=None):
+def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
@@ -293,6 +386,12 @@ def read_from_las(*filenames, other_epoch=None):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
+    :param additional_dimensions:
+        A dictionary, mapping column indices to names of additional data dimensions.
+        They will be read from the and areaccessible under their names from the
+        created Epoch objects.
+        Additional column indexes are corresponding indexes in the LAS/LAZ file.
+    :type additional_dimensions: dict
     """
 
     # Resolve the given path
@@ -302,16 +401,29 @@ def read_from_las(*filenames, other_epoch=None):
     logger.info(f"Reading point cloud from file '{filename}'")
     lasfile = laspy.read(filename)
 
+    cloud = np.vstack(
+        (
+            lasfile.x,
+            lasfile.y,
+            lasfile.z,
+        )
+    ).transpose()
+    # set scan positions
+    # build additional_dimensions dtype structure
+    additional_columns = np.empty(
+        shape=(cloud.shape[0], 1),
+        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+    )
+    for column_id, column_name in additional_dimensions.items():
+        additional_columns[column_name] = np.array(
+            lasfile.points[column_id], dtype=np.int32
+        ).reshape(-1, 1)
+
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
-        np.vstack(
-            (
-                lasfile.x,
-                lasfile.y,
-                lasfile.z,
-            )
-        ).transpose(),
+        cloud,
         timestamp=lasfile.header.creation_date,
+        additional_dimensions=additional_columns,
     )
 
     if len(filenames) == 1:
@@ -321,7 +433,11 @@ def read_from_las(*filenames, other_epoch=None):
     else:
         # Go into recursion
         return (new_epoch,) + _as_tuple(
-            read_from_las(*filenames[1:], other_epoch=new_epoch)
+            read_from_las(
+                *filenames[1:],
+                other_epoch=new_epoch,
+                additional_dimensions=additional_dimensions,
+            )
         )
 
 
@@ -354,3 +470,27 @@ def normalize_timestamp(timestamp):
             return parsed
 
     raise Py4DGeoError(f"The timestamp '{timestamp}' was not understood by py4dgeo.")
+
+
+def scan_positions_info_from_dict(info_dict: dict):
+    if info_dict is None:
+        return None
+    if not isinstance(info_dict, dict):
+        raise Py4DGeoError(f"The input scan position information should be dictionary.")
+        return None
+    # Compatible with both integer key and string key as index of the scan positions in json file
+    # load scan positions from dictionary, standardize loading via json format dumps to string key
+    scanpos_dict_load = json.loads(json.dumps(info_dict))
+    sps_list = []
+    for i in range(1, 1 + len(scanpos_dict_load)):
+        sps_list.append(scanpos_dict_load[str(i)])
+
+    for sp in sps_list:
+        sp_check = True
+        sp_check = False if len(sp["origin"]) != 3 else sp_check
+        sp_check = False if not isinstance(sp["sigma_range"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_scan"], float) else sp_check
+        sp_check = False if not isinstance(sp["sigma_yaw"], float) else sp_check
+        if not sp_check:
+            raise Py4DGeoError("Scan positions load failed, please check format. ")
+    return sps_list

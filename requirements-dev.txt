@@ -2,7 +2,6 @@ breathe
 cmake
 ipykernel
 lcov_cobertura
-matplotlib
 nbsphinx
 nbsphinx-link
 nbval
