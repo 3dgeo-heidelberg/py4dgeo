@@ -6,6 +6,7 @@ from py4dgeo.UpdateableZipFile import UpdateableZipFile
 import datetime
 import json
 import logging
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -1094,7 +1095,7 @@ class ObjectByChange:
         tsax.set_ylim(np.nanmin(seed_ts) * 0.5, np.nanmax(seed_ts) * 1.5)
 
         # Create a colormap with distance for this object
-        cmap = plt.cm.get_cmap("viridis")
+        cmap = matplotlib.colormaps.get_cmap("viridis")
         maxdist = np.nanmax(distarray)
 
         # Plot each time series individually
