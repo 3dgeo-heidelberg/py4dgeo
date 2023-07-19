@@ -165,6 +165,9 @@ def test_affine_trafo(epochs):
     trafo[0, 3] = 1
     epoch.transform(trafo)
 
+    # Assert that the transformation was saved
+    assert np.allclose(epoch.transformation, trafo)
+
     # Check the result
     assert np.allclose(epoch.cloud[:, 0] - 1, copycloud[:, 0])
     assert np.allclose(epoch.cloud[:, 1], copycloud[:, 1])
@@ -174,3 +177,4 @@ def test_affine_trafo(epochs):
     trafo[0, 3] = -1
     epoch.transform(trafo)
     assert np.allclose(epoch.cloud, copycloud)
+    assert np.allclose(epoch.transformation, np.identity(4))
