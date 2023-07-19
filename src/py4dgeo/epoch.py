@@ -162,11 +162,24 @@ class Epoch(_py4dgeo.Epoch):
 
         :param transformation:
             A 4x4 matrix representing the affine transformation. Given
-            as a numpy array.
+            as a numpy array. Alternatively, the transformation can be
+            defined by a 3x4 matrix.
         """
-        transformation = as_double_precision(make_contiguous(transformation))
-        _py4dgeo.transform_pointcloud_inplace(self.cloud, transformation)
-        self._transformation = np.dot(self.transformation, transformation)
+
+        # Make a copy and potentially resize it
+        trafo = transformation.copy()
+        if trafo.shape[0] == 3:
+            trafo.resize((4, 4), refcheck=False)
+            trafo[3, 3] = 1
+
+        # Ensure contiguous DP memory
+        trafo = as_double_precision(make_contiguous(trafo))
+
+        # Apply the actual transformation as efficient C++
+        _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo)
+
+        # Store the transformation
+        self._transformation = np.dot(self.transformation, trafo)
 
     @property
     def transformation(self):

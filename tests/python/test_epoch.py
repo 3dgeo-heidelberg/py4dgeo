@@ -178,3 +178,18 @@ def test_affine_trafo(epochs):
     epoch.transform(trafo)
     assert np.allclose(epoch.cloud, copycloud)
     assert np.allclose(epoch.transformation, np.identity(4))
+
+
+def test_3x4_trafo(epochs):
+    epoch, _ = epochs
+    copycloud = np.copy(epoch.cloud)
+
+    # Define an identity 3x4 transformation
+    trafo = np.zeros(shape=(3, 4))
+    trafo[0, 0] = 1
+    trafo[1, 1] = 1
+    trafo[2, 2] = 1
+
+    epoch.transform(trafo)
+    assert np.allclose(epoch.cloud, copycloud)
+    assert np.allclose(epoch.transformation, np.identity(4))
