@@ -158,7 +158,19 @@ def test_normalize_timestamp():
 
 def test_affine_trafo(epochs):
     epoch, _ = epochs
+    copycloud = np.copy(epoch.cloud)
 
+    # Apply a translation
     trafo = np.identity(4, dtype=np.float64)
     trafo[0, 3] = 1
     epoch.transform(trafo)
+
+    # Check the result
+    assert np.allclose(epoch.cloud[:, 0] - 1, copycloud[:, 0])
+    assert np.allclose(epoch.cloud[:, 1], copycloud[:, 1])
+    assert np.allclose(epoch.cloud[:, 2], copycloud[:, 2])
+
+    # Apply the inverse transformation and check for identity
+    trafo[0, 3] = -1
+    epoch.transform(trafo)
+    assert np.allclose(epoch.cloud, copycloud)
