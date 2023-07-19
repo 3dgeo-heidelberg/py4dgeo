@@ -17,7 +17,6 @@ from py4dgeo.segmentation import (
 )
 from py4dgeo.util import (
     __version__,
-    ensure_test_data_availability,
     find_file,
     MemoryPolicy,
     set_memory_policy,
