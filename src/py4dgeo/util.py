@@ -1,13 +1,11 @@
 import collections
-import hashlib
 import logging
 import numpy as np
 import os
 import platform
+import pooch
 import requests
 import sys
-import tarfile
-import tempfile
 import xdg
 
 from importlib import metadata
@@ -16,11 +14,8 @@ import py4dgeo._py4dgeo as _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2022-06-22/data.tar.gz"
-TEST_DATA_CHECKSUM = "7b459de25c210da3c4815b19b09647dfc73cff0c692954cd7ec29b166ec2c42a"
-
-# The directory where to place
-_test_data_dir = tempfile.TemporaryDirectory()
+TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2023-06-21/data.tar.gz"
+TEST_DATA_CHECKSUM = "e9f6ff80b4ae01d6806442b9bf9fd094471f3c113594c6c6abfc36bc9823de6b"
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
@@ -34,6 +29,23 @@ class Py4DGeoError(Exception):
         # Also write the message to the error stream
         logger = logging.getLogger(loggername)
         logger.error(self)
+
+
+def download_test_data(path=pooch.os_cache("py4dgeo"), fatal=False):
+    """Download the test data and copy it into the given path"""
+    try:
+        return pooch.retrieve(
+            TEST_DATA_ARCHIVE,
+            TEST_DATA_CHECKSUM,
+            path=path,
+            downloader=pooch.HTTPDownloader(timeout=(3, None)),
+            processor=pooch.Untar(extract_dir="."),
+        )
+    except requests.RequestException as e:
+        if fatal:
+            raise e
+        else:
+            return []
 
 
 def find_file(filename, fatal=True):
@@ -74,9 +86,11 @@ def find_file(filename, fatal=True):
         for xdg_dir in xdg.xdg_data_dirs():
             candidates.append(os.path.join(xdg_dir, filename))
 
-    # Use the temporary directory with test data (only contains something)
-    # iff ensure_test_data_availability was called.
-    candidates.append(os.path.join(_test_data_dir.name, filename))
+    # Ensure that the test data is taken into account. This is properly
+    # cached across sessions and uses a connection timeout.
+    for datafile in download_test_data():
+        if os.path.basename(datafile) == filename:
+            candidates.append(datafile)
 
     # Iterate through the list to check for file existence
     for candidate in candidates:
@@ -240,33 +254,10 @@ def is_iterable(obj):
     return isinstance(obj, collections.abc.Iterable) and not isinstance(obj, str)
 
 
-def copy_test_data(target):
-    """Download test data and copy it into the working directory"""
-
-    # Create temporary directory for the download
-    with tempfile.TemporaryDirectory() as tmp:
-        archive = requests.get(TEST_DATA_ARCHIVE).content
-        checksum = hashlib.sha256(archive).hexdigest()
-        if checksum != TEST_DATA_CHECKSUM:
-            raise ValueError("Checksum for test data archive failed.")
-
-        archive_file = os.path.join(tmp, "data.tar.gz")
-        with open(archive_file, "wb") as tar:
-            tar.write(archive)
-
-        with tarfile.open(archive_file, "r:gz") as tar:
-            tar.extractall(path=target)
-
-
 def copy_test_data_entrypoint():
     # Define the target directory
     target = os.getcwd()
     if len(sys.argv) > 1:
         target = sys.argv[1]
 
-    copy_test_data(target)
-
-
-def ensure_test_data_availability():
-    """Ensure the availability of test data for notebooks etc."""
-    copy_test_data(_test_data_dir.name)
+    download_test_data(path=target, fatal=True)

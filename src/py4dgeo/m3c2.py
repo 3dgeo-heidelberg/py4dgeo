@@ -11,6 +11,7 @@ import abc
 import logging
 import numpy as np
 import typing
+import laspy
 
 import py4dgeo._py4dgeo as _py4dgeo
 
@@ -162,6 +163,8 @@ class M3C2(M3C2LikeAlgorithm):
         if normals_epoch is None:
             normals_epoch = self.epochs[0]
         normals_epoch = as_epoch(normals_epoch)
+        # Ensure that the KDTree data structures have been built.
+        normals_epoch.build_kdtree()
 
         # Trigger the precomputation
         _py4dgeo.compute_multiscale_directions(
@@ -177,3 +180,45 @@ class M3C2(M3C2LikeAlgorithm):
     @property
     def name(self):
         return "M3C2"
+
+
+def write_m3c2_results_to_las(
+    outfilepath: str, m3c2: M3C2LikeAlgorithm, attribute_dict: dict = {}
+):
+    """Save the corepoints, distances and other attributes to a given las filename
+
+    :param outfilepath:
+        The las file path to save the corepoints, distances and other attributes.
+    :type outfilepath: str
+    :param m3c2:
+        The M3C2LikeAlgorithm object.
+    :type m3c2: M3C2LikeAlgorithm
+    :param attribute_dict:
+        The dictionary of attributes which will be saved together with corepoints.
+    :type attribute_dict: dict
+    """
+    # Will utilize Epoch.save(), by creating epoch from m3c2 corepoints and attribute_dict
+    # to be the epoch additional_dimensions, write this epoch to las not a zip file.
+    outpoints = m3c2.corepoints
+    hdr = laspy.LasHeader(version="1.4", point_format=6)
+    hdr.x_scale = 0.00025
+    hdr.y_scale = 0.00025
+    hdr.z_scale = 0.00025
+    mean_extent = np.mean(outpoints, axis=0)
+    hdr.x_offset = int(mean_extent[0])
+    hdr.y_offset = int(mean_extent[1])
+    hdr.z_offset = int(mean_extent[2])
+
+    las = laspy.LasData(hdr)
+
+    las.x = outpoints[:, 0]
+    las.y = outpoints[:, 1]
+    las.z = outpoints[:, 2]
+    for key, vals in attribute_dict.items():
+        try:
+            las[key] = vals
+        except:
+            las.add_extra_dim(laspy.ExtraBytesParams(name=key, type=type(vals[0])))
+            las[key] = vals
+
+    las.write(outfilepath)
