@@ -12,6 +12,7 @@ using Transformation = Eigen::Transform<double, 3, Eigen::Affine>;
 /** @brief Apply an affine transformation to a point cloud (in-place) */
 void
 transform_pointcloud_inplace(EigenPointCloudRef cloud,
-                             const Transformation& trafo);
+                             const Transformation& trafo,
+                             EigenPointCloudConstRef reduction_point);
 
 } // namespace py4dgeo
