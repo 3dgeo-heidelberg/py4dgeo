@@ -48,6 +48,9 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autofunction:: py4dgeo.set_num_threads
 
+.. autoclass:: py4dgeo.PBM3C2
+    :members:
+
 Developer API reference
 -----------------------
 

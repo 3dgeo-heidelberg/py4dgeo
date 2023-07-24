@@ -13,8 +13,11 @@ TEST_CASE("Affine Transformation", "[compute]")
   Transformation t(Transformation::Identity());
   t(0, 3) = 1;
 
+  EigenPointCloud ref(1, 3);
+  ref << 1, 2, 3;
+
   // Apply the transformation
-  transform_pointcloud_inplace(*cloud1, t);
+  transform_pointcloud_inplace(*cloud1, t, ref);
 
   for (IndexType i = 0; i < cloud1->rows(); ++i) {
     if (std::abs((*cloud1)(i, 0) - (*cloud2)(i, 0) - 1.0) >= 1e-8) {

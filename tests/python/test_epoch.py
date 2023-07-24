@@ -158,7 +158,86 @@ def test_normalize_timestamp():
 
 def test_affine_trafo(epochs):
     epoch, _ = epochs
+    copycloud = np.copy(epoch.cloud)
 
+    # Apply a translation
     trafo = np.identity(4, dtype=np.float64)
     trafo[0, 3] = 1
     epoch.transform(trafo)
+
+    # Assert that the transformation was saved
+    assert len(epoch.transformation) == 1
+    assert np.allclose(epoch.transformation[0][0], trafo)
+
+    # Check the result
+    assert np.allclose(epoch.cloud[:, 0] - 1, copycloud[:, 0])
+    assert np.allclose(epoch.cloud[:, 1], copycloud[:, 1])
+    assert np.allclose(epoch.cloud[:, 2], copycloud[:, 2])
+
+    # Apply the inverse transformation and check for identity
+    trafo[0, 3] = -1
+    epoch.transform(trafo)
+    assert np.allclose(epoch.cloud, copycloud)
+    assert len(epoch.transformation) == 2
+
+
+def test_identity_3x4_trafo(epochs):
+    epoch, _ = epochs
+    copycloud = np.copy(epoch.cloud)
+
+    # Define an identity 3x4 transformation
+    trafo = np.zeros(shape=(3, 4))
+    trafo[0, 0] = 1
+    trafo[1, 1] = 1
+    trafo[2, 2] = 1
+
+    epoch.transform(trafo)
+    assert np.allclose(epoch.cloud, copycloud)
+    assert len(epoch.transformation) == 1
+    assert np.allclose(epoch.transformation[0][0], np.identity(4))
+
+
+def test_identity_rotate_translate(epochs):
+    epoch, _ = epochs
+    copycloud = np.copy(epoch.cloud)
+
+    rotation = np.identity(3)
+    translation = np.zeros(shape=(1, 3))
+
+    epoch.transform(rotation=rotation, translation=translation)
+    assert np.allclose(epoch.cloud, copycloud)
+    assert len(epoch.transformation) == 1
+    assert np.allclose(epoch.transformation[0][0], np.identity(4))
+
+
+def test_identity_reference_point_transformation(epochs):
+    epoch, _ = epochs
+    copycloud = np.copy(epoch.cloud)
+    epoch.transform(
+        transformation=np.identity(4), reduction_point=np.array([127, 456, 578])
+    )
+    assert np.allclose(epoch.cloud, copycloud)
+    assert len(epoch.transformation) == 1
+    assert np.allclose(epoch.transformation[0][0], np.identity(4))
+
+
+def test_trafo_serialization(epochs):
+    epoch, _ = epochs
+
+    # Define and apply a transformation
+    trafo = np.identity(4, dtype=np.float64)
+    trafo[0, 3] = 1
+    rp = np.array([1, 2, 3], dtype=np.float64)
+    epoch.transform(transformation=trafo, reduction_point=rp)
+
+    # Operate in a temporary directory
+    with tempfile.TemporaryDirectory() as dir:
+        # Save and load it
+        filename = os.path.join(dir, "epoch")
+        save_epoch(epoch, filename)
+        loaded = load_epoch(filename)
+
+        # Assert that the two object behave the same
+        assert len(loaded.transformation) == 1
+        assert np.allclose(loaded.transformation[0][0], trafo)
+        assert np.allclose(loaded.transformation[0][1], rp)
