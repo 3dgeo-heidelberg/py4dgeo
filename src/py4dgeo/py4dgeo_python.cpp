@@ -13,6 +13,7 @@
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
+#include "py4dgeo/registration.hpp"
 #include "py4dgeo/segmentation.hpp"
 
 #include <fstream>
@@ -343,6 +344,20 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("min_size"),
     py::arg("jump"),
     py::arg("penalty"));
+
+  m.def("transform_pointcloud_inplace",
+        [](EigenPointCloudRef cloud,
+           const py::array_t<double>& t,
+           EigenPointCloudConstRef rp) {
+          Transformation trafo;
+
+          auto r = t.unchecked<2>();
+          for (IndexType i = 0; i < 4; ++i)
+            for (IndexType j = 0; j < 4; ++j)
+              trafo(i, j) = r(i, j);
+
+          transform_pointcloud_inplace(cloud, trafo, rp);
+        });
 
   // The main algorithms for the spatiotemporal segmentations
   m.def("region_growing",
