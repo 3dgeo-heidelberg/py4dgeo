@@ -30,7 +30,14 @@ logger = logging.getLogger("py4dgeo")
 # about incompatibilities of py4dgeo with loaded data. This version is intentionally
 # different from py4dgeo's version, because not all releases of py4dgeo necessarily
 # change the epoch file format and we want to be as compatible as possible.
-PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 2
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 3
+
+
+class NumpyArrayEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.ndarray):
+            return obj.tolist()
+        return json.JSONEncoder.default(self, obj)
 
 
 class Epoch(_py4dgeo.Epoch):
@@ -69,6 +76,9 @@ class Epoch(_py4dgeo.Epoch):
         # Make sure that cloud is double precision and contiguous in memory
         cloud = as_double_precision(cloud)
         cloud = make_contiguous(cloud)
+
+        # Set identity transformation
+        self._transformations = []
 
         # Make sure that given normals are DP and contiguous as well
         if normals is not None:
@@ -207,6 +217,67 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def transform(
+        self,
+        transformation=None,
+        rotation=np.identity(3, dtype=np.float64),
+        translation=np.array([0, 0, 0], dtype=np.float64),
+        reduction_point=np.array([0, 0, 0], dtype=np.float64),
+    ):
+        """Transform the epoch with an affine transformation
+
+        :param transformation:
+            A 4x4 or 3x4 matrix representing the affine transformation. Given
+            as a numpy array. If this argument is given, the rotation and
+            translation arguments are ignored.
+        :type transformation: np.ndarray
+        :param rotation:
+            A 3x3 matrix specifying the rotation to apply
+        :type rotation: np.ndarray
+        :param translation:
+            A vector specifying the translation to apply
+        :type translation: np.ndarray
+        :param reduction_point:
+            A translation vector to apply before applying rotation and scaling.
+            This is used to increase the numerical accuracy of transformation.
+        :type reduction_point: np.ndarray
+        """
+
+        # Build the transformation if it is not explicitly given
+        if transformation is None:
+            trafo = np.identity(4, dtype=np.float64)
+            trafo[:3, :3] = rotation
+            trafo[:3, 3] = translation
+        else:
+            # If it was given, make a copy and potentially resize it
+            trafo = transformation.copy()
+            if trafo.shape[0] == 3:
+                trafo.resize((4, 4), refcheck=False)
+                trafo[3, 3] = 1
+
+        # Ensure contiguous DP memory
+        trafo = as_double_precision(make_contiguous(trafo))
+
+        # Apply the actual transformation as efficient C++
+        _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo, reduction_point)
+
+        # Store the transformation
+        self._transformations.append((trafo, reduction_point))
+
+    @property
+    def transformation(self):
+        """Access the affine transformations that were applied to this epoch
+
+        In order to set this property please use the transform method instead,
+        which will make sure to also apply the transformation.
+
+        :returns:
+            Returns a list of applied transformations. These are given
+            as a tuple of a 4x4 matrix defining the affine transformation
+            and the reduction point used when applying it.
+        """
+        return self._transformations
+
     def save(self, filename):
         """Save this epoch to a file
 
@@ -233,6 +304,12 @@ class Epoch(_py4dgeo.Epoch):
                 with open(metadatafile, "w") as f:
                     json.dump(self.metadata, f)
                 zf.write(metadatafile, arcname="metadata.json")
+
+                # Write the transformation into a file
+                trafofile = os.path.join(tmp_dir, "trafo.json")
+                with open(trafofile, "w") as f:
+                    json.dump(self._transformations, f, cls=NumpyArrayEncoder)
+                zf.write(trafofile, arcname="trafo.json")
 
                 # Write the actual point cloud array using laspy - LAZ compression
                 # is far better than any compression numpy + zipfile can do.
@@ -276,8 +353,10 @@ class Epoch(_py4dgeo.Epoch):
             with zipfile.ZipFile(filename, mode="r") as zf:
                 # Read the epoch file version number and compare to current
                 version = int(zf.read("EPOCH_FILE_FORMAT").decode())
-                if version != PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
-                    raise Py4DGeoError("Epoch file format is out of date!")
+                if version > PY4DGEO_EPOCH_FILE_FORMAT_VERSION:
+                    raise Py4DGeoError(
+                        "Epoch file format not known - please update py4dgeo!"
+                    )
 
                 # Read the metadata JSON file
                 metadatafile = zf.extract("metadata.json", path=tmp_dir)
@@ -296,35 +375,16 @@ class Epoch(_py4dgeo.Epoch):
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
                 epoch.kdtree.load_index(kdtreefile)
 
+                # Read the transformation if it exists
+                if version >= 3:
+                    trafofile = zf.extract("trafo.json", path=tmp_dir)
+                    with open(trafofile, "r") as f:
+                        trafo = json.load(f)
+                    epoch._transformations = [
+                        (np.array(t), np.array(rp)) for t, rp in trafo
+                    ]
+
         return epoch
-
-    def radius_search(self, query: np.ndarray, radius: float):
-        """Query the tree for neighbors within a radius r
-        :param query:
-            An array of points to query.
-            Array-like of shape (n_samples, 3) or query 1 sample point of shape (3,)
-        :type query: array
-        :param radius:
-            Rebuild the search tree even if it was already built before.
-        :type radius: float
-        """
-        if len(query.shape) == 1 and query.shape[0] == 3:
-            return [self.kdtree.radius_search(query, radius)]
-
-        if len(query.shape) == 2 and query.shape[1] == 3:
-            neighbors = []
-            for i in range(query.shape[0]):
-                q = query[i]
-                result = self.kdtree.radius_search(q, radius)
-                neighbors.append(result)
-            return neighbors
-
-        raise Py4DGeoError(
-            "Please ensure queries are array-like of shape (n_samples, 3)"
-            " or of shape (3,) to query 1 sample point!"
-        )
-
-        return None
 
     def __getstate__(self):
         return (

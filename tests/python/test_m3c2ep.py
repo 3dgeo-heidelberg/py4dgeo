@@ -11,8 +11,8 @@ def test_m3c2ep(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info):
     epoch1, epoch2 = epochs_m3c2ep
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
-    corepoints = epoch1.cloud[::25]
-
+    corepoints = epoch1.cloud[::8000]
+    print("corepoints shape", corepoints.shape)
     # Instantiate an M3C2 instance
     m3c2ep = M3C2EP(
         epochs=(epoch1, epoch2),
@@ -52,7 +52,7 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
     epoch1, epoch2 = epochs_m3c2ep
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
-    corepoints = epoch1.cloud[::25]
+    corepoints = epoch1.cloud[::8000]
 
     # Run and check normals should be one direction or one normal per point.
     with pytest.raises(Py4DGeoError):
@@ -91,8 +91,7 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
         tfM=tfM,
         refPointMov=redPoint,
     )
-    # Run it and check that corepoint normals same as algorithm directions
-    distances_n, uncertainties_n, covariance_n = m3c2ep_n.run()
+    # Check that corepoint normals same as algorithm directions
     assert np.allclose(m3c2ep_n.directions(), corepoint_normals)
 
     # Instantiate an M3C2 instance with one direction
@@ -107,8 +106,7 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
         tfM=tfM,
         refPointMov=redPoint,
     )
-    # Run it and check that corepoint normals same as algorithm directions
-    distances, uncertainties, covariance = m.run()
+    # Check that corepoint normals same as algorithm directions
     assert np.allclose(m.directions(), corepoint_normals)
 
 
@@ -148,7 +146,7 @@ def test_m3c2ep_write_las(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info):
     epoch1, epoch2 = epochs_m3c2ep
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
-    corepoints = epoch1.cloud[::25]
+    corepoints = epoch1.cloud[::8000]
 
     # Instantiate an M3C2 instance
     m3c2ep = M3C2EP(

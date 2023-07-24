@@ -9,13 +9,13 @@ repos:
 
   # Run Black - the uncompromising Python code formatter
   - repo: https://github.com/psf/black
-    rev: 23.1.0
+    rev: 23.7.0
     hooks:
       - id: black-jupyter
 
   # Format C++ code with Clang-Format - automatically applying the changes
   - repo: https://github.com/ssciwr/clang-format-precommit
-    rev: v15.0.6
+    rev: v16.0.2
     hooks:
       - id: clang-format
         args:
@@ -50,7 +50,7 @@ repos:
 
   # Check Configuration as Code files for integrations
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.21.0
+    rev: 0.23.3
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs

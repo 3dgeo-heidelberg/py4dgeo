@@ -4,10 +4,10 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 
 
-def test_predict(epochs):
+def test_compute_distances(epochs):
     epoch0, epoch1 = epochs
 
-    alg = py4dgeo.PB_M3C2(
+    alg = py4dgeo.PBM3C2(
         classifier=py4dgeo.ClassifierWrapper(
             classifier=RandomForestClassifier(random_state=42)
         )
@@ -31,19 +31,6 @@ def test_predict(epochs):
     # )
     # py4dgeo.Viewer.segmented_point_cloud_visualizer(X=segmented_point_cloud)
 
-    extended_y = py4dgeo.generate_random_extended_y(
-        extracted_segments, extended_y_file_name="extended_y.csv"
-    )
-
-    alg.training(extracted_segments, extended_y)
-    # alg.training(
-    #     extracted_segments_file_name="extracted_segments.seg",
-    #     extended_y_file_name="extended_y.csv",
-    # )
-
-    rez0 = alg.predict(epoch0=epoch0, epoch1=epoch1)
-    # print(alg.predict(epoch0=epoch0, epoch1=epoch1, get_pipeline_option=True))
-
     (
         _0,
         _1,
@@ -56,7 +43,20 @@ def test_predict(epochs):
         extracted_segments_file_name=None,
     )
 
-    rez1 = alg.predict(
+    extended_y = py4dgeo.generate_random_extended_y(
+        extracted_segments, extended_y_file_name="extended_y.csv"
+    )
+
+    alg.training(extracted_segments, extended_y)
+    # alg.training(
+    #     extracted_segments_file_name="extracted_segments.seg",
+    #     extended_y_file_name="extended_y.csv",
+    # )
+
+    rez0 = alg.compute_distances(epoch0=epoch0, epoch1=epoch1)
+    # print(alg.predict(epoch0=epoch0, epoch1=epoch1, get_pipeline_option=True))
+
+    rez1 = alg.compute_distances(
         epoch0=extracted_segments_epoch0,
         epoch1=epoch1,
         get_pipeline_options=True,
@@ -74,10 +74,13 @@ def test_predict(epochs):
         "epoch0_Transform_ExtractSegments__skip": True,
     }
 
-    rez2 = alg.predict(
+    rez2 = alg.compute_distances(
         epoch0=extracted_segments_epoch0, epoch1=epoch1, **config_epoch0_as_segments
     )
 
-    assert np.array_equal(rez0, rez1), "unequal anymore"
-    assert np.array_equal(rez0, rez1), "unequal anymore"
-    assert np.array_equal(rez1, rez2), "unequal anymore"
+    assert np.array_equal(rez0[0], rez1[0]), "unequal anymore"
+    assert np.array_equal(rez0[1], rez1[1]), "unequal anymore"
+    assert np.array_equal(rez0[0], rez1[0]), "unequal anymore"
+    assert np.array_equal(rez0[1], rez1[1]), "unequal anymore"
+    assert np.array_equal(rez1[0], rez2[0]), "unequal anymore"
+    assert np.array_equal(rez1[1], rez2[1]), "unequal anymore"

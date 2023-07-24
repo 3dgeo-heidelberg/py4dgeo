@@ -17,7 +17,6 @@ from py4dgeo.segmentation import (
 )
 from py4dgeo.util import (
     __version__,
-    ensure_test_data_availability,
     find_file,
     MemoryPolicy,
     set_memory_policy,
@@ -25,4 +24,4 @@ from py4dgeo.util import (
     set_num_threads,
 )
 
-from py4dgeo.PB_M3C2 import *
+from py4dgeo.pbm3c2 import *
