@@ -38,18 +38,36 @@ def _fit_transform(A, B):
     return T
 
 
-def iterative_closest_point(reference_epoch, epoch, max_iterations=20, tolerance=0.001):
+def iterative_closest_point(
+    reference_epoch, epoch, max_iterations=20, tolerance=0.001, reduction_point=None
+):
     """Perform an Iterative Closest Point algorithm (ICP)
 
     :param reference_epoch:
+        The reference epoch to match with.
+    :type reference_epoch: py4dgeo.Epoch
     :param epoch:
+        The epoch to be transformed to the reference epoch
+    :type epoch: py4dgeo.Epoch
     :param max_iterations:
+        The maximum number of iterations to be performed in the ICP algorithm
+    :type max_iterations: int
     :param tolerance:
+        The tolerance criterium used to terminate ICP iteration.
+    :type tolerance: float
+    :param reduction_point:
+        A translation vector to apply before applying rotation and scaling.
+        This is used to increase the numerical accuracy of transformation.
+    :type reduction_point: np.ndarray
     """
 
     # Ensure that reference_epoch has its KDTree built
     if reference_epoch.kdtree.leaf_parameter() == 0:
         reference_epoch.build_kdtree()
+
+    # Apply the default for the registration point
+    if reduction_point is None:
+        reduction_point = np.array([0, 0, 0])
 
     # Make a copy of the cloud to be transformed.
     cloud = epoch.cloud.copy()
@@ -61,7 +79,7 @@ def iterative_closest_point(reference_epoch, epoch, max_iterations=20, tolerance
 
         # Calculate a transform and apply it
         T = _fit_transform(cloud, reference_epoch.cloud[indices, :])
-        _py4dgeo.transform_pointcloud_inplace(cloud, T)
+        _py4dgeo.transform_pointcloud_inplace(cloud, T, reduction_point)
 
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
