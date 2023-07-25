@@ -43,3 +43,16 @@ def test_rebuilding(epochs):
     # forced rebuild - leaf parameter is 20
     epoch1.build_kdtree(leaf_size=20, force_rebuild=20)
     assert epoch1.kdtree.leaf_parameter() == 20
+
+
+def test_nearest_neighbors(epochs):
+    epoch1, epoch2 = epochs
+    epoch1.build_kdtree()
+    epoch2.build_kdtree()
+
+    neighbors, distances = epoch1.kdtree.nearest_neighbors(epoch2.cloud)
+    for i in range(epoch1.cloud.shape[0]):
+        assert i == neighbors[i]
+        assert np.isclose(
+            ((epoch1.cloud[i, :] - epoch2.cloud[i, :]) ** 2).sum(), distances[i]
+        )
