@@ -241,3 +241,9 @@ def test_trafo_serialization(epochs):
         assert len(loaded.transformation) == 1
         assert np.allclose(loaded.transformation[0][0], trafo)
         assert np.allclose(loaded.transformation[0][1], rp)
+
+
+def test_normal_computation(epochs):
+    epoch, _ = epochs
+    normals = epoch.calculate_normals(radius=1.5)
+    assert normals.shape == epoch.cloud.shape
