@@ -531,6 +531,9 @@ def read_from_xyz(
         parsed_additionals = np.genfromtxt(
             filename, dtype=np.float64, usecols=add_cols, **parse_opts
         )
+        # Ensure that the parsed array is two-dimensional, even if only
+        # one additional dimension was given (avoids an edge case)
+        parsed_additionals = parsed_additionals.reshape(-1, 1)
     except ValueError:
         raise Py4DGeoError("Malformed XYZ file")
 
