@@ -38,6 +38,8 @@ def epoch_fixture(*filenames):
 
 # Instantiate one fixture per data dile
 epochs = epoch_fixture("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
+epochs_las = epoch_fixture("plane_horizontal_t1.laz", "plane_horizontal_t2.laz")
+epochs_las_w_normals = epoch_fixture("plane_horizontal_t1_w_normals.laz", "plane_horizontal_t2_w_normals.laz")
 
 
 @pytest.fixture

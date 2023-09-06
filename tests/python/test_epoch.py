@@ -247,3 +247,27 @@ def test_normal_computation(epochs):
     epoch, _ = epochs
     normals = epoch.calculate_normals(radius=1.5)
     assert normals.shape == epoch.cloud.shape
+
+
+def test_epoch_saveload_w_normals(epochs_las_w_normals):
+    epoch1_las, _ = epochs_las_w_normals
+
+    # Operate in a temporary directory
+    with tempfile.TemporaryDirectory() as dir:
+        # Save and load it
+        filename = os.path.join(dir, "epoch")
+        save_epoch(epoch1_las, filename)
+        loaded = load_epoch(filename)
+
+        # Assert that the two object behave the same
+        assert loaded.normals.shape[0] == epoch1_las.normals.shape[0]
+
+
+def test_read_from_las_file_w_3_coords(epochs_las):
+    epoch1, _ = epochs_las
+    assert np.isclose(np.max(epoch1.cloud), 10)
+
+
+def test_read_from_las_file_w_normals(epochs_las_w_normals):
+    epoch1, _ = epochs_las_w_normals
+    assert np.isclose(np.max(epoch1.normals), 0)
