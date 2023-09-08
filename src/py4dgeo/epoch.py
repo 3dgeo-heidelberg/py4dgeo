@@ -21,9 +21,7 @@ import zipfile
 
 import py4dgeo._py4dgeo as _py4dgeo
 
-
 logger = logging.getLogger("py4dgeo")
-
 
 # This integer controls the versioning of the epoch file format. Whenever the
 # format is changed, this version should be increased, so that py4dgeo can warn
@@ -326,6 +324,30 @@ class Epoch(_py4dgeo.Epoch):
                 lasfile.x = self.cloud[:, 0]
                 lasfile.y = self.cloud[:, 1]
                 lasfile.z = self.cloud[:, 2]
+
+                # define dimensions for normals below:
+                if self._normals is not None:
+                    lasfile.add_extra_dim(
+                        laspy.ExtraBytesParams(
+                            name="NormalX", type="f8", description="X axis of normals"
+                        )
+                    )
+                    lasfile.add_extra_dim(
+                        laspy.ExtraBytesParams(
+                            name="NormalY", type="f8", description="Y axis of normals"
+                        )
+                    )
+                    lasfile.add_extra_dim(
+                        laspy.ExtraBytesParams(
+                            name="NormalZ", type="f8", description="Z axis of normals"
+                        )
+                    )
+                    lasfile.NormalX = self.normals[:, 0]
+                    lasfile.NormalY = self.normals[:, 1]
+                    lasfile.NormalZ = self.normals[:, 2]
+                else:
+                    logger.info("Saving a file without normals.")
+
                 lasfile.write(cloudfile)
                 zf.write(cloudfile, arcname="cloud.laz")
 
@@ -367,9 +389,14 @@ class Epoch(_py4dgeo.Epoch):
                 cloudfile = zf.extract("cloud.laz", path=tmp_dir)
                 lasfile = laspy.read(cloudfile)
                 cloud = np.vstack((lasfile.x, lasfile.y, lasfile.z)).transpose()
-
+                try:
+                    normals = np.vstack(
+                        (lasfile.NormalX, lasfile.NormalY, lasfile.NormalZ)
+                    ).transpose()
+                except AttributeError:
+                    normals = None
                 # Construct the epoch object
-                epoch = Epoch(cloud, **metadata)
+                epoch = Epoch(cloud, normals=normals, **metadata)
 
                 # Restore the KDTree object
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
@@ -563,7 +590,9 @@ def read_from_xyz(
         )
 
 
-def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
+def read_from_las(
+    *filenames, other_epoch=None, normal_columns=[], additional_dimensions={}
+):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
@@ -573,9 +602,13 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     :param other_epoch:
         An existing epoch that we want to be compatible with.
     :type other_epoch: py4dgeo.Epoch
+    :param normal_columns:
+        The column names of the normal vector components, e.g. "NormalX", "nx", "normal_x" etc., keep in mind that there
+        must be exactly 3 columns. Leave empty, if your data file does not contain normals.
+    :type normal_columns: list
     :param additional_dimensions:
         A dictionary, mapping column indices to names of additional data dimensions.
-        They will be read from the and areaccessible under their names from the
+        They will be read from the and are accessible under their names from the
         created Epoch objects.
         Additional column indexes are corresponding indexes in the LAS/LAZ file.
     :type additional_dimensions: dict
@@ -595,6 +628,20 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
             lasfile.z,
         )
     ).transpose()
+
+    normals = None
+    if normal_columns:
+        if len(normal_columns) != 3:
+            raise Py4DGeoError("normal_columns need to be a list of three strings!")
+
+        normals = np.vstack(
+            [
+                lasfile.points[normal_columns[0]],
+                lasfile.points[normal_columns[1]],
+                lasfile.points[normal_columns[2]],
+            ]
+        ).transpose()
+
     # set scan positions
     # build additional_dimensions dtype structure
     additional_columns = np.empty(
@@ -609,6 +656,7 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
         cloud,
+        normals=normals,
         timestamp=lasfile.header.creation_date,
         additional_dimensions=additional_columns,
     )
@@ -623,6 +671,7 @@ def read_from_las(*filenames, other_epoch=None, additional_dimensions={}):
             read_from_las(
                 *filenames[1:],
                 other_epoch=new_epoch,
+                normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
             )
         )

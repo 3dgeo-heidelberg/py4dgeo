@@ -36,8 +36,28 @@ def epoch_fixture(*filenames):
     return _epoch_fixture
 
 
+def epoch_las_fixture(*filenames):
+    """Wrap a given data file in an Epoch and make it a pytest fixture"""
+
+    @pytest.fixture
+    def _epoch_fixture():
+        normal_columns = (
+            ["NormalX", "NormalY", "NormalZ"] if ("normals" in filenames[0]) else None
+        )
+        return read_from_las(
+            *tuple(find_data_file(fn) for fn in filenames),
+            normal_columns=normal_columns,
+        )
+
+    return _epoch_fixture
+
+
 # Instantiate one fixture per data dile
 epochs = epoch_fixture("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
+epochs_las = epoch_las_fixture("plane_horizontal_t1.laz", "plane_horizontal_t2.laz")
+epochs_las_w_normals = epoch_las_fixture(
+    "plane_horizontal_t1_w_normals.laz", "plane_horizontal_t2_w_normals.laz"
+)
 
 
 @pytest.fixture
