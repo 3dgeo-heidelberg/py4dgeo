@@ -40,12 +40,12 @@ class NumpyArrayEncoder(json.JSONEncoder):
 
 class Epoch(_py4dgeo.Epoch):
     def __init__(
-            self,
-            cloud: np.ndarray,
-            normals: np.ndarray = None,
-            additional_dimensions: np.ndarray = None,
-            timestamp=None,
-            scanpos_info: dict = None,
+        self,
+        cloud: np.ndarray,
+        normals: np.ndarray = None,
+        additional_dimensions: np.ndarray = None,
+        timestamp=None,
+        scanpos_info: dict = None,
     ):
         """
 
@@ -104,7 +104,7 @@ class Epoch(_py4dgeo.Epoch):
         return self._normals
 
     def calculate_normals(
-            self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
+        self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
     ):
         """Calculate point cloud normals
 
@@ -216,11 +216,11 @@ class Epoch(_py4dgeo.Epoch):
             self.kdtree.build_tree(leaf_size)
 
     def transform(
-            self,
-            transformation=None,
-            rotation=np.identity(3, dtype=np.float64),
-            translation=np.array([0, 0, 0], dtype=np.float64),
-            reduction_point=np.array([0, 0, 0], dtype=np.float64),
+        self,
+        transformation=None,
+        rotation=np.identity(3, dtype=np.float64),
+        translation=np.array([0, 0, 0], dtype=np.float64),
+        reduction_point=np.array([0, 0, 0], dtype=np.float64),
     ):
         """Transform the epoch with an affine transformation
 
@@ -292,7 +292,7 @@ class Epoch(_py4dgeo.Epoch):
         with tempfile.TemporaryDirectory() as tmp_dir:
             # Create the final archive
             with zipfile.ZipFile(
-                    filename, mode="w", compression=zipfile.ZIP_BZIP2
+                filename, mode="w", compression=zipfile.ZIP_BZIP2
             ) as zf:
                 # Write the epoch file format version number
                 zf.writestr("EPOCH_FILE_FORMAT", str(PY4DGEO_EPOCH_FILE_FORMAT_VERSION))
@@ -328,11 +328,20 @@ class Epoch(_py4dgeo.Epoch):
                 # define dimensions for normals below:
                 if self._normals is not None:
                     lasfile.add_extra_dim(
-                        laspy.ExtraBytesParams(name="NormalX", type="f8", description="X axis of normals"))
+                        laspy.ExtraBytesParams(
+                            name="NormalX", type="f8", description="X axis of normals"
+                        )
+                    )
                     lasfile.add_extra_dim(
-                        laspy.ExtraBytesParams(name="NormalY", type="f8", description="Y axis of normals"))
+                        laspy.ExtraBytesParams(
+                            name="NormalY", type="f8", description="Y axis of normals"
+                        )
+                    )
                     lasfile.add_extra_dim(
-                        laspy.ExtraBytesParams(name="NormalZ", type="f8", description="Z axis of normals"))
+                        laspy.ExtraBytesParams(
+                            name="NormalZ", type="f8", description="Z axis of normals"
+                        )
+                    )
                     lasfile.NormalX = self.normals[:, 0]
                     lasfile.NormalY = self.normals[:, 1]
                     lasfile.NormalZ = self.normals[:, 2]
@@ -381,7 +390,9 @@ class Epoch(_py4dgeo.Epoch):
                 lasfile = laspy.read(cloudfile)
                 cloud = np.vstack((lasfile.x, lasfile.y, lasfile.z)).transpose()
                 try:
-                    normals = np.vstack((lasfile.NormalX, lasfile.NormalY, lasfile.NormalZ)).transpose()
+                    normals = np.vstack(
+                        (lasfile.NormalX, lasfile.NormalY, lasfile.NormalZ)
+                    ).transpose()
                 except:
                     normals = None
                 # Construct the epoch object
@@ -468,12 +479,12 @@ def _as_tuple(x):
 
 
 def read_from_xyz(
-        *filenames,
-        other_epoch=None,
-        xyz_columns=[0, 1, 2],
-        normal_columns=[],
-        additional_dimensions={},
-        **parse_opts,
+    *filenames,
+    other_epoch=None,
+    xyz_columns=[0, 1, 2],
+    normal_columns=[],
+    additional_dimensions={},
+    **parse_opts,
 ):
     """Create an epoch from an xyz file
 
@@ -555,8 +566,8 @@ def read_from_xyz(
 
     for i, col in enumerate(add_cols):
         additional_columns[additional_dimensions[col]] = parsed_additionals[
-                                                         :, i
-                                                         ].reshape(-1, 1)
+            :, i
+        ].reshape(-1, 1)
 
     # Finalize the construction of the new epoch
     new_epoch = Epoch(cloud, normals=normals, additional_dimensions=additional_columns)
@@ -579,7 +590,9 @@ def read_from_xyz(
         )
 
 
-def read_from_las(*filenames, other_epoch=None, normal_columns=[], additional_dimensions={}):
+def read_from_las(
+    *filenames, other_epoch=None, normal_columns=[], additional_dimensions={}
+):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
