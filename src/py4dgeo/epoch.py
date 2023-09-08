@@ -393,7 +393,7 @@ class Epoch(_py4dgeo.Epoch):
                     normals = np.vstack(
                         (lasfile.NormalX, lasfile.NormalY, lasfile.NormalZ)
                     ).transpose()
-                except:
+                except AttributeError:
                     normals = None
                 # Construct the epoch object
                 epoch = Epoch(cloud, normals=normals, **metadata)
