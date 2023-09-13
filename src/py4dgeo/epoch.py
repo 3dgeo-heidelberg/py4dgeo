@@ -313,9 +313,9 @@ class Epoch(_py4dgeo.Epoch):
                 # is far better than any compression numpy + zipfile can do.
                 cloudfile = os.path.join(tmp_dir, "cloud.laz")
                 hdr = laspy.LasHeader(version="1.4", point_format=6)
-                hdr.x_scale = 0.00025
-                hdr.y_scale = 0.00025
-                hdr.z_scale = 0.00025
+                hdr.x_scale = 0.00000001
+                hdr.y_scale = 0.00000001
+                hdr.z_scale = 0.00000001
                 mean_extent = np.mean(self.cloud, axis=0)
                 hdr.x_offset = int(mean_extent[0])
                 hdr.y_offset = int(mean_extent[1])
