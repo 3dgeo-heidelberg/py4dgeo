@@ -1,5 +1,6 @@
 #pragma once
 
+#include "kdtree.hpp"
 #include <py4dgeo/py4dgeo.hpp>
 
 #include <Eigen/Geometry>
@@ -24,7 +25,7 @@ public:
 
   /** @brief Find the subset identifier that the i-th element currently belongs
    * to */
-  IndexType find(IndexType i) const;
+  IndexType Find(IndexType i) const;
 
   /** @brief Merge two subsets into one
    *
@@ -34,7 +35,7 @@ public:
    *
    * @return The subset identifier of the merged subset
    */
-  IndexType union(IndexType i, IndexType j, bool balance_sizes);
+  IndexType Union(IndexType i, IndexType j, bool balance_sizes);
 
 private:
   /** @brief The number of points in the data structure */
@@ -47,7 +48,7 @@ private:
   mutable std::vector<IndexType> subsets_;
 };
 
-void
+std::vector<std::vector<int>>
 supervoxel_segmentation(EigenPointCloudConstRef cloud,
                         const KDTree& kdtree,
                         double seed_resolution);
