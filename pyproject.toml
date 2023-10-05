@@ -2,7 +2,7 @@
 # process itself. Being able to do this was the original reason to
 # introduce pyproject.toml
 [build-system]
-requires = ["setuptools>=61,<64", "wheel", "scikit-build", "cmake>=3.17"]
+requires = ["setuptools>=66.1", "wheel", "scikit-build", "cmake>=3.17"]
 build-backend = "setuptools.build_meta"
 
 # This section provides general project metadata that is used across
