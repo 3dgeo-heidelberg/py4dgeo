@@ -2,8 +2,8 @@
 # process itself. Being able to do this was the original reason to
 # introduce pyproject.toml
 [build-system]
-requires = ["setuptools>=66.1", "wheel", "scikit-build", "cmake>=3.17"]
-build-backend = "setuptools.build_meta"
+requires = ["scikit-build-core"]
+build-backend = "scikit_build_core.build"
 
 # This section provides general project metadata that is used across
 # a variety of build tools. Notably, the version specified here is the
@@ -43,9 +43,12 @@ dependencies = [
 [project.scripts]
 copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 
-# NB: Setuptools-specific build options are currently still stored
-#     in setup.py, as scikit-build is not (yet) supporting PEP621.
-#     Later on, these will be stored in [tool.setuptools]
+[tool.scikit-build.cmake]
+minimum-version = "3.17"
+
+[tool.scikit-build.cmake.define]
+BUILD_DOCS = "OFF"
+BUILD_TESTING = "OFF"
 
 # The next section configures building wheels in Continuous Integration
 # The cibuildwheel documentation covers the available options in detail:
