@@ -1,5 +1,5 @@
 from py4dgeo.fallback import *
-from py4dgeo._py4dgeo import (
+from _py4dgeo import (
     cylinder_workingset_finder as cxx_cylinder_workingset_finder,
     mean_stddev_distance as cxx_mean_stddev_distance,
     median_iqr_distance as cxx_median_iqr_distance,
