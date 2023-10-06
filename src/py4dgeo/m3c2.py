@@ -13,7 +13,7 @@ import numpy as np
 import typing
 import laspy
 
-import py4dgeo._py4dgeo as _py4dgeo
+import _py4dgeo
 
 
 logger = logging.getLogger("py4dgeo")

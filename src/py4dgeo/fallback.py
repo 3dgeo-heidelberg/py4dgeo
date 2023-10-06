@@ -3,7 +3,7 @@
 from py4dgeo.m3c2 import M3C2
 
 import numpy as np
-import py4dgeo._py4dgeo as _py4dgeo
+import _py4dgeo
 
 
 def radius_workingset_finder(params: _py4dgeo.WorkingSetFinderParameters) -> np.ndarray:
