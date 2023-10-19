@@ -5,6 +5,11 @@
 #include <unordered_map>
 #include <vector>
 
+// imports to delete
+#include <iostream>
+
+#define LMBD_MAX 1e20
+
 namespace py4dgeo {
 
 void
@@ -31,20 +36,12 @@ DisjointSet::Find(IndexType i) const
 {
   assert(i >= 0 && i < size_);
 
-  // Path compression: Make all nodes in the path point to the root
-  IndexType root = i;
-  while (root != subsets_[root]) {
-    root = subsets_[root];
+  while (i != subsets_[i]) {
+    subsets_[i] = subsets_[subsets_[i]];
+    i = subsets_[i];
   }
 
-  // Path compression: Update the parent of all nodes in the path
-  while (i != root) {
-    IndexType next = subsets_[i];
-    subsets_[i] = root;
-    i = next;
-  }
-
-  return root;
+  return i;
 }
 
 IndexType
@@ -60,20 +57,23 @@ DisjointSet::Union(IndexType i, IndexType j, bool balance_sizes)
 
   if (root_i != root_j) {
     if (balance_sizes) {
-      // If balance_sizes is true, merge the smaller subset into the larger one
-      if (numbers_[root_i] >= numbers_[root_j]) {
-        numbers_[root_i] += numbers_[root_j] + 1;
-        subsets_[root_j] = root_i;
-        return root_i;
-      } else {
-        numbers_[root_j] += numbers_[root_i] + 1;
+      // If balance_sizes is true, merge the larger subset into the smaller one
+      if (numbers_[root_i] > numbers_[root_j]) {
+        numbers_[root_j] += numbers_[root_i];
         subsets_[root_i] = root_j;
         return root_j;
+      } else {
+        numbers_[root_i] += numbers_[root_j];
+        subsets_[root_j] = root_i;
+
+        return root_i;
       }
     } else {
-      // Always merge j's subset into i's subset
-      subsets_[root_j] = root_i;
-      return root_i;
+      // Always merge i's subset into j's subset
+      numbers_[root_j] += numbers_[root_i];
+      subsets_[root_i] = root_j;
+      numbers_[root_i] = 0;
+      return root_j;
     }
   }
 
@@ -113,61 +113,227 @@ estimate_supervoxel_count(EigenPointCloudConstRef cloud, double seed_resolution)
   return voxelmap.size();
 }
 
+double
+squaredEuclideanDistance(const Eigen::RowVector3d& point1,
+                         const Eigen::RowVector3d& point2)
+{
+  const auto diff = point1 - point2;
+  return diff.squaredNorm();
+}
+
 std::vector<std::vector<int>>
-supervoxel_segmentation(EigenPointCloudConstRef cloud,
-                        const KDTree& kdtree,
-                        double resolution)
+supervoxel_segmentation(Epoch& epoch,
+                        const KDTree& kdtree, //?
+                        double resolution,
+                        int k)
 {
 
-  auto n_supervoxels = estimate_supervoxel_count(cloud, resolution);
-  std::vector<int> labels(cloud.rows(), -1);
-  DisjointSet set(cloud.rows());
+  // Define number of supervoxels and labels.
+  auto n_supervoxels = estimate_supervoxel_count(epoch.cloud, resolution);
+  std::vector<int> labels(epoch.cloud.rows(), -1);
+  DisjointSet set(epoch.cloud.rows());
 
-  // Lambda function to expand a supervoxel using a basic region-growing
-  // approach
-  auto expand_supervoxel = [&](int seed_point, int supervoxel_id) {
-    std::queue<int> queue;
-    queue.push(seed_point);
+  // Calculate normals for vccs metric
+  epoch.kdtree.build_tree(10);
+  std::vector<double> normal_radii{ 2.0 };
+  EigenNormalSet normals(epoch.cloud.rows(), 3);
+  EigenNormalSet orientation(1, 3);
+  orientation << 0, 0, 1;
+  compute_multiscale_directions(
+    epoch, epoch.cloud, normal_radii, orientation, normals);
 
-    while (!queue.empty()) {
-      int current_point = queue.front();
-      queue.pop();
+  normals.norm();
 
-      if (labels[current_point] == -1) {
-        labels[current_point] = supervoxel_id;
+  // Calculate k neigbors and its distances for each point
+  KDTree::NearestNeighborsDistanceResult result;
+  kdtree.nearest_neighbors_with_distances(epoch.cloud, result, k);
 
-        std::pair<std::vector<IndexType>, std::vector<double>> result;
-        kdtree.nearest_neighbors_with_distances(cloud, result);
+  int supervoxels_amount = epoch.cloud.rows();
 
-        // Add neighboring points to the queue if they meet the criteria
-        for (size_t i = 0; i < result.first.size(); ++i) {
-          int neighbor = result.first[i];
-          double distance = result.second[i];
+  // calculate lambda for segmentation
+  DistanceVector lambda_distances;
+  for (size_t i = 0; i < result.size(); ++i) {
+    std::nth_element(result[i].second.begin(),
+                     result[i].second.begin() + 1,
+                     result[i].second.end());
+    lambda_distances.push_back(result[i].second[1]);
+  }
 
-          if (labels[neighbor] == -1 && distance <= resolution) {
-            queue.push(neighbor);
-            set.Union(current_point, neighbor, true);
+  double lambda = median_calculation(lambda_distances);
+
+  // initialize temporary vars for supervoxel segmentation
+  std::vector<int> temporary_supervoxels(epoch.cloud.rows());
+  std::iota(temporary_supervoxels.begin(), temporary_supervoxels.end(), 0);
+  std::vector<int> sizes(epoch.cloud.rows(), 1); //+-?
+  std::queue<int> point_queue;
+  std::vector<std::vector<long unsigned int>> neighborIndexes(result.size());
+
+  // fill in temporal containment of neighbors for each points
+  for (size_t i = 0; i < result.size(); ++i) {
+    for (const long unsigned int& index : result[i].first) {
+      neighborIndexes[i].push_back(index);
+    }
+  }
+
+  DistanceVector distances;
+  // searching for supervoxels and first segmentation
+  for (; lambda < LMBD_MAX; lambda *= 2.0) {
+    for (int i : temporary_supervoxels) {
+      if (neighborIndexes[i].empty())
+        continue;
+
+      labels[i] = i;
+      point_queue.push(i);
+
+      for (int j : neighborIndexes[i]) {
+        j = set.Find(j);
+        if (labels[j] == -1) {
+          labels[j] == j;
+          point_queue.push(j);
+        }
+      }
+
+      std::vector<long unsigned int> neighborIndexes_per_point;
+      while (!point_queue.empty()) {
+        int current = point_queue.front();
+        point_queue.pop();
+
+        double loss =
+          sizes[current] *
+          squaredEuclideanDistance(
+            epoch.cloud.row(i),
+            epoch.cloud.row(
+              current)); // point_2_point_VCCS_distance(epoch.cloud.row(i),epoch.cloud.row(current),
+                         // normals.row(i), normals.row(current), resolution);
+
+        double improvement =
+          lambda - loss; // metric for start union of supervoxels
+
+        if (improvement > 0.0) {
+          set.Union(current, i, false);
+
+          sizes[i] += sizes[current];
+
+          for (int k : neighborIndexes[current]) {
+            k = set.Find(k);
+            if (labels[k] == -1) {
+              labels[k] = k;
+              point_queue.push(k);
+            }
+          }
+
+          neighborIndexes[current].clear();
+
+        } else {
+          neighborIndexes_per_point.push_back(current);
+        }
+        if (--supervoxels_amount == n_supervoxels)
+          break;
+      }
+      neighborIndexes[i].swap(neighborIndexes_per_point);
+
+      // relabel elements for next iterations
+      for (int j = 0; j < result[i].first.size(); ++j) {
+        labels[result[i].first[j]] = -1;
+      }
+
+      if (supervoxels_amount == n_supervoxels)
+        break;
+    }
+
+    // Update supervoxels
+    supervoxels_amount = 0;
+    for (int i : temporary_supervoxels) {
+      if (set.Find(i) == i) {
+        temporary_supervoxels[supervoxels_amount++] = i;
+      }
+    }
+    temporary_supervoxels.resize(supervoxels_amount);
+    if (supervoxels_amount == n_supervoxels)
+      break;
+  }
+
+  // temporal vars for the refinement of supervoxel boundaries
+  std::queue<int> boundaries_queue;
+  std::vector<bool> is_in_boundaries_queue(epoch.cloud.rows(), false);
+
+  for (int i = 0; i < epoch.cloud.rows(); ++i) {
+    labels[i] = set.Find(i);
+    distances.push_back(
+      squaredEuclideanDistance(epoch.cloud.row(i), epoch.cloud.row(labels[i])));
+  }
+
+  for (int i = 0; i < epoch.cloud.rows(); ++i) {
+    for (int j : result[i].first) {
+      if (labels[i] != labels[j]) {
+        if (!is_in_boundaries_queue[i]) {
+          boundaries_queue.push(i);
+          is_in_boundaries_queue[i] = true;
+        }
+        if (!is_in_boundaries_queue[j]) {
+          boundaries_queue.push(j);
+          is_in_boundaries_queue[j] = true;
+        }
+      }
+    }
+  }
+
+  // refinement of supervoxel boundaries
+  while (!boundaries_queue.empty()) {
+    int current_point = boundaries_queue.front();
+    boundaries_queue.pop();
+    is_in_boundaries_queue[current_point] = false;
+
+    bool change = false;
+    for (int j : result[current_point].first) {
+      if (labels[current_point] == labels[j])
+        continue;
+
+      double point_distance = squaredEuclideanDistance(
+        epoch.cloud.row(current_point), epoch.cloud.row(labels[labels[j]]));
+      if (point_distance < distances[current_point]) {
+        labels[current_point] = labels[j];
+        distances[current_point] = point_distance;
+        change = true;
+      }
+    }
+
+    if (change) {
+      for (int j : result[current_point].first) {
+        if (labels[current_point] != labels[j]) {
+          if (!is_in_boundaries_queue[j]) {
+            boundaries_queue.push(j);
+            is_in_boundaries_queue[j] = true;
           }
         }
       }
     }
-  };
-
-  int current_supervoxel_id = 0;
-
-  for (int point_index = 0; point_index < cloud.rows(); ++point_index) {
-    if (labels[point_index] == -1) {
-      expand_supervoxel(point_index, current_supervoxel_id);
-      current_supervoxel_id++;
-    }
   }
 
-  // Organize supervoxels into separate vectors
+  // Relabel the supervoxels points
+  std::vector<int> map(epoch.cloud.rows());
+  for (int i = 0; i < temporary_supervoxels.size(); ++i) {
+    map[temporary_supervoxels[i]] = i;
+  }
+  for (int i = 0; i < epoch.cloud.rows(); ++i) {
+    labels[i] = map[labels[i]];
+  }
+
+  // Create supervoxel point lists
   std::vector<std::vector<int>> supervoxels(n_supervoxels);
-  for (auto point_index = 0; point_index < cloud.rows(); ++point_index) {
-    auto supervoxel_id = set.Find(
-      labels[point_index]); // Find the representative label in the DisjointSet
-    supervoxels[supervoxel_id].push_back(point_index);
+  for (auto point_index = 0; point_index < epoch.cloud.rows(); ++point_index) {
+    supervoxels[labels[point_index]].push_back(point_index);
+  }
+
+  std::cout << "supervoxels: " << std::endl;
+  for (int i = 0; i < supervoxels.size(); ++i) {
+    std::vector<int>& innerVector = supervoxels[i];
+    std::cout << "In a supervoxel " << i
+              << ", there are next points: " << std::endl;
+    for (int j = 0; j < innerVector.size(); ++j) {
+      std::cout << innerVector[j] << " ";
+    }
+    std::cout << std::endl;
   }
 
   return supervoxels;

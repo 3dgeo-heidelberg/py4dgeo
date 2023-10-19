@@ -75,7 +75,9 @@ def iterative_closest_point(
     prev_error = 0
 
     for _ in range(max_iterations):
-        indices, distances = reference_epoch.kdtree.nearest_neighbors(cloud)
+        neighbor_lists = reference_epoch.kdtree.nearest_neighbors(cloud, 1)
+        indices = [pair[0] for pair in neighbor_lists]
+        distances = [pair[1] for pair in neighbor_lists]
 
         # Calculate a transform and apply it
         T = _fit_transform(cloud, reference_epoch.cloud[indices, :])

@@ -237,4 +237,27 @@ median_iqr_distance(const DistanceUncertaintyCalculationParameters& params)
       params.workingset2.rows() });
 }
 
+double
+point_2_point_VCCS_distance(EigenPointCloudConstRef point1,
+                            EigenPointCloudConstRef point2,
+                            EigenNormalSetRef normal1,
+                            EigenNormalSetRef normal2,
+                            double resolution)
+{
+  double x = point1.row(0)(0) - point2.row(0)(0);
+  double y = point1.row(0)(1) - point2.row(0)(1);
+  double z = point1.row(0)(2) - point2.row(0)(2);
+
+  double n1 = std::sqrt(normal1.row(0)(0) * normal1.row(0)(0) +
+                        normal1.row(0)(1) * normal1.row(0)(1) +
+                        normal1.row(0)(2) * normal1.row(0)(2));
+  double n2 = std::sqrt(normal2.row(0)(0) * normal2.row(0)(0) +
+                        normal2.row(0)(1) * normal2.row(0)(1) +
+                        normal2.row(0)(2) * normal2.row(0)(2));
+
+  return 1.0 - std::fabs(n1 * n2) +
+         std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) /
+           resolution * 0.4;
+}
+
 } // namespace py4dgeo

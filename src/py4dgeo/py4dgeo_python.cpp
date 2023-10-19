@@ -124,14 +124,17 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   kdtree.def(
     "nearest_neighbors",
-    [](const KDTree& self, EigenPointCloudConstRef cloud) {
+    [](const KDTree& self, EigenPointCloudConstRef cloud, int k = 1) {
       KDTree::NearestNeighborsDistanceResult result;
-      self.nearest_neighbors_with_distances(cloud, result);
-
-      return std::make_tuple(as_pyarray(std::move(result.first)),
-                             as_pyarray(std::move(result.second)));
+      self.nearest_neighbors_with_distances(cloud, result, k = 1);
+      py::list result_list;
+      for (const auto& pair : result) {
+        result_list.append(std::make_tuple(as_pyarray(std::move(pair.first)),
+                                           as_pyarray(std::move(pair.second))));
+      }
+      return result_list;
     },
-    "Find nearest neighbors for all points in a cloud!");
+    "Find k nearest neighbors for all points in a cloud!");
 
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {

@@ -1,6 +1,9 @@
 #pragma once
 
+#include "compute.hpp"
+#include "epoch.hpp"
 #include "kdtree.hpp"
+#include "segmentation.hpp"
 #include <py4dgeo/py4dgeo.hpp>
 
 #include <Eigen/Geometry>
@@ -47,10 +50,23 @@ private:
   /** @brief The subset index for all our points */
   mutable std::vector<IndexType> subsets_;
 };
+/** @brief Calculate the amount of supervoxel, based on seed_resolution */
+std::size_t
+estimate_supervoxel_count(EigenPointCloudConstRef cloud,
+                          double seed_resolution);
 
+/** @brief Distribution of points into a certain number of supervoxels
+ *
+ * @param epoch The epoch to segment
+ * @param kdtree The KDTree for the epoch
+ * @param seed_resolution The value for calculation of supervoxel count
+ * @param k The number of neighbors for each point
+ *
+ */
 std::vector<std::vector<int>>
-supervoxel_segmentation(EigenPointCloudConstRef cloud,
+supervoxel_segmentation(Epoch& epoch,
                         const KDTree& kdtree,
-                        double seed_resolution);
+                        double seed_resolution,
+                        int k);
 
 } // namespace py4dgeo

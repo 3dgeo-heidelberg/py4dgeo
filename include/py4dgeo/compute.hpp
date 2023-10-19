@@ -105,4 +105,19 @@ compute_distances(EigenPointCloudConstRef,
                   const WorkingSetFinderCallback&,
                   const DistanceUncertaintyCalculationCallback&);
 
+/** @brief Compute VCCS metric for calculation point to point distances
+ *
+ * @param point1 The first point
+ * @param point2 The second point
+ * @param normal1 The normal of the first point
+ * @param normal2 The normal of the second point
+ *
+ */
+double
+point_2_point_VCCS_distance(EigenPointCloudConstRef point1,
+                            EigenPointCloudConstRef point2,
+                            EigenNormalSetRef normal1,
+                            EigenNormalSetRef normal2,
+                            double resolution);
+
 }
