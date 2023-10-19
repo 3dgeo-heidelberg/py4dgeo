@@ -94,7 +94,7 @@ KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
     ret_indices.resize(k);
     out_dists_sqr.resize(k);
 
-    nanoflann::KNNResultSet<double> resultset(k);
+    nanoflann::KNNResultSet<double, size_t, size_t> resultset(k);
     auto qp = cloud.row(i).eval();
     resultset.init(ret_indices.data(), out_dists_sqr.data());
     search->findNeighbors(resultset, &(qp(0, 0)), params);

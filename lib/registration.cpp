@@ -148,9 +148,6 @@ supervoxel_segmentation(Epoch& epoch,
   KDTree::NearestNeighborsDistanceResult result;
   kdtree.nearest_neighbors_with_distances(epoch.cloud, result, k);
 
-  for (int i = 0; i < result.size(); i++)
-    std::cout << result[i].first[1] << '\t' << result[i].second[1] << std::endl;
-
   int supervoxels_amount = epoch.cloud.rows();
 
   // calculate lambda for segmentation
@@ -159,7 +156,9 @@ supervoxel_segmentation(Epoch& epoch,
     std::nth_element(result[i].second.begin(),
                      result[i].second.begin() + 1,
                      result[i].second.end());
-    lambda_distances.push_back(result[i].second[1]);
+    lambda_distances.push_back(
+      result[i]
+        .second[1]); // because [0] is the distance to the same point, so it's 0
   }
 
   double lambda = median_calculation(lambda_distances);
