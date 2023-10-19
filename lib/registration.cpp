@@ -178,17 +178,16 @@ supervoxel_segmentation(Epoch& epoch,
   DistanceVector distances;
   // searching for supervoxels and first segmentation
   for (; lambda < LMBD_MAX; lambda *= 2.0) {
-    for (int i : temporary_supervoxels) {
+    for (auto i : temporary_supervoxels) {
       if (neighborIndexes[i].empty())
         continue;
 
       labels[i] = i;
       point_queue.push(i);
 
-      for (int j : neighborIndexes[i]) {
+      for (auto j : neighborIndexes[i]) {
         j = set.Find(j);
         if (labels[j] == -1) {
-          labels[j] == j;
           point_queue.push(j);
         }
       }
@@ -214,7 +213,7 @@ supervoxel_segmentation(Epoch& epoch,
 
           sizes[i] += sizes[current];
 
-          for (int k : neighborIndexes[current]) {
+          for (auto k : neighborIndexes[current]) {
             k = set.Find(k);
             if (labels[k] == -1) {
               labels[k] = k;
@@ -233,7 +232,7 @@ supervoxel_segmentation(Epoch& epoch,
       neighborIndexes[i].swap(neighborIndexes_per_point);
 
       // relabel elements for next iterations
-      for (int j = 0; j < result[i].first.size(); ++j) {
+      for (size_t j = 0; j < result[i].first.size(); ++j) {
         labels[result[i].first[j]] = -1;
       }
 
@@ -243,7 +242,7 @@ supervoxel_segmentation(Epoch& epoch,
 
     // Update supervoxels
     supervoxels_amount = 0;
-    for (int i : temporary_supervoxels) {
+    for (auto i : temporary_supervoxels) {
       if (set.Find(i) == i) {
         temporary_supervoxels[supervoxels_amount++] = i;
       }
@@ -257,14 +256,14 @@ supervoxel_segmentation(Epoch& epoch,
   std::queue<int> boundaries_queue;
   std::vector<bool> is_in_boundaries_queue(epoch.cloud.rows(), false);
 
-  for (int i = 0; i < epoch.cloud.rows(); ++i) {
+  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = set.Find(i);
     distances.push_back(
       squaredEuclideanDistance(epoch.cloud.row(i), epoch.cloud.row(labels[i])));
   }
 
-  for (int i = 0; i < epoch.cloud.rows(); ++i) {
-    for (int j : result[i].first) {
+  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+    for (auto j : result[i].first) {
       if (labels[i] != labels[j]) {
         if (!is_in_boundaries_queue[i]) {
           boundaries_queue.push(i);
@@ -285,7 +284,7 @@ supervoxel_segmentation(Epoch& epoch,
     is_in_boundaries_queue[current_point] = false;
 
     bool change = false;
-    for (int j : result[current_point].first) {
+    for (auto j : result[current_point].first) {
       if (labels[current_point] == labels[j])
         continue;
 
@@ -299,7 +298,7 @@ supervoxel_segmentation(Epoch& epoch,
     }
 
     if (change) {
-      for (int j : result[current_point].first) {
+      for (auto j : result[current_point].first) {
         if (labels[current_point] != labels[j]) {
           if (!is_in_boundaries_queue[j]) {
             boundaries_queue.push(j);
@@ -312,10 +311,10 @@ supervoxel_segmentation(Epoch& epoch,
 
   // Relabel the supervoxels points
   std::vector<int> map(epoch.cloud.rows());
-  for (int i = 0; i < temporary_supervoxels.size(); ++i) {
+  for (size_t i = 0; i < temporary_supervoxels.size(); ++i) {
     map[temporary_supervoxels[i]] = i;
   }
-  for (int i = 0; i < epoch.cloud.rows(); ++i) {
+  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = map[labels[i]];
   }
 
@@ -323,17 +322,6 @@ supervoxel_segmentation(Epoch& epoch,
   std::vector<std::vector<int>> supervoxels(n_supervoxels);
   for (auto point_index = 0; point_index < epoch.cloud.rows(); ++point_index) {
     supervoxels[labels[point_index]].push_back(point_index);
-  }
-
-  std::cout << "supervoxels: " << std::endl;
-  for (int i = 0; i < supervoxels.size(); ++i) {
-    std::vector<int>& innerVector = supervoxels[i];
-    std::cout << "In a supervoxel " << i
-              << ", there are next points: " << std::endl;
-    for (int j = 0; j < innerVector.size(); ++j) {
-      std::cout << innerVector[j] << " ";
-    }
-    std::cout << std::endl;
   }
 
   return supervoxels;

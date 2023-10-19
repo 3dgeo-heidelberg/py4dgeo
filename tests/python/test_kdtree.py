@@ -49,8 +49,8 @@ def test_nearest_neighbors(epochs):
     epoch1, epoch2 = epochs
     epoch1.build_kdtree()
     epoch2.build_kdtree()
-
-    checklist_pr = epoch1.kdtree.nearest_neighbors(epoch2.cloud, 1)
+    k = 1
+    checklist_pr = epoch1.kdtree.nearest_neighbors(epoch2.cloud, k)
 
     for i, (indices, distances) in enumerate(checklist_pr):
         assert k == indices.shape[0]
