@@ -73,20 +73,23 @@ def iterative_closest_point(
     cloud = epoch.cloud.copy()
 
     prev_error = 0
-
-    for _ in range(max_iterations):
-        neighbor_lists = reference_epoch.kdtree.nearest_neighbors(cloud, 1)
-        indices = [pair[0] for pair in neighbor_lists]
-        distances = [pair[1] for pair in neighbor_lists]
-
-        # Calculate a transform and apply it
-        T = _fit_transform(cloud, reference_epoch.cloud[indices, :])
-        _py4dgeo.transform_pointcloud_inplace(cloud, T, reduction_point)
-
-        # Determine convergence
-        mean_error = np.mean(np.sqrt(distances))
-        if np.abs(prev_error - mean_error) < tolerance:
-            break
-        prev_error = mean_error
+    #
+    # for _ in range(max_iterations):
+    #     neighbor_lists = reference_epoch.kdtree.nearest_neighbors(cloud,6)
+    #     indices = []
+    #     distances = []
+    #     for i, (indice, distance) in enumerate(neighbor_lists):
+    #         indices.append(indice[5])
+    #         distances.append(distance[5])
+    #     print(indices)
+    #     # Calculate a transform and apply it
+    #     T = _fit_transform(cloud, reference_epoch.cloud[indices, :])
+    #     _py4dgeo.transform_pointcloud_inplace(cloud, T, reduction_point)
+    #
+    #     # Determine convergence
+    #     mean_error = np.mean(np.sqrt(distances))
+    #     if np.abs(prev_error - mean_error) < tolerance:
+    #         break
+    #     prev_error = mean_error
 
     return _fit_transform(epoch.cloud, cloud)

@@ -148,6 +148,9 @@ supervoxel_segmentation(Epoch& epoch,
   KDTree::NearestNeighborsDistanceResult result;
   kdtree.nearest_neighbors_with_distances(epoch.cloud, result, k);
 
+  for (int i = 0; i < result.size(); i++)
+    std::cout << result[i].first[1] << '\t' << result[i].second[1] << std::endl;
+
   int supervoxels_amount = epoch.cloud.rows();
 
   // calculate lambda for segmentation

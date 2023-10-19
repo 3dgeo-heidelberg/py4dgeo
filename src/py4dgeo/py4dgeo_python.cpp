@@ -124,9 +124,9 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   kdtree.def(
     "nearest_neighbors",
-    [](const KDTree& self, EigenPointCloudConstRef cloud, int k = 1) {
+    [](const KDTree& self, EigenPointCloudConstRef cloud, int k = 2) {
       KDTree::NearestNeighborsDistanceResult result;
-      self.nearest_neighbors_with_distances(cloud, result, k = 1);
+      self.nearest_neighbors_with_distances(cloud, result, k);
       py::list result_list;
       for (const auto& pair : result) {
         result_list.append(std::make_tuple(as_pyarray(std::move(pair.first)),
