@@ -87,14 +87,14 @@ KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < cloud.rows(); ++i) {
-    std::pair<std::vector<long unsigned int>, std::vector<double>> pointResult;
+    std::pair<std::vector<IndexType>, std::vector<double>> pointResult;
 
-    std::vector<long unsigned int>& ret_indices = pointResult.first;
+    std::vector<IndexType>& ret_indices = pointResult.first;
     std::vector<double>& out_dists_sqr = pointResult.second;
     ret_indices.resize(k);
     out_dists_sqr.resize(k);
 
-    nanoflann::KNNResultSet<double, size_t, size_t> resultset(k);
+    nanoflann::KNNResultSet<double, IndexType> resultset(k);
     auto qp = cloud.row(i).eval();
     resultset.init(ret_indices.data(), out_dists_sqr.data());
     search->findNeighbors(resultset, &(qp(0, 0)), params);

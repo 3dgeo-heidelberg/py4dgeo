@@ -32,7 +32,7 @@ public:
 
   //! Return type used for nearest neighbor searches
   using NearestNeighborsDistanceResult =
-    std::vector<std::pair<std::vector<long unsigned int>, std::vector<double>>>;
+    std::vector<std::pair<std::vector<IndexType>, std::vector<double>>>;
 
 private:
   /** @brief An adaptor between our Eigen data structures and NanoFLANN */
