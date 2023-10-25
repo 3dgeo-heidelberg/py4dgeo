@@ -48,8 +48,9 @@ def test_rebuilding(epochs):
 def test_nearest_neighbors(epochs):
     epoch1, epoch2 = epochs
     epoch1.build_kdtree()
-    epoch2.build_kdtree()
+
     checklist_pr = epoch1.kdtree.nearest_neighbors(epoch2.cloud)
+    assert len(checklist_pr) > 0
     indices, distances = zip(*checklist_pr)
 
     for i in range(epoch1.cloud.shape[0]):
