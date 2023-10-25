@@ -21,6 +21,9 @@
 #include <string>
 #include <tuple>
 
+///////////////////
+#include <iostream>
+
 namespace py = pybind11;
 
 namespace py4dgeo {
@@ -122,19 +125,53 @@ PYBIND11_MODULE(_py4dgeo, m)
     },
     "Search point in given radius!");
 
+  // kdtree.def(
+  //   "nearest_neighbors",
+  //   [](const KDTree& self, EigenPointCloudConstRef cloud, int k = 2) {
+  //       std::cout<<"srikgrlk"<<std::endl;
+  //     KDTree::NearestNeighborsDistanceResult result;
+  //     self.nearest_neighbors_with_distances(cloud, result, k);
+  //     py::list result_list;
+  //     // for(size_t i = 0; i < result.size(); i++)
+  //     // {
+  //     //   for (size_t j = 0; j < result[i].first.size(); j++)
+  //     //   {
+
+  //     //   std::cout<< result[i].first[j] <<'\t'<< result[i].second[j]
+  //     <<std::endl;
+  //     //   }
+  //     // }
+  //     for (const auto& pair : result) {
+
+  //       result_list.append(std::make_tuple(as_pyarray(std::move(pair.first)),
+  //                                          as_pyarray(std::move(pair.second))));
+  //       //std::cout<< result_list <<std::endl;
+  //     }
+  //     return result_list;
+  //   },
+  //   "Find k nearest neighbors for all points in a cloud!");
+  ////////////////////////////
   kdtree.def(
     "nearest_neighbors",
     [](const KDTree& self, EigenPointCloudConstRef cloud, int k = 2) {
       KDTree::NearestNeighborsDistanceResult result;
+
       self.nearest_neighbors_with_distances(cloud, result, k);
+
       py::list result_list;
-      for (const auto& pair : result) {
-        result_list.append(std::make_tuple(as_pyarray(std::move(pair.first)),
-                                           as_pyarray(std::move(pair.second))));
+      py::tuple result_tuple;
+      for (size_t i = 0; i < result.size(); ++i) {
+        result_list.append(std::make_tuple(std::move(result[i].first[0]),
+                                           std::move(result[i].second[0])));
+        py::tuple temp_tuple = (py::make_tuple(std::move(result[i].first[0]),
+                                               std::move(result[i].second[0])));
+        result_tuple = result_tuple + temp_tuple;
       }
-      return result_list;
+      std::cout << "NN SEARCH DONE" << std::endl;
+      return result_tuple;
     },
     "Find k nearest neighbors for all points in a cloud!");
+  ///////////////////////////////////
 
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {

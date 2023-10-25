@@ -2,6 +2,10 @@ import numpy as np
 
 import py4dgeo._py4dgeo as _py4dgeo
 
+# import py4dgeo
+#
+print(_py4dgeo.__file__)
+
 
 def _fit_transform(A, B):
     """Find a transformation that fits two point clouds onto each other"""
@@ -68,28 +72,23 @@ def iterative_closest_point(
     # Apply the default for the registration point
     if reduction_point is None:
         reduction_point = np.array([0, 0, 0])
-
+    print(_py4dgeo.__file__)
     # Make a copy of the cloud to be transformed.
     cloud = epoch.cloud.copy()
 
     prev_error = 0
     #
-    # for _ in range(max_iterations):
-    #     neighbor_lists = reference_epoch.kdtree.nearest_neighbors(cloud,6)
-    #     indices = []
-    #     distances = []
-    #     for i, (indice, distance) in enumerate(neighbor_lists):
-    #         indices.append(indice[5])
-    #         distances.append(distance[5])
-    #     print(indices)
-    #     # Calculate a transform and apply it
-    #     T = _fit_transform(cloud, reference_epoch.cloud[indices, :])
-    #     _py4dgeo.transform_pointcloud_inplace(cloud, T, reduction_point)
-    #
-    #     # Determine convergence
-    #     mean_error = np.mean(np.sqrt(distances))
-    #     if np.abs(prev_error - mean_error) < tolerance:
-    #         break
-    #     prev_error = mean_error
+    for _ in range(max_iterations):
+        neighbor_lists = reference_epoch.kdtree.nearest_neighbors(cloud)
+        indices, distances = zip(*neighbor_lists)
+        # Calculate a transform and apply it
+        T = _fit_transform(cloud, reference_epoch.cloud[indices, :])
+        _py4dgeo.transform_pointcloud_inplace(cloud, T, reduction_point)
+
+        # Determine convergence
+        mean_error = np.mean(np.sqrt(distances))
+        if np.abs(prev_error - mean_error) < tolerance:
+            break
+        prev_error = mean_error
 
     return _fit_transform(epoch.cloud, cloud)
