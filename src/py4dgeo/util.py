@@ -10,7 +10,7 @@ import xdg
 
 from importlib import metadata
 
-import py4dgeo._py4dgeo as _py4dgeo
+import _py4dgeo
 
 
 # The current data archive URL
