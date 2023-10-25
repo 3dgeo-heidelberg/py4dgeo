@@ -72,12 +72,11 @@ def iterative_closest_point(
     # Apply the default for the registration point
     if reduction_point is None:
         reduction_point = np.array([0, 0, 0])
-    print(_py4dgeo.__file__)
+
     # Make a copy of the cloud to be transformed.
     cloud = epoch.cloud.copy()
-
     prev_error = 0
-    #
+
     for _ in range(max_iterations):
         neighbor_lists = reference_epoch.kdtree.nearest_neighbors(cloud)
         indices, distances = zip(*neighbor_lists)
