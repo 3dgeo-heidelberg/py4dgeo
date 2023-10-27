@@ -21,9 +21,6 @@
 #include <string>
 #include <tuple>
 
-///////////////////
-#include <iostream>
-
 namespace py = pybind11;
 
 namespace py4dgeo {
@@ -133,12 +130,11 @@ PYBIND11_MODULE(_py4dgeo, m)
       self.nearest_neighbors_with_distances(cloud, result, k);
 
       py::list result_list;
-      py::tuple result_tuple;
       for (size_t i = 0; i < result.size(); ++i) {
         result_list.append(std::make_tuple(std::move(result[i].first[0]),
                                            std::move(result[i].second[0])));
       }
-      return result_tuple;
+      return result_list;
     },
     "Find k nearest neighbors for all points in a cloud!");
   ///////////////////////////////////

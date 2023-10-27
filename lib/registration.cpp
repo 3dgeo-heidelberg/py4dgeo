@@ -5,9 +5,6 @@
 #include <unordered_map>
 #include <vector>
 
-// imports to delete
-#include <iostream>
-
 #define LMBD_MAX 1e20
 
 namespace py4dgeo {
@@ -156,9 +153,8 @@ supervoxel_segmentation(Epoch& epoch,
     std::nth_element(result[i].second.begin(),
                      result[i].second.begin() + 1,
                      result[i].second.end());
-    lambda_distances.push_back(
-      result[i]
-        .second[1]); // because [0] is the distance to the same point, so it's 0
+    lambda_distances.push_back(result[i].second[1]);
+    // because [0] is the distance to the same point, so it's 0
   }
 
   double lambda = median_calculation(lambda_distances);

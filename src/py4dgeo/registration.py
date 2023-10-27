@@ -1,10 +1,6 @@
 import numpy as np
 import _py4dgeo
 
-# import py4dgeo
-#
-print(_py4dgeo.__file__)
-
 
 def _fit_transform(A, B):
     """Find a transformation that fits two point clouds onto each other"""

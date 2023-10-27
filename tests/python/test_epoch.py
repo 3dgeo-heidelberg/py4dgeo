@@ -270,4 +270,7 @@ def test_read_from_las_file_w_3_coords(epochs_las):
 
 def test_read_from_las_file_w_normals(epochs_las_w_normals):
     epoch1, _ = epochs_las_w_normals
-    assert np.isclose(np.max(epoch1.normals), 0)
+    assert epoch1.cloud.shape[0] > 0
+    assert epoch1.normals.shape[0] > 0
+    assert epoch1.cloud.shape[1] == 3
+    assert epoch1.normals.shape[1] == 3

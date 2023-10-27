@@ -45,8 +45,8 @@ def test_rebuilding(epochs):
     assert epoch1.kdtree.leaf_parameter() == 20
 
 
-def test_nearest_neighbors(epochs):
-    epoch1, epoch2 = epochs
+def test_nearest_neighbors(epochs_las):
+    epoch1, epoch2 = epochs_las
     epoch1.build_kdtree()
 
     checklist_pr = epoch1.kdtree.nearest_neighbors(epoch2.cloud)
