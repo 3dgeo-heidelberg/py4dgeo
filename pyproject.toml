@@ -2,7 +2,7 @@
 # process itself. Being able to do this was the original reason to
 # introduce pyproject.toml
 [build-system]
-requires = ["scikit-build-core"]
+requires = ["scikit-build-core <0.6"]
 build-backend = "scikit_build_core.build"
 
 # This section provides general project metadata that is used across
