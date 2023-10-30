@@ -96,7 +96,7 @@ docker run -t -p 8888:8888 py4dgeo:latest
 
 ## 🐍 Documentation of software usage
 
-As a starting point, please have a look to the [Jupyter Notebooks](notebooks) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
+As a starting point, please have a look to the [Jupyter Notebooks](jupyter) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
 
 ## 🌐 Published test data
 
@@ -137,7 +137,7 @@ url = {https://github.com/3dgeo-heidelberg/py4dgeo},
  ```
 
 ## 💟 Funding / Acknowledgements
-The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research project [**CharAct4D**](https://www.uni-heidelberg.de/charact4d).
+The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and AImon5.0 (https://www.uni-heidelberg.de/aimon).
 
 ## 🔔 Contact / Bugs / Feature Requests
 
