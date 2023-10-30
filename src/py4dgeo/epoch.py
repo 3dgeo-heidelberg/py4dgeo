@@ -19,7 +19,7 @@ import os
 import tempfile
 import zipfile
 
-import py4dgeo._py4dgeo as _py4dgeo
+import _py4dgeo
 
 logger = logging.getLogger("py4dgeo")
 

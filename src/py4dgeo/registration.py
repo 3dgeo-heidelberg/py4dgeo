@@ -3,8 +3,7 @@ from py4dgeo.epoch import Epoch
 from copy import deepcopy
 
 import numpy as np
-
-import py4dgeo._py4dgeo as _py4dgeo
+import _py4dgeo
 
 
 def _plane_Jacobian(Rot_a, n):
