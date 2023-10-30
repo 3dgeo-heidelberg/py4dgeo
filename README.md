@@ -107,12 +107,14 @@ If you are looking for data to test different methods, consider the following op
 ### Hourly TLS point clouds of a sandy beach
 
 <a href="https://doi.org/10.1038/s41597-022-01291-9" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/data_vos_2022_kijkduin.png?raw=true" alt="" width="450" /></a>
+<br>
 Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9).
 
 
 ### By-weekly TLS point clouds of an Alpine rock glacier
 
 <a href="https://doi.org/10.11588/data/TGSVUI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/data_zahs_2022_ahk_2019_tls.png?raw=true" alt="" width="450" /></a>
+<br>
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI).
 
 
@@ -137,7 +139,7 @@ url = {https://github.com/3dgeo-heidelberg/py4dgeo},
  ```
 
 ## 💟 Funding / Acknowledgements
-The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and AImon5.0 (https://www.uni-heidelberg.de/aimon).
+The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
 
 ## 🔔 Contact / Bugs / Feature Requests
 
