@@ -38,8 +38,8 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 ### demos
 |                                                                                                                                                      |   |
 |------------------------------------------------------------------------------------------------------------------------------------------------------|---|
-| [![Example 1](img/example1_4dobc_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/4dobc-analysis.ipynb) | [![Example 2](img/example2_m3c2_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2.ipynb) |
-| [![Example 3](img/example3_m3c2ep_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep.ipynb) | [![Example 4](img/example4_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/kmeans_clustering_of_time_series.ipynb)  |
+| [![Example 1](img/example1_4dobc_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/4dobc-analysis.ipynb) | [![Example 2](img/example2_m3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2.ipynb) |
+| [![Example 3](img/example3_m3c2ep_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep.ipynb) | [![Example 4](img/example4_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/kmeans_clustering_of_time_series.ipynb)  |
 | [![Example 5](img/example5_pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/principal_component_analysis_of_time_series.ipynb)  
 
 ## 💻 Installation
