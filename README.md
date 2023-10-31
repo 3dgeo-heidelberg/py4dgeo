@@ -22,8 +22,6 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-## 🔨 Methods provided by py4dgeo
-
 * **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
 
 * **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation. The concept and method are explained in full detail in the related paper.
