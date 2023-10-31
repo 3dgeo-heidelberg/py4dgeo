@@ -35,7 +35,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🎮 Examples
 
-### demos
+### Demo notebooks using methods provided by py4dgeo
 |                                                                                                                                                      |   |
 |------------------------------------------------------------------------------------------------------------------------------------------------------|---|
 | [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2-change_analysis.ipynb)  | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep-change_analysis.ipynb)  |
