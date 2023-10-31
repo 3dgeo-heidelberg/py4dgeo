@@ -22,13 +22,15 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
+## 🔨 Methods provided by py4dgeo
+
 * **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
 
+* **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation. The concept and method are explained in full detail in the related paper.
 
 * **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
 
-**Coming next:**
 * **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
@@ -38,17 +40,10 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 ### demos
 |                                                                                                                                                      |   |
 |------------------------------------------------------------------------------------------------------------------------------------------------------|---|
-<<<<<<< HEAD
-| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2-change_analysis.ipynb)  
-| [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep-change_analysis.ipynb)  |
-| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/4dobc-change_analysis.ipynb)  |
-| [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/kmeans_clustering_of_time_series.ipynb)  
-| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/principal_component_analysis_of_time_series.ipynb)  |
-=======
-| [![Example 1](img/example1_4dobc_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/4dobc-analysis.ipynb) | [![Example 2](img/example2_m3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2.ipynb) |
-| [![Example 3](img/example3_m3c2ep_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep.ipynb) | [![Example 4](img/example4_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/kmeans_clustering_of_time_series.ipynb)  |
-| [![Example 5](img/example5_pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/principal_component_analysis_of_time_series.ipynb)  
->>>>>>> 7e94e376f3556d916ece5f89197ea07e0a3bb8b5
+| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2-change_analysis.ipynb)  | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep-change_analysis.ipynb)  |
+| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/4dobc-change_analysis.ipynb)  | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/kmeans_clustering_of_time_series.ipynb)  |
+| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/principal_component_analysis_of_time_series.ipynb)  | 
+
 
 ## 💻 Installation
 
