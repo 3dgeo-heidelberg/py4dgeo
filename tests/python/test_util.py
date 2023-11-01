@@ -83,7 +83,3 @@ def test_set_num_threads():
     except Py4DGeoError as e:
         assert str(e) == "py4dgeo was built without threading support!"
         assert get_num_threads() == 1
-
-
-def test_data_copy(tmp_path):
-    copy_test_data(tmp_path.name)

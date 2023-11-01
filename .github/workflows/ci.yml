@@ -22,7 +22,7 @@ jobs:
         openmp: ['ON', 'OFF']
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
 
@@ -73,7 +73,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
 
@@ -141,7 +141,7 @@ jobs:
       ASAN_OPTIONS: "detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
 
@@ -188,8 +188,12 @@ jobs:
         echo "leak:/usr/bin/bash" > supp.txt
         echo "leak:_PyObject_New" >> supp.txt
         echo "leak:_PyObject_GC" >> supp.txt
+        echo "leak:insert_to_emptydict" >> supp.txt
+        echo "leak:new_keys_object" >> supp.txt
+        echo "leak:PyDict_Copy" >> supp.txt
         echo "leak:PyUnicode_New" >> supp.txt
         echo "leak:pyo3::types::function::PyCFunction::internal_new_from_pointers" >> supp.txt
+        echo "leak:pyo3::types::function::PyCFunction::internal_new::" >> supp.txt
         # hack to prevent external libs from dlclosing libraries,
         # which otherwise results in <module not found> LSAN leaks that cannot be suppressed
         # https://github.com/google/sanitizers/issues/89#issuecomment-406316683

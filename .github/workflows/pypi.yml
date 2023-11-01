@@ -28,12 +28,12 @@ jobs:
             arch: "x86_64"
 
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         submodules: 'recursive'
 
     - name: Build wheels (arch=${{ matrix.arch }})
-      uses: pypa/cibuildwheel@v2.12.1
+      uses: pypa/cibuildwheel@v2.14
       env:
         CIBW_ARCHS: "${{ matrix.arch }}"
 
@@ -46,7 +46,7 @@ jobs:
     runs-on: ubuntu-20.04
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 
@@ -70,7 +70,7 @@ jobs:
           - macos-11
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: 'recursive'
 

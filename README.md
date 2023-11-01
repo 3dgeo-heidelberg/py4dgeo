@@ -24,11 +24,11 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 * **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
 
+* **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation. The concept and method are explained in full detail in the related paper.
 
 * **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
 
-**Coming next:**
 * **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
@@ -96,7 +96,7 @@ docker run -t -p 8888:8888 py4dgeo:latest
 
 ## 🐍 Documentation of software usage
 
-As a starting point, please have a look to the [Jupyter Notebooks](notebooks) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
+As a starting point, please have a look to the [Jupyter Notebooks](jupyter) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
 
 ## 🌐 Published test data
 
@@ -107,12 +107,14 @@ If you are looking for data to test different methods, consider the following op
 ### Hourly TLS point clouds of a sandy beach
 
 <a href="https://doi.org/10.1038/s41597-022-01291-9" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/data_vos_2022_kijkduin.png?raw=true" alt="" width="450" /></a>
+<br>
 Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/10.1038/s41597-022-01291-9).
 
 
 ### By-weekly TLS point clouds of an Alpine rock glacier
 
 <a href="https://doi.org/10.11588/data/TGSVUI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/data_zahs_2022_ahk_2019_tls.png?raw=true" alt="" width="450" /></a>
+<br>
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI).
 
 
@@ -121,7 +123,7 @@ Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11
 ## 📑 Citation
 Please cite py4dgeo when using it in your research and reference the appropriate release version.
 
-<!-- TODO: All releases of pytreedb are listed on Zenodo where you will find the citation information including DOI. -->
+<!-- TODO: All releases of py4dgeo are listed on Zenodo where you will find the citation information including DOI. -->
 
 ```
 article{py4dgeo,
@@ -137,7 +139,7 @@ url = {https://github.com/3dgeo-heidelberg/py4dgeo},
  ```
 
 ## 💟 Funding / Acknowledgements
-The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021.
+The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
 
 ## 🔔 Contact / Bugs / Feature Requests
 
@@ -154,4 +156,5 @@ See [LICENSE.md](LICENSE.md).
 
 * Anders, K., Winiwarter, L., Mara, H., Lindenbergh, R., Vos, S.E. & Höfle, B. (2021): Fully automatic spatiotemporal segmentation of 3D LiDAR time series for the extraction of natural surface changes. ISPRS Journal of Photogrammetry and Remote Sensing, 173, pp. 297-308. DOI: [10.1016/j.isprsjprs.2021.01.015](https://doi.org/10.1016/j.isprsjprs.2021.01.015).
 * Lague, D., Brodu, N., & Leroux, J. (2013). Accurate 3D comparison of complex topography with terrestrial laser scanner: Application to the Rangitikei canyon (N-Z). ISPRS Journal of Photogrammetry and Remote Sensing, 82, pp. 10-26. DOI: [10.1016/j.isprsjprs.2013.04.009](https://doi.org/10.1016/j.isprsjprs.2013.04.009).
+* Winiwarter, L., Anders, K., Höfle, B. (2021): M3C2-EP: Pushing the limits of 3D topographic point cloud change detection by error propagation. ISPRS Journal of Photogrammetry and Remote Sensing, 178, pp. 240–258. DOI: [10.1016/j.isprsjprs.2021.06.011](https://doi.org/10.1016/j.isprsjprs.2021.06.011).
 * Zahs, V., Winiwarter, L., Anders, K., Williams, J.G., Rutzinger, M. & Höfle, B. (2022): Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification. ISPRS Journal of Photogrammetry and Remote Sensing, 183, pp. 541-559. DOI: [10.1016/j.isprsjprs.2021.11.018](https://doi.org/10.1016/j.isprsjprs.2021.11.018).

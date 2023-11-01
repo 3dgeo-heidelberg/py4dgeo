@@ -73,6 +73,27 @@ KDTree::radius_search_with_distances(const double* query,
   return search->radiusSearch(query, radius * radius, result, params);
 }
 
+void
+KDTree::nearest_neighbors_with_distances(
+  EigenPointCloudConstRef cloud,
+  NearestNeighborsDistanceResult& result) const
+{
+  // Resize the results container
+  result.first.resize(cloud.rows());
+  result.second.resize(cloud.rows());
+  nanoflann::SearchParams params;
+
+#ifdef PY4DGEO_WITH_OPENMP
+#pragma omp parallel for schedule(dynamic, 1)
+#endif
+  for (IndexType i = 0; i < cloud.rows(); ++i) {
+    nanoflann::KNNResultSet<double, IndexType> resultset(1);
+    resultset.init(result.first.data() + i, result.second.data() + i);
+    auto qp = cloud.row(i).eval();
+    search->findNeighbors(resultset, &(qp(0, 0)), params);
+  }
+}
+
 int
 KDTree::get_leaf_parameter() const
 {

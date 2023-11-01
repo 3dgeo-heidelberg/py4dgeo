@@ -157,7 +157,7 @@ def test_change_point_detection_against_ruptures(
     rcp = algo.fit_predict(ts, pen=penalty)
 
     # Run C++ algorithm
-    from py4dgeo._py4dgeo import change_point_detection, ChangePointDetectionData
+    from _py4dgeo import change_point_detection, ChangePointDetectionData
 
     data = ChangePointDetectionData(
         ts=ts, window_size=window_size, min_size=min_size, jump=jump, penalty=penalty
