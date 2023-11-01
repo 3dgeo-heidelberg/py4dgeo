@@ -111,7 +111,7 @@ jobs:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@master
+      - uses: pypa/gh-action-pypi-publish@release/v1
         if: github.event.inputs.deploy_to_testpypi == 'true'
         with:
           user: __token__
@@ -128,7 +128,7 @@ jobs:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@master
+      - uses: pypa/gh-action-pypi-publish@release/v1
         if: github.event.inputs.deploy_to_pypi == 'true'
         with:
           user: __token__
