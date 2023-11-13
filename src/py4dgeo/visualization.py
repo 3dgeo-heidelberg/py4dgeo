@@ -1,6 +1,5 @@
 import os
 import json
-import sys
 import matplotlib.pyplot as plt
 from typing import List
 import imageio
@@ -8,8 +7,7 @@ import numpy as np
 from shapely.geometry import Polygon
 
 
-
-# Class definition of change event
+# Class definition of ChangeEvent
 class ChangeEvent:
     def __init__(
             self,
@@ -68,7 +66,7 @@ class ChangeEvent:
         :param spatial_extent:
             The extent of the change event object given as bounding box as 2d list of shape (4, 2) with the inner 
             dimension with 4 coordinate pairs as float values.
-            
+
         :param start_end_location:
             The start and end location of a change event object as coordinate pairs in a 2d list.
 
@@ -84,9 +82,6 @@ class ChangeEvent:
 
         :param plots_4d:
             A list of file paths to all 4d visualizations generated from the change event object as string.
-
-
-
     """
 
     @classmethod
@@ -165,7 +160,7 @@ class ChangeEvent:
 
         # Set the default plots_2d_dir if not provided
         if plots_2d_dir is None:
-            default_dir = os.path.join("output", "2d_plots", f"00{self.object_id}")
+            default_dir = os.path.join("output_visualization", "2d_plots", f"00{self.object_id}")
             os.makedirs(default_dir, exist_ok=True)
             plots_2d_dir = default_dir
 
@@ -246,7 +241,7 @@ class ChangeEvent:
         plt.grid(True)
 
         if plots_3d_dir is None:
-            default_dir = os.path.join("output", "3d_plots", f"00{self.object_id}")
+            default_dir = os.path.join("output_visualization", "3d_plots", f"00{self.object_id}")
             os.makedirs(default_dir, exist_ok=True)
             plots_3d_dir = default_dir
 
@@ -283,7 +278,7 @@ class ChangeEvent:
         file_paths = []  # To store file paths
 
         if plots_4d_dir is None:
-            default_dir = os.path.join("output", "4d_plots", f"00{self.object_id}")
+            default_dir = os.path.join("output_visualization", "4d_plots", f"00{self.object_id}")
             os.makedirs(default_dir, exist_ok=True)
             plots_4d_dir = default_dir
 
@@ -354,8 +349,9 @@ class ChangeEvent:
             self.plots_4d.append(anim_file_path)
         return file_paths
 
-
-    def read_point_cloud_from_xyz(self, pc_file):
+    def read_point_cloud_from_xyz(self,
+                                  pc_file
+                                  ):
         """Load a point cloud from a ascii file.
 
         :param pc_file:
@@ -369,13 +365,16 @@ class ChangeEvent:
 
         point_cloud = []
         for line in lines:
-            values = line.split()  # Annahme: Werte sind durch Leerzeichen getrennt
+            values = line.split()
             x, y, z, distance = map(float, values)
             point_cloud.append([x, y, z, distance])
 
         return np.array(point_cloud)
 
-    def visualize_change_event(self, visualization_parameters, plotting_attribute="c2c_dist"):
+    def visualize_change_event(self,
+                               visualization_parameters,
+                               plotting_attribute="c2c_dist"
+                               ):
         """Generate plots for each ChangeEvent based on visualization parameters.
 
         :param event_list:
@@ -385,7 +384,8 @@ class ChangeEvent:
             A dictionary with visualization parameters.
 
         :param plotting_attribute (str, optional):
-            The attribute to be used to color the point clouds as string.
+            The attribute to be used to color the point clouds as string. Per default it is assumed to be
+            cloud2cloud distances.
         """
         if "visualization_modes" in visualization_parameters:
             modes = visualization_parameters["visualization_modes"]
@@ -396,11 +396,13 @@ class ChangeEvent:
             if "4d" in modes:
                 self.plot_4d(-1, plotting_attribute)
             else:
-                print("No visualization modes specified in visualization_parameters.")
+                self.plot_2d()
+                print("No visualization modes specified in visualization_parameters. Plotting only 2D plots.")
 
     def write_change_event_in_geojson(self,
                                       change_event,
-                                      output_file=None):
+                                      output_file=None
+                                      ):
         """Writes a ChangeEvent object to a GeoJSON output file.
 
         :param change_event:
@@ -411,7 +413,6 @@ class ChangeEvent:
 
         :return None
         """
-
         geometry = {
             "type": "MultiPoint",
             "coordinates": change_event.start_end_location
@@ -445,7 +446,13 @@ class ChangeEvent:
         with open(output_file, 'w') as file:
             json.dump(geojson_data, file, indent=4)
 
-def create_change_animation(images_paths, attribute_name, object_id, plots_4d_dir=None):
+
+### Functions outside ChangeEvent class ###
+def create_change_animation(images_paths,
+                            attribute_name,
+                            object_id,
+                            plots_4d_dir=None
+                            ):
     """Generate animated plots for each ChangeEvent based on a list of input frames.
 
     :param images_paths:
@@ -481,6 +488,7 @@ def create_change_animation(images_paths, attribute_name, object_id, plots_4d_di
 
     return anim_file_path
 
+
 def read_visualization_parameters(json_path):
     """Extract visualization parameters from a GeoJSON file.
 
@@ -493,7 +501,6 @@ def read_visualization_parameters(json_path):
     :return parameters:
         A dictionary containing the extracted visualization parameters.
     """
-
     with open(json_path, 'r') as json_file:
         json_data = json.load(json_file)
 
@@ -517,7 +524,10 @@ def read_visualization_parameters(json_path):
 
     return parameters
 
-def filter_relevant_events(event_list, visualization_parameters):
+
+def filter_relevant_events(event_list,
+                           visualization_parameters
+                           ):
     """Retrieve a list of relevant ChangeEvent objects based on criteria defined in visualization parameters.
 
     :param: event_list:
@@ -529,7 +539,6 @@ def filter_relevant_events(event_list, visualization_parameters):
     :return relevant_events:
         A list of relevant ChangeEvent objects.
    """
-
     relevant_events = event_list
 
     # Check all change events for matching the provided criteria
@@ -539,16 +548,17 @@ def filter_relevant_events(event_list, visualization_parameters):
                                any(event_type in event.event_type for event_type in value)]
         elif key == "duration":
             relevant_events = [event for event in relevant_events if value[0] <= event.duration <= value[1]]
-        #elif key == "spatial_extent":
-            #relevant_events = [event for event in relevant_events if is_inside_extent(event.spatial_extent, value)]
-        #elif key == "observation_period":
-            #relevant_events = [event for event in relevant_events if
-                               #event.timestamps[0] >= value[0] and event.timestamps[-1] <= value[1]]
-
+        # further criteria to be implemented
+        # elif key == "spatial_extent":
+        # relevant_events = [event for event in relevant_events if is_inside_extent(event.spatial_extent, value)]
+        # elif key == "observation_period":
+        # relevant_events = [event for event in relevant_events if
+        # event.timestamps[0] >= value[0] and event.timestamps[-1] <= value[1]]
 
     return relevant_events
 
-# helper functions
+
+### Helper functions ###
 def is_inside_extent(event_extent, target_extent):
     """Check if an event extent is inside the target extent polygon.
 
@@ -569,27 +579,3 @@ def is_inside_extent(event_extent, target_extent):
     is_inside = event_polygon.within(target_polygon)
 
     return is_inside
-
-def main():
-
-    # Read data
-    visualization_parameters_json = sys.argv[1]
-    change_events_geojson = sys.argv[2]
-
-    # Get visualization parameters
-    visualization_parameters = read_visualization_parameters(visualization_parameters_json)
-
-    # Create ChangeEvent objects from geojson
-    change_events = ChangeEvent.read_change_events_from_geojson(change_events_geojson)
-
-    # Filter relevant ChangeEvent objects for visualization
-    relevant_change_events = filter_relevant_events(change_events, visualization_parameters)
-
-    # Plot ChangeEvent object as defined in visualization parameters
-    for change_event in relevant_change_events:
-        #change_event.plot_2d()
-        change_event.visualize_change_event(visualization_parameters)
-        # change_event.write_change_event_in_geojson(change_events)
-
-if __name__ == "__main__":
-    main()
