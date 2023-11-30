@@ -194,7 +194,7 @@ jobs:
         echo "leak:PyDict_Copy" >> supp.txt
         echo "leak:PyUnicode_New" >> supp.txt
         echo "leak:pyo3::types::function::PyCFunction::internal_new_from_pointers" >> supp.txt
-        echo "leak:pyo3::types::function::PyCFunction::internal_new::hc42d66969155ec54" >> supp.txt
+        echo "leak:pyo3::types::function::PyCFunction::internal_new::" >> supp.txt
         # hack to prevent external libs from dlclosing libraries,
         # which otherwise results in <module not found> LSAN leaks that cannot be suppressed
         # https://github.com/google/sanitizers/issues/89#issuecomment-406316683
