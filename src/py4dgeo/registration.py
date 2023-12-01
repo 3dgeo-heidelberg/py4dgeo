@@ -43,7 +43,7 @@ def _fit_transform(A, B, reduction_point=None):
 
 
 def iterative_closest_point(
-    reference_epoch, epoch, max_iterations=20, tolerance=0.001, reduction_point=None
+    reference_epoch, epoch, max_iterations=50, tolerance=0.00001, reduction_point=None
 ):
     """Perform an Iterative Closest Point algorithm (ICP)
 
