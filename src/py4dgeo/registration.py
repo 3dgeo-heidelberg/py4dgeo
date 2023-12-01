@@ -1,10 +1,15 @@
-from py4dgeo.util import Py4DGeoError
-from py4dgeo.epoch import Epoch
-from copy import deepcopy
-
+import dataclasses
 import numpy as np
 
 import _py4dgeo
+
+
+@dataclasses.dataclass(frozen=True)
+class Transformation:
+    """A transformation that can be applied to a point cloud"""
+
+    affine_transformation: np.ndarray
+    reduction_point: np.ndarray
 
 
 def _fit_transform(A, B, reduction_point=None):
@@ -93,4 +98,7 @@ def iterative_closest_point(
             break
         prev_error = mean_error
 
-    return _fit_transform(epoch.cloud, cloud)
+    return Transformation(
+        affine_transformation=_fit_transform(epoch.cloud, cloud),
+        reduction_point=reduction_point,
+    )
