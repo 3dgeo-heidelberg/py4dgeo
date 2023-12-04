@@ -384,7 +384,7 @@ class ChangeEventValidator:
                 validated_data = validate_model(ChangeEvent, element)
 
                 # Create ChangeEvent object
-                change_event = ChangeEvent(**validated_data)
+                change_event = ChangeEvent(**validated_data[0])
                 change_events.append(change_event)
 
             return change_events
