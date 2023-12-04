@@ -275,6 +275,9 @@ class Epoch(_py4dgeo.Epoch):
         # Ensure contiguous DP memory
         trafo = as_double_precision(make_contiguous(trafo))
 
+        # Invalidate the KDTree
+        self.kdtree.invalidate()
+
         # Apply the actual transformation as efficient C++
         _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo, reduction_point)
 

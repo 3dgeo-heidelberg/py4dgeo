@@ -27,6 +27,13 @@ KDTree::build_tree(int leaf)
   leaf_parameter = leaf;
 }
 
+void
+KDTree::invalidate()
+{
+  search = nullptr;
+  leaf_parameter = 0;
+}
+
 std::ostream&
 KDTree::saveIndex(std::ostream& stream) const
 {
