@@ -32,6 +32,8 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 * **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
+* **Point cloud registration**: Py4dgeo supports to calculate and apply affine transformations to point clouds using a standard ICP implementations. More ICP methods are currently being implemented - stay tuned!
+
 
 ## 🎮 Examples
 
@@ -40,7 +42,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 |------------------------------------------------------------------------------------------------------------------------------------------------------|---|
 | [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2-change_analysis.ipynb)  | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/m3c2ep-change_analysis.ipynb)  |
 | [![Example 3](img/4dobc_extraction_thumbnail.png)](https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/4dobc-change_analysis.ipynb)  | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/kmeans_clustering_of_time_series.ipynb)  |
-| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/principal_component_analysis_of_time_series.ipynb)  |
+| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/registration_standard_ICP.ipynb)  | [![Example 6](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/registration_standard_ICP.ipynb)  
 
 
 ## 💻 Installation
