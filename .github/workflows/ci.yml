@@ -21,7 +21,7 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - uses: lukka/get-cmake@v3.28.0
+    - uses: lukka/get-cmake@v3.28.1
 
     - name: Build with CMake
       run: |
