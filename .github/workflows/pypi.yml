@@ -33,7 +33,7 @@ jobs:
         submodules: 'recursive'
 
     - name: Build wheels (arch=${{ matrix.arch }})
-      uses: pypa/cibuildwheel@v2.14
+      uses: pypa/cibuildwheel@v2.16
       env:
         CIBW_ARCHS: "${{ matrix.arch }}"
 
@@ -104,32 +104,31 @@ jobs:
   upload_testpypi:
     needs: [build-sdist, test-sdist, build-wheels]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == '3dgeo-heidelberg'
+    permissions:
+      id-token: write
+
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@master
+      - uses: pypa/gh-action-pypi-publish@release/v1
         if: github.event.inputs.deploy_to_testpypi == 'true'
         with:
-          user: __token__
-          password: ${{ secrets.TESTPYPI_API_TOKEN }}
           repository_url: https://test.pypi.org/legacy/
 
   upload_pypi:
     needs: [build-sdist, build-wheels, upload_testpypi]
     runs-on: ubuntu-20.04
-    if: github.repository_owner == '3dgeo-heidelberg'
+    permissions:
+      id-token: write
+
     steps:
       - uses: actions/download-artifact@v3
         with:
           name: artifact
           path: dist
 
-      - uses: pypa/gh-action-pypi-publish@master
+      - uses: pypa/gh-action-pypi-publish@release/v1
         if: github.event.inputs.deploy_to_pypi == 'true'
-        with:
-          user: __token__
-          password: ${{ secrets.PYPI_API_TOKEN }}
