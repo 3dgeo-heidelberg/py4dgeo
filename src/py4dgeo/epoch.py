@@ -623,10 +623,8 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
         must be exactly 3 columns. Leave empty, if your data file does not contain normals.
     :type normal_columns: list
     :param additional_dimensions:
-        A dictionary, mapping column indices to names of additional data dimensions.
-        They will be read from the and are accessible under their names from the
-        created Epoch objects.
-        Additional column indexes are corresponding indexes in the LAS/LAZ file.
+        A dictionary, mapping names of additional data dimensions in the input
+        dataset to additional data dimensions in our epoch data structure.
     :type additional_dimensions: dict
     """
 
