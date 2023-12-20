@@ -506,7 +506,6 @@ def _as_tuple(x):
 
 def read_from_xyz(
     *filenames,
-    other_epoch=None,
     xyz_columns=[0, 1, 2],
     normal_columns=[],
     additional_dimensions={},
@@ -526,9 +525,6 @@ def read_from_xyz(
         your data file does not contain normals, otherwise exactly three indices
         for the x, y and z components need to be given.
     :type normal_columns: list
-    :param other_epoch:
-        An existing epoch that we want to be compatible with.
-    :type other_epoch: py4dgeo.Epoch
     :param parse_opts:
         Additional options forwarded to numpy.genfromtxt. This can be used
         to e.g. change the delimiter character, remove header_lines or manually
@@ -607,7 +603,6 @@ def read_from_xyz(
         return (new_epoch,) + _as_tuple(
             read_from_xyz(
                 *filenames[1:],
-                other_epoch=new_epoch,
                 xyz_columns=xyz_columns,
                 normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
@@ -616,18 +611,13 @@ def read_from_xyz(
         )
 
 
-def read_from_las(
-    *filenames, other_epoch=None, normal_columns=[], additional_dimensions={}
-):
+def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
         The filename to read from. It is expected to be in LAS/LAZ format
         and will be processed using laspy.
     :type filename: str
-    :param other_epoch:
-        An existing epoch that we want to be compatible with.
-    :type other_epoch: py4dgeo.Epoch
     :param normal_columns:
         The column names of the normal vector components, e.g. "NormalX", "nx", "normal_x" etc., keep in mind that there
         must be exactly 3 columns. Leave empty, if your data file does not contain normals.
@@ -696,7 +686,6 @@ def read_from_las(
         return (new_epoch,) + _as_tuple(
             read_from_las(
                 *filenames[1:],
-                other_epoch=new_epoch,
                 normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
             )
