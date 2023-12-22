@@ -129,15 +129,17 @@ PYBIND11_MODULE(_py4dgeo, m)
       int k = 1;
       self.nearest_neighbors_with_distances(cloud, result, k);
 
-      py::list result_list;
+      py::array_t<NearestNeighborsDistanceResult> result_array(result.size());
+      auto result_array_ptr = result_array.mutable_data();
       for (size_t i = 0; i < result.size(); ++i) {
-        result_list.append(std::make_tuple(std::move(result[i].first[0]),
-                                           std::move(result[i].second[0])));
+        *result_array_ptr++ =
+          NearestNeighborsDistanceResult{ result[i].first[0],
+                                          result[i].second[0] };
       }
-      return result_list;
+
+      return result_array;
     },
     "Find k nearest neighbors for all points in a cloud!");
-  ///////////////////////////////////
 
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {

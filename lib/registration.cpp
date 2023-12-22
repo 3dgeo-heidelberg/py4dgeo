@@ -118,28 +118,41 @@ squaredEuclideanDistance(const Eigen::RowVector3d& point1,
   return diff.squaredNorm();
 }
 
+double
+point_2_point_VCCS_distance(EigenPointCloudConstRef point1,
+                            EigenPointCloudConstRef point2,
+                            EigenNormalSetRef normal1,
+                            EigenNormalSetRef normal2,
+                            double resolution)
+{
+  double x = point1.row(0)(0) - point2.row(0)(0);
+  double y = point1.row(0)(1) - point2.row(0)(1);
+  double z = point1.row(0)(2) - point2.row(0)(2);
+
+  double n1 = std::sqrt(normal1.row(0)(0) * normal1.row(0)(0) +
+                        normal1.row(0)(1) * normal1.row(0)(1) +
+                        normal1.row(0)(2) * normal1.row(0)(2));
+  double n2 = std::sqrt(normal2.row(0)(0) * normal2.row(0)(0) +
+                        normal2.row(0)(1) * normal2.row(0)(1) +
+                        normal2.row(0)(2) * normal2.row(0)(2));
+
+  return 1.0 - std::fabs(n1 * n2) +
+         std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) /
+           resolution * 0.4;
+}
+
 std::vector<std::vector<int>>
 supervoxel_segmentation(Epoch& epoch,
-                        const KDTree& kdtree, //?
+                        const KDTree& kdtree,
                         double resolution,
-                        int k)
+                        int k,
+                        EigenNormalSet normals)
 {
 
   // Define number of supervoxels and labels.
   auto n_supervoxels = estimate_supervoxel_count(epoch.cloud, resolution);
   std::vector<int> labels(epoch.cloud.rows(), -1);
   DisjointSet set(epoch.cloud.rows());
-
-  // Calculate normals for vccs metric
-  epoch.kdtree.build_tree(10);
-  std::vector<double> normal_radii{ 2.0 };
-  EigenNormalSet normals(epoch.cloud.rows(), 3);
-  EigenNormalSet orientation(1, 3);
-  orientation << 0, 0, 1;
-  compute_multiscale_directions(
-    epoch, epoch.cloud, normal_radii, orientation, normals);
-
-  normals.norm();
 
   // Calculate k neigbors and its distances for each point
   KDTree::NearestNeighborsDistanceResult result;
@@ -149,12 +162,9 @@ supervoxel_segmentation(Epoch& epoch,
 
   // calculate lambda for segmentation
   DistanceVector lambda_distances;
-  for (size_t i = 0; i < result.size(); ++i) {
-    std::nth_element(result[i].second.begin(),
-                     result[i].second.begin() + 1,
-                     result[i].second.end());
-    lambda_distances.push_back(result[i].second[1]);
-    // because [0] is the distance to the same point, so it's 0
+  for (const auto& pair : result) {
+    lambda_distances.push_back(pair.second[1]);
+    // because [0] is the distance to the same point, so it's 1
   }
 
   double lambda = median_calculation(lambda_distances);
@@ -162,7 +172,7 @@ supervoxel_segmentation(Epoch& epoch,
   // initialize temporary vars for supervoxel segmentation
   std::vector<int> temporary_supervoxels(epoch.cloud.rows());
   std::iota(temporary_supervoxels.begin(), temporary_supervoxels.end(), 0);
-  std::vector<int> sizes(epoch.cloud.rows(), 1); //+-?
+  std::vector<int> sizes(epoch.cloud.rows(), 1);
   std::queue<int> point_queue;
   std::vector<std::vector<long unsigned int>> neighborIndexes(result.size());
 

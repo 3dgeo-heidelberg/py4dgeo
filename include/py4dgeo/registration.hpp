@@ -1,10 +1,10 @@
 #pragma once
 
-#include "compute.hpp"
-#include "epoch.hpp"
-#include "kdtree.hpp"
-#include "segmentation.hpp"
+#include <py4dgeo/compute.hpp>
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/segmentation.hpp>
 
 #include <Eigen/Geometry>
 
@@ -55,18 +55,25 @@ std::size_t
 estimate_supervoxel_count(EigenPointCloudConstRef cloud,
                           double seed_resolution);
 
-/** @brief Distribution of points into a certain number of supervoxels
+/** @brief Perform supervoxel segmentation to distribute points within an epoch.
  *
- * @param epoch The epoch to segment
- * @param kdtree The KDTree for the epoch
- * @param seed_resolution The value for calculation of supervoxel count
- * @param k The number of neighbors for each point
+ * @param epoch The epoch to be segmented.
+ * @param kdtree The KDTree corresponding to the epoch's points.
+ * @param seed_resolution The seed resolution used in supervoxel count
+ * calculation.
+ * @param k The number of neighbors considered for each point during
+ * segmentation.
+ * @param normals The normal vectors of the epoch's points.
  *
  */
 std::vector<std::vector<int>>
-supervoxel_segmentation(Epoch& epoch,
-                        const KDTree& kdtree,
-                        double seed_resolution,
-                        int k);
+supervoxel_segmentation(
+  Epoch& epoch,
+  const KDTree& kdtree,
+  double seed_resolution,
+  int k,
+  EigenNormalSet normals = EigenNormalSet::Zero(
+    1,
+    3)); // it will be changed to EigenNormalSetRef afterwards);
 
 } // namespace py4dgeo

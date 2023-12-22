@@ -81,4 +81,11 @@ enum class MemoryPolicy
   RELAXED = 3
 };
 
+/** @brief A structure for py4dgeo's nearest neighbors distance measure */
+struct NearestNeighborsDistanceResult
+{
+  long int index;
+  double distance;
+};
+
 }
