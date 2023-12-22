@@ -49,9 +49,12 @@ def test_nearest_neighbors(epochs_las):
     epoch1, epoch2 = epochs_las
     epoch1.build_kdtree()
 
-    checklist_pr = epoch1.kdtree.nearest_neighbors(epoch2.cloud)
+    checklist_pr = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud))
     assert len(checklist_pr) > 0
-    indices, distances = zip(*checklist_pr)
+    indices, distances = np.split(checklist_pr, 2, axis=0)
+    indices = indices.flatten().tolist()
+    distances = distances.flatten().tolist()
+    indices = tuple(int(i) for i in indices)
 
     for i in range(epoch1.cloud.shape[0]):
         assert i == indices[i]

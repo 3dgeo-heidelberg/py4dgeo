@@ -103,9 +103,6 @@ PYBIND11_MODULE(_py4dgeo, m)
   kdtree.def(
     "build_tree", &KDTree::build_tree, "Trigger building the search tree");
 
-  // Allow invalidating the KDTree structure
-  kdtree.def("invalidate", &KDTree::invalidate, "Invalidate the search tree");
-
   // Give access to the leaf parameter that the tree has been built with
   kdtree.def("leaf_parameter",
              &KDTree::get_leaf_parameter,
@@ -132,15 +129,18 @@ PYBIND11_MODULE(_py4dgeo, m)
       int k = 1;
       self.nearest_neighbors_with_distances(cloud, result, k);
 
-      py::array_t<NearestNeighborsDistanceResult> result_array(result.size());
-      auto result_array_ptr = result_array.mutable_data();
+      py::array_t<long int> indices_array(result.size());
+      py::array_t<double> distances_array(result.size());
+
+      auto indices_array_ptr = indices_array.mutable_data();
+      auto distances_array_ptr = distances_array.mutable_data();
+
       for (size_t i = 0; i < result.size(); ++i) {
-        *result_array_ptr++ =
-          NearestNeighborsDistanceResult{ result[i].first[0],
-                                          result[i].second[0] };
+        *indices_array_ptr++ = result[i].first[0];
+        *distances_array_ptr++ = result[i].second[0];
       }
 
-      return result_array;
+      return std::make_pair(indices_array, distances_array);
     },
     "Find k nearest neighbors for all points in a cloud!");
 
