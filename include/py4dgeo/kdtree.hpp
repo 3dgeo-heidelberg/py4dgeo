@@ -120,6 +120,9 @@ public:
    */
   void build_tree(int leaf);
 
+  /** @brief Invalidate the KDTree index */
+  void invalidate();
+
   /** @brief Peform radius search around given query point
    *
    * This method determines all the points from the point cloud within the given

@@ -14,11 +14,12 @@ on:
 
 jobs:
   build-and-test:
-    name: Testing on ${{matrix.os}} - OpenMP ${{matrix.openmp}}
+    name: Testing on ${{matrix.os}} Py${{matrix.python-version}}- OpenMP ${{matrix.openmp}}
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
         os: [ubuntu-20.04, macos-11, windows-2022]
+        python-version: ["3.8", "3.12"]
         openmp: ['ON', 'OFF']
 
     steps:
@@ -29,7 +30,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: 3.8
+        python-version: ${{ matrix.python-version }}
 
     - name: Install OpenMP
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
@@ -51,7 +52,7 @@ jobs:
     - name: Install Python package and development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install .
+        python -m pip install -v .
 
     - name: Install py4dgeo test data
       shell: bash
@@ -89,7 +90,7 @@ jobs:
     - name: Install Python package and development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install --editable .
+        python -m pip install -v --editable .
 
     - name: Install py4dgeo test data
       shell: bash
@@ -153,7 +154,7 @@ jobs:
     - name: Install Python development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install .
+        python -m pip install -v .
 
     - name: Install py4dgeo test data
       shell: bash
