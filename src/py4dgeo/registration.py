@@ -85,8 +85,8 @@ def iterative_closest_point(
     for _ in range(max_iterations):
         neighbor_arrays = np.asarray(reference_epoch.kdtree.nearest_neighbors(cloud))
         indices, distances = np.split(neighbor_arrays, 2, axis=0)
-        indices = indices.astype(int)
-        indices = np.squeeze(indices)
+
+        indices = np.squeeze(indices.astype(int))
         distances = np.squeeze(distances)
 
         # Calculate a transform and apply it
