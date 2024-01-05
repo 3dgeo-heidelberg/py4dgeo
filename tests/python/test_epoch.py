@@ -163,11 +163,11 @@ def test_affine_trafo(epochs):
     # Apply a translation
     trafo = np.identity(4, dtype=np.float64)
     trafo[0, 3] = 1
-    epoch.transform(trafo)
+    epoch.transform(affine_transformation=trafo)
 
     # Assert that the transformation was saved
     assert len(epoch.transformation) == 1
-    assert np.allclose(epoch.transformation[0][0], trafo)
+    assert np.allclose(epoch.transformation[0].affine_transformation, trafo)
 
     # Check the result
     assert np.allclose(epoch.cloud[:, 0] - 1, copycloud[:, 0])
@@ -176,7 +176,7 @@ def test_affine_trafo(epochs):
 
     # Apply the inverse transformation and check for identity
     trafo[0, 3] = -1
-    epoch.transform(trafo)
+    epoch.transform(affine_transformation=trafo)
     assert np.allclose(epoch.cloud, copycloud)
     assert len(epoch.transformation) == 2
 
@@ -191,10 +191,10 @@ def test_identity_3x4_trafo(epochs):
     trafo[1, 1] = 1
     trafo[2, 2] = 1
 
-    epoch.transform(trafo)
+    epoch.transform(affine_transformation=trafo)
     assert np.allclose(epoch.cloud, copycloud)
     assert len(epoch.transformation) == 1
-    assert np.allclose(epoch.transformation[0][0], np.identity(4))
+    assert np.allclose(epoch.transformation[0].affine_transformation, np.identity(4))
 
 
 def test_identity_rotate_translate(epochs):
@@ -207,18 +207,18 @@ def test_identity_rotate_translate(epochs):
     epoch.transform(rotation=rotation, translation=translation)
     assert np.allclose(epoch.cloud, copycloud)
     assert len(epoch.transformation) == 1
-    assert np.allclose(epoch.transformation[0][0], np.identity(4))
+    assert np.allclose(epoch.transformation[0].affine_transformation, np.identity(4))
 
 
 def test_identity_reference_point_transformation(epochs):
     epoch, _ = epochs
     copycloud = np.copy(epoch.cloud)
     epoch.transform(
-        transformation=np.identity(4), reduction_point=np.array([127, 456, 578])
+        affine_transformation=np.identity(4), reduction_point=np.array([127, 456, 578])
     )
     assert np.allclose(epoch.cloud, copycloud)
     assert len(epoch.transformation) == 1
-    assert np.allclose(epoch.transformation[0][0], np.identity(4))
+    assert np.allclose(epoch.transformation[0].affine_transformation, np.identity(4))
 
 
 def test_trafo_serialization(epochs):
@@ -228,7 +228,7 @@ def test_trafo_serialization(epochs):
     trafo = np.identity(4, dtype=np.float64)
     trafo[0, 3] = 1
     rp = np.array([1, 2, 3], dtype=np.float64)
-    epoch.transform(transformation=trafo, reduction_point=rp)
+    epoch.transform(affine_transformation=trafo, reduction_point=rp)
 
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
@@ -239,8 +239,8 @@ def test_trafo_serialization(epochs):
 
         # Assert that the two object behave the same
         assert len(loaded.transformation) == 1
-        assert np.allclose(loaded.transformation[0][0], trafo)
-        assert np.allclose(loaded.transformation[0][1], rp)
+        assert np.allclose(loaded.transformation[0].affine_transformation, trafo)
+        assert np.allclose(loaded.transformation[0].reduction_point, rp)
 
 
 def test_normal_computation(epochs):
@@ -270,4 +270,7 @@ def test_read_from_las_file_w_3_coords(epochs_las):
 
 def test_read_from_las_file_w_normals(epochs_las_w_normals):
     epoch1, _ = epochs_las_w_normals
-    assert np.isclose(np.max(epoch1.normals), 0)
+    assert epoch1.cloud.shape[0] > 0
+    assert epoch1.normals.shape[0] > 0
+    assert epoch1.cloud.shape[1] == 3
+    assert epoch1.normals.shape[1] == 3

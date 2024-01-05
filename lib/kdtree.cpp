@@ -5,6 +5,8 @@
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
+#include <vector>
+
 namespace py4dgeo {
 
 KDTree::KDTree(const EigenPointCloudRef& cloud)
@@ -25,6 +27,13 @@ KDTree::build_tree(int leaf)
     3, adaptor, nanoflann::KDTreeSingleIndexAdaptorParams(leaf));
   search->buildIndex();
   leaf_parameter = leaf;
+}
+
+void
+KDTree::invalidate()
+{
+  search = nullptr;
+  leaf_parameter = 0;
 }
 
 std::ostream&
@@ -74,23 +83,29 @@ KDTree::radius_search_with_distances(const double* query,
 }
 
 void
-KDTree::nearest_neighbors_with_distances(
-  EigenPointCloudConstRef cloud,
-  NearestNeighborsDistanceResult& result) const
+KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
+                                         NearestNeighborsDistanceResult& result,
+                                         int k) const
 {
-  // Resize the results container
-  result.first.resize(cloud.rows());
-  result.second.resize(cloud.rows());
+  result.resize(cloud.rows());
   nanoflann::SearchParams params;
 
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < cloud.rows(); ++i) {
-    nanoflann::KNNResultSet<double, IndexType> resultset(1);
-    resultset.init(result.first.data() + i, result.second.data() + i);
+    std::pair<std::vector<IndexType>, std::vector<double>> pointResult;
+
+    std::vector<IndexType>& ret_indices = pointResult.first;
+    std::vector<double>& out_dists_sqr = pointResult.second;
+    ret_indices.resize(k);
+    out_dists_sqr.resize(k);
+
+    nanoflann::KNNResultSet<double, IndexType> resultset(k);
     auto qp = cloud.row(i).eval();
+    resultset.init(ret_indices.data(), out_dists_sqr.data());
     search->findNeighbors(resultset, &(qp(0, 0)), params);
+    result[i] = pointResult;
   }
 }
 

@@ -1,9 +1,18 @@
 from py4dgeo.util import Py4DGeoError
-from py4dgeo.epoch import Epoch
-from copy import deepcopy
 
+from copy import deepcopy
+import dataclasses
 import numpy as np
+
 import _py4dgeo
+
+
+@dataclasses.dataclass(frozen=True)
+class Transformation:
+    """A transformation that can be applied to a point cloud"""
+
+    affine_transformation: np.ndarray
+    reduction_point: np.ndarray
 
 
 def _plane_Jacobian(Rot_a, n):
@@ -16,7 +25,7 @@ def _plane_Jacobian(Rot_a, n):
 
 
 def _point_Jacobian(Rot_p):
-    """Calculate Jacobian for point to plane method"""
+    """Calculate Jacobian for point to point method"""
 
     J = np.zeros((3, 6))
     J[:, 3:] = np.eye(3)
@@ -65,12 +74,10 @@ def _fit_transform_GN(A, B, N):
         J = _plane_Jacobian(Rot_a, n)
 
         H += J.T @ J
-
         g += J.T * e
-
         chi += np.linalg.norm(e)
 
-    update = -np.linalg.inv(H) @ g  # UPDATE is VERY SMALL!!!!!!!!!!!!!
+    update = -np.linalg.inv(H) @ g
 
     euler_array = euler_array + update.reshape(6)
     R, t = _set_rot_trans(euler_array)
@@ -166,7 +173,7 @@ def _fit_transform_LM(A, B, N):
     return T
 
 
-def _fit_transform(A, B):
+def _fit_transform(A, B, reduction_point=None):
     """Find a transformation that fits two point clouds onto each other"""
 
     assert A.shape == B.shape
@@ -174,37 +181,35 @@ def _fit_transform(A, B):
     # get number of dimensions
     m = A.shape[1]
 
-    # translate points to their centroids
     centroid_A = np.mean(A, axis=0)
     centroid_B = np.mean(B, axis=0)
+
+    # Apply the reduction_point if provided
+    if reduction_point is not None:
+        centroid_A -= reduction_point
+        centroid_B -= reduction_point
+
     AA = A - centroid_A
     BB = B - centroid_B
 
-    # rotation matrix
     H = np.dot(AA.T, BB)
     U, _, Vt = np.linalg.svd(H)
     R = np.dot(Vt.T, U.T)
-
+    t = centroid_B.T - np.dot(R, centroid_A.T)
     # special reflection case
     if np.linalg.det(R) < 0:
         Vt[2, :] *= -1
         R = np.dot(Vt.T, U.T)
 
-    # translation
-    t = centroid_B.T - np.dot(R, centroid_A.T)
-
     # homogeneous transformation
     T = np.identity(4)
     T[:3, :3] = R
     T[:3, 3] = t
-
-    print("shapes in ICP: ", R, R.shape, t, t.shape)
-
     return T
 
 
 def iterative_closest_point(
-    reference_epoch, epoch, max_iterations=20, tolerance=0.001, reduction_point=None
+    reference_epoch, epoch, max_iterations=50, tolerance=0.00001, reduction_point=None
 ):
     """Perform an Iterative Closest Point algorithm (ICP)
 
@@ -236,29 +241,38 @@ def iterative_closest_point(
 
     # Make a copy of the cloud to be transformed.
     cloud = epoch.cloud.copy()
-
     prev_error = 0
 
     for _ in range(max_iterations):
-        indices, distances = reference_epoch.kdtree.nearest_neighbors(cloud)
+        neighbor_arrays = np.asarray(reference_epoch.kdtree.nearest_neighbors(cloud))
+        indices, distances = np.split(neighbor_arrays, 2, axis=0)
+
+        indices = np.squeeze(indices.astype(int))
+        distances = np.squeeze(distances)
+
         # Calculate a transform and apply it
-        T = _fit_transform(cloud, reference_epoch.cloud[indices, :])
+        T = _fit_transform(
+            cloud, reference_epoch.cloud[indices, :], reduction_point=reduction_point
+        )
         _py4dgeo.transform_pointcloud_inplace(cloud, T, reduction_point)
 
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
-        print(mean_error)
+
         if np.abs(prev_error - mean_error) < tolerance:
             break
         prev_error = mean_error
-    print(cloud, reference_epoch.cloud)
-    return _fit_transform(epoch.cloud, cloud)
+
+    return Transformation(
+        affine_transformation=_fit_transform(epoch.cloud, cloud),
+        reduction_point=reduction_point,
+    )
 
 
 def point_to_plane_icp(
-    reference_epoch, epoch, max_iterations=20, tolerance=0.0001, reduction_point=None
+    reference_epoch, epoch, max_iterations=50, tolerance=0.00001, reduction_point=None
 ):
-    """Perform an Iterative Closest Point algorithm (ICP)
+    """Perform a point to plane Iterative Closest Point algorithm (ICP), based on Gauss-Newton method for computing the least squares solution
 
     :param reference_epoch:
         The reference epoch to match with. This epoch has to have calculated normals.
@@ -278,6 +292,8 @@ def point_to_plane_icp(
     :type reduction_point: np.ndarray
     """
 
+    from py4dgeo.epoch import Epoch
+
     # Ensure that Epoch has calculated normals
     if reference_epoch.normals is None:
         raise Py4DGeoError(
@@ -293,13 +309,21 @@ def point_to_plane_icp(
         reduction_point = np.array([0, 0, 0])
 
     # Make a copy of the cloud to be transformed.
-    trans_epoch = deepcopy(epoch)
+    trans_epoch = deepcopy(
+        epoch
+    )  # cloud = epoch.cloud.copy()#trans_epoch = deepcopy(epoch)
 
     prev_error = 0
 
     for _ in range(max_iterations):
-        indices, distances = reference_epoch.kdtree.nearest_neighbors(trans_epoch.cloud)
-        print(reference_epoch.normals[indices, :], reference_epoch.normals.shape)
+        neighbor_arrays = np.asarray(
+            reference_epoch.kdtree.nearest_neighbors(trans_epoch.cloud)
+        )
+        indices, distances = np.split(neighbor_arrays, 2, axis=0)
+
+        indices = np.squeeze(indices.astype(int))
+        distances = np.squeeze(distances)
+
         # Calculate a transform and apply it
         T = _fit_transform_GN(
             trans_epoch.cloud.transpose(1, 0),
@@ -310,24 +334,26 @@ def point_to_plane_icp(
 
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
-        print(mean_error)
+
         if np.abs(prev_error - mean_error) < tolerance:
             break
         prev_error = mean_error
 
-    normals = Epoch.calculate_normals(trans_epoch, radius=2)
-
-    return _fit_transform_GN(
-        epoch.cloud.transpose(1, 0),
-        trans_epoch.cloud.transpose(1, 0),
-        normals.transpose(1, 0),
+    normals = Epoch.calculate_normals(trans_epoch)
+    return Transformation(
+        affine_transformation=_fit_transform_GN(
+            epoch.cloud.transpose(1, 0),
+            trans_epoch.cloud.transpose(1, 0),
+            normals.transpose(1, 0),
+        ),
+        reduction_point=reduction_point,
     )
 
 
 def point_to_plane_icp_LM(
-    reference_epoch, epoch, max_iterations=20, tolerance=0.0001, reduction_point=None
+    reference_epoch, epoch, max_iterations=50, tolerance=0.00001, reduction_point=None
 ):
-    """Perform an Iterative Closest Point algorithm (ICP)
+    """Perform a point to plane Iterative Closest Point algorithm (ICP), based on Levenberg-Marquardt method for computing the least squares solution
 
     :param reference_epoch:
         The reference epoch to match with. This epoch has to have calculated normals.
@@ -346,6 +372,8 @@ def point_to_plane_icp_LM(
         This is used to increase the numerical accuracy of transformation.
     :type reduction_point: np.ndarray
     """
+
+    from py4dgeo.epoch import Epoch
 
     # Ensure that Epoch has calculated normals
     if reference_epoch.normals is None:
@@ -367,7 +395,13 @@ def point_to_plane_icp_LM(
     prev_error = 0
 
     for _ in range(max_iterations):
-        indices, distances = reference_epoch.kdtree.nearest_neighbors(trans_epoch.cloud)
+        neighbor_arrays = np.asarray(
+            reference_epoch.kdtree.nearest_neighbors(trans_epoch.cloud)
+        )
+        indices, distances = np.split(neighbor_arrays, 2, axis=0)
+
+        indices = np.squeeze(indices.astype(int))
+        distances = np.squeeze(distances)
 
         # Calculate a transform and apply it
         T = _fit_transform_LM(
@@ -378,23 +412,26 @@ def point_to_plane_icp_LM(
         _py4dgeo.transform_pointcloud_inplace(trans_epoch.cloud, T, reduction_point)
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
-        print(mean_error)
+
         if np.abs(prev_error - mean_error) < tolerance:
             break
         prev_error = mean_error
 
     normals = Epoch.calculate_normals(trans_epoch)
-    return _fit_transform_GN(
-        epoch.cloud.transpose(1, 0),
-        trans_epoch.cloud.transpose(1, 0),
-        normals.transpose(1, 0),
+    return Transformation(
+        affine_transformation=_fit_transform_LM(
+            epoch.cloud.transpose(1, 0),
+            trans_epoch.cloud.transpose(1, 0),
+            normals.transpose(1, 0),
+        ),
+        reduction_point=reduction_point,
     )
 
 
 def p_to_p_icp(
-    reference_epoch, epoch, max_iterations=20, tolerance=0.0001, reduction_point=None
+    reference_epoch, epoch, max_iterations=50, tolerance=0.00001, reduction_point=None
 ):
-    """Perform an Iterative Closest Point algorithm (ICP)
+    """Perform a point to point Iterative Closest Point algorithm (ICP), based on Gauss-Newton method
 
     :param reference_epoch:
         The reference epoch to match with. This epoch has to have calculated normals.
@@ -428,7 +465,12 @@ def p_to_p_icp(
     prev_error = 0
 
     for _ in range(max_iterations):
-        indices, distances = reference_epoch.kdtree.nearest_neighbors(cloud)
+        neighbor_arrays = np.asarray(reference_epoch.kdtree.nearest_neighbors(cloud))
+        indices, distances = np.split(neighbor_arrays, 2, axis=0)
+
+        indices = np.squeeze(indices.astype(int))
+        distances = np.squeeze(distances)
+
         # Calculate a transform and apply it
         T = _p_2_p_GN(
             cloud.transpose(1, 0), reference_epoch.cloud[indices, :].transpose(1, 0)
@@ -437,8 +479,13 @@ def p_to_p_icp(
 
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
-        print(mean_error)
         if np.abs(prev_error - mean_error) < tolerance:
             break
         prev_error = mean_error
-    return _fit_transform(epoch.cloud, cloud)
+
+    return Transformation(
+        affine_transformation=_p_2_p_GN(
+            epoch.cloud.transpose(1, 0), cloud.transpose(1, 0)
+        ),
+        reduction_point=reduction_point,
+    )

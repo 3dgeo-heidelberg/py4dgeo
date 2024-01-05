@@ -1,4 +1,5 @@
 from py4dgeo.logger import logger_context
+from py4dgeo.registration import Transformation
 from py4dgeo.util import (
     Py4DGeoError,
     append_file_extension,
@@ -17,6 +18,7 @@ import logging
 import numpy as np
 import os
 import tempfile
+import typing
 import zipfile
 
 import _py4dgeo
@@ -28,7 +30,7 @@ logger = logging.getLogger("py4dgeo")
 # about incompatibilities of py4dgeo with loaded data. This version is intentionally
 # different from py4dgeo's version, because not all releases of py4dgeo necessarily
 # change the epoch file format and we want to be as compatible as possible.
-PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 3
+PY4DGEO_EPOCH_FILE_FORMAT_VERSION = 4
 
 
 class NumpyArrayEncoder(json.JSONEncoder):
@@ -217,14 +219,21 @@ class Epoch(_py4dgeo.Epoch):
 
     def transform(
         self,
-        transformation=None,
-        rotation=np.identity(3, dtype=np.float64),
-        translation=np.array([0, 0, 0], dtype=np.float64),
-        reduction_point=np.array([0, 0, 0], dtype=np.float64),
+        transformation: typing.Optional[Transformation] = None,
+        affine_transformation: typing.Optional[np.ndarray] = None,
+        rotation: typing.Optional[np.ndarray] = None,
+        translation: typing.Optional[np.ndarray] = None,
+        reduction_point: typing.Optional[np.ndarray] = None,
     ):
         """Transform the epoch with an affine transformation
 
         :param transformation:
+            A Transformation object that describes the transformation to apply.
+            If this argument is given, the other arguments are ignored.
+            This parameter is typically used if the transformation was calculated
+            by py4dgeo itself.
+        :type transformation: Transformation
+        :param affine_transformation:
             A 4x4 or 3x4 matrix representing the affine transformation. Given
             as a numpy array. If this argument is given, the rotation and
             translation arguments are ignored.
@@ -238,29 +247,44 @@ class Epoch(_py4dgeo.Epoch):
         :param reduction_point:
             A translation vector to apply before applying rotation and scaling.
             This is used to increase the numerical accuracy of transformation.
+            If a transformation is given, this argument is ignored.
         :type reduction_point: np.ndarray
         """
 
+        # Extract the affine transformation and reduction point from the given transformation
+        if transformation is not None:
+            assert isinstance(transformation, Transformation)
+            affine_transformation = transformation.affine_transformation
+            reduction_point = transformation.reduction_point
+
         # Build the transformation if it is not explicitly given
-        if transformation is None:
+        if affine_transformation is None:
             trafo = np.identity(4, dtype=np.float64)
             trafo[:3, :3] = rotation
             trafo[:3, 3] = translation
         else:
             # If it was given, make a copy and potentially resize it
-            trafo = transformation.copy()
+            trafo = affine_transformation.copy()
             if trafo.shape[0] == 3:
                 trafo.resize((4, 4), refcheck=False)
                 trafo[3, 3] = 1
 
+        if reduction_point is None:
+            reduction_point = np.array([0, 0, 0], dtype=np.float64)
+
         # Ensure contiguous DP memory
         trafo = as_double_precision(make_contiguous(trafo))
+
+        # Invalidate the KDTree
+        self.kdtree.invalidate()
 
         # Apply the actual transformation as efficient C++
         _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo, reduction_point)
 
         # Store the transformation
-        self._transformations.append((trafo, reduction_point))
+        self._transformations.append(
+            Transformation(affine_transformation=trafo, reduction_point=reduction_point)
+        )
 
     @property
     def transformation(self):
@@ -306,7 +330,11 @@ class Epoch(_py4dgeo.Epoch):
                 # Write the transformation into a file
                 trafofile = os.path.join(tmp_dir, "trafo.json")
                 with open(trafofile, "w") as f:
-                    json.dump(self._transformations, f, cls=NumpyArrayEncoder)
+                    json.dump(
+                        [t.__dict__ for t in self._transformations],
+                        f,
+                        cls=NumpyArrayEncoder,
+                    )
                 zf.write(trafofile, arcname="trafo.json")
 
                 # Write the actual point cloud array using laspy - LAZ compression
@@ -407,9 +435,7 @@ class Epoch(_py4dgeo.Epoch):
                     trafofile = zf.extract("trafo.json", path=tmp_dir)
                     with open(trafofile, "r") as f:
                         trafo = json.load(f)
-                    epoch._transformations = [
-                        (np.array(t), np.array(rp)) for t, rp in trafo
-                    ]
+                    epoch._transformations = [Transformation(**t) for t in trafo]
 
         return epoch
 
@@ -480,7 +506,6 @@ def _as_tuple(x):
 
 def read_from_xyz(
     *filenames,
-    other_epoch=None,
     xyz_columns=[0, 1, 2],
     normal_columns=[],
     additional_dimensions={},
@@ -500,9 +525,6 @@ def read_from_xyz(
         your data file does not contain normals, otherwise exactly three indices
         for the x, y and z components need to be given.
     :type normal_columns: list
-    :param other_epoch:
-        An existing epoch that we want to be compatible with.
-    :type other_epoch: py4dgeo.Epoch
     :param parse_opts:
         Additional options forwarded to numpy.genfromtxt. This can be used
         to e.g. change the delimiter character, remove header_lines or manually
@@ -581,7 +603,6 @@ def read_from_xyz(
         return (new_epoch,) + _as_tuple(
             read_from_xyz(
                 *filenames[1:],
-                other_epoch=new_epoch,
                 xyz_columns=xyz_columns,
                 normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
@@ -590,27 +611,20 @@ def read_from_xyz(
         )
 
 
-def read_from_las(
-    *filenames, other_epoch=None, normal_columns=[], additional_dimensions={}
-):
+def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
     """Create an epoch from a LAS/LAZ file
 
     :param filename:
         The filename to read from. It is expected to be in LAS/LAZ format
         and will be processed using laspy.
     :type filename: str
-    :param other_epoch:
-        An existing epoch that we want to be compatible with.
-    :type other_epoch: py4dgeo.Epoch
     :param normal_columns:
         The column names of the normal vector components, e.g. "NormalX", "nx", "normal_x" etc., keep in mind that there
         must be exactly 3 columns. Leave empty, if your data file does not contain normals.
     :type normal_columns: list
     :param additional_dimensions:
-        A dictionary, mapping column indices to names of additional data dimensions.
-        They will be read from the and are accessible under their names from the
-        created Epoch objects.
-        Additional column indexes are corresponding indexes in the LAS/LAZ file.
+        A dictionary, mapping names of additional data dimensions in the input
+        dataset to additional data dimensions in our epoch data structure.
     :type additional_dimensions: dict
     """
 
@@ -670,7 +684,6 @@ def read_from_las(
         return (new_epoch,) + _as_tuple(
             read_from_las(
                 *filenames[1:],
-                other_epoch=new_epoch,
                 normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
             )

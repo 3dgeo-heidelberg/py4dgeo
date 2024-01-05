@@ -32,7 +32,7 @@ public:
 
   //! Return type used for nearest neighbor searches
   using NearestNeighborsDistanceResult =
-    std::pair<std::vector<IndexType>, std::vector<double>>;
+    std::vector<std::pair<std::vector<IndexType>, std::vector<double>>>;
 
 private:
   /** @brief An adaptor between our Eigen data structures and NanoFLANN */
@@ -120,6 +120,9 @@ public:
    */
   void build_tree(int leaf);
 
+  /** @brief Invalidate the KDTree index */
+  void invalidate();
+
   /** @brief Peform radius search around given query point
    *
    * This method determines all the points from the point cloud within the given
@@ -160,11 +163,14 @@ public:
   /** @brief Calculate the nearest neighbors for an entire point cloud
    *
    * @param[in] cloud The point cloud to use as query points
-   * @param[out] result The distan
+   * @param[out] result The indexes and distances of k nearest neighbors for
+   * each point
+   * @param[in] k The amount of nearest neighbors to calculate
+   *
    */
-  void nearest_neighbors_with_distances(
-    EigenPointCloudConstRef cloud,
-    NearestNeighborsDistanceResult& result) const;
+  void nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
+                                        NearestNeighborsDistanceResult& result,
+                                        int k) const;
 
   /** @brief Return the leaf parameter this KDTree has been built with */
   int get_leaf_parameter() const;
