@@ -2,9 +2,9 @@
 
 #include <functional>
 
-#include "epoch.hpp"
-#include "kdtree.hpp"
-#include "py4dgeo.hpp"
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 namespace py4dgeo {
 
