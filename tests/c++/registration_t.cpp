@@ -71,14 +71,27 @@ TEST_CASE("Affine Transformation", "[compute]")
 
   SECTION("SupervoxelSegmentation: ")
   {
-    auto tree1 = KDTree::create(epoch_test1.cloud);
+    auto [cloud_s, corepoints_s] = testcloud();
+    Epoch epoch_test_s(*cloud_s);
+    epoch_test_s.kdtree.build_tree(10);
+    EigenNormalSet normals(epoch_test_s.cloud.rows(), 3);
+    std::vector<double> normal_radii{ 3.0 };
+    EigenNormalSet orientation(1, 3);
+    orientation << 0, 0, 1;
+    compute_multiscale_directions(
+      epoch_test_s, *corepoints_s, normal_radii, orientation, normals);
+
+    auto tree1 = KDTree::create(epoch_test_s.cloud);
     tree1.build_tree(10);
+
     double resolution = 10;
     int k = 10;
     auto n_supervoxels =
-      estimate_supervoxel_count(epoch_test1.cloud, resolution);
+      estimate_supervoxel_count(epoch_test_s.cloud, resolution);
+
     std::vector<std::vector<int>> result =
-      supervoxel_segmentation(epoch_test1, tree1, resolution, k);
+      supervoxel_segmentation(epoch_test_s, tree1, resolution, k, normals);
+
     REQUIRE(result.size() == n_supervoxels);
   }
 }
