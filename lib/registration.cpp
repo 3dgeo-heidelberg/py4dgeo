@@ -119,26 +119,20 @@ squaredEuclideanDistance(const Eigen::RowVector3d& point1,
 }
 
 double
-point_2_point_VCCS_distance(EigenPointCloudConstRef point1,
-                            EigenPointCloudConstRef point2,
-                            EigenNormalSetRef normal1,
-                            EigenNormalSetRef normal2,
+point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
+                            const Eigen::RowVector3d& point2,
+                            const Eigen::RowVector3d& normal1,
+                            const Eigen::RowVector3d& normal2,
                             double resolution)
 {
-  double x = point1.row(0)(0) - point2.row(0)(0);
-  double y = point1.row(0)(1) - point2.row(0)(1);
-  double z = point1.row(0)(2) - point2.row(0)(2);
+  const auto diff = point1 - point2;
 
-  double n1 = std::sqrt(normal1.row(0)(0) * normal1.row(0)(0) +
-                        normal1.row(0)(1) * normal1.row(0)(1) +
-                        normal1.row(0)(2) * normal1.row(0)(2));
-  double n2 = std::sqrt(normal2.row(0)(0) * normal2.row(0)(0) +
-                        normal2.row(0)(1) * normal2.row(0)(1) +
-                        normal2.row(0)(2) * normal2.row(0)(2));
+  double n1 = normal1.norm();
+  double n2 = normal2.norm();
+  double squaredDistance = diff.squaredNorm();
 
   return 1.0 - std::fabs(n1 * n2) +
-         std::sqrt(std::pow(x, 2) + std::pow(y, 2) + std::pow(z, 2)) /
-           resolution * 0.4;
+         std::sqrt(squaredDistance) / resolution * 0.4;
 }
 
 std::vector<std::vector<int>>
@@ -148,6 +142,11 @@ supervoxel_segmentation(Epoch& epoch,
                         int k,
                         EigenNormalSet normals)
 {
+  // Check if normals are provided
+  if (normals.size() < epoch.cloud.rows()) {
+    throw std::invalid_argument(
+      "Normals must be provided for supervoxel segmentation.");
+  }
 
   // Define number of supervoxels and labels.
   auto n_supervoxels = estimate_supervoxel_count(epoch.cloud, resolution);
@@ -206,12 +205,11 @@ supervoxel_segmentation(Epoch& epoch,
         point_queue.pop();
 
         double loss =
-          sizes[current] *
-          squaredEuclideanDistance(
-            epoch.cloud.row(i),
-            epoch.cloud.row(
-              current)); // point_2_point_VCCS_distance(epoch.cloud.row(i),epoch.cloud.row(current),
-                         // normals.row(i), normals.row(current), resolution);
+          sizes[current] * point_2_point_VCCS_distance(epoch.cloud.row(i),
+                                                       epoch.cloud.row(current),
+                                                       normals.row(i),
+                                                       normals.row(current),
+                                                       resolution);
 
         double improvement =
           lambda - loss; // metric for start union of supervoxels
@@ -266,8 +264,11 @@ supervoxel_segmentation(Epoch& epoch,
 
   for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = set.Find(i);
-    distances.push_back(
-      squaredEuclideanDistance(epoch.cloud.row(i), epoch.cloud.row(labels[i])));
+    distances.push_back(point_2_point_VCCS_distance(epoch.cloud.row(i),
+                                                    epoch.cloud.row(labels[i]),
+                                                    normals.row(i),
+                                                    normals.row(labels[i]),
+                                                    resolution));
   }
 
   for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
@@ -296,8 +297,12 @@ supervoxel_segmentation(Epoch& epoch,
       if (labels[current_point] == labels[j])
         continue;
 
-      double point_distance = squaredEuclideanDistance(
-        epoch.cloud.row(current_point), epoch.cloud.row(labels[labels[j]]));
+      double point_distance =
+        point_2_point_VCCS_distance(epoch.cloud.row(current_point),
+                                    epoch.cloud.row(labels[labels[j]]),
+                                    normals.row(current_point),
+                                    normals.row(labels[labels[j]]),
+                                    resolution);
       if (point_distance < distances[current_point]) {
         labels[current_point] = labels[j];
         distances[current_point] = point_distance;
