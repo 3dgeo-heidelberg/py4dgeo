@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include <iostream>//DELETE
 #define LMBD_MAX 1e20
 
 namespace py4dgeo {
@@ -125,7 +126,7 @@ point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
                             const Eigen::RowVector3d& normal2,
                             double resolution)
 {
-  const auto diff = point1 - point2;
+  const Eigen::RowVector3d diff = point1 - point2;
 
   double n1 = normal1.norm();
   double n2 = normal2.norm();
@@ -338,6 +339,85 @@ supervoxel_segmentation(Epoch& epoch,
   }
 
   return supervoxels;
+}
+
+Eigen::Vector3d calculateCentroid(const EigenPointCloud& cloud) {
+    Eigen::Vector3d sum = cloud.colwise().sum();
+    Eigen::Vector3d centroid = sum / static_cast<double>(cloud.rows());
+    return centroid;
+
+}
+
+EigenPointCloud calculateBoundaryPoints(const EigenPointCloud& cloud) {
+    
+  Eigen::Vector3d BPXmax(-std::numeric_limits<double>::infinity(), 0.0, 0.0);
+  Eigen::Vector3d BPXmin(std::numeric_limits<double>::infinity(), 0.0, 0.0);
+  Eigen::Vector3d BPYmax(0.0, -std::numeric_limits<double>::infinity(), 0.0);
+  Eigen::Vector3d BPYmin(0.0, std::numeric_limits<double>::infinity(), 0.0);
+  Eigen::Vector3d BPZmax(0.0, 0.0, -std::numeric_limits<double>::infinity());
+  Eigen::Vector3d BPZmin(0.0, 0.0, std::numeric_limits<double>::infinity());
+
+  // Calculate boundary points
+  for (int i = 0; i < cloud.rows(); ++i) {
+      const Eigen::Vector3d& point = cloud.row(i);
+
+      BPXmax = BPXmax.cwiseMax(point);
+      BPXmin = BPXmin.cwiseMin(point);
+      BPYmax = BPYmax.cwiseMax(point);
+      BPYmin = BPYmin.cwiseMin(point);
+      BPZmax = BPZmax.cwiseMax(point);
+      BPZmin = BPZmin.cwiseMin(point);
+  }
+  EigenPointCloud boundary_points(6, 3);
+  boundary_points << BPXmax, BPXmin, BPYmax, BPYmin, BPZmax, BPZmin;
+  
+  return boundary_points;
+}
+
+std::vector<EigenPointCloud> //change this to ???
+segment_pc(Epoch& epoch,
+           const KDTree& kdtree,
+           double resolution,
+           int k,
+           EigenNormalSet normals
+           )
+{
+  int minSVPnumb = 10; // rename it and make it an incoming argument
+  std::vector<EigenPointCloud> clouds_SV;
+
+  std::vector<std::vector<int>> sv_labels = supervoxel_segmentation(epoch,
+                                                                    epoch.kdtree,
+                                                                    resolution,
+                                                                    k,
+                                                                    normals);
+  
+   // Number of valid SV
+  int svValid = 0;
+  // Number of invalid SV
+  int svInvalid = 0;
+
+  EigenPointCloud centroid_points;
+  
+  std::vector<EigenPointCloud> boundary_points;
+  //OR use it as a vector of EigenPointClouds
+  for (auto& sv : sv_labels) {
+    if (sv.size() < minSVPnumb) {
+      svInvalid++;
+      continue;
+    }
+    //point.cloud.row(sv[0]);
+    EigenPointCloud cloud(sv.size(), 3);
+    for (int i = 0; i < sv.size(); i++) {
+      cloud.row(i) = epoch.cloud.row(sv[i]);
+    }
+    clouds_SV.push_back(cloud);
+
+    centroid_points.row(svValid) = calculateCentroid(cloud);
+    boundary_points.push_back(calculateBoundaryPoints(cloud));
+    
+    svValid++;
+  }
+  return clouds_SV;
 }
 
 } // namespace py4dgeo
