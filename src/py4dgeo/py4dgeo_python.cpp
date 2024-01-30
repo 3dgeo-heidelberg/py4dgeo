@@ -177,7 +177,6 @@ PYBIND11_MODULE(_py4dgeo, m)
           sv_dict["normals"] = sv.normals;
           sv_dict["centroid"] = sv.centroid;
           sv_dict["boundary_points"] = sv.boundary_points;
-
           result.append(sv_dict);
       }
 
