@@ -148,6 +148,30 @@ PYBIND11_MODULE(_py4dgeo, m)
     };
   });
 
+  // Segment point cloud into a supervoxels
+  m.def("segment_pc_in_supervoxels",
+        [](Epoch& epoch,
+           const KDTree& kdtree,
+           EigenNormalSetConstRef normals,
+           double resolution,
+           int k,
+           int minSVPvalue) {
+          std::vector<Supervoxel> supervoxels =
+            segment_pc(epoch, kdtree, normals, resolution, k, minSVPvalue);
+
+          py::list result;
+          for (const auto& sv : supervoxels) {
+            py::dict sv_dict;
+            sv_dict["cloud"] = sv.cloud;
+            sv_dict["normals"] = sv.normals;
+            sv_dict["centroid"] = sv.centroid;
+            sv_dict["boundary_points"] = sv.boundary_points;
+            result.append(sv_dict);
+          }
+
+          return result;
+        });
+
   // The main distance computation function that is the main entry point of M3C2
   m.def(
     "compute_distances",

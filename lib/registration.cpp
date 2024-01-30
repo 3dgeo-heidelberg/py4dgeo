@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <iostream>//DELETE
+#include <iostream> //DELETE
 #define LMBD_MAX 1e20
 
 namespace py4dgeo {
@@ -341,15 +341,15 @@ supervoxel_segmentation(Epoch& epoch,
   return supervoxels;
 }
 
-Eigen::Vector3d calculateCentroid(const EigenPointCloud& cloud) {
-    Eigen::Vector3d sum = cloud.colwise().sum();
-    Eigen::Vector3d centroid = sum / static_cast<double>(cloud.rows());
-    return centroid;
-
+Eigen::Vector3d
+calculateCentroid(EigenPointCloudConstRef cloud)
+{
+  return cloud.colwise().mean();
 }
 
-EigenPointCloud calculateBoundaryPoints(const EigenPointCloud& cloud) {
-    
+EigenPointCloud
+calculateBoundaryPoints(EigenPointCloudConstRef cloud)
+{
   Eigen::Vector3d BPXmax(-std::numeric_limits<double>::infinity(), 0.0, 0.0);
   Eigen::Vector3d BPXmin(std::numeric_limits<double>::infinity(), 0.0, 0.0);
   Eigen::Vector3d BPYmax(0.0, -std::numeric_limits<double>::infinity(), 0.0);
@@ -359,62 +359,57 @@ EigenPointCloud calculateBoundaryPoints(const EigenPointCloud& cloud) {
 
   // Calculate boundary points
   for (int i = 0; i < cloud.rows(); ++i) {
-      const Eigen::Vector3d& point = cloud.row(i);
+    const Eigen::Vector3d& point = cloud.row(i);
 
-      BPXmax = BPXmax.cwiseMax(point);
-      BPXmin = BPXmin.cwiseMin(point);
-      BPYmax = BPYmax.cwiseMax(point);
-      BPYmin = BPYmin.cwiseMin(point);
-      BPZmax = BPZmax.cwiseMax(point);
-      BPZmin = BPZmin.cwiseMin(point);
+    BPXmax = BPXmax.cwiseMax(point);
+    BPXmin = BPXmin.cwiseMin(point);
+    BPYmax = BPYmax.cwiseMax(point);
+    BPYmin = BPYmin.cwiseMin(point);
+    BPZmax = BPZmax.cwiseMax(point);
+    BPZmin = BPZmin.cwiseMin(point);
   }
   EigenPointCloud boundary_points(6, 3);
   boundary_points << BPXmax, BPXmin, BPYmax, BPYmin, BPZmax, BPZmin;
-  
+
   return boundary_points;
 }
 
-std::vector<EigenPointCloud> //change this to ???
+std::vector<Supervoxel>
 segment_pc(Epoch& epoch,
            const KDTree& kdtree,
-           double resolution,
+           EigenNormalSet normals,
+           double seed_resolution,
            int k,
-           EigenNormalSet normals
-           )
+           int minSVPvalue = 10)
 {
-  int minSVPnumb = 10; // rename it and make it an incoming argument
-  std::vector<EigenPointCloud> clouds_SV;
+  std::vector<Supervoxel> clouds_SV;
 
-  std::vector<std::vector<int>> sv_labels = supervoxel_segmentation(epoch,
-                                                                    epoch.kdtree,
-                                                                    resolution,
-                                                                    k,
-                                                                    normals);
-  
-   // Number of valid SV
+  std::vector<std::vector<int>> sv_labels =
+    supervoxel_segmentation(epoch, epoch.kdtree, seed_resolution, k, normals);
+
+  // checks for income values
+  //  Number of valid SV
   int svValid = 0;
   // Number of invalid SV
   int svInvalid = 0;
 
-  EigenPointCloud centroid_points;
-  
-  std::vector<EigenPointCloud> boundary_points;
-  //OR use it as a vector of EigenPointClouds
-  for (auto& sv : sv_labels) {
-    if (sv.size() < minSVPnumb) {
+  for (auto& sv_iter : sv_labels) {
+    Supervoxel sv;
+    if (sv_iter.size() < minSVPvalue) {
       svInvalid++;
       continue;
     }
-    //point.cloud.row(sv[0]);
-    EigenPointCloud cloud(sv.size(), 3);
-    for (int i = 0; i < sv.size(); i++) {
-      cloud.row(i) = epoch.cloud.row(sv[i]);
-    }
-    clouds_SV.push_back(cloud);
 
-    centroid_points.row(svValid) = calculateCentroid(cloud);
-    boundary_points.push_back(calculateBoundaryPoints(cloud));
-    
+    sv.cloud.resize(sv_iter.size(), 3);
+    sv.normals.resize(sv_iter.size(), 3);
+    for (int i = 0; i < sv_iter.size(); i++) {
+      sv.cloud.row(i) = epoch.cloud.row(sv_iter[i]);
+      sv.normals.row(i) = normals.row(sv_iter[i]);
+    }
+
+    sv.centroid = calculateCentroid(sv.cloud);
+    sv.boundary_points = calculateBoundaryPoints(sv.cloud);
+    clouds_SV.push_back(sv);
     svValid++;
   }
   return clouds_SV;
