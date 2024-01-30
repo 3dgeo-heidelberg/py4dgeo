@@ -86,16 +86,16 @@ TEST_CASE("Affine Transformation", "[compute]")
     auto n_supervoxels =
       estimate_supervoxel_count(epoch_test_s.cloud, resolution);
 
-    std::vector<std::vector<int>> result =
-      supervoxel_segmentation(epoch_test_s, epoch_test_s.kdtree, resolution, k, normals);
+    std::vector<std::vector<int>> result = supervoxel_segmentation(
+      epoch_test_s, epoch_test_s.kdtree, resolution, k, normals);
 
     REQUIRE(result.size() == n_supervoxels);
   }
 
-   SECTION("Supervoxel_Segmentation: ")
+  SECTION("Supervoxel_Segmentation: ")
   {
     auto [cloud_s, corepoints_s] = testcloud();
-     Epoch epoch_test_s(*cloud_s);
+    Epoch epoch_test_s(*cloud_s);
     epoch_test_s.kdtree.build_tree(10); //????
     EigenNormalSet normals(epoch_test_s.cloud.rows(), 3);
     std::vector<double> normal_radii{ 3.0 };
@@ -107,10 +107,9 @@ TEST_CASE("Affine Transformation", "[compute]")
     double resolution = 10;
     int k = 10;
     int minSVPvalue = 10;
-    std::vector<Supervoxel> svd = segment_pc(epoch_test_s, epoch_test_s.kdtree, normals, resolution, k, minSVPvalue);
+    std::vector<Supervoxel> svd = segment_pc(
+      epoch_test_s, epoch_test_s.kdtree, normals, resolution, k, minSVPvalue);
 
-   
-    REQUIRE(1==1);
+    REQUIRE(1 == 1);
   }
-
 }

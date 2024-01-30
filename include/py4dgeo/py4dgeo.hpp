@@ -89,15 +89,25 @@ struct Supervoxel
   EigenPointCloud boundary_points;
 
   // Default constructor
-  Supervoxel() : cloud(), normals(), centroid(), boundary_points() {}
+  Supervoxel()
+    : cloud()
+    , normals()
+    , centroid()
+    , boundary_points()
+  {
+  }
 
   // constructor
-  Supervoxel( EigenPointCloudConstRef c,
-                EigenNormalSetConstRef n,
-               const Eigen::Vector3d& center,
-                EigenPointCloudConstRef boundary)
-        : cloud(c), normals(n), centroid(center), boundary_points(boundary) {}
-
+  Supervoxel(EigenPointCloudConstRef c,
+             EigenNormalSetConstRef n,
+             const Eigen::Vector3d& center,
+             EigenPointCloudConstRef boundary)
+    : cloud(c)
+    , normals(n)
+    , centroid(center)
+    , boundary_points(boundary)
+  {
+  }
 };
 
 }

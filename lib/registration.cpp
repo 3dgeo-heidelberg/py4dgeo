@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include <iostream>//DELETE
+#include <iostream> //DELETE
 #define LMBD_MAX 1e20
 
 namespace py4dgeo {
@@ -341,11 +341,15 @@ supervoxel_segmentation(Epoch& epoch,
   return supervoxels;
 }
 
-Eigen::Vector3d calculateCentroid(EigenPointCloudConstRef cloud) {
-    return cloud.colwise().mean();
+Eigen::Vector3d
+calculateCentroid(EigenPointCloudConstRef cloud)
+{
+  return cloud.colwise().mean();
 }
 
-EigenPointCloud calculateBoundaryPoints(EigenPointCloudConstRef cloud) {
+EigenPointCloud
+calculateBoundaryPoints(EigenPointCloudConstRef cloud)
+{
   Eigen::Vector3d BPXmax(-std::numeric_limits<double>::infinity(), 0.0, 0.0);
   Eigen::Vector3d BPXmin(std::numeric_limits<double>::infinity(), 0.0, 0.0);
   Eigen::Vector3d BPYmax(0.0, -std::numeric_limits<double>::infinity(), 0.0);
@@ -355,58 +359,54 @@ EigenPointCloud calculateBoundaryPoints(EigenPointCloudConstRef cloud) {
 
   // Calculate boundary points
   for (int i = 0; i < cloud.rows(); ++i) {
-      const Eigen::Vector3d& point = cloud.row(i);
+    const Eigen::Vector3d& point = cloud.row(i);
 
-      BPXmax = BPXmax.cwiseMax(point);
-      BPXmin = BPXmin.cwiseMin(point);
-      BPYmax = BPYmax.cwiseMax(point);
-      BPYmin = BPYmin.cwiseMin(point);
-      BPZmax = BPZmax.cwiseMax(point);
-      BPZmin = BPZmin.cwiseMin(point);
+    BPXmax = BPXmax.cwiseMax(point);
+    BPXmin = BPXmin.cwiseMin(point);
+    BPYmax = BPYmax.cwiseMax(point);
+    BPYmin = BPYmin.cwiseMin(point);
+    BPZmax = BPZmax.cwiseMax(point);
+    BPZmin = BPZmin.cwiseMin(point);
   }
   EigenPointCloud boundary_points(6, 3);
   boundary_points << BPXmax, BPXmin, BPYmax, BPYmin, BPZmax, BPZmin;
-  
+
   return boundary_points;
 }
 
-std::vector<Supervoxel> segment_pc(Epoch& epoch,
+std::vector<Supervoxel>
+segment_pc(Epoch& epoch,
            const KDTree& kdtree,
            EigenNormalSet normals,
            double seed_resolution,
            int k,
-           int minSVPvalue = 10
-           )
+           int minSVPvalue = 10)
 {
   std::vector<Supervoxel> clouds_SV;
 
-  std::vector<std::vector<int>> sv_labels = supervoxel_segmentation(epoch,
-                                                                    epoch.kdtree,
-                                                                    seed_resolution,
-                                                                    k,
-                                                                    normals);
-  
-  //checks for income values
-   // Number of valid SV
+  std::vector<std::vector<int>> sv_labels =
+    supervoxel_segmentation(epoch, epoch.kdtree, seed_resolution, k, normals);
+
+  // checks for income values
+  //  Number of valid SV
   int svValid = 0;
   // Number of invalid SV
   int svInvalid = 0;
- 
+
   for (auto& sv_iter : sv_labels) {
     Supervoxel sv;
     if (sv_iter.size() < minSVPvalue) {
       svInvalid++;
       continue;
     }
-    
+
     sv.cloud.resize(sv_iter.size(), 3);
     sv.normals.resize(sv_iter.size(), 3);
     for (int i = 0; i < sv_iter.size(); i++) {
       sv.cloud.row(i) = epoch.cloud.row(sv_iter[i]);
       sv.normals.row(i) = normals.row(sv_iter[i]);
-      
     }
- 
+
     sv.centroid = calculateCentroid(sv.cloud);
     sv.boundary_points = calculateBoundaryPoints(sv.cloud);
     clouds_SV.push_back(sv);
