@@ -14,6 +14,7 @@ from py4dgeo.registration import (
     point_to_plane_icp,
     point_to_plane_icp_LM,
     p_to_p_icp,
+    registration_method,
 )
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
