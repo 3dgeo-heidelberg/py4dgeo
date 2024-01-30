@@ -75,5 +75,12 @@ supervoxel_segmentation(
   EigenNormalSet normals = EigenNormalSet::Zero(
     1,
     3)); // it will be changed to EigenNormalSetRef afterwards);
+  
+  std::vector<Supervoxel> segment_pc(Epoch& epoch,
+           const KDTree& kdtree,
+           EigenNormalSet normals,
+           double resolution,
+           int k,
+           int minSVPvalue);
 
 } // namespace py4dgeo
