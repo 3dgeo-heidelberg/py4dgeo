@@ -159,17 +159,18 @@ PYBIND11_MODULE(_py4dgeo, m)
           std::vector<Supervoxel> supervoxels =
             segment_pc(epoch, kdtree, normals, resolution, k, minSVPvalue);
 
-          py::list result;
+          std::vector<Eigen::MatrixXd> result_cloud;
+          std::vector<Eigen::Vector3d> result_centroid;
+          std::vector<Eigen::MatrixXd> result_boundary_points;
+
           for (const auto& sv : supervoxels) {
-            py::dict sv_dict;
-            sv_dict["cloud"] = sv.cloud;
-            sv_dict["normals"] = sv.normals;
-            sv_dict["centroid"] = sv.centroid;
-            sv_dict["boundary_points"] = sv.boundary_points;
-            result.append(sv_dict);
+            result_cloud.push_back(sv.cloud);
+            result_centroid.push_back(sv.centroid);
+            result_boundary_points.push_back(sv.boundary_points);
           }
 
-          return result;
+          return std::make_tuple(
+            result_cloud, result_centroid, result_boundary_points);
         });
 
   // The main distance computation function that is the main entry point of M3C2
