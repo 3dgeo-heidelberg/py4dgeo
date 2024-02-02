@@ -90,6 +90,7 @@ def _fit_transform_GN(A, B, N):
 
 
 def _p_2_p_GN(A, B):
+def _p_2_p_GN(A, B):
     """Find a transformation that fits two point clouds onto each other using point to point Gauss-Newton method
     for computing the least squares solution"""
 
@@ -488,11 +489,11 @@ def p_to_p_icp(
     )
 
 
-# def segment_epoch(epoch, labels, obj_to_save_sv):
-
-
 def compute_covariance_matrix(points):
+    """Compute the covariance matrix of a set of points."""
+
     # Convert the list of points to a NumPy array for efficient operations
+    data = np.array(points)  # ??????????
     data = np.array(points)  # ??????????
 
     # Check if the data is empty or has only one point
@@ -508,6 +509,7 @@ def compute_covariance_matrix(points):
     return covariance_matrix
 
 
+
 def solve_plane_parameters(covariance_matrix):
     eigen_values, eigen_vectors = np.linalg.eigh(covariance_matrix)
 
@@ -517,8 +519,10 @@ def solve_plane_parameters(covariance_matrix):
     return normal_vector
 
 
+
 def compute_cor_distance(epoch1, epoch2, clouds_pc1, check_size):
-    # ???????????? MIGHT BE REWRITE AS A FUNCTION
+    """"""
+
     neighbor_arrays = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud))
     indices, distances = np.split(neighbor_arrays, 2, axis=0)
 
@@ -526,8 +530,8 @@ def compute_cor_distance(epoch1, epoch2, clouds_pc1, check_size):
 
     distances = np.squeeze(distances)
     P2Pdist = []  # RENAME
+    P2Pdist = []  # RENAME
     for i in range(len(epoch2.cloud)):
-        # if(len(clouds_pc1[i]) > 6 and len(epoch1.cloud) != check_size): # But we have a ruile that sv has 10+ points + это может ломаться ксли количество св1 меньшем чем св2
         if len(epoch1.cloud) != check_size:
             cov_matrix = compute_covariance_matrix(clouds_pc1[indices[i]])
             normal_vector = solve_plane_parameters(cov_matrix)
@@ -537,11 +541,10 @@ def compute_cor_distance(epoch1, epoch2, clouds_pc1, check_size):
             Dis_z = epoch1.cloud[indices[i]][2] - epoch2.cloud[i][2]
             res_dis = np.abs(Dis_x * nmlx + Dis_y * nmly + Dis_z * nmlz)
         else:
-            res_dis = np.sqrt(distances[i])  # distance from kd tree n
+            res_dis = np.sqrt(distances[i])
 
         P2Pdist.append(res_dis)
     return P2Pdist
-    # ??????????????????????
 
 
 def calculate_bounding_box(point_cloud):
@@ -563,16 +566,16 @@ def calculate_bounding_box(point_cloud):
 def calculate_bounding_box_change(
     bounding_box_min, bounding_box_max, transformation_matrix
 ):
+    """Calculate the change in bounding box corners after applying a transformation matrix."""
+
+def calculate_bounding_box_change(
+    bounding_box_min, bounding_box_max, transformation_matrix
+):
     # Convert bounding box to homogeneous coordinates
     bounding_box_min_homogeneous = np.concatenate((bounding_box_min, [1]))
     bounding_box_max_homogeneous = np.concatenate((bounding_box_max, [1]))
     bounding_box_min_homogeneous = np.reshape(bounding_box_min_homogeneous, (4, 1))
     bounding_box_max_homogeneous = np.reshape(bounding_box_max_homogeneous, (4, 1))
-
-    # bounding_box_homogeneous = np.hstack((bounding_box_min_homogeneous, bounding_box_max_homogeneous))
-
-    # Apply transformation matrix to bounding box corners
-    # transformed_corners = np.dot(transformation_matrix, bounding_box_homogeneous).T
 
     # Calculate the change in bounding box corners
     bb_c2p1 = np.dot(transformation_matrix, bounding_box_min_homogeneous)
@@ -613,20 +616,24 @@ def registration_method(
     minSVPvalue=10,
     reduction_point=None,
 ):
-    """
-    Возможно со стороны плюсов стоит возвращать как 4 нампай массива
+    """Perform a registration method based on the paper "" by Li et al." """
 
-    """
     from py4dgeo.epoch import as_epoch
+
 
     # Ensure that reference_epoch has its KDTree buil
     if reference_epoch.kdtree.leaf_parameter() == 0:
         reference_epoch.build_kdtree()
 
+        reference_epoch.build_kdtree()
+
     # Ensure that epoch has its KDTree buil
     if epoch.kdtree.leaf_parameter() == 0:
         epoch.build_kdtree()
+    if epoch.kdtree.leaf_parameter() == 0:
+        epoch.build_kdtree()
 
+    # Ensure that Epoch has calculated normals
     # Ensure that Epoch has calculated normals
     if reference_epoch.normals is None:
         raise Py4DGeoError(
@@ -634,24 +641,29 @@ def registration_method(
         )
 
     # Ensure that Epoch has calculated normals
+
+    # Ensure that Epoch has calculated normals
     if epoch.normals is None:
         raise Py4DGeoError(
             "Normals for this Reference Epoch have not been calculated! Please use Epoch.calculate_normals or load externally calculated normals."
         )
 
+
     # Apply the default for the registration point
     if reduction_point is None:
         reduction_point = np.array([0, 0, 0])
 
+
     if dis_threshold <= lmdd:
         dis_threshold = lmdd
     # For updating DT
+    # For updating DT
     dtSeries = []
     dtSeries.append(dis_threshold)
-    transMatFinal = np.eye(4)  # Identity matrix for initial transMatFinal
+    transMatFinal = np.identity(4)  # Identity matrix for initial transMatFinal
     stage3 = stage4 = 0
 
-    supervoxels_pc1 = _py4dgeo.segment_pc_in_supervoxels(
+    clouds_pc1, centroids_pc1, boundary_points_pc1 = _py4dgeo.segment_pc_in_supervoxels(
         reference_epoch,
         reference_epoch.kdtree,
         reference_epoch.normals,
@@ -659,34 +671,21 @@ def registration_method(
         k,
         minSVPvalue,
     )
-    supervoxels_pc2 = _py4dgeo.segment_pc_in_supervoxels(
+    clouds_pc2, centroids_pc2, boundary_points_pc2 = _py4dgeo.segment_pc_in_supervoxels(
         epoch, epoch.kdtree, epoch.normals, resolution, k, minSVPvalue
     )
-    # ПЕРЕПИСАТЬ ТАКИМ ОБРАЗОМ ЧТО ИЗ С++ ПРИХОДИЛИ СУПЕРВОКСЕЛИ В ВИДЕ 4 ВЕКТОРОВ, А НЕ СПИСКА СЛОВАРЕЙ
-    # defining clouds
-    clouds_pc1 = [item["cloud"] for item in supervoxels_pc1]
-    clouds_pc2 = [item["cloud"] for item in supervoxels_pc2]
-    # defining centroids
-    centroids_pc1 = np.array([item["centroid"] for item in supervoxels_pc1])
-    centroids_pc1 = as_epoch(centroids_pc1)
+
+    centroids_pc1 = as_epoch(np.array(centroids_pc1))
     centroids_pc1.build_kdtree()
-    centroids_pc2 = np.array([item["centroid"] for item in supervoxels_pc2])
-    centroids_pc2 = as_epoch(centroids_pc2)
+    centroids_pc2 = as_epoch(np.array(centroids_pc2))
     centroids_pc2.build_kdtree()
-    # defining boundary points
-    boundary_points_list2 = [item["boundary_points"] for item in supervoxels_pc2]
-    boundary_points_pc2 = np.concatenate(boundary_points_list2, axis=0)
+
+    boundary_points_pc2 = np.concatenate(boundary_points_pc2, axis=0)
     boundary_points_pc2 = as_epoch(boundary_points_pc2)
     boundary_points_pc2.build_kdtree()
 
-    while stage4 == 0:
-        # for sv_dict in supervoxels_pc1:
-        #     print("Cloud:", sv_dict["cloud"])
-        #     print("Normals:", sv_dict["normals"])
-        #     print("Centroid:", sv_dict["centroid"])
-        #     print("Boundary Points:", sv_dict["boundary_points"])
-        #     print("----------------------")
 
+    while stage4 == 0:
         # Calculation CT2-CT1
         corCT_dist = compute_cor_distance(
             centroids_pc1, centroids_pc2, clouds_pc1, len(reference_epoch.cloud)
@@ -702,12 +701,19 @@ def registration_method(
 
         stablePC2 = []  # Stable supervoxels
         unstablePC2 = []  # Unstable supervoxels
+        stablePC2 = []  # Stable supervoxels
+        unstablePC2 = []  # Unstable supervoxels
+
+        dt_point = dis_threshold + 2 * res1
+        stableSVnum = 0  # Number of stable SV in PC2
 
         dt_point = dis_threshold + 2 * res1
         stableSVnum = 0  # Number of stable SV in PC2
 
         for i, cloud in enumerate(centroids_pc2.cloud):
             if corCT_dist[i] < dis_threshold and all(
+                corBP_dist[j + 6 * i] < dis_threshold
+                and corPC_dist[j + 6 * i] < dt_point
                 corBP_dist[j + 6 * i] < dis_threshold
                 and corPC_dist[j + 6 * i] < dt_point
                 for j in range(6)
@@ -722,7 +728,14 @@ def registration_method(
 
         # check if stablePC2 is empty or has 1 point
         # ICP
+        # check if stablePC2 is empty or has 1 point
+        # ICP
         trans_mat_cur_obj = point_to_plane_icp(
+            reference_epoch,
+            stablePC2,
+            max_iterations=50,
+            tolerance=0.00001,
+            reduction_point=reduction_point,
             reference_epoch,
             stablePC2,
             max_iterations=50,
@@ -735,12 +748,18 @@ def registration_method(
         max_bb_change = calculate_bounding_box_change(
             initial_min_bound, initial_max_bound, trans_mat_cur
         )
+        max_bb_change = calculate_bounding_box_change(
+            initial_min_bound, initial_max_bound, trans_mat_cur
+        )
 
+        # update DT
+        if stage3 == 0 and max_bb_change < 2 * lmdd:
         # update DT
         if stage3 == 0 and max_bb_change < 2 * lmdd:
             stage3 = 1
         elif dis_threshold == lmdd:
             stage4 = 1
+
 
         if stage3 == 0:
             dis_threshold = calculate_dis_threshold(reference_epoch, epoch)
@@ -749,8 +768,10 @@ def registration_method(
 
         if stage3 == 1 and stage4 == 0:
             dis_threshold = 0.8 * dis_threshold
+            dis_threshold = 0.8 * dis_threshold
             if dis_threshold <= lmdd:
                 dis_threshold = lmdd
+
 
         # update values and apply changes
         dtSeries.append(dis_threshold)
@@ -759,6 +780,7 @@ def registration_method(
         _py4dgeo.transform_pointcloud_inplace(
             epoch.cloud, transMatFinal, reduction_point
         )
+
         _py4dgeo.transform_pointcloud_inplace(
             centroids_pc2.cloud, transMatFinal, reduction_point
         )
@@ -766,6 +788,18 @@ def registration_method(
             boundary_points_pc2.cloud, transMatFinal, reduction_point
         )
         for i in range(len(clouds_pc2)):
+            _py4dgeo.transform_pointcloud_inplace(
+                clouds_pc2[i], transMatFinal, reduction_point
+            )
+
+    return (
+        Transformation(
+            affine_transformation=transMatFinal,
+            reduction_point=reduction_point,
+        ),
+        dtSeries,
+    )
+
             _py4dgeo.transform_pointcloud_inplace(
                 clouds_pc2[i], transMatFinal, reduction_point
             )
