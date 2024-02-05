@@ -1,0 +1,51 @@
+[
+    {
+        "object_id": 1,
+        "timestamps": [
+            "2023-11-09-11-20-23",
+            "2023-11-09-11-21-00",
+            "2023-11-09-11-21-50"
+        ],
+        "pc_dir": [
+            "J:\\01_Projekte\\AIMon50\\Module_development\\visualization_module\\sample_data\\change_event_data\\001\\001_rockfall_01.xyz",
+            "J:\\01_Projekte\\AIMon50\\Module_development\\visualization_module\\sample_data\\change_event_data\\001\\001_rockfall_02.xyz",
+            "J:\\01_Projekte\\AIMon50\\Module_development\\visualization_module\\sample_data\\change_event_data\\001\\001_rockfall_03.xyz"
+        ],
+        "epoch_count": 3,
+        "change_rates": [0.1, 0.2, 0.3],
+        "duration_sec": 87.0,
+        "change_magnitudes_m": [0.5, 0.3, 0.4],
+        "spatial_extent_bbox": [
+            [1.97, 3.06],
+            [1.95, -0.62],
+            [1.29, -0.26],
+            [1.46, -3.29]
+        ],
+		"location": [129.0, 45.0, 0.0],
+        "event_types": ["rockfall"]
+    },
+	{
+        "object_id": 2,
+        "timestamps": [
+            "2023-11-10-11-20-48",
+            "2023-11-10-11-21-17"
+        ],
+		 "pc_dir": [
+            "J:\\01_Projekte\\AIMon50\\Module_development\\visualization_module\\sample_data\\change_event_data\\001\\001_rockfall_01.xyz",
+            "J:\\01_Projekte\\AIMon50\\Module_development\\visualization_module\\sample_data\\change_event_data\\001\\001_rockfall_02.xyz",
+            "J:\\01_Projekte\\AIMon50\\Module_development\\visualization_module\\sample_data\\change_event_data\\001\\001_rockfall_03.xyz"
+        ],
+        "epoch_count": 2,
+        "change_rates": [0.1, 0.2],
+        "duration_sec": 87.0,
+        "change_magnitudes_m": [0.5, 0.3, 0.4],
+        "spatial_extent_bbox": [
+            [1.97, 3.06],
+            [1.95, -0.62],
+            [1.29, -0.26],
+            [1.46, -3.29]
+        ],
+		"location": [500.0, 80.0, 0.0],
+        "event_types": ["other"]
+    }
+]

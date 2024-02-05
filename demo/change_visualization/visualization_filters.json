@@ -1,0 +1,11 @@
+{
+    "observation_period": ["2022-01-01", "2022-12-31"],
+    "duration_min_max_sec": [20.2, 1000.2], 
+    "spatial_extent_bbox": [           
+          [1.97, 3.06],
+            [1.95, -0.62],
+            [1.29, -0.26],
+            [1.46, -3.29]
+  ],
+    "event_types": ["rockfall"]
+}
