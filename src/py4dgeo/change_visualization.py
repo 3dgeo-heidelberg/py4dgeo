@@ -1,3 +1,15 @@
+###########################################
+
+#               Usage                 #
+
+###########################################
+
+# python change_visualization.py "visualization_filters.JSON" "change_events.json" "plot_config.json"
+
+# demo data: https://github.com/3dgeo-heidelberg/py4dgeo/tree/visualization_module/demo/change_visualization
+###########################################
+
+
 from __future__ import annotations
 import sys
 import imageio
@@ -11,6 +23,10 @@ from typing import List, Union
 from typing import List, Tuple
 from pydantic import BaseModel, PositiveInt, validate_model, ValidationError
 from typing import List
+import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
+from matplotlib.lines import Line2D
+from PIL import Image
 
 
 ###########################################
@@ -20,11 +36,11 @@ from typing import List
 ###########################################
 class Plot:
     # Get plot Object of the respective pydantic class and a ChangeEvent object
-    plot: Union[LinePlot2d, Plot3d, Animation] = None
+    plot: Union[LinePlot2d, Plot3d, Animation, SpatialOverview] = None
     change_event: ChangeEvent = None
 
     @classmethod
-    def generate_plot(cls, plot_type, json_data, change_event):
+    def generate_plot(cls, plot_type, json_data, change_event, relevant_change_events, plotting_period):
         """Validate JSON file content and generate a Plot object for a ChangeEvent object based on the plot type defined
         in the input JSON.
 
@@ -35,22 +51,30 @@ class Plot:
             The content of the input json file as dictionary.
 
         :param change_event:
-            The ChangeEvent object to be plotted.
+            The ChangeEvent object(s) to be plotted.
         """
 
-        # Initialize plot bject of respective pydantic plot class and validate json
+        # Initialize plot object of respective pydantic plot class and validate json
+        # Takes only 1 ChangeEvent object as input
         if plot_type == 'line_plot_2d':
             cls.plot = LinePlot2d(**json_data)
             cls.change_event = change_event  # Set the change_event for the class
             cls.generate_line_plot_2d()
+        # Takes only 1 ChangeEvent object as input
         if plot_type == 'plot_3d':
             cls.plot = Plot3d(**json_data)
             cls.change_event = change_event  # Set the change_event for the class
             cls.generate_plot_3d()
+        # Takes only 1 ChangeEvent object as input
         if plot_type == 'animation':
             cls.plot = Animation(**json_data)
             cls.change_event = change_event  # Set the change_event for the class
             cls.generate_animation()
+        # Takes ALL relevant ChangeEvent objects as input
+        if plot_type == 'spatial_overview':
+            cls.plot = SpatialOverview(**json_data)
+            # cls.change_event.generate_spatial_overview(plotting_period, change_events)
+            cls.generate_spatial_overview(plotting_period, relevant_change_events)
 
     @classmethod
     def generate_line_plot_2d(cls):
@@ -231,6 +255,116 @@ class Plot:
         create_change_animation(file_paths, cls.plot.plotting_attribute, cls.change_event.object_id,
                                 output_dir, cls.plot.anim_duration)
 
+    @classmethod
+    def generate_spatial_overview(cls, plotting_period, change_events):
+
+        change_event_locations = get_change_event_locations(change_events)
+
+        # Fix plot elements:
+
+        range_image = r"J:\01_Projekte\AIMon50\Module_development\visualization_module\range_image_generation\test_shd_mean.png"
+        logos = r"J:\01_Projekte\AIMon50\Module_development\visualization_module\input_change_vis\logos.png"
+
+        # Define output
+        current_script_path = os.path.dirname(os.path.abspath(__file__))
+        plot_path = os.path.abspath(os.path.join(current_script_path, '..', '..', '..', '..'))
+        plot_folder = "output_change_visualization\\end_user_plots\\spatial_overview"
+        plot_folder_full_path = os.path.join(plot_path, plot_folder)
+
+        # Überprüfe und erstelle übergeordnete Ordner, falls sie nicht existieren
+        os.makedirs(plot_folder_full_path, exist_ok=True)
+
+        outfile = os.path.join(plot_folder_full_path, "spatial_overview.png")
+
+
+        # Load range image from file
+        range_image = plt.imread(range_image)
+
+        # Determine size of range image
+        num_phi, num_theta = range_image.shape[:2]
+
+        # Create a 2D axis
+        fig, ax = plt.subplots()
+
+        # Set the background color
+        fig.set_facecolor('#A9A9A9')  # Hex code for medium dark gray
+
+        # Plot range image
+        im = ax.imshow(range_image, cmap=plt.cm.gray, extent=[0, num_theta, 0, num_phi], origin='upper')
+
+        # Mark provided ChangeEvent objects as red points with labels
+        for i, obj_coords in enumerate(change_event_locations, start=1):
+            ax.scatter(obj_coords[0], obj_coords[1], c='red', marker='o')
+
+        # Axis labels
+        ax.set_xlabel('Distance [m]', color='white')
+        ax.set_ylabel('Height [m]', color='white')
+
+        # Color bar for the range image with label "Range"
+        # cbar = plt.colorbar(im, ax=ax, label='Range')
+        # cbar.ax.yaxis.label.set_color('white')
+
+        # Title
+        title_text = cls.plot.plot_title
+        bbox_props_title = dict(boxstyle="round", fc="white", ec="none", alpha=0.7)
+        # Place text on the figure level
+        fig.text(0.5, 0.69, title_text, color='black', fontsize=12, va='center', ha='center', bbox=bbox_props_title)
+
+        # Legend for ChangeEvent objects and selected time period in a joint box
+        plotting_period_label = str(plotting_period[0] + " to " + plotting_period[1])
+        legend_text = f'Rockfall events\nTime period: {plotting_period_label}'
+        bbox_props_legend = dict(boxstyle="round", fc="white", ec="none", alpha=0.7)
+
+        # Dummy element to add the symbol to the legend
+        custom_legend1 = [
+            Line2D([0], [0], marker='o', color='red', label=legend_text, markersize=8, linestyle='None')]
+
+        # Add legend with 'loc' option
+        ax.legend(handles=custom_legend1, bbox_to_anchor=(0.6, -0.4))
+        ax.text(1.1, 0.6, '', transform=ax.transAxes, color='black', fontsize=10, va='center', ha='center',
+                bbox=bbox_props_legend)
+
+        # Set axis color to white
+        ax.spines['bottom'].set_color('white')
+        ax.spines['top'].set_color('none')
+        ax.spines['right'].set_color('none')
+        ax.spines['left'].set_color('white')
+
+        # Set ticks to white
+        ax.tick_params(axis='both', colors='white')
+
+        # Rotate Y-axis labels by 90 degrees
+        ax.set_yticklabels(ax.get_yticklabels(), rotation=90)
+
+        # Insert logos of AImon5.0 project
+        img = plt.imread(logos)
+        imagebox = OffsetImage(img, zoom=0.26)  # Adjust the zoom factor
+        logos_image_position = (0.5, 1.2)
+        ab = AnnotationBbox(imagebox, logos_image_position, frameon=False, xycoords='axes fraction',
+                            boxcoords='axes fraction')
+        ax.add_artist(ab)
+
+        # Save plot as a PNG file
+        plt.savefig(outfile, dpi=600)
+
+        img = Image.open(outfile)
+
+        # Get pixel coordinates for cropping image to content
+        # width, height = img.size
+        # x_position_percent = 1  # Adjust the percentage of the image width
+        # y_position_percent = 0.85  # Adjust the percentage of the image height
+        # Calculate pixel coordinates based on percentages
+        # x_position = int(width * x_position_percent)
+        # y_position = int(height * y_position_percent)
+        # print(x_position, y_position)
+
+        # Crop image
+        cropped_img = img.crop((0, 720, 3840, 2448))
+        cropped_img.save(outfile)
+
+        # Show plot
+        plt.show()
+
 
 class LinePlot2d(BaseModel):
     """A pydantic class representing a 2D line plot configuration.
@@ -238,7 +372,7 @@ class LinePlot2d(BaseModel):
     Attributes:
         plot_type (str): Type of the plot.
         plot_title (Union[str, None]): Title of the plot (can be None if not provided).
-        plot_dir (str): Directory where the plot will be saved.
+        plot_dir (str): Directory where the plot will be saved (can be None if not provided)
         plotting_period_start_end (List[str]): List of two strings representing the start and end of the plotting period.
         fig_size (Union[Tuple[int, int], None]): Size of the figure (either Tuple or None, default is (15, 15)).
         x_label (str): Label for the X-axis.
@@ -247,9 +381,8 @@ class LinePlot2d(BaseModel):
     """
     plot_type: str
     plot_title: Union[str, None]
-    plot_dir: str
+    plot_dir: Union[str, None]
     plotting_period_start_end: List[str]
-    fig_size: Union[Tuple[int, int], None] = (15, 15)  # either Tuple or None, default = (15, 15)
     x_label: str
     y_label: str
     line_width: int
@@ -261,7 +394,7 @@ class Plot3d(BaseModel):
     Attributes:
         plot_type (str): Type of the plot.
         plot_title (Union[str, None]): Title of the plot (can be None if not provided).
-        plot_dir (str): Directory where the plot will be saved.
+        plot_dir (str): Directory where the plot will be saved (can be None if not provided)
         plotting_period_start_end (List[str]): List of two strings representing the start and end of the plotting period.
         fig_size (Union[Tuple[int, int], None]): Size of the figure (either Tuple or None, default is (15, 15)).
         plotting_attribute (str): Attribute used for coloring points in the 3D plot.
@@ -270,7 +403,7 @@ class Plot3d(BaseModel):
 
     plot_type: str
     plot_title: Union[str, None]
-    plot_dir: str
+    plot_dir: Union[str, None]
     plotting_period_start_end: List[str]
     fig_size: Union[Tuple[int, int], None] = (15, 15)
     plotting_attribute: str
@@ -283,7 +416,7 @@ class Animation(BaseModel):
      Attributes:
          plot_type (str): Type of the plot.
          plot_title (Union[str, None]): Title of the plot (can be None if not provided).
-         plot_dir (str): Directory where the plot will be saved.
+         plot_dir (str): Directory where the plot will be saved (can be None if not provided)
          plotting_period_start_end (List[str]): List of two strings representing the start and end of the plotting period.
          fig_size (Union[Tuple[int, int], None]): Size of the figure (either Tuple or None, default is (15, 15)).
          anim_duration (PositiveInt): Duration of the animation in frames.
@@ -292,12 +425,27 @@ class Animation(BaseModel):
     """
     plot_type: str
     plot_title: Union[str, None]
-    plot_dir: str
+    plot_dir: Union[str, None]
     plotting_period_start_end: List[str]
     fig_size: Union[Tuple[int, int], None] = (15, 15)
     anim_duration: PositiveInt
     plotting_attribute: str
     plotting_attribute_index: PositiveInt
+
+
+class SpatialOverview(BaseModel):
+    """A pydantic class representing a spatial overview plot configuration.
+
+    Attributes:
+        plot_type (str): Type of the plot.
+        plot_title (Union[str, None]): Title of the plot (can be None if not provided).
+        range_image (str): Path to range image to be displayed in plot.
+        plot_dir (str): Directory where the plot will be saved (can be None if not provided)
+    """
+
+    plot_type: str
+    plot_title: str
+    plot_dir: str
 
 
 def read_plotting_parameters(plotting_parameters_json):
@@ -306,18 +454,20 @@ def read_plotting_parameters(plotting_parameters_json):
     :param plotting_parameters_json (str):
         Path to the JSON file containing plotting parameters.
 
-    :return plot_type, json_data (Tuple[str, dict])
-        A tuple containing the plot type and the dictionary of plotting parameters.
+    :return plot_types, json_data (Tuple[list, list])
+        A tuple containing the list of plot types and the list of dictionaries of plotting parameters.
     """
     with open(plotting_parameters_json, 'r') as file:
         json_data = json.load(file)
-        plot_type = json_data.get('plot_type')
+        plot_types = [element.get('plot_type') for element in json_data]
 
-        valid_plot_types = ["line_plot_2d", "plot_3d", "animation"]
+        valid_plot_types = ["line_plot_2d", "plot_3d", "animation", "spatial_overview", "temporal_overview"]
 
-        if plot_type not in valid_plot_types:
-            raise ValueError(f"Invalid plot_type '{plot_type}'. Allowed values are: {', '.join(valid_plot_types)}")
-        return plot_type, json_data
+        for plot_type in plot_types:
+            if plot_type not in valid_plot_types:
+                raise ValueError(f"Invalid plot_type '{plot_type}'. Allowed values are: {', '.join(valid_plot_types)}")
+
+        return plot_types, json_data
 
 
 ###########################################
@@ -333,30 +483,32 @@ class ChangeEvent(BaseModel):
 
      Attributes:
          object_id (int): Identifier for the change event.
-         pc_files (List[str]): List of file paths to point cloud data.
          timestamps (List[str]): List of timestamps associated with each epoch.
          epoch_count (int): Number of epochs in the change event.
+         pc_dir (List[str]): Path to change event point clouds.
          change_rates (List[float]): List of change rates for each epoch.
-         duration (float): Duration of the change event.
-         change_magnitudes (List[float]): List of change magnitudes for each epoch.
-         spatial_extent (List[List[float]]): List of lists representing spatial extent for each epoch.
-         event_type (str): Type of the change event.
-         plots_2d_dir (List[str]): List of directories for 2D plots.
-         plots_3d_dir (List[str]): List of directories for 3D plots.
-         plots_4d_dir (List[str]): List of directories for 4D plots.
+         duration_sec (float): Duration of the change event.
+         change_magnitudes_m (List[float]): List of change magnitudes for each epoch.
+         spatial_extent_bbox (List[List[float]]): List of lists representing spatial extent for each epoch.
+         location (List[float]): List of 3D coordinates of change event.
+         event_types ((List[str]): Type of the change event.
+         plots_2d_dir (List[str]): List of directories for 2D plots (can be None if not provided).
+         plots_3d_dir (List[str]): List of directories for 3D plots (can be None if not provided).
+         plots_4d_dir (List[str]): List of directories for 4D plots (can be None if not provided).
      """
     object_id: int
-    pc_files: List[str]
     timestamps: List[str]
     epoch_count: int
+    pc_dir: List[str]
     change_rates: List[float]
-    duration: float
-    change_magnitudes: List[float]
-    spatial_extent: List[List[float]]
-    event_type: str
-    plots_2d_dir: List[str]
-    plots_3d_dir: List[str]
-    plots_4d_dir: List[str]
+    duration_sec: float
+    change_magnitudes_m: List[float]
+    spatial_extent_bbox: List[List[float]]
+    location: List[float]
+    event_types: List[str]
+    plots_2d_dir: Union[List[str], None]
+    plots_3d_dir: Union[List[str], None]
+    plots_4d_dir: Union[List[str], None]
 
 
 class ChangeEventValidator:
@@ -384,7 +536,7 @@ class ChangeEventValidator:
                 validated_data = validate_model(ChangeEvent, element)
 
                 # Create ChangeEvent object
-                change_event = ChangeEvent(**validated_data)
+                change_event = ChangeEvent(**validated_data[0])
                 change_events.append(change_event)
 
             return change_events
@@ -392,6 +544,7 @@ class ChangeEventValidator:
         except ValidationError as e:
             print(f"Error with validation: {e}")
             return None
+
 
 ###########################################
 
@@ -434,23 +587,25 @@ def read_visualization_filter_parameters(json_path):
     with open(json_path, 'r') as json_file:
         json_data = json.load(json_file)
 
-    parameters = {
-        "observation_period": None,
-        "duration_min_max_sec": None,
-        "spatial_extent": None,
-        "event_types": None,
+    expected_parameters = {
+        "observation_period": list,
+        "duration_min_max_sec": list,
+        "spatial_extent_bbox": list,
+        "event_types": list,
     }
 
-    if 'features' in json_data and json_data['features']:
-        feature = json_data['features'][0]
-        if 'properties' in feature:
-            properties = feature['properties']
-            parameters["observation_period"] = properties.get('observation_period')
-            parameters["duration_min_max_sec"] = properties.get('duration')
-            parameters["spatial_extent"] = properties.get('spatial_extent')
-            parameters["event_types"] = properties.get('event_types')
+    for param, expected_type in expected_parameters.items():
+        if param not in json_data:
+            print(f"Error: Parameter '{param}' is missing.")
+            return None
+        else:
+            param_value = json_data[param]
+            if not isinstance(param_value, expected_type):
+                print(
+                    f"Error: Parameter '{param}' has an unexpected data type. Expected: {expected_type}, Actual: {type(param_value)}")
+                return None
 
-    return parameters
+    return json_data
 
 
 def filter_relevant_events(event_list,
@@ -474,9 +629,9 @@ def filter_relevant_events(event_list,
     for key, value in visualization_filter_parameters.items():
         if key == "event_types":
             relevant_events = [event for event in relevant_events if
-                               any(event_type in event.event_type for event_type in value)]
-        elif key == "duration":
-            relevant_events = [event for event in relevant_events if value[0] <= event.duration <= value[1]]
+                               any(event_types in event.event_types for event_types in value)]
+        elif key == "duration_min_max_sec":
+            relevant_events = [event for event in relevant_events if value[0] <= event.duration_sec <= value[1]]
         # further criteria to be implemented
         # elif key == "spatial_extent":
         # relevant_events = [event for event in relevant_events if is_inside_extent(event.spatial_extent, value)]
@@ -548,6 +703,14 @@ def is_inside_extent(event_extent, target_extent):
     return is_inside
 
 
+def get_change_event_locations(change_events):
+    change_event_locations = []
+    for change_event in change_events:
+        location = change_event.location
+        change_event_locations.append(location)
+    return change_event_locations
+
+
 def read_json_file(file_path):
     try:
         with open(file_path, 'r') as file:
@@ -561,25 +724,28 @@ def read_json_file(file_path):
 def main():
     # Read data from user
     visualization_filter_parameters_json = sys.argv[1]
-    plotting_parameters_json = sys.argv[2]
-    change_events_json = sys.argv[3]
+    change_events_json = sys.argv[2]
+    plot_config_json = sys.argv[3]
 
     # Get visualization filtering parameters
-    visualization_filter_parameters = read_visualization_filter_parameters(visualization_filter_parameters_json)
+    visualization_filter_parameters_dict = read_visualization_filter_parameters(visualization_filter_parameters_json)
 
     # Read change event data, validate json file and generate ChangeEvent objects
-    json_data = read_json_file(change_events_json)
-    change_events = ChangeEventValidator.validate_and_create_change_events(json_data)
+    change_events_dict = read_json_file(change_events_json)
+    change_events = ChangeEventValidator.validate_and_create_change_events(change_events_dict)
 
     # Filter relevant ChangeEvent objects for visualization
-    relevant_change_events = filter_relevant_events(change_events, visualization_filter_parameters)
-    print(relevant_change_events)
+    relevant_change_events = filter_relevant_events(change_events, visualization_filter_parameters_dict)
 
-    # Generate plots for all change events after validating plotting parameters
-    plot_type, json_data = read_plotting_parameters(plotting_parameters_json)
-    for change_event in relevant_change_events:
+    # Generate plots with all relevant change events after validating plotting parameters
+    plotting_period = visualization_filter_parameters_dict["observation_period"]
+
+    plot_types, json_data = read_plotting_parameters(plot_config_json)
+    change_event = []
+    for idx, plot_type in enumerate(plot_types):
+        json_data = json_data[idx]
         plot_object = Plot()
-        plot_object.generate_plot(plot_type, json_data, change_event)
+        plot_object.generate_plot(plot_type, json_data, change_event, relevant_change_events, plotting_period)
 
 
 if __name__ == "__main__":
