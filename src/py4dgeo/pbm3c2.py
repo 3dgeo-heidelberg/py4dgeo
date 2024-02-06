@@ -1286,9 +1286,9 @@ class Segmentation(BaseTransformer):
                         >= self.roughness_threshold
                     ):
                         mask_seg_id = X[:, self.columns.SEGMENT_ID_COLUMN] == seg_id
-                        X[
-                            mask_seg_id, self.columns.SEGMENT_ID_COLUMN
-                        ] = DEFAULT_NO_SEGMENT
+                        X[mask_seg_id, self.columns.SEGMENT_ID_COLUMN] = (
+                            DEFAULT_NO_SEGMENT
+                        )
                         # since we don't have a new segment
                         seg_id -= 1
                     else:
