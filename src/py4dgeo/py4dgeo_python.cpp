@@ -129,12 +129,23 @@ PYBIND11_MODULE(_py4dgeo, m)
     "nearest_neighbors",
     [](const KDTree& self, EigenPointCloudConstRef cloud) {
       KDTree::NearestNeighborsDistanceResult result;
-      self.nearest_neighbors_with_distances(cloud, result);
+      int k = 1;
+      self.nearest_neighbors_with_distances(cloud, result, k);
 
-      return std::make_tuple(as_pyarray(std::move(result.first)),
-                             as_pyarray(std::move(result.second)));
+      py::array_t<long int> indices_array(result.size());
+      py::array_t<double> distances_array(result.size());
+
+      auto indices_array_ptr = indices_array.mutable_data();
+      auto distances_array_ptr = distances_array.mutable_data();
+
+      for (size_t i = 0; i < result.size(); ++i) {
+        *indices_array_ptr++ = result[i].first[0];
+        *distances_array_ptr++ = result[i].second[0];
+      }
+
+      return std::make_pair(indices_array, distances_array);
     },
-    "Find nearest neighbors for all points in a cloud!");
+    "Find k nearest neighbors for all points in a cloud!");
 
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {
@@ -147,6 +158,30 @@ PYBIND11_MODULE(_py4dgeo, m)
       "not know the point cloud."
     };
   });
+
+  // Segment point cloud into a supervoxels
+  m.def("segment_pc_in_supervoxels",
+        [](Epoch& epoch,
+           const KDTree& kdtree,
+           EigenNormalSetConstRef normals,
+           double resolution,
+           int k,
+           int minSVPvalue) {
+          std::vector<Supervoxel> supervoxels =
+            segment_pc(epoch, kdtree, normals, resolution, k, minSVPvalue);
+
+          py::list result;
+          for (const auto& sv : supervoxels) {
+            py::dict sv_dict;
+            sv_dict["cloud"] = sv.cloud;
+            sv_dict["normals"] = sv.normals;
+            sv_dict["centroid"] = sv.centroid;
+            sv_dict["boundary_points"] = sv.boundary_points;
+            result.append(sv_dict);
+          }
+
+          return result;
+        });
 
   // The main distance computation function that is the main entry point of M3C2
   m.def(

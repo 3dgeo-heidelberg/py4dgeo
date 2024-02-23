@@ -85,3 +85,11 @@ testcloud()
   auto cloud = benchcloud_from_file(DATAPATH(plane_horizontal_t1.xyz));
   return std::make_pair(cloud, cloud);
 }
+
+std::pair<std::shared_ptr<EigenPointCloud>, std::shared_ptr<EigenPointCloud>>
+testcloud_dif_files()
+{
+  auto cloud1 = benchcloud_from_file(DATAPATH(plane_horizontal_t1.xyz));
+  auto cloud2 = benchcloud_from_file(DATAPATH(plane_horizontal_t2.xyz));
+  return std::make_pair(cloud1, cloud2);
+}
