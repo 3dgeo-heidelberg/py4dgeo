@@ -45,14 +45,19 @@ def test_rebuilding(epochs):
     assert epoch1.kdtree.leaf_parameter() == 20
 
 
-def test_nearest_neighbors(epochs):
-    epoch1, epoch2 = epochs
+def test_nearest_neighbors(epochs_las):
+    epoch1, epoch2 = epochs_las
     epoch1.build_kdtree()
-    epoch2.build_kdtree()
 
-    neighbors, distances = epoch1.kdtree.nearest_neighbors(epoch2.cloud)
+    checklist_pr = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud))
+    assert len(checklist_pr) > 0
+    indices, distances = np.split(checklist_pr, 2, axis=0)
+    indices = indices.flatten().tolist()
+    distances = distances.flatten().tolist()
+    indices = tuple(int(i) for i in indices)
+
     for i in range(epoch1.cloud.shape[0]):
-        assert i == neighbors[i]
+        assert i == indices[i]
         assert np.isclose(
             ((epoch1.cloud[i, :] - epoch2.cloud[i, :]) ** 2).sum(), distances[i]
         )
