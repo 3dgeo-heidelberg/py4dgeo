@@ -793,6 +793,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         window_penalty=1.0,
         minperiod=24,
         height_threshold=0.0,
+        use_unfinished=True,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
@@ -836,7 +837,10 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
             The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float
-
+        :param use_unfinished:
+            If False, seed candidates that are not finished by the end of the time series are not considered in further
+            analysis. The default is True, in which case unfinished seed_candidates are regarded as seeds region growing.
+        :type use_unfinished: bool
         """
 
         # Initialize base class
@@ -851,6 +855,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.window_penalty = window_penalty
         self.minperiod = minperiod
         self.height_threshold = height_threshold
+        self.use_unfinished = use_unfinished
 
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
@@ -956,7 +961,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     # This causes a seed to always be detected if the volume doesn't decrease before present
                     #  Useful when used in an online setting, can be filtered before region growing
                     # Only if the last epoch is reached we use the segment as seed
-                    if target_idx == timeseries.shape[0] - 1:
+                    if (target_idx == timeseries.shape[0] - 1) and self.use_unfinished:
                         # We reached the present and add a seed based on it
                         corepoint_seeds.append(
                             RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
