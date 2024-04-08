@@ -162,11 +162,14 @@ PYBIND11_MODULE(_py4dgeo, m)
           py::list np_arrays_cloud;
           py::list np_arrays_centroid;
           py::list np_arrays_boundary_points;
+          py::list np_arrays_normals;
 
           for (const auto& sv : supervoxels) {
             // Convert Eigen::MatrixXd to a NumPy array
             auto np_array_cloud = py::array_t<double>(
               sv.cloud.rows() * sv.cloud.cols(), sv.cloud.data());
+            auto np_array_normals = py::array_t<double>(
+              sv.normals.rows() * sv.normals.cols(), sv.normals.data());
             auto np_array_centroid =
               py::array_t<double>(sv.centroid.size(), sv.centroid.data());
             auto np_array_boundary_points = py::array_t<double>(
@@ -175,17 +178,31 @@ PYBIND11_MODULE(_py4dgeo, m)
 
             // Reshape the arrays to their original shape
             np_array_cloud.resize({ sv.cloud.rows(), sv.cloud.cols() });
+            np_array_normals.resize({ sv.normals.rows(), sv.normals.cols() });
             np_array_centroid.resize({ sv.centroid.size() });
             np_array_boundary_points.resize(
               { sv.boundary_points.rows(), sv.boundary_points.cols() });
 
             np_arrays_cloud.append(np_array_cloud);
+            np_arrays_normals.append(np_array_normals);
             np_arrays_centroid.append(np_array_centroid);
             np_arrays_boundary_points.append(np_array_boundary_points);
           }
 
-          return std::make_tuple(
-            np_arrays_cloud, np_arrays_centroid, np_arrays_boundary_points);
+          return std::make_tuple(np_arrays_cloud,
+                                 np_arrays_normals,
+                                 np_arrays_centroid,
+                                 np_arrays_boundary_points);
+        });
+
+  // Perform a transformation of a point cloud using Gauss-Newton method
+  m.def("fit_transform_GN",
+        [](EigenPointCloudConstRef cloud1,
+           EigenPointCloudConstRef cloud2,
+           EigenNormalSetConstRef normals) {
+          Eigen::Matrix4d transformation =
+            fit_transform_GN(cloud1, cloud2, normals);
+          return transformation;
         });
 
   // The main distance computation function that is the main entry point of M3C2

@@ -226,6 +226,22 @@ median_calculation(std::vector<double>& subsignal)
   return med;
 }
 
+double
+median_calculation_simp(std::vector<double>& subsignal)
+{
+  if (subsignal.empty()) {
+    throw std::runtime_error{ "Empty signal passed to median calculation" };
+  }
+
+  // Copy elements to a separate container
+  std::vector<double> values = subsignal;
+
+  auto n = values.size() / 2;
+  std::nth_element(values.begin(), values.begin() + n, values.end());
+
+  return values[values.size() / 2];
+}
+
 std::vector<IndexType>
 local_maxima_calculation(std::vector<double>& score, IndexType order)
 {

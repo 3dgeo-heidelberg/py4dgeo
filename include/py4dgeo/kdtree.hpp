@@ -30,9 +30,12 @@ public:
   //! Return type used for radius searches that export calculated distances
   using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
 
-  //! Return type used for nearest neighbor searches
+  //! Return type used for nearest neighbor with Euclidian distances searches
   using NearestNeighborsDistanceResult =
     std::pair<std::vector<IndexType>, std::vector<double>>;
+
+  //! Return type used for nearest neighbor searches
+  using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
 
 private:
   /** @brief An adaptor between our Eigen data structures and NanoFLANN */
@@ -160,7 +163,8 @@ public:
     double radius,
     RadiusSearchDistanceResult& result) const;
 
-  /** @brief Calculate the nearest neighbors for an entire point cloud
+  /** @brief Calculate the nearest neighbors with Euclidian distance for an
+   * entire point cloud
    *
    * @param[in] cloud The point cloud to use as query points
    * @param[out] result The distan
@@ -168,6 +172,17 @@ public:
   void nearest_neighbors_with_distances(
     EigenPointCloudConstRef cloud,
     NearestNeighborsDistanceResult& result) const;
+
+  /** @brief Calculate the nearest neighbors for an entire point cloud
+   *
+   * @param[in] cloud The point cloud to use as query points
+   * @param[out] result The indexes of k nearest neighbors for each point
+   * @param[in] k The amount of nearest neighbors to calculate
+   *
+   */
+  void nearest_neighbors(EigenPointCloudConstRef cloud,
+                         NearestNeighborsResult& result,
+                         int k) const;
 
   /** @brief Return the leaf parameter this KDTree has been built with */
   int get_leaf_parameter() const;

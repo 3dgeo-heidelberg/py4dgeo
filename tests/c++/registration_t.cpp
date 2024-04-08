@@ -4,9 +4,10 @@
 #include "testsetup.hpp"
 #include <iostream>
 
-// DELETE
 #include "py4dgeo/compute.hpp"
 #include <vector>
+
+#include <fstream>
 
 using namespace py4dgeo;
 
@@ -90,26 +91,5 @@ TEST_CASE("Affine Transformation", "[compute]")
       epoch_test_s, epoch_test_s.kdtree, resolution, k, normals);
 
     REQUIRE(result.size() == n_supervoxels);
-  }
-
-  SECTION("Supervoxel_Segmentation: ")
-  {
-    auto [cloud_s, corepoints_s] = testcloud();
-    Epoch epoch_test_s(*cloud_s);
-    epoch_test_s.kdtree.build_tree(10); //????
-    EigenNormalSet normals(epoch_test_s.cloud.rows(), 3);
-    std::vector<double> normal_radii{ 3.0 };
-    EigenNormalSet orientation(1, 3);
-    orientation << 0, 0, 1;
-    compute_multiscale_directions(
-      epoch_test_s, *corepoints_s, normal_radii, orientation, normals);
-
-    double resolution = 10;
-    int k = 10;
-    int minSVPvalue = 10;
-    std::vector<Supervoxel> svd = segment_pc(
-      epoch_test_s, epoch_test_s.kdtree, normals, resolution, k, minSVPvalue);
-
-    REQUIRE(1 == 1);
   }
 }

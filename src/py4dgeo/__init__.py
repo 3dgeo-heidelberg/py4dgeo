@@ -10,10 +10,7 @@ from py4dgeo.epoch import (
 from py4dgeo.m3c2 import M3C2, write_m3c2_results_to_las
 from py4dgeo.m3c2ep import M3C2EP
 from py4dgeo.registration import (
-    iterative_closest_point,
     point_to_plane_icp,
-    point_to_plane_icp_LM,
-    p_to_p_icp,
     registration_method,
 )
 from py4dgeo.segmentation import (

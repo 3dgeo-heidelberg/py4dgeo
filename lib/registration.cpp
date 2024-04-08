@@ -1,11 +1,14 @@
 #include <py4dgeo/registration.hpp>
 
+#include <Eigen/Dense>
+#include <Eigen/StdVector>
 #include <numeric>
 #include <queue>
 #include <unordered_map>
 #include <vector>
 
 #define LMBD_MAX 1e20
+#define EPSILON 2.2204460492503131e-16
 
 namespace py4dgeo {
 
@@ -22,7 +25,7 @@ transform_pointcloud_inplace(EigenPointCloudRef cloud,
 
 DisjointSet::DisjointSet(IndexType size)
   : size_(size)
-  , numbers_(size, 1)
+  , numbers_(size, 0)
   , subsets_(size)
 {
   std::iota(subsets_.begin(), subsets_.end(), 0);
@@ -111,14 +114,6 @@ estimate_supervoxel_count(EigenPointCloudConstRef cloud, double seed_resolution)
 }
 
 double
-squaredEuclideanDistance(const Eigen::RowVector3d& point1,
-                         const Eigen::RowVector3d& point2)
-{
-  const auto diff = point1 - point2;
-  return diff.squaredNorm();
-}
-
-double
 point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
                             const Eigen::RowVector3d& point2,
                             const Eigen::RowVector3d& normal1,
@@ -127,11 +122,9 @@ point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
 {
   const Eigen::RowVector3d diff = point1 - point2;
 
-  double n1 = normal1.norm();
-  double n2 = normal2.norm();
   double squaredDistance = diff.squaredNorm();
 
-  return 1.0 - std::fabs(n1 * n2) +
+  return 1.0 - std::fabs(normal1.dot(normal2)) +
          std::sqrt(squaredDistance) / resolution * 0.4;
 }
 
@@ -142,6 +135,7 @@ supervoxel_segmentation(Epoch& epoch,
                         int k,
                         EigenNormalSet normals)
 {
+
   // Check if normals are provided
   if (normals.size() < epoch.cloud.rows()) {
     throw std::invalid_argument(
@@ -160,13 +154,18 @@ supervoxel_segmentation(Epoch& epoch,
   int supervoxels_amount = epoch.cloud.rows();
 
   // calculate lambda for segmentation
-  DistanceVector lambda_distances;
-  for (const auto& pair : result) {
-    lambda_distances.push_back(pair.second[1]);
-    // because [0] is the distance to the same point, so it's 1
+  DistanceVector lambda_distances(epoch.cloud.rows());
+  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+    int current = result[i].first[1];
+    lambda_distances.push_back(
+      point_2_point_VCCS_distance(epoch.cloud.row(i),
+                                  epoch.cloud.row(current),
+                                  normals.row(i),
+                                  normals.row(current),
+                                  resolution));
   }
 
-  double lambda = median_calculation(lambda_distances);
+  double lambda = std::max(EPSILON, median_calculation(lambda_distances));
 
   // initialize temporary vars for supervoxel segmentation
   std::vector<int> temporary_supervoxels(epoch.cloud.rows());
@@ -175,10 +174,13 @@ supervoxel_segmentation(Epoch& epoch,
   std::queue<int> point_queue;
   std::vector<std::vector<long unsigned int>> neighborIndexes(result.size());
 
-  // fill in temporal containment of neighbors for each points
+  std::vector<int> queue_DEL(epoch.cloud.rows());
+  std::vector<bool> isVisited(epoch.cloud.rows(), false);
+
   for (size_t i = 0; i < result.size(); ++i) {
-    for (const long unsigned int& index : result[i].first) {
-      neighborIndexes[i].push_back(index);
+
+    for (size_t j = 1; j < result[i].first.size(); ++j) {
+      neighborIndexes[i].push_back(result[i].first[j]);
     }
   }
 
@@ -189,20 +191,23 @@ supervoxel_segmentation(Epoch& epoch,
       if (neighborIndexes[i].empty())
         continue;
 
-      labels[i] = i;
-      point_queue.push(i);
-
+      isVisited[i] = true;
+      int front = 0, back = 1;
+      queue_DEL[front++] = i;
       for (auto j : neighborIndexes[i]) {
         j = set.Find(j);
-        if (labels[j] == -1) {
-          point_queue.push(j);
+        if (!isVisited[j]) {
+          isVisited[j] = true;
+          queue_DEL[back++] = j;
         }
       }
 
       std::vector<long unsigned int> neighborIndexes_per_point;
-      while (!point_queue.empty()) {
-        int current = point_queue.front();
-        point_queue.pop();
+
+      while (front < back) {
+        int current = queue_DEL[front++];
+        if (i == current)
+          continue;
 
         double loss =
           sizes[current] * point_2_point_VCCS_distance(epoch.cloud.row(i),
@@ -211,35 +216,32 @@ supervoxel_segmentation(Epoch& epoch,
                                                        normals.row(current),
                                                        resolution);
 
-        double improvement =
-          lambda - loss; // metric for start union of supervoxels
+        double improvement = lambda - loss;
 
         if (improvement > 0.0) {
           set.Union(current, i, false);
-
           sizes[i] += sizes[current];
 
           for (auto k : neighborIndexes[current]) {
             k = set.Find(k);
-            if (labels[k] == -1) {
-              labels[k] = k;
-              point_queue.push(k);
+            if (!isVisited[k]) {
+              isVisited[k] = true;
+              queue_DEL[back++] = k;
             }
           }
 
           neighborIndexes[current].clear();
-
+          if (--supervoxels_amount == n_supervoxels)
+            break;
         } else {
           neighborIndexes_per_point.push_back(current);
         }
-        if (--supervoxels_amount == n_supervoxels)
-          break;
       }
+
       neighborIndexes[i].swap(neighborIndexes_per_point);
 
-      // relabel elements for next iterations
-      for (size_t j = 0; j < result[i].first.size(); ++j) {
-        labels[result[i].first[j]] = -1;
+      for (int j = 0; j < back; ++j) {
+        isVisited[queue_DEL[j]] = false;
       }
 
       if (supervoxels_amount == n_supervoxels)
@@ -253,6 +255,7 @@ supervoxel_segmentation(Epoch& epoch,
         temporary_supervoxels[supervoxels_amount++] = i;
       }
     }
+
     temporary_supervoxels.resize(supervoxels_amount);
     if (supervoxels_amount == n_supervoxels)
       break;
@@ -299,9 +302,9 @@ supervoxel_segmentation(Epoch& epoch,
 
       double point_distance =
         point_2_point_VCCS_distance(epoch.cloud.row(current_point),
-                                    epoch.cloud.row(labels[labels[j]]),
+                                    epoch.cloud.row(labels[j]),
                                     normals.row(current_point),
-                                    normals.row(labels[labels[j]]),
+                                    normals.row(labels[j]),
                                     resolution);
       if (point_distance < distances[current_point]) {
         labels[current_point] = labels[j];
@@ -366,24 +369,28 @@ calculateBoundaryPoints(EigenPointCloudConstRef cloud)
   // Calculate boundary points
   for (int i = 0; i < cloud.rows(); ++i) {
     const Eigen::Vector3d& point = cloud.row(i);
-    const Eigen::Vector3d& point = cloud.row(i);
 
-    BPXmax = BPXmax.cwiseMax(point);
-    BPXmin = BPXmin.cwiseMin(point);
-    BPYmax = BPYmax.cwiseMax(point);
-    BPYmin = BPYmin.cwiseMin(point);
-    BPZmax = BPZmax.cwiseMax(point);
-    BPZmin = BPZmin.cwiseMin(point);
-    BPXmax = BPXmax.cwiseMax(point);
-    BPXmin = BPXmin.cwiseMin(point);
-    BPYmax = BPYmax.cwiseMax(point);
-    BPYmin = BPYmin.cwiseMin(point);
-    BPZmax = BPZmax.cwiseMax(point);
-    BPZmin = BPZmin.cwiseMin(point);
+    if (point.x() > BPXmax.x())
+      BPXmax = point;
+    if (point.x() < BPXmin.x())
+      BPXmin = point;
+    if (point.y() > BPYmax.y())
+      BPYmax = point;
+    if (point.y() < BPYmin.y())
+      BPYmin = point;
+    if (point.z() > BPZmax.z())
+      BPZmax = point;
+    if (point.z() < BPZmin.z())
+      BPZmin = point;
   }
-  EigenPointCloud boundary_points(6, 3);
-  boundary_points << BPXmax, BPXmin, BPYmax, BPYmin, BPZmax, BPZmin;
 
+  EigenPointCloud boundary_points(6, 3);
+  boundary_points.row(0) = BPXmax;
+  boundary_points.row(1) = BPXmin;
+  boundary_points.row(2) = BPYmax;
+  boundary_points.row(3) = BPYmin;
+  boundary_points.row(4) = BPZmax;
+  boundary_points.row(5) = BPZmin;
 
   return boundary_points;
 }
@@ -404,15 +411,8 @@ segment_pc(Epoch& epoch,
   std::vector<std::vector<int>> sv_labels =
     supervoxel_segmentation(epoch, epoch.kdtree, seed_resolution, k, normals);
 
-  // checks for income values
-  //  Number of valid SV
-  std::vector<std::vector<int>> sv_labels =
-    supervoxel_segmentation(epoch, epoch.kdtree, seed_resolution, k, normals);
-
-  // checks for income values
   //  Number of valid SV
   int svValid = 0;
-  // Number of invalid SV
   int svInvalid = 0;
 
 
@@ -434,10 +434,93 @@ segment_pc(Epoch& epoch,
 
     sv.centroid = calculateCentroid(sv.cloud);
     sv.boundary_points = calculateBoundaryPoints(sv.cloud);
+
     clouds_SV.push_back(sv);
     svValid++;
   }
+
   return clouds_SV;
+}
+
+// function for calculating Jacobian for point to plane method
+Eigen::Matrix<double, 1, 6>
+plane_Jacobian(Eigen::Vector3d Rot_a, Eigen::Vector3d n)
+{
+  Eigen::Matrix<double, 1, 6> J;
+  J.block<1, 3>(0, 0) = -Rot_a.cross(n);
+  J.block<1, 3>(0, 3) = n;
+  return J;
+}
+
+// function for calculating rotation and transformation matrix
+std::pair<Eigen::Matrix3d, Eigen::Vector3d>
+set_rot_trans(const Eigen::Matrix<double, 6, 1>& euler_array)
+{
+
+  double alpha = euler_array[0];
+  double beta = euler_array[1];
+  double gamma = euler_array[2];
+  double x = euler_array[3];
+  double y = euler_array[4];
+  double z = euler_array[5];
+
+  Eigen::Matrix3d Rot_z;
+  Rot_z << cos(gamma), sin(gamma), 0, -sin(gamma), cos(gamma), 0, 0, 0, 1;
+  Eigen::Matrix3d Rot_y;
+  Rot_y << cos(beta), 0, -sin(beta), 0, 1, 0, sin(beta), 0, cos(beta);
+  Eigen::Matrix3d Rot_x;
+  Rot_x << 1, 0, 0, 0, cos(alpha), sin(alpha), 0, -sin(alpha), cos(alpha);
+  Eigen::Matrix3d Rot = Rot_z * Rot_y * Rot_x;
+
+  return std::make_pair(Rot, Eigen::Vector3d(x, y, z));
+}
+
+// function for finding a transformation that fits two point clouds onto each
+// other using Gauss-Newton method
+Eigen::Matrix4d
+fit_transform_GN(EigenPointCloudConstRef trans_cloud,
+                 EigenPointCloudConstRef reference_cloud,
+                 EigenNormalSetConstRef reference_normals)
+{
+
+  Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+  int min_matr_size = std::min(trans_cloud.rows(), reference_cloud.rows());
+  // hessian matrix
+  Eigen::Matrix<double, 6, 6> H = Eigen::Matrix<double, 6, 6>::Zero();
+  Eigen::Matrix<double, 6, 1> g = Eigen::Matrix<double, 6, 1>::Zero();
+  Eigen::Matrix<double, 6, 1> euler_array = Eigen::Matrix<double, 6, 1>::Zero();
+  Eigen::Matrix3d Rot;
+  Eigen::Vector3d trans;
+  std::tie(Rot, trans) = set_rot_trans(euler_array);
+
+  int chi = 0;
+  for (int i = 0; i < min_matr_size; i++) {
+    Eigen::Vector3d a;
+    Eigen::Vector3d b;
+    Eigen::Vector3d n;
+    a = trans_cloud.row(i);
+    b = reference_cloud.row(i);
+    n = reference_normals.row(i);
+
+    Eigen::Vector3d Rot_a = Rot * a;
+    double e = (Rot_a + trans - b).dot(n);
+
+    Eigen::Matrix<double, 1, 6> J = plane_Jacobian(Rot_a, n);
+    H += J.transpose() * J;
+    g += J.transpose() * e;
+  }
+
+  Eigen::Matrix<double, 6, 1> update_euler;
+  update_euler = -H.inverse() * g;
+  euler_array += update_euler;
+
+  Eigen::Matrix3d Rot_f;
+  Eigen::Vector3d trans_f;
+  std::tie(Rot_f, trans_f) = set_rot_trans(euler_array);
+  T.block<3, 3>(0, 0) = Rot_f;
+  T.block<3, 1>(0, 3) = trans_f;
+
+  return T;
 }
 
 } // namespace py4dgeo

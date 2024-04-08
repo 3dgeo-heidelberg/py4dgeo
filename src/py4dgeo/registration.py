@@ -310,7 +310,7 @@ def point_to_plane_icp(
         reduction_point = np.array([0, 0, 0])
 
     # Make a copy of the cloud to be transformed.
-    trans_epoch = deepcopy(epoch)
+    trans_epoch = epoch.copy()
 
     prev_error = 0
     for _ in range(max_iterations):
@@ -323,12 +323,14 @@ def point_to_plane_icp(
         distances = np.squeeze(distances)
 
         # Calculate a transform and apply it
-        T = _fit_transform_GN(
-            trans_epoch.cloud.transpose(1, 0),
-            reference_epoch.cloud[indices, :].transpose(1, 0),
-            reference_epoch.normals[indices, :].transpose(1, 0),
+        T = _py4dgeo.fit_transform_GN(
+            trans_epoch.cloud,
+            reference_epoch.cloud[indices, :],
+            reference_epoch.normals[indices, :],
         )
+
         _py4dgeo.transform_pointcloud_inplace(trans_epoch.cloud, T, reduction_point)
+        _py4dgeo.transform_pointcloud_inplace(trans_epoch.normals, T, reduction_point)
 
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
@@ -337,12 +339,11 @@ def point_to_plane_icp(
             break
         prev_error = mean_error
 
-    normals = Epoch.calculate_normals(trans_epoch)
     return Transformation(
-        affine_transformation=_fit_transform_GN(
-            epoch.cloud.transpose(1, 0),
-            trans_epoch.cloud.transpose(1, 0),
-            normals.transpose(1, 0),
+        affine_transformation=_py4dgeo.fit_transform_GN(
+            epoch.cloud,
+            trans_epoch.cloud,
+            trans_epoch.normals,
         ),
         reduction_point=reduction_point,
     )
@@ -493,8 +494,7 @@ def compute_covariance_matrix(points):
     """Compute the covariance matrix of a set of points."""
 
     # Convert the list of points to a NumPy array for efficient operations
-    data = np.array(points)  # ??????????
-    data = np.array(points)  # ??????????
+    data = np.array(points)
 
     # Check if the data is empty or has only one point
     if len(data) < 2:
@@ -511,7 +511,8 @@ def compute_covariance_matrix(points):
 
 
 def solve_plane_parameters(covariance_matrix):
-    eigen_values, eigen_vectors = np.linalg.eigh(covariance_matrix)
+    """Solve the parameters of a plane given its covariance matrix."""
+    _, eigen_vectors = np.linalg.eigh(covariance_matrix)
 
     # Extract the eigenvector with the smallest eigenvalue
     normal_vector = eigen_vectors[:, 0]
@@ -521,7 +522,16 @@ def solve_plane_parameters(covariance_matrix):
 
 
 def compute_cor_distance(epoch1, epoch2, clouds_pc1, check_size):
-    """"""
+    """
+    Compute the correspondence distance between two point clouds.
+    Parameters:
+    - epoch1: The epoch consists of core points of reference epoch.
+    - epoch2: The epoch consists of core points of epoch to be transformed.
+    - clouds_pc1: The supervoxels of the reference epoch.
+    - check_size: The number of points in the reference epoch.
+    Returns:
+    - P2Pdist: The correspondence distance between the two point clouds.
+    """
 
     neighbor_arrays = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud))
     indices, distances = np.split(neighbor_arrays, 2, axis=0)
@@ -529,8 +539,7 @@ def compute_cor_distance(epoch1, epoch2, clouds_pc1, check_size):
     indices = np.squeeze(indices.astype(int))
 
     distances = np.squeeze(distances)
-    P2Pdist = []  # RENAME
-    P2Pdist = []  # RENAME
+    P2Pdist = []
     for i in range(len(epoch2.cloud)):
         if len(epoch1.cloud) != check_size:
             cov_matrix = compute_covariance_matrix(clouds_pc1[indices[i]])
@@ -560,17 +569,22 @@ def calculate_bounding_box(point_cloud):
     """
     min_bound = np.min(point_cloud, axis=0)
     max_bound = np.max(point_cloud, axis=0)
+
     return min_bound, max_bound
 
 
 def calculate_bounding_box_change(
     bounding_box_min, bounding_box_max, transformation_matrix
 ):
-    """Calculate the change in bounding box corners after applying a transformation matrix."""
+    """Calculate the change in kdtree bounding box corners after applying a transformation matrix.
+    Parameters:
+    - bounding_box_min: 1D array representing the minimum coordinates of the bounding box.
+    - bounding_box_max: 1D array representing the maximum coordinates of the bounding box.
+    - transformation_matrix: 2D array representing the transformation matrix.
+    Returns:
+    - max_change: The maximum change in the bounding box corners.
+    """
 
-def calculate_bounding_box_change(
-    bounding_box_min, bounding_box_max, transformation_matrix
-):
     # Convert bounding box to homogeneous coordinates
     bounding_box_min_homogeneous = np.concatenate((bounding_box_min, [1]))
     bounding_box_max_homogeneous = np.concatenate((bounding_box_max, [1]))
@@ -588,13 +602,20 @@ def calculate_bounding_box_change(
 
 
 def calculate_dis_threshold(epoch1, epoch2):
+    """Calculate the distance threshold for the next iteration of the registration method
+    Parameters:
+    - epoch1: The reference epoch.
+    - epoch2: Stable points of epoch.
+    Returns:
+    - dis_threshold: The distance threshold.
+    """
     neighbor_arrays = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud))
     indices, distances = np.split(neighbor_arrays, 2, axis=0)
     distances = np.squeeze(distances)
 
     if indices.size > 0:
         # Calculate mean distance
-        mean_dis = np.mean(distances)
+        mean_dis = np.mean(np.sqrt(distances))
 
         # Calculate standard deviation
         std_dis = np.sqrt(np.mean((mean_dis - distances) ** 2))
@@ -611,25 +632,19 @@ def registration_method(
     lmdd,
     res1,
     res2,
-    resolution=10,
-    k=10,
+    k=2,
     minSVPvalue=10,
     reduction_point=None,
 ):
-    """Perform a registration method based on the paper "" by Li et al." """
+    """Perform a registration method"""
 
     from py4dgeo.epoch import as_epoch
 
-
-    # Ensure that reference_epoch has its KDTree buil
+    # Ensure that reference_epoch has its KDTree build
     if reference_epoch.kdtree.leaf_parameter() == 0:
         reference_epoch.build_kdtree()
 
-        reference_epoch.build_kdtree()
-
-    # Ensure that epoch has its KDTree buil
-    if epoch.kdtree.leaf_parameter() == 0:
-        epoch.build_kdtree()
+    # Ensure that epoch has its KDTree build
     if epoch.kdtree.leaf_parameter() == 0:
         epoch.build_kdtree()
 
@@ -663,16 +678,21 @@ def registration_method(
     transMatFinal = np.identity(4)  # Identity matrix for initial transMatFinal
     stage3 = stage4 = 0
 
-    clouds_pc1, centroids_pc1, boundary_points_pc1 = _py4dgeo.segment_pc_in_supervoxels(
+    clouds_pc1, _, centroids_pc1, _ = _py4dgeo.segment_pc_in_supervoxels(
         reference_epoch,
         reference_epoch.kdtree,
         reference_epoch.normals,
-        resolution,
+        res1,
         k,
         minSVPvalue,
     )
-    clouds_pc2, centroids_pc2, boundary_points_pc2 = _py4dgeo.segment_pc_in_supervoxels(
-        epoch, epoch.kdtree, epoch.normals, resolution, k, minSVPvalue
+    (
+        clouds_pc2,
+        normals2,
+        centroids_pc2,
+        boundary_points_pc2,
+    ) = _py4dgeo.segment_pc_in_supervoxels(
+        epoch, epoch.kdtree, epoch.normals, res2, k, minSVPvalue
     )
 
     centroids_pc1 = as_epoch(np.array(centroids_pc1))
@@ -684,51 +704,48 @@ def registration_method(
     boundary_points_pc2 = as_epoch(boundary_points_pc2)
     boundary_points_pc2.build_kdtree()
 
-
+    steps = 0
     while stage4 == 0:
         # Calculation CT2-CT1
-        corCT_dist = compute_cor_distance(
+        cor_dist_ct = compute_cor_distance(
             centroids_pc1, centroids_pc2, clouds_pc1, len(reference_epoch.cloud)
-        )  # RENAME
+        )
         # Calculation BP2-CT1
-        corBP_dist = compute_cor_distance(
+        cor_dist_bp = compute_cor_distance(
             centroids_pc1, boundary_points_pc2, clouds_pc1, len(reference_epoch.cloud)
-        )  # RENAME
+        )
         # calculation BP2- CP1
-        corPC_dist = compute_cor_distance(
+        cor_dist_pc = compute_cor_distance(
             reference_epoch, boundary_points_pc2, clouds_pc1, len(reference_epoch.cloud)
-        )  # RENAME
+        )
 
         stablePC2 = []  # Stable supervoxels
+        normPC2 = []  # Stable supervoxel's normals
         unstablePC2 = []  # Unstable supervoxels
         stablePC2 = []  # Stable supervoxels
+        normPC2 = []  # Stable supervoxel's normals
         unstablePC2 = []  # Unstable supervoxels
-
-        dt_point = dis_threshold + 2 * res1
-        stableSVnum = 0  # Number of stable SV in PC2
 
         dt_point = dis_threshold + 2 * res1
         stableSVnum = 0  # Number of stable SV in PC2
 
         for i, cloud in enumerate(centroids_pc2.cloud):
-            if corCT_dist[i] < dis_threshold and all(
-                corBP_dist[j + 6 * i] < dis_threshold
-                and corPC_dist[j + 6 * i] < dt_point
-                corBP_dist[j + 6 * i] < dis_threshold
-                and corPC_dist[j + 6 * i] < dt_point
+            if cor_dist_ct[i] < dis_threshold and all(
+                cor_dist_bp[j + 6 * i] < dis_threshold
+                and cor_dist_pc[j + 6 * i] < dt_point
                 for j in range(6)
             ):
                 stablePC2.append(clouds_pc2[i])
+                normPC2.append(normals2[i])
                 stableSVnum += 1
             else:
                 unstablePC2.append(cloud)
 
         stablePC2 = np.vstack(stablePC2)
         stablePC2 = as_epoch(stablePC2)
+        normPC2 = np.vstack(normPC2)
+        stablePC2.normals_attachment(normPC2)
 
-        # check if stablePC2 is empty or has 1 point
-        # ICP
-        # check if stablePC2 is empty or has 1 point
         # ICP
         trans_mat_cur_obj = point_to_plane_icp(
             reference_epoch,
@@ -742,7 +759,9 @@ def registration_method(
             tolerance=0.00001,
             reduction_point=reduction_point,
         )
+
         trans_mat_cur = trans_mat_cur_obj.affine_transformation
+
         # BB
         initial_min_bound, initial_max_bound = calculate_bounding_box(epoch.cloud)
         max_bb_change = calculate_bounding_box_change(
@@ -762,7 +781,7 @@ def registration_method(
 
 
         if stage3 == 0:
-            dis_threshold = calculate_dis_threshold(reference_epoch, epoch)
+            dis_threshold = calculate_dis_threshold(reference_epoch, stablePC2)
             if dis_threshold <= lmdd:
                 dis_threshold = lmdd
 
@@ -775,7 +794,7 @@ def registration_method(
 
         # update values and apply changes
         dtSeries.append(dis_threshold)
-        transMatFinal = trans_mat_cur * transMatFinal
+        transMatFinal = trans_mat_cur @ transMatFinal
 
         _py4dgeo.transform_pointcloud_inplace(
             epoch.cloud, transMatFinal, reduction_point
@@ -784,9 +803,11 @@ def registration_method(
         _py4dgeo.transform_pointcloud_inplace(
             centroids_pc2.cloud, transMatFinal, reduction_point
         )
+
         _py4dgeo.transform_pointcloud_inplace(
             boundary_points_pc2.cloud, transMatFinal, reduction_point
         )
+
         for i in range(len(clouds_pc2)):
             _py4dgeo.transform_pointcloud_inplace(
                 clouds_pc2[i], transMatFinal, reduction_point

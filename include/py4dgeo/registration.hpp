@@ -51,7 +51,7 @@ std::size_t
 estimate_supervoxel_count(EigenPointCloudConstRef cloud,
                           double seed_resolution);
 
-/** @brief Perform supervoxel segmentation to distribute points within an epoch.
+/** @brief Perform supervoxel segmentation
  *
  * @param epoch The epoch to be segmented.
  * @param kdtree The KDTree corresponding to the epoch's points.
@@ -72,6 +72,17 @@ supervoxel_segmentation(
     1,
     3)); // it will be changed to EigenNormalSetRef afterwards);
 
+/** @brief Perform supervoxel segmentation algorithm to distribute points within
+ * an epoch.
+ * @param epoch The epoch to be segmented.
+ * @param kdtree The KDTree corresponding to the epoch's points.
+ * @param normals The normal vectors of the epoch's points.
+ * @param resolution The resolution of the supervoxels.
+ * @param k The number of neighbors considered for each point during
+ * segmentation.
+ * @param minSVPvalue The minimum number of points in a supervoxel.
+ *  */
+
 std::vector<Supervoxel>
 segment_pc(Epoch& epoch,
            const KDTree& kdtree,
@@ -79,5 +90,21 @@ segment_pc(Epoch& epoch,
            double resolution,
            int k,
            int minSVPvalue);
+
+/** @brief Perform searching a transformation that fits two point clouds onto
+ * each other using Gauss-Newton method
+ * @param epoch The epoch to be segmented.
+ * @param kdtree The KDTree corresponding to the epoch's points.
+ * @param normals The normal vectors of the epoch's points.
+ * @param resolution The resolution of the supervoxels.
+ * @param k The number of neighbors considered for each point during
+ * segmentation.
+ * @param minSVPvalue The mutable parameter.
+ *  */
+
+Eigen::Matrix4d
+fit_transform_GN(EigenPointCloudConstRef trans_cloud,
+                 EigenPointCloudConstRef reference_cloud,
+                 EigenNormalSetConstRef reference_normals);
 
 } // namespace py4dgeo
