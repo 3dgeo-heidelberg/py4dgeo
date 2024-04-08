@@ -328,13 +328,11 @@ def point_to_plane_icp(
             reference_epoch.cloud[indices, :],
             reference_epoch.normals[indices, :],
         )
-
         _py4dgeo.transform_pointcloud_inplace(trans_epoch.cloud, T, reduction_point)
         _py4dgeo.transform_pointcloud_inplace(trans_epoch.normals, T, reduction_point)
 
         # Determine convergence
         mean_error = np.mean(np.sqrt(distances))
-
         if np.abs(prev_error - mean_error) < tolerance:
             break
         prev_error = mean_error
@@ -677,6 +675,7 @@ def registration_method(
     dtSeries.append(dis_threshold)
     transMatFinal = np.identity(4)  # Identity matrix for initial transMatFinal
     stage3 = stage4 = 0
+    epoch_copy = deepcopy(epoch)  # Create copy of epoch for applying transformation
 
     clouds_pc1, _, centroids_pc1, _ = _py4dgeo.segment_pc_in_supervoxels(
         reference_epoch,
@@ -704,7 +703,6 @@ def registration_method(
     boundary_points_pc2 = as_epoch(boundary_points_pc2)
     boundary_points_pc2.build_kdtree()
 
-    steps = 0
     while stage4 == 0:
         # Calculation CT2-CT1
         cor_dist_ct = compute_cor_distance(
@@ -745,7 +743,6 @@ def registration_method(
         stablePC2 = as_epoch(stablePC2)
         normPC2 = np.vstack(normPC2)
         stablePC2.normals_attachment(normPC2)
-
         # ICP
         trans_mat_cur_obj = point_to_plane_icp(
             reference_epoch,
@@ -763,16 +760,10 @@ def registration_method(
         trans_mat_cur = trans_mat_cur_obj.affine_transformation
 
         # BB
-        initial_min_bound, initial_max_bound = calculate_bounding_box(epoch.cloud)
+        initial_min_bound, initial_max_bound = calculate_bounding_box(epoch_copy.cloud)
         max_bb_change = calculate_bounding_box_change(
             initial_min_bound, initial_max_bound, trans_mat_cur
         )
-        max_bb_change = calculate_bounding_box_change(
-            initial_min_bound, initial_max_bound, trans_mat_cur
-        )
-
-        # update DT
-        if stage3 == 0 and max_bb_change < 2 * lmdd:
         # update DT
         if stage3 == 0 and max_bb_change < 2 * lmdd:
             stage3 = 1
@@ -797,7 +788,7 @@ def registration_method(
         transMatFinal = trans_mat_cur @ transMatFinal
 
         _py4dgeo.transform_pointcloud_inplace(
-            epoch.cloud, transMatFinal, reduction_point
+            epoch_copy.cloud, transMatFinal, reduction_point
         )
 
         _py4dgeo.transform_pointcloud_inplace(
@@ -813,22 +804,7 @@ def registration_method(
                 clouds_pc2[i], transMatFinal, reduction_point
             )
 
-    return (
-        Transformation(
-            affine_transformation=transMatFinal,
-            reduction_point=reduction_point,
-        ),
-        dtSeries,
-    )
-
-            _py4dgeo.transform_pointcloud_inplace(
-                clouds_pc2[i], transMatFinal, reduction_point
-            )
-
-    return (
-        Transformation(
-            affine_transformation=transMatFinal,
-            reduction_point=reduction_point,
-        ),
-        dtSeries,
+    return Transformation(
+        affine_transformation=transMatFinal,
+        reduction_point=reduction_point,
     )
