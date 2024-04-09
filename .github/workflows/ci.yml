@@ -189,6 +189,7 @@ jobs:
         echo "leak:/usr/bin/bash" > supp.txt
         echo "leak:_PyObject_New" >> supp.txt
         echo "leak:_PyObject_GC" >> supp.txt
+        echo "leak:_PyUnicodeWriter_Finish">> supp.txt
         echo "leak:insert_to_emptydict" >> supp.txt
         echo "leak:new_keys_object" >> supp.txt
         echo "leak:PyDict_Copy" >> supp.txt
