@@ -310,8 +310,12 @@ class Epoch(_py4dgeo.Epoch):
         # Invalidate the KDTree
         self.kdtree.invalidate()
 
+        if self._normals is None:
+            self._normals = np.empty((1, 3))  # dummy array to avoid error in C++ code
         # Apply the actual transformation as efficient C++
-        _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo, reduction_point)
+        _py4dgeo.transform_pointcloud_inplace(
+            self.cloud, trafo, reduction_point, self._normals
+        )
 
         # Store the transformation
         self._transformations.append(

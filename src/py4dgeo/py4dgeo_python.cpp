@@ -419,7 +419,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("transform_pointcloud_inplace",
         [](EigenPointCloudRef cloud,
            const py::array_t<double>& t,
-           EigenPointCloudConstRef rp) {
+           EigenPointCloudConstRef rp,
+           EigenNormalSetRef normals) {
           Transformation trafo;
 
           auto r = t.unchecked<2>();
@@ -427,7 +428,7 @@ PYBIND11_MODULE(_py4dgeo, m)
             for (IndexType j = 0; j < 4; ++j)
               trafo(i, j) = r(i, j);
 
-          transform_pointcloud_inplace(cloud, trafo, rp);
+          transform_pointcloud_inplace(cloud, trafo, rp, normals);
         });
 
   // The main algorithms for the spatiotemporal segmentations

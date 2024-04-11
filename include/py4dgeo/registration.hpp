@@ -13,7 +13,8 @@ using Transformation = Eigen::Transform<double, 3, Eigen::Affine>;
 void
 transform_pointcloud_inplace(EigenPointCloudRef cloud,
                              const Transformation& trafo,
-                             EigenPointCloudConstRef reduction_point);
+                             EigenPointCloudConstRef reduction_point,
+                             EigenNormalSetRef normals);
 
 /** Union/Find data structure */
 class DisjointSet
