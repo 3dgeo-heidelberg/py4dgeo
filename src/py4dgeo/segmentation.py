@@ -993,13 +993,16 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
     def seed_sorting_scorefunction(self):
         """Neighborhood similarity sorting function"""
-
         # The 4D-OBC algorithm sorts by similarity in the neighborhood
         # of the seed.
         def neighborhood_similarity(seed):
             neighbors = self.analysis.corepoints.kdtree.radius_search(
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
+            # if no neighbors are found make sure the algorithm continues its search but with a large dissimilarity
+            if len(neighbors < 2): 
+                return 9999999. # return very large number? or delete the seed point, but then also delete from the seeds list
+            
             similarities = []
             for n in neighbors:
                 data = _py4dgeo.TimeseriesDistanceFunctionData(
@@ -1011,9 +1014,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     ],
                 )
                 similarities.append(self.distance_measure()(data))
-
-            return sum(similarities, 0.0) / (len(neighbors) - 1)
-
+    
+            return sum(similarities, 0.0) / (len(neighbors)-1)
+    
         return neighborhood_similarity
 
     def filter_objects(self, obj):
