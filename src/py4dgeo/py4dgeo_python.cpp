@@ -250,6 +250,11 @@ PYBIND11_MODULE(_py4dgeo, m)
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
 
+  // Corresponence distances computation
+  m.def("compute_correspondence_distances",
+        &compute_correspondence_distances,
+        "Compute correspondence distances");
+
   // Callback parameter structs
   py::class_<WorkingSetFinderParameters> ws_params(
     m, "WorkingSetFinderParameters");

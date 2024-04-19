@@ -105,4 +105,11 @@ compute_distances(EigenPointCloudConstRef,
                   const WorkingSetFinderCallback&,
                   const DistanceUncertaintyCalculationCallback&);
 
+/** @brief Compute correspondence distances */
+std::vector<double>
+compute_correspondence_distances(const Epoch&,
+                                 EigenPointCloudConstRef,
+                                 std::vector<EigenPointCloud>,
+                                 unsigned int);
+
 }
