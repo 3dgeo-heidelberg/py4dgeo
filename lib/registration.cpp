@@ -3,13 +3,13 @@
 #include <Eigen/Dense>
 #include <Eigen/Eigen>
 #include <Eigen/StdVector>
+#include <limits>
 #include <numeric>
 #include <queue>
 #include <unordered_map>
 #include <vector>
 
 #define LMBD_MAX 1e20
-#define EPSILON 2.2204460492503131e-16
 
 namespace py4dgeo {
 
@@ -170,7 +170,7 @@ supervoxel_segmentation(Epoch& epoch,
                                   resolution));
   }
 
-  double lambda = std::max(EPSILON, median_calculation(lambda_distances));
+  double lambda = std::max(std::numeric_limits<double>::epsilon(), median_calculation(lambda_distances));
 
   // initialize temporary vars for supervoxel segmentation
   std::vector<int> temporary_supervoxels(epoch.cloud.rows());
