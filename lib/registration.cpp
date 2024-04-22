@@ -125,7 +125,7 @@ point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
                             const Eigen::RowVector3d& normal2,
                             double resolution)
 {
-  const auto diff = point1 - point2;
+  const Eigen::RowVector3d diff = point1 - point2;
 
   double n1 = normal1.norm();
   double n2 = normal2.norm();
