@@ -80,11 +80,15 @@ def iterative_closest_point(
 
     # Make a copy of the cloud to be transformed.
     cloud = epoch.cloud.copy()
-
     prev_error = 0
 
     for _ in range(max_iterations):
-        indices, distances = reference_epoch.kdtree.nearest_neighbors(cloud)
+        neighbor_arrays = np.asarray(reference_epoch.kdtree.nearest_neighbors(cloud))
+        indices, distances = np.split(neighbor_arrays, 2, axis=0)
+
+        indices = np.squeeze(indices.astype(int))
+        distances = np.squeeze(distances)
+
         # Calculate a transform and apply it
 
         T = _fit_transform(

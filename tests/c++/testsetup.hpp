@@ -20,3 +20,7 @@ ahk_benchcloud();
 std::pair<std::shared_ptr<py4dgeo::EigenPointCloud>,
           std::shared_ptr<py4dgeo::EigenPointCloud>>
 testcloud();
+
+std::pair<std::shared_ptr<py4dgeo::EigenPointCloud>,
+          std::shared_ptr<py4dgeo::EigenPointCloud>>
+testcloud_dif_files();

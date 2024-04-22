@@ -51,7 +51,11 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
 
   SECTION("Nearest neighbor search with distances")
   {
-    std::pair<std::vector<IndexType>, std::vector<double>> result;
-    tree.nearest_neighbors_with_distances(epoch.cloud, result);
+    KDTree::NearestNeighborsDistanceResult result;
+    int k = 5;
+    tree.nearest_neighbors_with_distances(epoch.cloud, result, k);
+    REQUIRE(result.size() == epoch.cloud.rows());
+    REQUIRE(result[0].first.size() == k);
+    REQUIRE(result[0].first[k - 1] > 0);
   }
 }
