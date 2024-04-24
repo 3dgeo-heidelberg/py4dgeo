@@ -777,7 +777,7 @@ class RegionGrowingAlgorithmBase:
                     logger.warning(
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
-                print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent / (1024.0 ** 3))
+                print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent
                 # Intermediate saving of objects # TODO: enable picking up after the last object it saved
                 if (self.intermediate_saving) and (i%self.intermediate_saving == 0):
                     # check if analysis.objects is already a list, otherwise initialize the list
