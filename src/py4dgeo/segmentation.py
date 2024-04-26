@@ -601,8 +601,7 @@ class RegionGrowingAlgorithmBase:
         neighborhood_radius=1.0,
         thresholds=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         min_segments=20,
-        max_segments=None,
-        intermediate_saving=0
+        max_segments=None
     ):
         """Construct a spatiotemporal _segmentation algorithm.
 
@@ -626,17 +625,12 @@ class RegionGrowingAlgorithmBase:
             used to bound the runtime of expensive region growing. By default, no
             maximum is applied.
         :type max_segments: int
-        :param intermediate_saving
-            Enable the saving of objects after n number of seeds grown. If set to zero
-            no intermediate saving of objects occurs
-        :type intermediate_saving: int
         """
 
         self.neighborhood_radius = neighborhood_radius
         self.thresholds = thresholds
         self.min_segments = min_segments
         self.max_segments = max_segments
-        self.intermediate_saving = intermediate_saving
 
         self._analysis = None
 
@@ -778,21 +772,9 @@ class RegionGrowingAlgorithmBase:
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
                 print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent
-                # Intermediate saving of objects # TODO: enable picking up after the last object it saved
-                if (self.intermediate_saving) and (i%self.intermediate_saving == 0):
-                    # check if analysis.objects is already a list, otherwise initialize the list
-                    if analysis.objects is None:
-                         analysis.objects = []
-                    # and append objects
-                    analysis.objects += objects
-                    # empty objects list again for next iteration
-                    objects = []
-        
+
         # Store the results in the analysis object
-        # check if analysis.objects is already a list, otherwise initialize the list
-        if analysis.objects is None:
-                analysis.objects = []
-        analysis.objects += objects
+        analysis.objects = objects
 
         # Potentially remove objects from memory 
         del analysis.smoothed_distances
