@@ -771,7 +771,7 @@ class RegionGrowingAlgorithmBase:
                     logger.warning(
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
-                print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent
+                print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent)
 
         # Store the results in the analysis object
         analysis.objects = objects
