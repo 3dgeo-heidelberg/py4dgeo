@@ -86,7 +86,7 @@ def iterative_closest_point(
     prev_error = 0
 
     for _ in range(max_iterations):
-        neighbor_arrays = np.asarray(reference_epoch.kdtree.nearest_neighbors(cloud))
+        neighbor_arrays = np.asarray(reference_epoch.kdtree.nearest_neighbors(cloud, 1))
         indices, distances = np.split(neighbor_arrays, 2, axis=0)
 
         indices = np.squeeze(indices.astype(int))
@@ -158,7 +158,7 @@ def point_to_plane_icp(
     prev_error = 0
     for _ in range(max_iterations):
         neighbor_arrays = np.asarray(
-            reference_epoch.kdtree.nearest_neighbors(trans_epoch.cloud)
+            reference_epoch.kdtree.nearest_neighbors(trans_epoch.cloud, 1)
         )
         indices, distances = np.split(neighbor_arrays, 2, axis=0)
 
@@ -244,7 +244,7 @@ def calculate_dis_threshold(epoch1, epoch2):
     Returns:
     - dis_threshold: The distance threshold.
     """
-    neighbor_arrays = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud))
+    neighbor_arrays = np.asarray(epoch1.kdtree.nearest_neighbors(epoch2.cloud, 1))
     indices, distances = np.split(neighbor_arrays, 2, axis=0)
     distances = np.squeeze(distances)
 
@@ -260,20 +260,49 @@ def calculate_dis_threshold(epoch1, epoch2):
     return dis_threshold
 
 
-def stable_area_icp(
+def icp_with_stable_areas(
     reference_epoch,
     epoch,
-    dis_threshold,
-    lmdd,
-    sv_size1,
-    sv_size2,
-    basicRes,
-    k=2,
-    minSVPvalue=10,
+    initial_distance_threshold,
+    level_of_detection,
+    reference_supervoxel_resolution,
+    supervoxel_resolution,
+    min_svp_num=10,
     reduction_point=None,
 ):
     """Perform a registration method
-    Parameters:
+
+    :param reference_epoch:
+        The reference epoch to match with. This epoch has to have calculated normals.
+    :type reference_epoch: py4dgeo.Epoch
+    :param epoch:
+        The epoch to be transformed to the reference epoch
+    :type epoch: py4dgeo.Epoch
+    :param initial_distance_threshold:
+        The upper boundary of the distance threshold in the iteration. It can be (1) an empirical value manually set by the user according to the approximate accuracy of coarse registration,
+        or (2) calculated by the mean and standard of the nearest neighbor distances of all points.
+    :type initial_distance_threshold: float
+    :param level_of_detection:
+        The lower boundary (minimum) of the distance threshold in the iteration.
+        It can be  (1) an empirical value manually set by the user according to the approximate uncertainty of laser scanning measurements in different scanning configurations and scenarios
+        (e.g., 1 cm for TLS point clouds in short distance and 4 cm in long distance, 8 cm for ALS point clouds, etc.),
+        or (2) calculated by estimating the standard deviation from local modeling (e.g., using the level of detection in M3C2 or M3C2-EP calculations).
+    :type level_of_detection: float
+    :param reference_supervoxel_resolution:
+       The approximate size of generated supervoxels for the reference epoch.
+       It can be (1) an empirical value manually set by the user according to different surface geometries and scanning distance (e.g., 2-10 cm for indoor scenes, 1-3 m for landslide surface),
+         or (2) calculated by 10-20 times the average point spacing (original resolution of point clouds). In both cases, the number of points in each supervoxel should be at least 10 (i.e., minSVPnum = 10).
+    :type reference_supervoxel_resolution: float
+    :param supervoxel_resolution:
+         The same as `reference_supervoxel_resolution`, but for a different epoch.
+    :type supervoxel_resolution: float
+    :param min_svp_num:
+         Minimum number of points for supervoxels to be taken into account in further calculations.
+    :type min_svp_num: int
+    :param reduction_point:
+        A translation vector to apply before applying rotation and scaling.
+        This is used to increase the numerical accuracy of transformation.
+    :type reduction_point: np.ndarray
 
     """
 
@@ -299,7 +328,7 @@ def stable_area_icp(
     # Ensure that Epoch has calculated normals
     if epoch.normals is None:
         raise Py4DGeoError(
-            "Normals for this Reference Epoch have not been calculated! Please use Epoch.calculate_normals or load externally calculated normals."
+            "Normals for this Epoch have not been calculated! Please use Epoch.calculate_normals or load externally calculated normals."
         )
 
 
@@ -307,21 +336,22 @@ def stable_area_icp(
     if reduction_point is None:
         reduction_point = np.array([0, 0, 0])
 
-
-    if dis_threshold <= lmdd:
-        dis_threshold = lmdd
+    if initial_distance_threshold <= level_of_detection:
+        initial_distance_threshold = level_of_detection
 
     transMatFinal = np.identity(4)  # Identity matrix for initial transMatFinal
     stage3 = stage4 = 0
     epoch_copy = epoch.copy()  # Create copy of epoch for applying transformation
 
+    k = 50  # Number of nearest neighbors to consider in supervoxel segmentation
+
     clouds_pc1, _, centroids_pc1, _ = _py4dgeo.segment_pc_in_supervoxels(
         reference_epoch,
         reference_epoch.kdtree,
         reference_epoch.normals,
-        sv_size1,
+        reference_supervoxel_resolution,
         k,
-        minSVPvalue,
+        min_svp_num,
     )
     (
         clouds_pc2,
@@ -329,13 +359,21 @@ def stable_area_icp(
         centroids_pc2,
         boundary_points_pc2,
     ) = _py4dgeo.segment_pc_in_supervoxels(
-        epoch, epoch.kdtree, epoch.normals, sv_size2, k, minSVPvalue
+        epoch, epoch.kdtree, epoch.normals, supervoxel_resolution, k, min_svp_num
     )
 
     centroids_pc1 = as_epoch(np.array(centroids_pc1))
     centroids_pc1.build_kdtree()
     centroids_pc2 = np.array(centroids_pc2)
     boundary_points_pc2 = np.concatenate(boundary_points_pc2, axis=0)
+
+    _, reference_distances = np.split(
+        np.asarray(reference_epoch.kdtree.nearest_neighbors(reference_epoch.cloud, 2)),
+        2,
+        axis=0,
+    )
+    basicRes = np.mean(np.squeeze(reference_distances))
+    dis_threshold = initial_distance_threshold
 
     while stage4 == 0:
         cor_dist_ct = _py4dgeo.compute_correspondence_distances(
@@ -358,6 +396,7 @@ def stable_area_icp(
 
         stablePC2 = []  # Stable supervoxels
         normPC2 = []  # Stable supervoxel's normals
+
         dt_point = dis_threshold + 2 * basicRes
 
         for i in range(len(centroids_pc2)):
@@ -400,23 +439,21 @@ def stable_area_icp(
             initial_min_bound, initial_max_bound, trans_mat_cur
         )
         # update DT
-        if stage3 == 0 and max_bb_change < 2 * lmdd:
+        if stage3 == 0 and max_bb_change < 2 * level_of_detection:
             stage3 = 1
-        elif dis_threshold == lmdd:
+        elif dis_threshold == level_of_detection:
             stage4 = 1
 
 
         if stage3 == 0:
             dis_threshold = calculate_dis_threshold(reference_epoch, stablePC2)
-            if dis_threshold <= lmdd:
-                dis_threshold = lmdd
+            if dis_threshold <= level_of_detection:
+                dis_threshold = level_of_detection
 
         if stage3 == 1 and stage4 == 0:
             dis_threshold = 0.8 * dis_threshold
-            dis_threshold = 0.8 * dis_threshold
-            if dis_threshold <= lmdd:
-                dis_threshold = lmdd
-
+            if dis_threshold <= level_of_detection:
+                dis_threshold = level_of_detection
 
         # update values and apply changes
         # Apply the transformation to the epoch
