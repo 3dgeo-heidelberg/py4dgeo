@@ -691,7 +691,7 @@ class RegionGrowingAlgorithmBase:
 
         # Make the analysis object known to all members
         self._analysis = analysis
-
+        print('analysis.seeds in line 2 of run function: ', analysis.seeds)
         # Enforce the removal of intermediate results
         if force:
             analysis.invalidate_results()
@@ -771,7 +771,13 @@ class RegionGrowingAlgorithmBase:
                     logger.warning(
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
+                # memory tracker
                 print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent)
+            with logger_context(
+                f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
+            ):
+                if (self.intermediate_saving) and (self.intermediate_saving % (len(objects)+1) == 0): # len(objects)+1 to avoid division by zero
+                    analysis.objects = objects
 
         # Store the results in the analysis object
         analysis.objects = objects
@@ -795,6 +801,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         minperiod=24,
         height_threshold=0.0,
         use_unfinished=True,
+        intermediate_saving=0,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
@@ -842,6 +849,10 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             If False, seed candidates that are not finished by the end of the time series are not considered in further
             analysis. The default is True, in which case unfinished seed_candidates are regarded as seeds region growing.
         :type use_unfinished: bool
+        :param intermediate_saving:
+            Parameter that determines after how many objects, the resulting list of 4D-OBCs is saved to the SpatiotemporalAnalysis object. 
+            This is to ensure that if the algorithm is terminated unexpectedly not all results are lost. If set to 0 no intermediate saving is done.
+        :type intermediate_saving: int
         """
 
         # Initialize base class
@@ -857,6 +868,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.minperiod = minperiod
         self.height_threshold = height_threshold
         self.use_unfinished = use_unfinished
+        self.intermediate_saving = intermediate_saving
 
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
