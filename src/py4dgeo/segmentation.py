@@ -709,7 +709,6 @@ class RegionGrowingAlgorithmBase:
         if precalculated is not None:
             logger.info("Reusing objects by change stored in analysis object")
             objects = precalculated
-            print(objects)
         else:
             objects = []
 
@@ -793,7 +792,6 @@ class RegionGrowingAlgorithmBase:
                     f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
                 ):
                     analysis.objects = objects
-                    print(objects)
 
         # Store the results in the analysis object
         analysis.objects = objects
