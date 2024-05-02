@@ -737,6 +737,8 @@ class RegionGrowingAlgorithmBase:
             # or to keep within the same index range when resuming from seed:
             if i < (self.resume_from_seed-1): # resume from index 0 when `resume_from_seed` == 1
                 continue
+            if i >= (self.stop_at_seed-1): # stop at index 0 when `stop_at_seed` == 1
+                break 
             # Check all already calculated objects whether they overlap with this seed.
             found = False
             for obj in objects:
@@ -817,6 +819,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         use_unfinished=True,
         intermediate_saving=0,
         resume_from_seed=0,
+        stop_at_seed=np.inf,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
@@ -872,6 +875,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             Parameter specifying from which seed index the region growing algorithm must resume. If zero all seeds are considered, starting from the highest ranked seed.
             Default is 0.
         :type resume_from_seed: int
+        :param stop_at_seed:
+            Parameter specifying at which seed to stop region growing and terminate the run function. 
+            Default is np.inf, meaning all seeds are considered.
         """
 
         # Initialize base class
@@ -889,7 +895,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.use_unfinished = use_unfinished
         self.intermediate_saving = intermediate_saving
         self.resume_from_seed = resume_from_seed
-
+        self.stop_at_seed = stop_at_seed
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
