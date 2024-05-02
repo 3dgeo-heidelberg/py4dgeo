@@ -691,16 +691,27 @@ class RegionGrowingAlgorithmBase:
 
         # Make the analysis object known to all members
         self._analysis = analysis
-        print('analysis.seeds in line 2 of run function: ', analysis.seeds)
+
         # Enforce the removal of intermediate results
         if force:
             analysis.invalidate_results()
 
         # Return pre-calculated objects if they are available
+        # precalculated = analysis.objects
+        # if precalculated is not None:
+        #     logger.info("Reusing objects by change stored in analysis object")
+        #     return precalculated
+
+        # Check if there are pre-calculated objects. 
+        # If so, create objects list from these and continue growing objects, taking into consideration objects that are already grown. 
+        # if not initiate new empty objects list
         precalculated = analysis.objects
         if precalculated is not None:
             logger.info("Reusing objects by change stored in analysis object")
-            return precalculated
+            objects = precalculated
+            print(objects)
+        else:
+            objects = []
 
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
@@ -721,10 +732,11 @@ class RegionGrowingAlgorithmBase:
         else:
             logger.info("Reusing seed candidates stored in analysis object")
 
-        objects = []
-
         # Iterate over the seeds to maybe turn them into objects
-        for i, seed in enumerate(seeds):
+        for i, seed in enumerate(seeds): #[self.resume_from_seed-1:]): # starting seed ranked at the `resume_from_seed` variable (representing 1 for index 0)
+            # or to keep within the same index range when resuming from seed:
+            if i < (self.resume_from_seed-1): # resume from index 0 when `resume_from_seed` == 1
+                continue
             # Check all already calculated objects whether they overlap with this seed.
             found = False
             for obj in objects:
@@ -773,11 +785,13 @@ class RegionGrowingAlgorithmBase:
                     )
                 # memory tracker
                 print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent)
-            with logger_context(
-                f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
-            ):
-                if (self.intermediate_saving) and (self.intermediate_saving % (len(objects)+1) == 0): # len(objects)+1 to avoid division by zero
+
+            if (self.intermediate_saving) and ((i % self.intermediate_saving) == 0) and (i != 0): 
+                with logger_context(
+                    f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
+                ):
                     analysis.objects = objects
+                    print(objects)
 
         # Store the results in the analysis object
         analysis.objects = objects
@@ -802,6 +816,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         height_threshold=0.0,
         use_unfinished=True,
         intermediate_saving=0,
+        resume_from_seed=0,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
@@ -850,9 +865,13 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             analysis. The default is True, in which case unfinished seed_candidates are regarded as seeds region growing.
         :type use_unfinished: bool
         :param intermediate_saving:
-            Parameter that determines after how many objects, the resulting list of 4D-OBCs is saved to the SpatiotemporalAnalysis object. 
+            Parameter that determines after how many considered seeds, the resulting list of 4D-OBCs is saved to the SpatiotemporalAnalysis object. 
             This is to ensure that if the algorithm is terminated unexpectedly not all results are lost. If set to 0 no intermediate saving is done.
         :type intermediate_saving: int
+        :param resume_from_seed:
+            Parameter specifying from which seed index the region growing algorithm must resume. If zero all seeds are considered, starting from the highest ranked seed.
+            Default is 0.
+        :type resume_from_seed: int
         """
 
         # Initialize base class
@@ -869,6 +888,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.height_threshold = height_threshold
         self.use_unfinished = use_unfinished
         self.intermediate_saving = intermediate_saving
+        self.resume_from_seed = resume_from_seed
 
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
