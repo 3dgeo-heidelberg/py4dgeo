@@ -738,6 +738,14 @@ class RegionGrowingAlgorithmBase:
                 continue
             if i >= (self.stop_at_seed-1): # stop at index 0 when `stop_at_seed` == 1
                 break 
+
+            # save objects to analysis object when at index `intermediate_saving`
+            if (self.intermediate_saving) and ((i % self.intermediate_saving) == 0) and (i != 0): 
+                with logger_context(
+                    f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
+                ):
+                    analysis.objects = objects
+                    
             # Check all already calculated objects whether they overlap with this seed.
             found = False
             for obj in objects:
@@ -787,11 +795,6 @@ class RegionGrowingAlgorithmBase:
                 # memory tracker
                 print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent)
 
-            if (self.intermediate_saving) and ((i % self.intermediate_saving) == 0) and (i != 0): 
-                with logger_context(
-                    f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
-                ):
-                    analysis.objects = objects
 
         # Store the results in the analysis object
         analysis.objects = objects
@@ -800,7 +803,7 @@ class RegionGrowingAlgorithmBase:
         del analysis.smoothed_distances
         del analysis.distances
 
-        return objects # TODO: now here it returns only the last iteration before saving intermediates
+        return objects 
 
 
 class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
