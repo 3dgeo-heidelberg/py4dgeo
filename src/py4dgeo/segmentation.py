@@ -731,6 +731,10 @@ class RegionGrowingAlgorithmBase:
         else:
             logger.info("Reusing seed candidates stored in analysis object")
 
+        # write the number of seeds to a separate text file 
+        with open('number_of_seeds.txt', 'w') as f:
+            f.write(len(seeds))
+        
         # Iterate over the seeds to maybe turn them into objects
         for i, seed in enumerate(seeds): #[self.resume_from_seed-1:]): # starting seed ranked at the `resume_from_seed` variable (representing 1 for index 0)
             # or to keep within the same index range when resuming from seed:
