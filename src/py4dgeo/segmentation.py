@@ -901,6 +901,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.intermediate_saving = intermediate_saving
         self.resume_from_seed = resume_from_seed
         self.stop_at_seed = stop_at_seed
+        
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
@@ -992,7 +993,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     if previous_volume > volume:
                         # Only add seed if larger than the minimum period and height of the change form larger than threshold
                         if (target_idx - start_idx >= self.minperiod) and (
-                            np.abs(np.max(used_timeseries) - np.min(used_timeseries))
+                            np.abs(np.max(used_timeseries[start_idx : target_idx + 1]) - np.min(used_timeseries[start_idx : target_idx + 1]))
                             >= self.height_threshold
                         ):
                             corepoint_seeds.append(
