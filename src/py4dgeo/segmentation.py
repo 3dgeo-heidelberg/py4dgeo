@@ -705,12 +705,12 @@ class RegionGrowingAlgorithmBase:
         # Check if there are pre-calculated objects. 
         # If so, create objects list from these and continue growing objects, taking into consideration objects that are already grown. 
         # if not initiate new empty objects list
-        precalculated = analysis.objects
+        precalculated = analysis.objects # TODO: do not assign to new object
         if precalculated is not None:
             logger.info("Reusing objects by change stored in analysis object")
-            objects = precalculated
+            objects = precalculated.copy() # test if .copy() solves memory problem, or deepcopy?
         else:
-            objects = []
+            objects = [] # TODO: test initializing this in the analysis class, see if it crashes instantly
 
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
@@ -748,7 +748,7 @@ class RegionGrowingAlgorithmBase:
                 with logger_context(
                     f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
                 ):
-                    analysis.objects = objects
+                    analysis.objects = objects # This assigns itself to itself
                     
             # Check all already calculated objects whether they overlap with this seed.
             found = False
@@ -787,7 +787,7 @@ class RegionGrowingAlgorithmBase:
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
                 if objdata.indices_distances:
-                    obj = ObjectByChange(objdata, seed, analysis)
+                    obj = ObjectByChange(objdata, seed, analysis) # TODO: check, does it copy the whole analysis object when initializing
                     if self.filter_objects(obj):
                         objects.append(obj)
 
