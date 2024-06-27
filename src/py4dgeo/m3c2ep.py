@@ -194,9 +194,11 @@ class M3C2EP(M3C2):
         p2_coords_shm.unlink()
 
         out_attrs = {
-            key: np.empty((query_coords.shape[0], 3, 3), dtype=val.dtype)
-            if key == "m3c2_cov1" or key == "m3c2_cov2"
-            else np.empty(query_coords.shape[0], dtype=val.dtype)
+            key: (
+                np.empty((query_coords.shape[0], 3, 3), dtype=val.dtype)
+                if key == "m3c2_cov1" or key == "m3c2_cov2"
+                else np.empty(query_coords.shape[0], dtype=val.dtype)
+            )
             for key, val in return_dict[0].items()
         }
         for key in out_attrs:

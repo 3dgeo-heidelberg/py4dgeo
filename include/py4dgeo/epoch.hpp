@@ -1,7 +1,7 @@
 #pragma once
 
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 namespace py4dgeo {
 

@@ -32,7 +32,7 @@ public:
 
   //! Return type used for nearest neighbor with Euclidian distances searches
   using NearestNeighborsDistanceResult =
-    std::pair<std::vector<IndexType>, std::vector<double>>;
+    std::vector<std::pair<std::vector<IndexType>, std::vector<double>>>;
 
   //! Return type used for nearest neighbor searches
   using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
@@ -167,11 +167,14 @@ public:
    * entire point cloud
    *
    * @param[in] cloud The point cloud to use as query points
-   * @param[out] result The distan
+   * @param[out] result The indexes and distances of k nearest neighbors for
+   * each point
+   * @param[in] k The amount of nearest neighbors to calculate
+   *
    */
-  void nearest_neighbors_with_distances(
-    EigenPointCloudConstRef cloud,
-    NearestNeighborsDistanceResult& result) const;
+  void nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
+                                        NearestNeighborsDistanceResult& result,
+                                        int k) const;
 
   /** @brief Calculate the nearest neighbors for an entire point cloud
    *
