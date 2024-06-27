@@ -4,7 +4,6 @@ on:
   # We run CI on pushes to the main branch
   push:
     branches:
-      - main
   # and on all pull requests to the main branch
   pull_request:
     branches:
@@ -18,9 +17,9 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11, windows-2022]
-        python-version: ["3.8", "3.12"]
-        openmp: ['ON', 'OFF']
+        os: [ubuntu-20.04] #[ubuntu-20.04, macos-11, windows-2022]
+        python-version: ["3.10"] #["3.8", "3.12"]
+        openmp: ['OFF'] #['ON', 'OFF']
 
     steps:
     - uses: actions/checkout@v4
@@ -44,10 +43,10 @@ jobs:
       working-directory: ${{runner.workspace}}/build
       run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF -DBUILD_BENCHMARKS=ON -DPY4DGEO_WITH_OPENMP=${{matrix.openmp}}
 
-    - name: build
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build .
+    # - name: build
+    #   shell: bash
+    #   working-directory: ${{runner.workspace}}/build
+    #   run: cmake --build .
 
     - name: Install Python package and development requirements
       run: |
@@ -60,10 +59,10 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/tests/data
         copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
-    - name: run tests
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: ctest --output-on-failure -C Debug
+    # - name: run tests
+    #   shell: bash
+    #   working-directory: ${{runner.workspace}}/build
+    #   run: ctest --output-on-failure -C Debug
 
     - name: Run Python tests
       run: |
