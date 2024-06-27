@@ -33,7 +33,7 @@ jobs:
         submodules: 'recursive'
 
     - name: Build wheels (arch=${{ matrix.arch }})
-      uses: pypa/cibuildwheel@v2.17
+      uses: pypa/cibuildwheel@v2.18
       env:
         CIBW_ARCHS: "${{ matrix.arch }}"
 
