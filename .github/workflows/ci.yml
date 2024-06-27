@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11, windows-2022]
+        os: [ubuntu-22.04, macos-13, macos-14, windows-2022]
         python-version: ["3.8", "3.12"]
         openmp: ['ON', 'OFF']
 
