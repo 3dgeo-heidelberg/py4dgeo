@@ -423,9 +423,6 @@ def icp_with_stable_areas(
             max_iterations=50,
             tolerance=0.00001,
             reduction_point=reduction_point,
-            max_iterations=50,
-            tolerance=0.00001,
-            reduction_point=reduction_point,
         )
 
         trans_mat_cur = trans_mat_cur_obj.affine_transformation

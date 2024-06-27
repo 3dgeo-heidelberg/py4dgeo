@@ -58,7 +58,7 @@ def test_nearest_neighbors(epochs):
     indices = tuple(int(i) for i in indices)
 
     for i in range(epoch1.cloud.shape[0]):
-        assert i == neighbors[i]
+        assert i == indices[i]
         assert np.isclose(
             ((epoch1.cloud[i, :] - epoch2.cloud[i, :]) ** 2).sum(), distances[i]
         )

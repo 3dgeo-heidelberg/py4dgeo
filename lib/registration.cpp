@@ -353,176 +353,167 @@ Eigen::Vector3d
 calculateCentroid(EigenPointCloudConstRef cloud)
 {
   return cloud.colwise().mean();
-  Eigen::Vector3d calculateCentroid(EigenPointCloudConstRef cloud)
-  {
-    return cloud.colwise().mean();
+}
+
+EigenPointCloud
+calculateBoundaryPoints(EigenPointCloudConstRef cloud)
+{
+  Eigen::Vector3d BPXmax(-std::numeric_limits<double>::infinity(), 0.0, 0.0);
+  Eigen::Vector3d BPXmin(std::numeric_limits<double>::infinity(), 0.0, 0.0);
+  Eigen::Vector3d BPYmax(0.0, -std::numeric_limits<double>::infinity(), 0.0);
+  Eigen::Vector3d BPYmin(0.0, std::numeric_limits<double>::infinity(), 0.0);
+  Eigen::Vector3d BPZmax(0.0, 0.0, -std::numeric_limits<double>::infinity());
+  Eigen::Vector3d BPZmin(0.0, 0.0, std::numeric_limits<double>::infinity());
+
+  // Calculate boundary points
+  for (int i = 0; i < cloud.rows(); ++i) {
+    const Eigen::Vector3d& point = cloud.row(i);
+
+    if (point.x() > BPXmax.x())
+      BPXmax = point;
+    if (point.x() < BPXmin.x())
+      BPXmin = point;
+    if (point.y() > BPYmax.y())
+      BPYmax = point;
+    if (point.y() < BPYmin.y())
+      BPYmin = point;
+    if (point.z() > BPZmax.z())
+      BPZmax = point;
+    if (point.z() < BPZmin.z())
+      BPZmin = point;
   }
 
-  EigenPointCloud calculateBoundaryPoints(EigenPointCloudConstRef cloud)
-  {
-    EigenPointCloud calculateBoundaryPoints(EigenPointCloudConstRef cloud)
-    {
-      Eigen::Vector3d BPXmax(
-        -std::numeric_limits<double>::infinity(), 0.0, 0.0);
-      Eigen::Vector3d BPXmin(std::numeric_limits<double>::infinity(), 0.0, 0.0);
-      Eigen::Vector3d BPYmax(
-        0.0, -std::numeric_limits<double>::infinity(), 0.0);
-      Eigen::Vector3d BPYmin(0.0, std::numeric_limits<double>::infinity(), 0.0);
-      Eigen::Vector3d BPZmax(
-        0.0, 0.0, -std::numeric_limits<double>::infinity());
-      Eigen::Vector3d BPZmin(0.0, 0.0, std::numeric_limits<double>::infinity());
+  EigenPointCloud boundary_points(6, 3);
+  boundary_points.row(0) = BPXmax;
+  boundary_points.row(1) = BPXmin;
+  boundary_points.row(2) = BPYmax;
+  boundary_points.row(3) = BPYmin;
+  boundary_points.row(4) = BPZmax;
+  boundary_points.row(5) = BPZmin;
 
-      // Calculate boundary points
-      for (int i = 0; i < cloud.rows(); ++i) {
-        const Eigen::Vector3d& point = cloud.row(i);
+  return boundary_points;
+}
 
-        if (point.x() > BPXmax.x())
-          BPXmax = point;
-        if (point.x() < BPXmin.x())
-          BPXmin = point;
-        if (point.y() > BPYmax.y())
-          BPYmax = point;
-        if (point.y() < BPYmin.y())
-          BPYmin = point;
-        if (point.z() > BPZmax.z())
-          BPZmax = point;
-        if (point.z() < BPZmin.z())
-          BPZmin = point;
-      }
+std::vector<Supervoxel>
+segment_pc(Epoch& epoch,
+           const KDTree& kdtree,
+           EigenNormalSet normals,
+           double seed_resolution,
+           int k,
+           int minSVPvalue = 10)
+{
+  std::vector<Supervoxel> clouds_SV;
 
-      EigenPointCloud boundary_points(6, 3);
-      boundary_points.row(0) = BPXmax;
-      boundary_points.row(1) = BPXmin;
-      boundary_points.row(2) = BPYmax;
-      boundary_points.row(3) = BPYmin;
-      boundary_points.row(4) = BPZmax;
-      boundary_points.row(5) = BPZmin;
+  std::vector<std::vector<int>> sv_labels =
+    supervoxel_segmentation(epoch, epoch.kdtree, seed_resolution, k, normals);
 
-      return boundary_points;
+  //  Number of valid SV
+  int svValid = 0;
+  int svInvalid = 0;
+
+  for (auto& sv_iter : sv_labels) {
+    Supervoxel sv;
+    if (sv_iter.size() < minSVPvalue) {
+      svInvalid++;
+      continue;
     }
 
-    std::vector<Supervoxel> segment_pc(
-      Epoch & epoch,
-      std::vector<Supervoxel> segment_pc(Epoch & epoch,
-                                         const KDTree& kdtree,
-                                         EigenNormalSet normals,
-                                         double seed_resolution,
-                                         int k,
-                                         int minSVPvalue = 10) int minSVPvalue =
-        10)
-    {
-      std::vector<Supervoxel> clouds_SV;
-
-      std::vector<std::vector<int>> sv_labels = supervoxel_segmentation(
-        epoch, epoch.kdtree, seed_resolution, k, normals);
-
-      //  Number of valid SV
-      int svValid = 0;
-      int svInvalid = 0;
-
-      for (auto& sv_iter : sv_labels) {
-        Supervoxel sv;
-        if (sv_iter.size() < minSVPvalue) {
-          svInvalid++;
-          continue;
-        }
-
-        sv.cloud.resize(sv_iter.size(), 3);
-        sv.normals.resize(sv_iter.size(), 3);
-        for (int i = 0; i < sv_iter.size(); i++) {
-          sv.cloud.row(i) = epoch.cloud.row(sv_iter[i]);
-          sv.normals.row(i) = normals.row(sv_iter[i]);
-        }
-
-        sv.centroid = calculateCentroid(sv.cloud);
-        sv.boundary_points = calculateBoundaryPoints(sv.cloud);
-
-        clouds_SV.push_back(sv);
-        svValid++;
-      }
-
-      return clouds_SV;
+    sv.cloud.resize(sv_iter.size(), 3);
+    sv.normals.resize(sv_iter.size(), 3);
+    for (int i = 0; i < sv_iter.size(); i++) {
+      sv.cloud.row(i) = epoch.cloud.row(sv_iter[i]);
+      sv.normals.row(i) = normals.row(sv_iter[i]);
     }
 
-    // function for calculating Jacobian for point to plane method
-    Eigen::Matrix<double, 1, 6> plane_Jacobian(Eigen::Vector3d Rot_a,
-                                               Eigen::Vector3d n)
-    {
-      Eigen::Matrix<double, 1, 6> J;
-      J.block<1, 3>(0, 0) = -Rot_a.cross(n);
-      J.block<1, 3>(0, 3) = n;
-      return J;
-    }
+    sv.centroid = calculateCentroid(sv.cloud);
+    sv.boundary_points = calculateBoundaryPoints(sv.cloud);
 
-    // function for calculating rotation and transformation matrix
-    std::pair<Eigen::Matrix3d, Eigen::Vector3d> set_rot_trans(
-      const Eigen::Matrix<double, 6, 1>& euler_array)
-    {
+    clouds_SV.push_back(sv);
+    svValid++;
+  }
 
-      double alpha = euler_array[0];
-      double beta = euler_array[1];
-      double gamma = euler_array[2];
-      double x = euler_array[3];
-      double y = euler_array[4];
-      double z = euler_array[5];
+  return clouds_SV;
+}
 
-      Eigen::Matrix3d Rot_z;
-      Rot_z << cos(gamma), sin(gamma), 0, -sin(gamma), cos(gamma), 0, 0, 0, 1;
-      Eigen::Matrix3d Rot_y;
-      Rot_y << cos(beta), 0, -sin(beta), 0, 1, 0, sin(beta), 0, cos(beta);
-      Eigen::Matrix3d Rot_x;
-      Rot_x << 1, 0, 0, 0, cos(alpha), sin(alpha), 0, -sin(alpha), cos(alpha);
-      Eigen::Matrix3d Rot = Rot_z * Rot_y * Rot_x;
+// function for calculating Jacobian for point to plane method
+Eigen::Matrix<double, 1, 6>
+plane_Jacobian(Eigen::Vector3d Rot_a, Eigen::Vector3d n)
+{
+  Eigen::Matrix<double, 1, 6> J;
+  J.block<1, 3>(0, 0) = -Rot_a.cross(n);
+  J.block<1, 3>(0, 3) = n;
+  return J;
+}
 
-      return std::make_pair(Rot, Eigen::Vector3d(x, y, z));
-    }
+// function for calculating rotation and transformation matrix
+std::pair<Eigen::Matrix3d, Eigen::Vector3d>
+set_rot_trans(const Eigen::Matrix<double, 6, 1>& euler_array)
+{
 
-    // function for finding a transformation that fits two point clouds onto
-    // each other using Gauss-Newton method
-    Eigen::Matrix4d fit_transform_GN(EigenPointCloudConstRef trans_cloud,
-                                     EigenPointCloudConstRef reference_cloud,
-                                     EigenNormalSetConstRef reference_normals)
-    {
+  double alpha = euler_array[0];
+  double beta = euler_array[1];
+  double gamma = euler_array[2];
+  double x = euler_array[3];
+  double y = euler_array[4];
+  double z = euler_array[5];
 
-      Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
-      int min_matr_size = std::min(trans_cloud.rows(), reference_cloud.rows());
-      // hessian matrix
-      Eigen::Matrix<double, 6, 6> H = Eigen::Matrix<double, 6, 6>::Zero();
-      Eigen::Matrix<double, 6, 1> g = Eigen::Matrix<double, 6, 1>::Zero();
-      Eigen::Matrix<double, 6, 1> euler_array =
-        Eigen::Matrix<double, 6, 1>::Zero();
-      Eigen::Matrix3d Rot;
-      Eigen::Vector3d trans;
-      std::tie(Rot, trans) = set_rot_trans(euler_array);
+  Eigen::Matrix3d Rot_z;
+  Rot_z << cos(gamma), sin(gamma), 0, -sin(gamma), cos(gamma), 0, 0, 0, 1;
+  Eigen::Matrix3d Rot_y;
+  Rot_y << cos(beta), 0, -sin(beta), 0, 1, 0, sin(beta), 0, cos(beta);
+  Eigen::Matrix3d Rot_x;
+  Rot_x << 1, 0, 0, 0, cos(alpha), sin(alpha), 0, -sin(alpha), cos(alpha);
+  Eigen::Matrix3d Rot = Rot_z * Rot_y * Rot_x;
 
-      int chi = 0;
-      for (int i = 0; i < min_matr_size; i++) {
-        Eigen::Vector3d a;
-        Eigen::Vector3d b;
-        Eigen::Vector3d n;
-        a = trans_cloud.row(i);
-        b = reference_cloud.row(i);
-        n = reference_normals.row(i);
+  return std::make_pair(Rot, Eigen::Vector3d(x, y, z));
+}
 
-        Eigen::Vector3d Rot_a = Rot * a;
-        double e = (Rot_a + trans - b).dot(n);
+// function for finding a transformation that fits two point clouds onto
+// each other using Gauss-Newton method
+Eigen::Matrix4d
+fit_transform_GN(EigenPointCloudConstRef trans_cloud,
+                 EigenPointCloudConstRef reference_cloud,
+                 EigenNormalSetConstRef reference_normals)
+{
 
-        Eigen::Matrix<double, 1, 6> J = plane_Jacobian(Rot_a, n);
-        H += J.transpose() * J;
-        g += J.transpose() * e;
-      }
+  Eigen::Matrix4d T = Eigen::Matrix4d::Identity();
+  int min_matr_size = std::min(trans_cloud.rows(), reference_cloud.rows());
+  // hessian matrix
+  Eigen::Matrix<double, 6, 6> H = Eigen::Matrix<double, 6, 6>::Zero();
+  Eigen::Matrix<double, 6, 1> g = Eigen::Matrix<double, 6, 1>::Zero();
+  Eigen::Matrix<double, 6, 1> euler_array = Eigen::Matrix<double, 6, 1>::Zero();
+  Eigen::Matrix3d Rot;
+  Eigen::Vector3d trans;
+  std::tie(Rot, trans) = set_rot_trans(euler_array);
 
-      Eigen::Matrix<double, 6, 1> update_euler;
-      update_euler = -H.inverse() * g;
-      euler_array += update_euler;
+  int chi = 0;
+  for (int i = 0; i < min_matr_size; i++) {
+    Eigen::Vector3d a;
+    Eigen::Vector3d b;
+    Eigen::Vector3d n;
+    a = trans_cloud.row(i);
+    b = reference_cloud.row(i);
+    n = reference_normals.row(i);
 
-      Eigen::Matrix3d Rot_f;
-      Eigen::Vector3d trans_f;
-      std::tie(Rot_f, trans_f) = set_rot_trans(euler_array);
-      T.block<3, 3>(0, 0) = Rot_f;
-      T.block<3, 1>(0, 3) = trans_f;
+    Eigen::Vector3d Rot_a = Rot * a;
+    double e = (Rot_a + trans - b).dot(n);
 
-      return T;
-    }
+    Eigen::Matrix<double, 1, 6> J = plane_Jacobian(Rot_a, n);
+    H += J.transpose() * J;
+    g += J.transpose() * e;
+  }
 
-  } // namespace py4dgeo
+  Eigen::Matrix<double, 6, 1> update_euler;
+  update_euler = -H.inverse() * g;
+  euler_array += update_euler;
+
+  Eigen::Matrix3d Rot_f;
+  Eigen::Vector3d trans_f;
+  std::tie(Rot_f, trans_f) = set_rot_trans(euler_array);
+  T.block<3, 3>(0, 0) = Rot_f;
+  T.block<3, 1>(0, 3) = trans_f;
+
+  return T;
+}
+
+} // namespace py4dgeo
