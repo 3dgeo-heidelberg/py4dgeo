@@ -331,7 +331,6 @@ def icp_with_stable_areas(
             "Normals for this Epoch have not been calculated! Please use Epoch.calculate_normals or load externally calculated normals."
         )
 
-
     # Apply the default for the registration point
     if reduction_point is None:
         reduction_point = np.array([0, 0, 0])
@@ -424,8 +423,6 @@ def icp_with_stable_areas(
             max_iterations=50,
             tolerance=0.00001,
             reduction_point=reduction_point,
-            reference_epoch,
-            stablePC2,
             max_iterations=50,
             tolerance=0.00001,
             reduction_point=reduction_point,
@@ -443,7 +440,6 @@ def icp_with_stable_areas(
             stage3 = 1
         elif dis_threshold == level_of_detection:
             stage4 = 1
-
 
         if stage3 == 0:
             dis_threshold = calculate_dis_threshold(reference_epoch, stablePC2)
