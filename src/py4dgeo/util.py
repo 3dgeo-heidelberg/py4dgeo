@@ -14,8 +14,8 @@ import _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2023-10-20/data.tar.gz"
-TEST_DATA_CHECKSUM = "0d5873aed95bd7423335e8205dc5fe36f764f23c33c771049ef71679891bc379"
+TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2024-06-28/data.tar.gz"
+TEST_DATA_CHECKSUM = "5ee51a43b008181b829113d8b967cdf519eae4ac37a3301f1eaf53d15d3016cc"
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
