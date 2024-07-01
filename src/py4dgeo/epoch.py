@@ -137,6 +137,38 @@ class Epoch(_py4dgeo.Epoch):
 
         return self.normals
 
+    def normals_attachment(self, normals_array):
+        """Attach normals to the epoch object
+
+        :param normals:
+            The point cloud normals of shape (n, 3) where n is the
+            same as the number of points in the point cloud.
+        """
+
+        if normals_array.shape == self.cloud.shape:
+            self._normals = normals_array
+        else:
+            raise ValueError("Normals cannot be added. Shape does not match.")
+
+    def copy(self):
+        """Copy the epoch object"""
+
+        new_epoch = Epoch(
+            self.cloud.copy(),
+            normals=self.normals.copy() if self.normals is not None else None,
+            additional_dimensions=(
+                self.additional_dimensions.copy()
+                if self.additional_dimensions is not None
+                else None
+            ),
+            timestamp=self.timestamp,
+            scanpos_info=(
+                self.scanpos_info.copy() if self.scanpos_info is not None else None
+            ),
+        )
+
+        return new_epoch
+
     @property
     def timestamp(self):
         return self._timestamp
@@ -278,8 +310,12 @@ class Epoch(_py4dgeo.Epoch):
         # Invalidate the KDTree
         self.kdtree.invalidate()
 
+        if self._normals is None:
+            self._normals = np.empty((1, 3))  # dummy array to avoid error in C++ code
         # Apply the actual transformation as efficient C++
-        _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo, reduction_point)
+        _py4dgeo.transform_pointcloud_inplace(
+            self.cloud, trafo, reduction_point, self._normals
+        )
 
         # Store the transformation
         self._transformations.append(

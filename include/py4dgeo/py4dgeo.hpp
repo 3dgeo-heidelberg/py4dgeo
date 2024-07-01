@@ -81,4 +81,33 @@ enum class MemoryPolicy
   RELAXED = 3
 };
 
+struct Supervoxel
+{
+  EigenPointCloud cloud;
+  EigenNormalSet normals;
+  Eigen::Vector3d centroid;
+  EigenPointCloud boundary_points;
+
+  // Default constructor
+  Supervoxel()
+    : cloud()
+    , normals()
+    , centroid()
+    , boundary_points()
+  {
+  }
+
+  // constructor
+  Supervoxel(EigenPointCloudConstRef c,
+             EigenNormalSetConstRef n,
+             const Eigen::Vector3d& center,
+             EigenPointCloudConstRef boundary)
+    : cloud(c)
+    , normals(n)
+    , centroid(center)
+    , boundary_points(boundary)
+  {
+  }
+};
+
 }

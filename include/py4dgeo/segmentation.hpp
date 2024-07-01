@@ -87,7 +87,8 @@ struct ChangePointDetectionData
  * array!*/
 double
 median_calculation(std::vector<double>&);
-
+double
+median_calculation_simp(std::vector<double>&);
 /** @brief Calculate the local maxima, which more than "order" values left and
  * right */
 std::vector<IndexType>

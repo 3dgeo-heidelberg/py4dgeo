@@ -10,6 +10,8 @@
 #include <complex>
 #include <vector>
 
+#include <iostream>
+
 namespace py4dgeo {
 
 void
@@ -62,4 +64,41 @@ compute_multiscale_directions(const Epoch& epoch,
   vault.rethrow();
 }
 
+std::vector<double>
+compute_correspondence_distances(const Epoch& epoch,
+                                 EigenPointCloudConstRef transformated_pc,
+                                 std::vector<EigenPointCloud> corepoints,
+                                 unsigned int check_size)
+{
+
+  KDTree::NearestNeighborsDistanceResult result;
+  epoch.kdtree.nearest_neighbors_with_distances(transformated_pc, result, 1);
+  std::vector<double> p2pdist(transformated_pc.rows());
+
+#ifdef PY4DGEO_WITH_OPENMP
+#pragma omp parallel for schedule(dynamic, 1)
+#endif
+  for (IndexType i = 0; i < transformated_pc.rows(); ++i) {
+    if (epoch.cloud.rows() != check_size) {
+      auto subset = corepoints[result[i].first[0]];
+      // Calculate covariance matrix
+      auto centered = subset.rowwise() - subset.colwise().mean();
+      auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
+      auto coveval = cov.eval();
+      // Calculate Eigen vectors
+      Eigen::SelfAdjointEigenSolver<decltype(coveval)> solver(coveval);
+      Eigen::Vector3d normal_vector = solver.eigenvectors().col(0);
+      // calculate cor distance
+      Eigen::Vector3d displacement_vector =
+        epoch.cloud.row(result[i].first[0]) - transformated_pc.row(i);
+      p2pdist[i] = std::abs(displacement_vector.dot(normal_vector));
+
+    }
+
+    else
+      p2pdist[i] = std::sqrt(result[i].second[0]);
+  }
+  return p2pdist;
 }
+
+} // namespace py4dgeo
