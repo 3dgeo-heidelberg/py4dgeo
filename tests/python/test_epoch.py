@@ -51,7 +51,9 @@ def test_epoch_saveload(epochs):
         )
 
 
-@pytest.mark.parametrize("timestamp", [datetime.datetime.utcnow(), "25. November 1986"])
+@pytest.mark.parametrize(
+    "timestamp", [datetime.datetime.now(datetime.timezone.utc), "25. November 1986"]
+)
 def test_epoch_metadata_setters(epochs, timestamp):
     epoch, _ = epochs
 
@@ -128,7 +130,7 @@ def test_read_from_xyz_header(tmp_path):
 def test_normalize_timestamp():
     assert normalize_timestamp(None) is None
 
-    now = datetime.datetime.utcnow()
+    now = datetime.datetime.now(datetime.timezone.utc)
     assert normalize_timestamp(now) == now
 
     now = datetime.date.today()
