@@ -14,7 +14,7 @@ import pandas as pd
 import networkx as nx
 from scipy.spatial import cKDTree
 from scipy.spatial.qhull import QhullError
-from shapely.geometry import MultiPolygon, Polygon
+from shapely.geometry import Point, MultiPolygon, Polygon
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
@@ -79,8 +79,8 @@ class LevelSetAlgorithm:
 
 
         Options for the shape analysis:
-        - `_filter` (str): Choose between the positiv and negativ data files.
-        Default is 'positiv'.
+        - `_filter` (str): Choose between the positive and negative data files.
+        Default is 'positive'.
         - `distance_threshold` (float): How far points can be to still be
         considered of the same object. Default is 1.
         - `change_threshold` (float): How high the change value needs to be to
@@ -196,8 +196,12 @@ class LevelSetAlgorithm:
         }
 
         objects = []
+        _filter = self.options.get("filter", "positive")
+
         for object_key, obj_df in groups_dict.items():
-            new_object = ObjectByLevelset(obj_df, self.data, oid=object_key)
+            new_object = ObjectByLevelset(
+                obj_df, self.data, self.distance_dict, _filter, oid=object_key
+            )
             objects.append(new_object)
         return objects
 
@@ -350,7 +354,7 @@ class LevelSetAlgorithm:
 
         dirs_list = [Path(d) for d in Path(self.options["base_dir"]).glob("change_*")]
 
-        _filter = self.options.get("filter", "positiv")
+        _filter = self.options.get("filter", "positive")
 
         files_list = []
         for d in dirs_list:
@@ -481,7 +485,7 @@ class LevelSetAlgorithm:
 
             # Update polygon_ids for points contained or touched by the shape
             polygon_ids.iloc[possible_matches_index] = contained_or_touched.apply(
-                lambda x: i + 1 if x else None
+                lambda x: i + 1 if x else 0
             )
 
             # Update shape_dict after processing all points to minimize DataFrame operations
@@ -498,16 +502,22 @@ class LevelSetAlgorithm:
 class ObjectByLevelset:
     """Representation a change object in the spatiotemporal domain"""
 
-    def __init__(self, gdf, data, oid, analysis=None):
+    def __init__(self, gdf, data, distance_dict, filter, oid, analysis=None):
         self._gdf = gdf
         self._analysis = analysis
         self._data = data
         self._oid = oid
+        self._distance_dict = distance_dict
+        self._filter = filter
 
         self._indices = None
         self._distances = None
         self._coordinates = None
         self._polygons = None
+
+    @property
+    def filter(self):
+        return self._filter
 
     @property
     def oid(self):
@@ -537,10 +547,12 @@ class ObjectByLevelset:
 
             for i in self.timesteps:
                 # get the indices of the polygon
-                point_indeces = self._gdf[
-                    self._gdf["first_epoch"] == i
-                ].point_indeces.values
-                index_dict[int(i)] = point_indeces.tolist()[0]
+                filter_str = f"change_{i}_change_{i+self.interval}_{self.filter}"
+
+                mask = self._gdf.index.astype(str).str.contains(filter_str)
+
+                point_indices = self._gdf[mask].point_indices.values[0]
+                index_dict[int(i)] = point_indices
 
             self._indices = index_dict
         return self._indices
@@ -549,21 +561,21 @@ class ObjectByLevelset:
     def distances(self):
 
         if self._distances is None:
-            distance_dict = {}
+            distances = {}
 
             # this should iterate over all timesteps
             for i in self.timesteps:
                 # get the indices of the polygon
-                point_indeces = self.indices[i]
+                point_indices = self.indices[i]
                 # get the distance data
-                distance_df = self._data["distance_dict"][
-                    f"change_{i}_change_{i+self.interval}_positive"
+                distance_df = self._distance_dict[
+                    f"change_{i}_change_{i+self.interval}_{self.filter}"
                 ]
                 # get the distance data for the object
-                distance_df = distance_df.iloc[point_indeces]
-                distance_dict[int(i)] = distance_df["total_change"].values
+                distance_df = distance_df.loc[point_indices]
+                distances[int(i)] = distance_df["total_change"].values
 
-            self._distances = distance_dict
+            self._distances = distances
         return self._distances
 
     @property
@@ -575,13 +587,14 @@ class ObjectByLevelset:
             # this should iterate over all timesteps
             for i in self.timesteps:
                 # get the indices of the polygon
-                point_indeces = self.indices[i]
+                point_indices = self.indices[i]
                 # get the distance data
-                distance_df = self._data["distance_dict"][
-                    f"change_{i}_change_{i+self.interval}_positive"
+                distance_df = self._distance_dict[
+                    f"change_{i}_change_{i+self.interval}_{self.filter}"
                 ]
                 # get the distance data for the object
-                distance_df = distance_df.iloc[point_indeces]
+
+                distance_df = distance_df.loc[point_indices]
                 coordinates_dict[int(i)] = np.asarray(
                     distance_df[["x", "y", "z"]].values
                 )
