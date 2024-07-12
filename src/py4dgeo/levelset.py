@@ -5,32 +5,19 @@ import numpy as np
 import os
 from multiprocessing import Pool
 from pathlib import Path
-import scipy as sp
-from scipy.spatial import Delaunay
-from sklearn.neighbors import BallTree
 import alphashape
-import multiprocessing as mp
-import time
-import sys
 import re
-from scipy.ndimage import label
 import tempfile
 import tqdm
 import geopandas as gpd
 import pandas as pd
 import networkx as nx
-from scipy.spatial import distance_matrix
-from shapely.geometry import Polygon, Point
 from scipy.spatial import cKDTree
-
-from scipy.spatial import distance
-
 from scipy.spatial.qhull import QhullError
 from shapely.geometry import MultiPolygon, Polygon
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-import matplotlib.pyplot as plt
 
 verbose = False
 
