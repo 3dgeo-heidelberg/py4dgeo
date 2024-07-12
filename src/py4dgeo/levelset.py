@@ -122,7 +122,7 @@ class LevelSetAlgorithm:
         self.data = self._get_analysis_data()
 
         self.run_analysis()
-        
+
         self.analyse_shapes()
 
         gdf = self.get_shape_connectivity()
@@ -139,7 +139,6 @@ class LevelSetAlgorithm:
 
         progress_bar = tqdm.tqdm(total=len(pairs) * 2)  # Each pair has two directions
 
-        
         for field_pair in pairs:
             for changedir in ["positive", "negative"]:
                 _process(self.data, field_pair, self.options, changedir)
@@ -212,7 +211,7 @@ class LevelSetAlgorithm:
         objects = []
         for object_key, obj_df in groups_dict.items():
             new_object = ObjectByLevelset(obj_df, self.data, oid=object_key)
-            objects[object_key] = new_object
+            objects.append(new_object)
         return objects
 
     def _get_analysis_data(self):
@@ -236,9 +235,7 @@ class LevelSetAlgorithm:
         first_timestep = self.options.get("first_timestep", 0)
         last_timestep = self.options.get("last_timestep", -1)
         timestep_interval = self.options.get("timestep_interval", 1)
-        
-        
-        
+
         data = {}
         data_obj = self._analysis
 
@@ -254,11 +251,12 @@ class LevelSetAlgorithm:
 
         if last_timestep == -1:
             last_timestep = len(distances[0]) - timestep_interval
-        
-        if last_timestep+timestep_interval > len(distances[0]):
-            raise ValueError("The last timestep plus the interval is larger than the available data")
-        
-        
+
+        if last_timestep + timestep_interval > len(distances[0]):
+            raise ValueError(
+                "The last timestep plus the interval is larger than the available data"
+            )
+
         # slice the available field data from the first timestep to the last timestep plus the interval
         fields = [
             f"change_{i}"
@@ -292,7 +290,6 @@ class LevelSetAlgorithm:
             os.makedirs(base_dir)
 
         self.options["base_dir"] = base_dir
-        
 
         return data
 
