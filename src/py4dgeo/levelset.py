@@ -526,7 +526,7 @@ class ObjectByLevelset:
     @property
     def timesteps(self):
         """The timesteps that compose the object by change"""
-        return list(self._gdf["first_epoch"].unique())
+        return [int(i) for i in self._gdf["first_epoch"].unique()]
 
     @property
     def interval(self):
@@ -619,13 +619,9 @@ class ObjectByLevelset:
     def change_histogram(self, nbins_x=10):
         # Create a histogram
         fig = make_subplots(
-            rows=3,
+            rows=1,
             cols=1,
-            subplot_titles=(
-                "Histogram of Values",
-                "Additional Plot 1",
-                "Additional Plot 2",
-            ),
+            subplot_titles=("Histogram of Values",),
         )
 
         for i in self.timesteps:
