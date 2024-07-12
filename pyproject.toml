@@ -46,6 +46,7 @@ dependencies = [
     "plotly",
     "alphashape",
     "networkx",
+    "tqdm",
 
 
 ]
