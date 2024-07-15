@@ -22,7 +22,7 @@ jobs:
         include:
           - os: ubuntu-20.04
             arch: "x86_64"
-          - os: windows-2022
+          - os: windows-2019
             arch: "AMD64"
           - os: macos-11
             arch: "x86_64"
@@ -66,7 +66,7 @@ jobs:
       matrix:
         os:
           - ubuntu-20.04
-          - windows-2022
+          - windows-2019
           - macos-11
 
     steps:
