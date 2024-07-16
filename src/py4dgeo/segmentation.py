@@ -2,6 +2,8 @@ from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
 from py4dgeo.util import Py4DGeoError, find_file
 from py4dgeo.UpdateableZipFile import UpdateableZipFile
+from py4dgeo.levelset import ObjectByLevelset
+
 
 import datetime
 import json
@@ -538,7 +540,9 @@ class SpatiotemporalAnalysis:
     def objects(self, _objects):
         # Assert that we received the correct type
         for seed in _objects:
-            if not isinstance(seed, ObjectByChange):
+            if not isinstance(seed, ObjectByChange) and not isinstance(
+                seed, ObjectByLevelset
+            ):
                 raise Py4DGeoError(
                     "Objects are expected to inherit from ObjectByChange"
                 )
