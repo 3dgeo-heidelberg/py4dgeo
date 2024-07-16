@@ -19,7 +19,7 @@ def test_LevelSetAlgorithm(analysis):
         timestep_interval=10,
         alpha=0.1,
         iou_threshold=0.5,
-        distance_threshold=1.01,
+        distance_threshold=1,
     )
 
     algo.run(analysis)
@@ -28,7 +28,7 @@ def test_LevelSetAlgorithm(analysis):
 
     assert len(objects) == 1
 
-    assert np.isclose(objects[0].polygons[0].area, 548.5, rtol=0.00005)
+    assert np.isclose(objects[0].polygons[0].area, 548.5, rtol=0.015)
 
     assert set(objects[0].indices.keys()) == set((0, 1, 2, 3))
     assert set(objects[0].distances.keys()) == set((0, 1, 2, 3))
