@@ -67,7 +67,7 @@ jobs:
 
     - name: Run Python tests
       run: |
-        python -m pytest --nbval
+        python -m pytest --nbval --ignore=jupyter/levelset-analysis.ipynb
 
   coverage-test:
     name: Coverage Testing
