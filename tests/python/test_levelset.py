@@ -26,6 +26,8 @@ def test_LevelSetAlgorithm(analysis):
 
     assert len(objects) == 1
 
+    assert objects[0].polygons[0].area == 548.5
+
     polygon_coords = [
         (81.0, 63.0),
         (78.0, 62.0),
