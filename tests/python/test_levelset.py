@@ -19,7 +19,7 @@ def test_LevelSetAlgorithm(analysis):
         timestep_interval=10,
         alpha=0.1,
         iou_threshold=0.5,
-        distance_threshold=1.1,
+        distance_threshold=1.01,
     )
 
     algo.run(analysis)
