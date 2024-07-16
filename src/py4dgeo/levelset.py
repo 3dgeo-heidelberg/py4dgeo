@@ -87,7 +87,7 @@ class LevelSetAlgorithm:
         be considered a valid entry. Default is 0.5.
         - `alpha` (float): Alpha parameter for the alpha shape identification,
         the lower the smoother the shape, but less exact. Default is 1.
-        - `area_threshhold` (int): Area threshold for filtering small polygons.
+        - `area_threshold` (int): Area threshold for filtering small polygons.
         Default is 100.
         - `iou_threshold` (float): Intersection over Union (IoU) threshold for
         assigning objects IDs in different time steps. Default is 0.5.
@@ -142,8 +142,8 @@ class LevelSetAlgorithm:
         :type change_threshold: float, optional
         :param alpha: How closly the alpha shape should fit, defaults to 1
         :type alpha: int, optional
-        :param area_threshhold: The minimum area for an alpha shape to be considered valid, defaults to 100
-        :type area_threshhold: int, optional
+        :param area_threshold: The minimum area for an alpha shape to be considered valid, defaults to 100
+        :type area_threshold: int, optional
         """
 
         self._collect_result_files()
@@ -182,7 +182,7 @@ class LevelSetAlgorithm:
         gdf["second_epoch"] = pd.to_numeric(gdf["second_epoch"])
         gdf.sort_values("first_epoch", inplace=True)
         gdf["status"] = "candidate"
-        gdf["iou_thr"] = iou_thr
+        gdf["IoU_threshold"] = iou_thr
 
         iou_matrix = self._calc_iou_matrix(gdf, iou_thr)
 
@@ -428,7 +428,7 @@ class LevelSetAlgorithm:
         :type alpha: int, optional
         """
         alpha = self.options.get("alpha", 1)
-        area_threshhold = self.options.get("area_threshhold", 100)
+        area_threshold = self.options.get("area_threshold", 100)
 
         labels = np.unique(
             distance_df["component"].values,
@@ -448,7 +448,7 @@ class LevelSetAlgorithm:
 
             try:
                 alpha_shape = alphashape.alphashape(points, alpha=alpha)
-                if alpha_shape.area < area_threshhold:
+                if alpha_shape.area < area_threshold:
                     continue
                 alpha_list.append(alpha_shape)
 
@@ -535,8 +535,13 @@ class ObjectByLevelset:
 
     @property
     def iou_thresholds(self):
-        """The iou_thresholds that compose the object by change"""
-        return list(self._gdf["iou_threshold"].unique())
+        """The iou_thresholds (Intersection of Union) that compose the object by change"""
+        return list(self._gdf["IoU_threshold"].unique())
+
+    @property
+    def gdf(self):
+        """Return the geopandas dataframe of the object."""
+        return self._gdf
 
     @property
     def indices(self):
