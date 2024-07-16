@@ -1,9 +1,17 @@
 from py4dgeo import LevelSetAlgorithm
+import platform
+import pytest
 
 
 def test_LevelSetAlgorithm(analysis):
     # Basic assertions about the analysis loaded in fixture
     analysis.invalidate_results(seeds=False, objects=True)
+
+    if platform.system() == "Darwin":
+        with pytest.raises(NotImplementedError):
+            LevelSetAlgorithm()
+        return 0
+
     algo = LevelSetAlgorithm(
         first_timestep=0,
         last_timestep=4,

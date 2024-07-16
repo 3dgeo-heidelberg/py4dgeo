@@ -17,6 +17,7 @@ from scipy.spatial.qhull import QhullError
 from shapely.geometry import Point, MultiPolygon, Polygon
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+import platform
 
 
 verbose = False
@@ -96,6 +97,14 @@ class LevelSetAlgorithm:
         if None given this will use a temporary directory, defaults to None
         :type working_dir: str, optional
         """
+
+        # Currently this algorithm does not produce correct results when run on a mac,
+        # so we will disable it for now
+        if platform.system() == "Darwin":
+            raise NotImplementedError(
+                "The levelset algorithm does not work on MacOS."
+                + "Possibly a Numpy Bug."
+            )
 
         self.options = kwargs
 
