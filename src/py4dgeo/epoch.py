@@ -169,6 +169,23 @@ class Epoch(_py4dgeo.Epoch):
 
         return new_epoch
 
+    def __getitem__(self, ind):
+        """Slice the epoch in order to e.g. downsample it.
+
+        Creates a copy of the epoch.
+        """
+
+        return Epoch(
+            self.cloud[ind],
+            normals=self.normals[ind] if self.normals is not None else None,
+            additional_dimensions=(
+                self.additional_dimensions[ind]
+                if self.additional_dimensions is not None
+                else None
+            ),
+            **self.metadata,
+        )
+
     @property
     def timestamp(self):
         return self._timestamp
