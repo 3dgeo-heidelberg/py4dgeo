@@ -65,8 +65,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   epoch.def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>());
 
   // We can directly access the point cloud and the kdtree
-  epoch.def_readwrite("cloud", &Epoch::cloud);
-  epoch.def_readwrite("kdtree", &Epoch::kdtree);
+  epoch.def_readwrite("_cloud", &Epoch::cloud);
+  epoch.def_readwrite("_kdtree", &Epoch::kdtree);
 
   // Pickling support for the Epoch class
   epoch.def(py::pickle(

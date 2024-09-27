@@ -96,6 +96,26 @@ class Epoch(_py4dgeo.Epoch):
         super().__init__(cloud)
 
     @property
+    def cloud(self):
+        return self._cloud
+
+    @cloud.setter
+    def cloud(self, cloud):
+        raise Py4DGeoError(
+            "The Epoch point cloud cannot be changed after initialization. Please construct a new Epoch, e.g. by slicing an existing one."
+        )
+
+    @property
+    def kdtree(self):
+        return self._kdtree
+
+    @kdtree.setter
+    def kdtree(self, kdtree):
+        raise Py4DGeoError(
+            "The KDTree of an Epoch cannot be changed after initialization."
+        )
+
+    @property
     def normals(self):
         # Maybe calculate normals
         if self._normals is None:
