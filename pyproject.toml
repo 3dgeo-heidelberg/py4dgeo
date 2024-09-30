@@ -39,6 +39,16 @@ dependencies = [
     "scikit-learn",
     "vedo",
     "xdg",
+    "geopandas",
+    "shapely",
+    "pandas",
+    "scipy",
+    "plotly",
+    "alphashape",
+    "networkx",
+    "tqdm",
+
+
 ]
 
 # Command line scripts installed as part of the installation
