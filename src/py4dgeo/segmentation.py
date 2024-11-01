@@ -822,7 +822,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         intermediate_saving=0,
         resume_from_seed=0,
         stop_at_seed=np.inf,
-        resume_from_seed=False,
+        write_nr_seeds=False,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
