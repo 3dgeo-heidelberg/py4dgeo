@@ -729,10 +729,10 @@ class RegionGrowingAlgorithmBase:
             analysis.seeds = seeds
         else:
             logger.info("Reusing seed candidates stored in analysis object")
-
-        # write the number of seeds to a separate text file 
-        with open('number_of_seeds.txt', 'w') as f:
-            f.write(str(len(seeds)))
+        # write the number of seeds to a separate text file if self.write_nr_seeds is True
+        if self.write_nr_seeds:
+            with open('number_of_seeds.txt', 'w') as f:
+                f.write(str(len(seeds)))
         
         # Iterate over the seeds to maybe turn them into objects
         for i, seed in enumerate(seeds): #[self.resume_from_seed-1:]): # starting seed ranked at the `resume_from_seed` variable (representing 1 for index 0)
@@ -822,6 +822,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         intermediate_saving=0,
         resume_from_seed=0,
         stop_at_seed=np.inf,
+        resume_from_seed=False,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
@@ -880,6 +881,12 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         :param stop_at_seed:
             Parameter specifying at which seed to stop region growing and terminate the run function. 
             Default is np.inf, meaning all seeds are considered.
+        :type stop_at_seed: int
+        :param write_nr_seeds:
+            If True, after seed detection, a text file is written in the working directory containing the total number of detected seeds. 
+            This can be used to split up the consecutive 4D-OBC segmentation into different subsets. 
+            Default is False, meaning no txt file is written.
+        :type write_nr_seeds: bool
         """
 
         # Initialize base class
@@ -898,6 +905,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.intermediate_saving = intermediate_saving
         self.resume_from_seed = resume_from_seed
         self.stop_at_seed = stop_at_seed
+        self.write_nr_seeds = write_nr_seeds
         
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
