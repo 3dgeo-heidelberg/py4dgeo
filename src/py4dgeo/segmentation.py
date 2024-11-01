@@ -14,7 +14,6 @@ import pickle
 import seaborn
 import tempfile
 import zipfile
-import psutil
 import _py4dgeo
 
 
@@ -796,8 +795,6 @@ class RegionGrowingAlgorithmBase:
                     logger.warning(
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
-                # memory tracker
-                print('MEMORY, TOTAL:', psutil.virtual_memory().total / (1024.0 ** 3), 'GB, AVAILABLE:', psutil.virtual_memory().available / (1024.0 ** 3), 'PERCENTAGE: ', psutil.virtual_memory().percent)
 
 
         # Store the results in the analysis object
