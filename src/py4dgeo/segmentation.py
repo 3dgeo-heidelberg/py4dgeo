@@ -600,7 +600,7 @@ class RegionGrowingAlgorithmBase:
         neighborhood_radius=1.0,
         thresholds=[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
         min_segments=20,
-        max_segments=None
+        max_segments=None,
     ):
         """Construct a spatiotemporal _segmentation algorithm.
 
@@ -701,15 +701,19 @@ class RegionGrowingAlgorithmBase:
         #     logger.info("Reusing objects by change stored in analysis object")
         #     return precalculated
 
-        # Check if there are pre-calculated objects. 
-        # If so, create objects list from these and continue growing objects, taking into consideration objects that are already grown. 
+        # Check if there are pre-calculated objects.
+        # If so, create objects list from these and continue growing objects, taking into consideration objects that are already grown.
         # if not initiate new empty objects list
-        precalculated = analysis.objects # TODO: do not assign to new object
+        precalculated = analysis.objects  # TODO: do not assign to new object
         if precalculated is not None:
             logger.info("Reusing objects by change stored in analysis object")
-            objects = precalculated.copy() # test if .copy() solves memory problem, or deepcopy?
+            objects = (
+                precalculated.copy()
+            )  # test if .copy() solves memory problem, or deepcopy?
         else:
-            objects = [] # TODO: test initializing this in the analysis class, see if it crashes instantly
+            objects = (
+                []
+            )  # TODO: test initializing this in the analysis class, see if it crashes instantly
 
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
@@ -731,24 +735,32 @@ class RegionGrowingAlgorithmBase:
             logger.info("Reusing seed candidates stored in analysis object")
         # write the number of seeds to a separate text file if self.write_nr_seeds is True
         if self.write_nr_seeds:
-            with open('number_of_seeds.txt', 'w') as f:
+            with open("number_of_seeds.txt", "w") as f:
                 f.write(str(len(seeds)))
-        
+
         # Iterate over the seeds to maybe turn them into objects
-        for i, seed in enumerate(seeds): #[self.resume_from_seed-1:]): # starting seed ranked at the `resume_from_seed` variable (representing 1 for index 0)
+        for i, seed in enumerate(
+            seeds
+        ):  # [self.resume_from_seed-1:]): # starting seed ranked at the `resume_from_seed` variable (representing 1 for index 0)
             # or to keep within the same index range when resuming from seed:
-            if i < (self.resume_from_seed-1): # resume from index 0 when `resume_from_seed` == 1
+            if i < (
+                self.resume_from_seed - 1
+            ):  # resume from index 0 when `resume_from_seed` == 1
                 continue
-            if i >= (self.stop_at_seed-1): # stop at index 0 when `stop_at_seed` == 1
-                break 
+            if i >= (self.stop_at_seed - 1):  # stop at index 0 when `stop_at_seed` == 1
+                break
 
             # save objects to analysis object when at index `intermediate_saving`
-            if (self.intermediate_saving) and ((i % self.intermediate_saving) == 0) and (i != 0): 
+            if (
+                (self.intermediate_saving)
+                and ((i % self.intermediate_saving) == 0)
+                and (i != 0)
+            ):
                 with logger_context(
-                    f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds" 
+                    f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds"
                 ):
-                    analysis.objects = objects # This assigns itself to itself
-                    
+                    analysis.objects = objects  # This assigns itself to itself
+
             # Check all already calculated objects whether they overlap with this seed.
             found = False
             for obj in objects:
@@ -786,7 +798,9 @@ class RegionGrowingAlgorithmBase:
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
                 if objdata.indices_distances:
-                    obj = ObjectByChange(objdata, seed, analysis) # TODO: check, does it copy the whole analysis object when initializing
+                    obj = ObjectByChange(
+                        objdata, seed, analysis
+                    )  # TODO: check, does it copy the whole analysis object when initializing
                     if self.filter_objects(obj):
                         objects.append(obj)
 
@@ -796,15 +810,14 @@ class RegionGrowingAlgorithmBase:
                         f"An object by change exceeded the given maximum size of {max_segments}"
                     )
 
-
         # Store the results in the analysis object
         analysis.objects = objects
 
-        # Potentially remove objects from memory 
+        # Potentially remove objects from memory
         del analysis.smoothed_distances
         del analysis.distances
 
-        return objects 
+        return objects
 
 
 class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
@@ -871,7 +884,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             analysis. The default is True, in which case unfinished seed_candidates are regarded as seeds region growing.
         :type use_unfinished: bool
         :param intermediate_saving:
-            Parameter that determines after how many considered seeds, the resulting list of 4D-OBCs is saved to the SpatiotemporalAnalysis object. 
+            Parameter that determines after how many considered seeds, the resulting list of 4D-OBCs is saved to the SpatiotemporalAnalysis object.
             This is to ensure that if the algorithm is terminated unexpectedly not all results are lost. If set to 0 no intermediate saving is done.
         :type intermediate_saving: int
         :param resume_from_seed:
@@ -879,12 +892,12 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             Default is 0.
         :type resume_from_seed: int
         :param stop_at_seed:
-            Parameter specifying at which seed to stop region growing and terminate the run function. 
+            Parameter specifying at which seed to stop region growing and terminate the run function.
             Default is np.inf, meaning all seeds are considered.
         :type stop_at_seed: int
         :param write_nr_seeds:
-            If True, after seed detection, a text file is written in the working directory containing the total number of detected seeds. 
-            This can be used to split up the consecutive 4D-OBC segmentation into different subsets. 
+            If True, after seed detection, a text file is written in the working directory containing the total number of detected seeds.
+            This can be used to split up the consecutive 4D-OBC segmentation into different subsets.
             Default is False, meaning no txt file is written.
         :type write_nr_seeds: bool
         """
@@ -906,7 +919,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.resume_from_seed = resume_from_seed
         self.stop_at_seed = stop_at_seed
         self.write_nr_seeds = write_nr_seeds
-        
+
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
 
@@ -998,7 +1011,10 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     if previous_volume > volume:
                         # Only add seed if larger than the minimum period and height of the change form larger than threshold
                         if (target_idx - start_idx >= self.minperiod) and (
-                            np.abs(np.max(used_timeseries[start_idx : target_idx + 1]) - np.min(used_timeseries[start_idx : target_idx + 1]))
+                            np.abs(
+                                np.max(used_timeseries[start_idx : target_idx + 1])
+                                - np.min(used_timeseries[start_idx : target_idx + 1])
+                            )
                             >= self.height_threshold
                         ):
                             corepoint_seeds.append(
@@ -1024,6 +1040,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
     def seed_sorting_scorefunction(self):
         """Neighborhood similarity sorting function"""
+
         # The 4D-OBC algorithm sorts by similarity in the neighborhood
         # of the seed.
         def neighborhood_similarity(seed):
@@ -1031,9 +1048,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
             # if no neighbors are found make sure the algorithm continues its search but with a large dissimilarity
-            if len(neighbors < 2): 
-                return 9999999. # return very large number? or delete the seed point, but then also delete from the seeds list
-            
+            if len(neighbors < 2):
+                return 9999999.0  # return very large number? or delete the seed point, but then also delete from the seeds list
+
             similarities = []
             for n in neighbors:
                 data = _py4dgeo.TimeseriesDistanceFunctionData(
@@ -1045,9 +1062,9 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     ],
                 )
                 similarities.append(self.distance_measure()(data))
-    
-            return sum(similarities, 0.0) / (len(neighbors)-1)
-    
+
+            return sum(similarities, 0.0) / (len(neighbors) - 1)
+
         return neighborhood_similarity
 
     def filter_objects(self, obj):
