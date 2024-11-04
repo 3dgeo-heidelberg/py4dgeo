@@ -2,7 +2,7 @@ repos:
   # Make sure that Jupyter notebooks under version control
   # have their outputs stripped before committing
   - repo: https://github.com/kynan/nbstripout
-    rev: 0.7.1
+    rev: 0.8.0
     hooks:
       - id: nbstripout
         files: ".ipynb"
