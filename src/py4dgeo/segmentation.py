@@ -1048,7 +1048,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
             # if no neighbors are found make sure the algorithm continues its search but with a large dissimilarity
-            if len(neighbors < 2):
+            if len(neighbors) < 2:
                 return 9999999.0  # return very large number? or delete the seed point, but then also delete from the seeds list
 
             similarities = []
