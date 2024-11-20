@@ -65,8 +65,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   epoch.def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>());
 
   // We can directly access the point cloud and the kdtree
-  epoch.def_readwrite("cloud", &Epoch::cloud);
-  epoch.def_readwrite("kdtree", &Epoch::kdtree);
+  epoch.def_readwrite("_cloud", &Epoch::cloud);
+  epoch.def_readwrite("_kdtree", &Epoch::kdtree);
 
   // Pickling support for the Epoch class
   epoch.def(py::pickle(
@@ -127,9 +127,8 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   kdtree.def(
     "nearest_neighbors",
-    [](const KDTree& self, EigenPointCloudConstRef cloud) {
+    [](const KDTree& self, EigenPointCloudConstRef cloud, int k) {
       KDTree::NearestNeighborsDistanceResult result;
-      int k = 1;
       self.nearest_neighbors_with_distances(cloud, result, k);
 
       py::array_t<long int> indices_array(result.size());
@@ -139,13 +138,13 @@ PYBIND11_MODULE(_py4dgeo, m)
       auto distances_array_ptr = distances_array.mutable_data();
 
       for (size_t i = 0; i < result.size(); ++i) {
-        *indices_array_ptr++ = result[i].first[0];
-        *distances_array_ptr++ = result[i].second[0];
+        *indices_array_ptr++ = result[i].first[result[i].first.size() - 1];
+        *distances_array_ptr++ = result[i].second[result[i].second.size() - 1];
       }
 
       return std::make_pair(indices_array, distances_array);
     },
-    "Find k nearest neighbors for all points in a cloud!");
+    "Find nearest neighbors for all points in a cloud!");
 
   // Pickling support for the KDTree data structure
   kdtree.def("__getstate__", [](const KDTree&) {
@@ -158,6 +157,63 @@ PYBIND11_MODULE(_py4dgeo, m)
       "not know the point cloud."
     };
   });
+
+  // Segment point cloud into a supervoxels
+  m.def("segment_pc_in_supervoxels",
+        [](Epoch& epoch,
+           const KDTree& kdtree,
+           EigenNormalSetConstRef normals,
+           double resolution,
+           int k,
+           int minSVPvalue) {
+          std::vector<Supervoxel> supervoxels =
+            segment_pc(epoch, kdtree, normals, resolution, k, minSVPvalue);
+
+          py::list np_arrays_cloud;
+          py::list np_arrays_centroid;
+          py::list np_arrays_boundary_points;
+          py::list np_arrays_normals;
+
+          for (const auto& sv : supervoxels) {
+            // Convert Eigen::MatrixXd to a NumPy array
+            auto np_array_cloud = py::array_t<double>(
+              sv.cloud.rows() * sv.cloud.cols(), sv.cloud.data());
+            auto np_array_normals = py::array_t<double>(
+              sv.normals.rows() * sv.normals.cols(), sv.normals.data());
+            auto np_array_centroid =
+              py::array_t<double>(sv.centroid.size(), sv.centroid.data());
+            auto np_array_boundary_points = py::array_t<double>(
+              sv.boundary_points.rows() * sv.boundary_points.cols(),
+              sv.boundary_points.data());
+
+            // Reshape the arrays to their original shape
+            np_array_cloud.resize({ sv.cloud.rows(), sv.cloud.cols() });
+            np_array_normals.resize({ sv.normals.rows(), sv.normals.cols() });
+            np_array_centroid.resize({ sv.centroid.size() });
+            np_array_boundary_points.resize(
+              { sv.boundary_points.rows(), sv.boundary_points.cols() });
+
+            np_arrays_cloud.append(np_array_cloud);
+            np_arrays_normals.append(np_array_normals);
+            np_arrays_centroid.append(np_array_centroid);
+            np_arrays_boundary_points.append(np_array_boundary_points);
+          }
+
+          return std::make_tuple(np_arrays_cloud,
+                                 np_arrays_normals,
+                                 np_arrays_centroid,
+                                 np_arrays_boundary_points);
+        });
+
+  // Perform a transformation of a point cloud using Gauss-Newton method
+  m.def("fit_transform_GN",
+        [](EigenPointCloudConstRef cloud1,
+           EigenPointCloudConstRef cloud2,
+           EigenNormalSetConstRef normals) {
+          Eigen::Matrix4d transformation =
+            fit_transform_GN(cloud1, cloud2, normals);
+          return transformation;
+        });
 
   // The main distance computation function that is the main entry point of M3C2
   m.def(
@@ -203,6 +259,11 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("compute_multiscale_directions",
         &compute_multiscale_directions,
         "Compute M3C2 multiscale directions");
+
+  // Corresponence distances computation
+  m.def("compute_correspondence_distances",
+        &compute_correspondence_distances,
+        "Compute correspondence distances");
 
   // Callback parameter structs
   py::class_<WorkingSetFinderParameters> ws_params(
@@ -373,7 +434,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   m.def("transform_pointcloud_inplace",
         [](EigenPointCloudRef cloud,
            const py::array_t<double>& t,
-           EigenPointCloudConstRef rp) {
+           EigenPointCloudConstRef rp,
+           EigenNormalSetRef normals) {
           Transformation trafo;
 
           auto r = t.unchecked<2>();
@@ -381,7 +443,7 @@ PYBIND11_MODULE(_py4dgeo, m)
             for (IndexType j = 0; j < 4; ++j)
               trafo(i, j) = r(i, j);
 
-          transform_pointcloud_inplace(cloud, trafo, rp);
+          transform_pointcloud_inplace(cloud, trafo, rp, normals);
         });
 
   // The main algorithms for the spatiotemporal segmentations

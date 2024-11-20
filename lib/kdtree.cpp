@@ -109,6 +109,34 @@ KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
   }
 }
 
+void
+KDTree::nearest_neighbors(EigenPointCloudConstRef cloud,
+                          NearestNeighborsResult& result,
+                          int k) const
+{
+  result.resize(cloud.rows());
+  nanoflann::SearchParams params;
+
+#ifdef PY4DGEO_WITH_OPENMP
+#pragma omp parallel for schedule(dynamic, 1)
+#endif
+  for (IndexType i = 0; i < cloud.rows(); ++i) {
+    std::vector<IndexType> pointResult;
+    std::vector<double> dis_skip;
+
+    std::vector<IndexType>& ret_indices = pointResult;
+    std::vector<double>& out_dists_sqr = dis_skip;
+    ret_indices.resize(k);
+    out_dists_sqr.resize(k);
+
+    nanoflann::KNNResultSet<double, IndexType> resultset(k);
+    auto qp = cloud.row(i).eval();
+    resultset.init(ret_indices.data(), out_dists_sqr.data());
+    search->findNeighbors(resultset, &(qp(0, 0)), params);
+    result[i] = pointResult;
+  }
+}
+
 int
 KDTree::get_leaf_parameter() const
 {

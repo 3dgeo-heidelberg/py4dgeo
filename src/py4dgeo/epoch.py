@@ -96,6 +96,26 @@ class Epoch(_py4dgeo.Epoch):
         super().__init__(cloud)
 
     @property
+    def cloud(self):
+        return self._cloud
+
+    @cloud.setter
+    def cloud(self, cloud):
+        raise Py4DGeoError(
+            "The Epoch point cloud cannot be changed after initialization. Please construct a new Epoch, e.g. by slicing an existing one."
+        )
+
+    @property
+    def kdtree(self):
+        return self._kdtree
+
+    @kdtree.setter
+    def kdtree(self, kdtree):
+        raise Py4DGeoError(
+            "The KDTree of an Epoch cannot be changed after initialization."
+        )
+
+    @property
     def normals(self):
         # Maybe calculate normals
         if self._normals is None:
@@ -136,6 +156,55 @@ class Epoch(_py4dgeo.Epoch):
             )
 
         return self.normals
+
+    def normals_attachment(self, normals_array):
+        """Attach normals to the epoch object
+
+        :param normals:
+            The point cloud normals of shape (n, 3) where n is the
+            same as the number of points in the point cloud.
+        """
+
+        if normals_array.shape == self.cloud.shape:
+            self._normals = normals_array
+        else:
+            raise ValueError("Normals cannot be added. Shape does not match.")
+
+    def copy(self):
+        """Copy the epoch object"""
+
+        new_epoch = Epoch(
+            self.cloud.copy(),
+            normals=self.normals.copy() if self.normals is not None else None,
+            additional_dimensions=(
+                self.additional_dimensions.copy()
+                if self.additional_dimensions is not None
+                else None
+            ),
+            timestamp=self.timestamp,
+            scanpos_info=(
+                self.scanpos_info.copy() if self.scanpos_info is not None else None
+            ),
+        )
+
+        return new_epoch
+
+    def __getitem__(self, ind):
+        """Slice the epoch in order to e.g. downsample it.
+
+        Creates a copy of the epoch.
+        """
+
+        return Epoch(
+            self.cloud[ind],
+            normals=self.normals[ind] if self.normals is not None else None,
+            additional_dimensions=(
+                self.additional_dimensions[ind]
+                if self.additional_dimensions is not None
+                else None
+            ),
+            **self.metadata,
+        )
 
     @property
     def timestamp(self):
@@ -278,8 +347,12 @@ class Epoch(_py4dgeo.Epoch):
         # Invalidate the KDTree
         self.kdtree.invalidate()
 
+        if self._normals is None:
+            self._normals = np.empty((1, 3))  # dummy array to avoid error in C++ code
         # Apply the actual transformation as efficient C++
-        _py4dgeo.transform_pointcloud_inplace(self.cloud, trafo, reduction_point)
+        _py4dgeo.transform_pointcloud_inplace(
+            self.cloud, trafo, reduction_point, self._normals
+        )
 
         # Store the transformation
         self._transformations.append(

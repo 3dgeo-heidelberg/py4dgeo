@@ -18,8 +18,8 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-20.04, macos-11, windows-2022]
-        python-version: ["3.8", "3.12"]
+        os: [ubuntu-22.04, macos-13, macos-14, windows-2019]
+        python-version: ["3.9", "3.12"]
         openmp: ['ON', 'OFF']
 
     steps:
@@ -81,7 +81,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.8
+        python-version: "3.9"
 
     - name: Install LCov
       run: |
@@ -149,7 +149,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.9
+        python-version: "3.9"
 
     - name: Install Python development requirements
       run: |
@@ -189,8 +189,10 @@ jobs:
         echo "leak:/usr/bin/bash" > supp.txt
         echo "leak:_PyObject_New" >> supp.txt
         echo "leak:_PyObject_GC" >> supp.txt
+        echo "leak:_PyUnicodeWriter_Finish">> supp.txt
         echo "leak:insert_to_emptydict" >> supp.txt
         echo "leak:new_keys_object" >> supp.txt
+        echo "leak:PyArrayMethod_FromSpec_int" >> supp.txt
         echo "leak:PyDict_Copy" >> supp.txt
         echo "leak:PyUnicode_New" >> supp.txt
         echo "leak:pyo3::types::function::PyCFunction::internal_new_from_pointers" >> supp.txt

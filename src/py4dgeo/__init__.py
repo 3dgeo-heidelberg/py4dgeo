@@ -12,8 +12,7 @@ from py4dgeo.m3c2ep import M3C2EP
 from py4dgeo.registration import (
     iterative_closest_point,
     point_to_plane_icp,
-    point_to_plane_icp_LM,
-    p_to_p_icp,
+    icp_with_stable_areas,
 )
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,

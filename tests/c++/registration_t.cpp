@@ -4,9 +4,10 @@
 #include "testsetup.hpp"
 #include <iostream>
 
-// DELETE
 #include "py4dgeo/compute.hpp"
 #include <vector>
+
+#include <fstream>
 
 using namespace py4dgeo;
 
@@ -24,8 +25,9 @@ TEST_CASE("Affine Transformation", "[compute]")
     EigenPointCloud ref(1, 3);
     ref << 1, 2, 3;
 
+    EigenNormalSet normals;
     // Apply the transformation
-    transform_pointcloud_inplace(*cloud1, t, ref);
+    transform_pointcloud_inplace(*cloud1, t, ref, normals);
 
     for (IndexType i = 0; i < cloud1->rows(); ++i) {
       if (std::abs((*cloud1)(i, 0) - (*cloud2)(i, 0) - 1.0) >= 1e-8) {
@@ -73,7 +75,7 @@ TEST_CASE("Affine Transformation", "[compute]")
   {
     auto [cloud_s, corepoints_s] = testcloud();
     Epoch epoch_test_s(*cloud_s);
-    epoch_test_s.kdtree.build_tree(10);
+    epoch_test_s.kdtree.build_tree(10); //????
     EigenNormalSet normals(epoch_test_s.cloud.rows(), 3);
     std::vector<double> normal_radii{ 3.0 };
     EigenNormalSet orientation(1, 3);
@@ -81,16 +83,13 @@ TEST_CASE("Affine Transformation", "[compute]")
     compute_multiscale_directions(
       epoch_test_s, *corepoints_s, normal_radii, orientation, normals);
 
-    auto tree1 = KDTree::create(epoch_test_s.cloud);
-    tree1.build_tree(10);
-
     double resolution = 10;
     int k = 10;
     auto n_supervoxels =
       estimate_supervoxel_count(epoch_test_s.cloud, resolution);
 
-    std::vector<std::vector<int>> result =
-      supervoxel_segmentation(epoch_test_s, tree1, resolution, k, normals);
+    std::vector<std::vector<int>> result = supervoxel_segmentation(
+      epoch_test_s, epoch_test_s.kdtree, resolution, k, normals);
 
     REQUIRE(result.size() == n_supervoxels);
   }
