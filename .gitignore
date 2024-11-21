@@ -177,3 +177,6 @@ dmypy.json
 
 # Cython debug symbols
 cython_debug/
+jupyter/new_data_24_168_1/
+
+jupyter/synthetic_k0_10_10/

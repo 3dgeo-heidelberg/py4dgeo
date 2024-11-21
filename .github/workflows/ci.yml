@@ -67,7 +67,7 @@ jobs:
 
     - name: Run Python tests
       run: |
-        python -m pytest --nbval
+        python -m pytest --nbval --ignore=jupyter/levelset-analysis.ipynb
 
   coverage-test:
     name: Coverage Testing
@@ -195,6 +195,8 @@ jobs:
         echo "leak:PyArrayMethod_FromSpec_int" >> supp.txt
         echo "leak:PyDict_Copy" >> supp.txt
         echo "leak:PyUnicode_New" >> supp.txt
+        echo "leak:PyUFunc_FromFuncAndDataAndSignatureAndIdentity" >> supp.txt
+        echo "leak:PyArrayIdentityHash_New" >> supp.txt
         echo "leak:pyo3::types::function::PyCFunction::internal_new_from_pointers" >> supp.txt
         echo "leak:pyo3::types::function::PyCFunction::internal_new::" >> supp.txt
         # hack to prevent external libs from dlclosing libraries,

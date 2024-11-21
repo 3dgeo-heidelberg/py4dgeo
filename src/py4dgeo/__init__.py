@@ -30,3 +30,5 @@ from py4dgeo.util import (
 )
 
 from py4dgeo.pbm3c2 import *
+
+from py4dgeo.levelset import LevelSetAlgorithm
