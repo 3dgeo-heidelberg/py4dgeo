@@ -95,7 +95,7 @@ endif()
 
 if(BUILD_PYTHON)
   # Add Python bindings
-  add_subdirectory(ext/pybind11)
+  find_package(pybind11 CONFIG REQUIRED)
   pybind11_add_module(_py4dgeo MODULE src/py4dgeo/py4dgeo_python.cpp)
   target_link_libraries(_py4dgeo PUBLIC py4dgeo)
 

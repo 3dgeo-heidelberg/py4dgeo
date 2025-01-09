@@ -39,20 +39,14 @@ jobs:
     - name: make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
-    - name: configure cmake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DBUILD_DOCS=OFF -DBUILD_BENCHMARKS=ON -DPY4DGEO_WITH_OPENMP=${{matrix.openmp}}
-
-    - name: build
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build .
-
-    - name: Install Python package and development requirements
+    - name: Install Python development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install -v .
+        python -m pip install scikit-build-core pybind11
+
+    - name: Install Python package
+      run: |
+        python -m pip install --no-build-isolation --config-settings=build-dir="build" --config-settings=cmake.build-type="Debug" --config-settings=cmake.define.BUILD_TESTING="ON" -v .
 
     - name: Install py4dgeo test data
       shell: bash
@@ -87,10 +81,14 @@ jobs:
       run: |
         sudo apt-get install -y lcov
 
-    - name: Install Python package and development requirements
+    - name: Install development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install -v --editable .
+        python -m pip install scikit-build-core pybind11
+
+    - name: Install Python package
+      run: |
+        python -m pip install --no-build-isolation --config-settings=build-dir="build" --config-settings=cmake.build-type="Debug" --config-settings=cmake.define.BUILD_TESTING="ON" --config-settings=cmake.define.CMAKE_CXX_FLAGS="--coverage" -v -e .
 
     - name: Install py4dgeo test data
       shell: bash
@@ -98,37 +96,26 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/tests/data
         copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
-    - name: make build directory
-      run: cmake -E make_directory ${{runner.workspace}}/build
-
-    - name: configure cmake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="--coverage" -DBUILD_DOCS=OFF
-
-    - name: build
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build .
-
     - name: run tests
       shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: ctest -C Debug
+      working-directory: ${{runner.workspace}}/py4dgeo/build
+      run: |
+        ctest -C Debug
 
     - name: collect coverage report
       shell: bash
-      working-directory: ${{runner.workspace}}
+      working-directory: ${{runner.workspace}}/py4dgeo
       run: |
-        lcov --directory ./build --capture --output-file coverage.info
+        lcov --directory ./build --capture --output-file coverage.info --ignore-errors mismatch
         lcov_cobertura coverage.info -o coverage2.xml
 
     - name: Run coverage tests
+      working-directory: ${{runner.workspace}}/py4dgeo
       run: |
         python -m pytest --cov=src --cov-report=xml
 
     - name: Upload coverage to Codecov.io
-      working-directory: ${{runner.workspace}}
+      working-directory: ${{runner.workspace}}/py4dgeo
       run: |
         curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
         chmod +x codecov
@@ -149,43 +136,35 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.9"
+        python-version: "3.10"
 
     - name: Install Python development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install -v .
+        python -m pip install scikit-build-core pybind11
+
+    - name: Install Python package
+      run: |
+        python -m pip install --no-build-isolation --config-settings=build-dir="build" --config-settings=cmake.build-type="Debug" --config-settings=cmake.define.BUILD_TESTING="ON" --config-settings=cmake.define.CMAKE_CXX_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer" --config-settings=cmake.define.CMAKE_EXE_LINKER_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer" -v -e .
 
     - name: Install py4dgeo test data
       shell: bash
+      working-directory: ${{runner.workspace}}/py4dgeo
       run: |
         mkdir -p $GITHUB_WORKSPACE/tests/data
-        copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
-
-    - name: make build directory
-      run: cmake -E make_directory ${{runner.workspace}}/build
-
-    - name: configure cmake
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer" -DCMAKE_EXE_LINKER_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer" -DBUILD_DOCS=OFF
-
-    - name: build
-      shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: cmake --build .
+        ASAN_OPTIONS="halt_on_error=0" LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)" PYTHONPATH=src copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
     - name: run c++ tests
       shell: bash
-      working-directory: ${{runner.workspace}}/build
-      run: ctest --rerun-failed --output-on-failure -C Debug
+      working-directory: ${{runner.workspace}}/py4dgeo/build
+      run: LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)" ctest --rerun-failed --output-on-failure -C Debug
 
     - name: run python tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       # for LD_PRELOAD see https://github.com/google/sanitizers/issues/934#issuecomment-649516500
       run: |
-        mv ../build/_py4dgeo.*.so src/py4dgeo/.
+        mv ./build/_py4dgeo.*.so src/py4dgeo/.
         echo "leak:/usr/bin/bash" > supp.txt
         echo "leak:_PyObject_New" >> supp.txt
         echo "leak:_PyObject_GC" >> supp.txt
@@ -203,4 +182,4 @@ jobs:
         echo "#include <stdio.h>" > dlclose.c
         echo "int dlclose(void *handle) { return 0; }" >> dlclose.c
         clang -shared dlclose.c -o libdlclose.so
-        LSAN_OPTIONS=suppressions="$(pwd)/supp.txt" PYTHONPATH=src LD_PRELOAD="$(gcc -print-file-name=libasan.so) /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $(pwd)/libdlclose.so" PYTHONMALLOC=malloc pytest -s
+        LSAN_OPTIONS=suppressions="$(pwd)/supp.txt" PYTHONPATH=src LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so) $(pwd)/libdlclose.so" PYTHONMALLOC=malloc pytest -s
