@@ -26,10 +26,9 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 * **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation. The concept and method are explained in full detail in the related paper.
 
-* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
-<a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
+* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities. 
 
-* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification  *[under active development]*. The concept and method are explained in this scientific talk:
 <a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
 
 * **Point cloud registration**: Py4dgeo supports to calculate and apply affine transformations to point clouds using a standard ICP implementations. More ICP methods are currently being implemented - stay tuned!
