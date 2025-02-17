@@ -256,9 +256,22 @@ PYBIND11_MODULE(_py4dgeo, m)
     "The main M3C2 distance calculation algorithm");
 
   // Multiscale direction computation
-  m.def("compute_multiscale_directions",
-        &compute_multiscale_directions,
-        "Compute M3C2 multiscale directions");
+  m.def(
+    "compute_multiscale_directions",
+    [](const Epoch& epoch,
+       EigenPointCloudConstRef corepoints,
+       const std::vector<double>& normal_radii,
+       EigenNormalSetConstRef orientation) {
+      EigenNormalSet result(corepoints.rows(), 3);
+      std::vector<double> used_radii;
+
+      compute_multiscale_directions(
+        epoch, corepoints, normal_radii, orientation, result, used_radii);
+
+      return std::make_tuple(std::move(result),
+                             as_pyarray(std::move(used_radii)));
+    },
+    "Compute M3C2 multiscale directions");
 
   // Corresponence distances computation
   m.def("compute_correspondence_distances",
