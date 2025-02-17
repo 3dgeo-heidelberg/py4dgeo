@@ -20,11 +20,11 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: ubuntu-20.04
+          - os: ubuntu-22.04
             arch: "x86_64"
           - os: windows-2019
             arch: "AMD64"
-          - os: macos-11
+          - os: macos-13
             arch: "x86_64"
 
     steps:
@@ -43,7 +43,7 @@ jobs:
 
   build-sdist:
     name: Build source distribution
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
 
     steps:
       - uses: actions/checkout@v4
@@ -65,9 +65,9 @@ jobs:
     strategy:
       matrix:
         os:
-          - ubuntu-20.04
+          - ubuntu-22.04
           - windows-2019
-          - macos-11
+          - macos-13
 
     steps:
       - uses: actions/checkout@v4
@@ -103,7 +103,7 @@ jobs:
 
   upload_testpypi:
     needs: [build-sdist, test-sdist, build-wheels]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       id-token: write
 
@@ -120,7 +120,7 @@ jobs:
 
   upload_pypi:
     needs: [build-sdist, build-wheels, upload_testpypi]
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     permissions:
       id-token: write
 
