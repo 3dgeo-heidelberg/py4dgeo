@@ -22,13 +22,13 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. 
+* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation.
 
 * **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation.
 
-* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities. 
+* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities.
 
-* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification  *[under active development]*. 
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification  *[under active development]*.
 
 * **Point cloud registration using standard ICP** by calculating and applying affine transformations to point clouds using a standard ICP implementations.
 
