@@ -22,17 +22,17 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
+* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. 
 
-* **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation. The concept and method are explained in full detail in the related paper.
+* **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation.
 
 * **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities. 
 
-* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification  *[under active development]*. The concept and method are explained in this scientific talk:
-<a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification  *[under active development]*. 
 
-* **Point cloud registration**: Py4dgeo supports to calculate and apply affine transformations to point clouds using a standard ICP implementations. More ICP methods are currently being implemented - stay tuned!
+* **Point cloud registration using standard ICP** by calculating and applying affine transformations to point clouds using a standard ICP implementations.
 
+* **Point cloud registration with automatic determination of stable areas** ([Yang et al., 2022](https://doi.org/10.1515/jag-2022-0031)) for multitemporal change detection.
 
 ## 🎮 Examples
 
