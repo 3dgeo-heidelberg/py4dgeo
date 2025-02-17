@@ -2027,6 +2027,11 @@ class PBM3C2:
         extract_segments=ExtractSegments(),
         classifier=ClassifierWrapper(),
     ):
+
+        logger.warning(
+            f"This method is in experimental stage and undergoing active development."
+        )
+
         """
         :param per_point_computation:
             lowest local surface variation and PCA computation. (computes the normal vector as well)
