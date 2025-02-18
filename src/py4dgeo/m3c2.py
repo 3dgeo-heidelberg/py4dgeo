@@ -1,3 +1,4 @@
+from ast import List
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
@@ -22,9 +23,10 @@ logger = logging.getLogger("py4dgeo")
 class M3C2LikeAlgorithm(abc.ABC):
     def __init__(
         self,
-        epochs: typing.Tuple[Epoch, ...] = None,
-        corepoints: np.ndarray = None,
-        cyl_radii: typing.List[float] = None,
+        epochs: typing.Optional[typing.Tuple[Epoch, ...]] = None,
+        corepoints: typing.Optional[np.ndarray] = None,
+        cyl_radii: typing.Optional[List] = None,
+        cyl_radius: typing.Optional[float] = None,
         max_distance: float = 0.0,
         registration_error: float = 0.0,
         robust_aggr: bool = False,
@@ -32,6 +34,7 @@ class M3C2LikeAlgorithm(abc.ABC):
         self.epochs = epochs
         self.corepoints = corepoints
         self.cyl_radii = cyl_radii
+        self.cyl_radius = cyl_radius
         self.max_distance = max_distance
         self.registration_error = registration_error
         self.robust_aggr = robust_aggr
@@ -72,9 +75,19 @@ class M3C2LikeAlgorithm(abc.ABC):
     def calculate_distances(self, epoch1, epoch2):
         """Calculate the distances between two epochs"""
 
-        if self.cyl_radii is None or len(self.cyl_radii) != 1:
+        if isinstance(self.cyl_radii, typing.Iterable):
+            logger.warning(
+                "DEPRECATION: use cyl_radius instead of cyl_radii. In a future version, cyl_radii will be removed!"
+            )
+            if len(self.cyl_radii) != 1:
+                Py4DGeoError("cyl_radii must be a list containing a single float!")
+            elif self.cyl_radius is None:
+                self.cyl_radius = self.cyl_radii[0]
+            self.cyl_radii = None
+
+        if self.cyl_radius is None:
             raise Py4DGeoError(
-                f"{self.name} requires exactly one cylinder radius to be given"
+                f"{self.name} requires exactly one cylinder radius to be given as a float."
             )
 
         # Ensure that the KDTree data structures have been built. This is no-op
@@ -85,7 +98,7 @@ class M3C2LikeAlgorithm(abc.ABC):
 
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
-            self.cyl_radii[0],
+            self.cyl_radius,
             epoch1,
             epoch2,
             self.directions(),

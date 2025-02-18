@@ -47,7 +47,7 @@ def test_construct_from_epochs(epochs, tmp_path):
     m3c2 = M3C2(
         epochs=(ref_epoch, epoch1),
         corepoints=ref_epoch.cloud,
-        cyl_radii=[2.0],
+        cyl_radius=2.0,
         normal_radii=[2.0],
     )
 
