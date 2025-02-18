@@ -5,7 +5,7 @@ _cloudcompare_param_mapping = {
     "normalscale": "normal_radii",
     "registrationerror": "reg_error",
     "searchdepth": "max_distance",
-    "searchscale": "cyl_radii",
+    "searchscale": "cyl_radius",
     "usemedian": "robust_aggr",
 }
 
@@ -21,8 +21,8 @@ class CloudCompareM3C2(M3C2):
         # Apply changes that are not a mere renaming
 
         # Scale parameters are diameters in CloudCompare and radii in py4dgeo
-        if "cyl_radii" in py4dgeo_params:
-            py4dgeo_params["cyl_radii"] = py4dgeo_params["cyl_radii"] * 0.5
+        if "cyl_radius" in py4dgeo_params:
+            py4dgeo_params["cyl_radius"] = py4dgeo_params["cyl_radius"] * 0.5
         if "normal_radii" in py4dgeo_params:
             py4dgeo_params["normal_radii"] = tuple(
                 0.5 * r for r in py4dgeo_params["normal_radii"]

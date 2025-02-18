@@ -56,7 +56,7 @@ class M3C2EP(M3C2):
         print(self.name + " running")
         """Calculate the distances between two epochs"""
 
-        if not isinstance(self.cyl_radii, float):
+        if not isinstance(self.cyl_radius, float):
             raise Py4DGeoError(
                 f"{self.name} requires exactly one cylinder radius to be given"
             )
@@ -71,7 +71,7 @@ class M3C2EP(M3C2):
 
         # set default M3C2Meta
         M3C2Meta = {"searchrad": 0.5, "maxdist": 3, "minneigh": 5, "maxneigh": 100000}
-        M3C2Meta["searchrad"] = self.cyl_radii
+        M3C2Meta["searchrad"] = self.cyl_radius
         M3C2Meta["maxdist"] = self.max_distance
 
         M3C2Meta["spInfos"] = [epoch1.scanpos_info, epoch2.scanpos_info]
