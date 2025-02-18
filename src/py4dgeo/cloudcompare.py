@@ -22,9 +22,7 @@ class CloudCompareM3C2(M3C2):
 
         # Scale parameters are diameters in CloudCompare and radii in py4dgeo
         if "cyl_radii" in py4dgeo_params:
-            py4dgeo_params["cyl_radii"] = tuple(
-                0.5 * r for r in py4dgeo_params["cyl_radii"]
-            )
+            py4dgeo_params["cyl_radii"] = py4dgeo_params["cyl_radii"] * 0.5
         if "normal_radii" in py4dgeo_params:
             py4dgeo_params["normal_radii"] = tuple(
                 0.5 * r for r in py4dgeo_params["normal_radii"]

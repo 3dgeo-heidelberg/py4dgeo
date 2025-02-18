@@ -12,14 +12,16 @@ def test_cloudcompare_m3c2(epochs):
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
         cyl_radii=1.6,
-        normal_radii=(1.1,),
+        normal_radii=[
+            1.1,
+        ],
     )
 
     # Instantiate Cloud compare variant
     cc_m3c2 = CloudCompareM3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        searchscale=(3.2,),
+        searchscale=3.2,
         normalscale=(2.2,),
     )
 
