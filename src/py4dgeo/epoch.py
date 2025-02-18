@@ -141,18 +141,14 @@ class Epoch(_py4dgeo.Epoch):
         if self.kdtree.leaf_parameter() == 0:
             self.build_kdtree()
 
-        # Allocate memory for the normals
-        self._normals = np.empty(self.cloud.shape, dtype=np.float64)
-
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
         with logger_context("Calculating point cloud normals:"):
-            _py4dgeo.compute_multiscale_directions(
+            self._normals, _ = _py4dgeo.compute_multiscale_directions(
                 self,
                 self.cloud,
                 [radius],
                 orientation_vector,
-                self._normals,
             )
 
         return self.normals

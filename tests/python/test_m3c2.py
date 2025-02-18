@@ -85,3 +85,21 @@ def test_external_normals(epochs):
             normal_radii=(2.0,),
             corepoint_normals=np.array([[0, 0, 1], [0, 0, 1]]),
         ).run()
+
+
+def test_directions_radii(epochs):
+    epoch1, epoch2 = epochs
+    # Instantiate an M3C2 instance
+    m3c2 = M3C2(
+        epochs=(epoch1, epoch2),
+        corepoints=epoch1.cloud,
+        cyl_radii=(3.0,),
+        normal_radii=(1.0, 2.0, 3.0),
+    )
+
+    # Run it
+    m3c2.directions()
+
+    assert m3c2._directions_radii is not None
+    for i in range(m3c2.directions_radii().shape[0]):
+        assert m3c2.directions_radii()[i] in (1.0, 2.0, 3.0)

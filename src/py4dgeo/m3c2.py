@@ -141,6 +141,7 @@ class M3C2(M3C2LikeAlgorithm):
         )
         self.cloud_for_normals = cloud_for_normals
         self.corepoint_normals = corepoint_normals
+        self._directions_radii = None
         super().__init__(**kwargs)
 
     def directions(self):
@@ -168,9 +169,6 @@ class M3C2(M3C2LikeAlgorithm):
                 "M3C2 requires at least the MINIMUM memory policy level to compute multiscale normals"
             )
 
-        # Allocate the storage for the computed normals
-        self.corepoint_normals = np.empty(self.corepoints.shape, dtype=np.float64)
-
         # Find the correct epoch to use for normal calculation
         normals_epoch = self.cloud_for_normals
         if normals_epoch is None:
@@ -180,15 +178,24 @@ class M3C2(M3C2LikeAlgorithm):
         normals_epoch.build_kdtree()
 
         # Trigger the precomputation
-        _py4dgeo.compute_multiscale_directions(
-            normals_epoch,
-            self.corepoints,
-            self.normal_radii,
-            self.orientation_vector,
-            self.corepoint_normals,
+        self.corepoint_normals, self._directions_radii = (
+            _py4dgeo.compute_multiscale_directions(
+                normals_epoch,
+                self.corepoints,
+                self.normal_radii,
+                self.orientation_vector,
+            )
         )
 
         return self.corepoint_normals
+
+    def directions_radii(self):
+        if self._directions_radii is None:
+            raise ValueError(
+                "Radii are only available after calculating directions with py4dgeo."
+            )
+
+        return self._directions_radii
 
     @property
     def name(self):
