@@ -176,7 +176,6 @@ class M3C2(M3C2LikeAlgorithm):
 
         return self.corepoint_normals
 
-    @property
     def directions_radii(self):
         if self._directions_radii is None:
             raise ValueError(

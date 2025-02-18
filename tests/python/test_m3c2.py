@@ -102,5 +102,5 @@ def test_directions_radii(epochs):
     m3c2.directions()
 
     assert m3c2._directions_radii is not None
-    for i in range(m3c2.directions_radii.shape[0]):
-        assert m3c2._directions_radii[i] in (1.0, 2.0, 3.0)
+    for i in range(m3c2.directions_radii().shape[0]):
+        assert m3c2.directions_radii()[i] in (1.0, 2.0, 3.0)
