@@ -12,7 +12,7 @@ build-backend = "scikit_build_core.build"
 # single source of truth for py4dgeo's version
 [project]
 name = "py4dgeo"
-version = "0.6.0"
+version = "0.7.0"
 description = "Library for change detection in 4D point cloud data"
 readme = "README.md"
 maintainers = [
@@ -62,7 +62,7 @@ build-verbosity = 3
 # We restrict ourselves to recent Python versions.
 # We temporarily skip win32 builds, because lazrs
 # does not provide Win32 wheels.
-skip = "pp* *p27-* cp35-* cp36-* cp37-* *musllinux* *-win32"
+skip = "pp* *p27-* cp38-* *musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
