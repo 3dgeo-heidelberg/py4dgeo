@@ -1,4 +1,4 @@
-"""Fallback implementations for C++ components of the M3C2 algorithms """
+"""Fallback implementations for C++ components of the M3C2 algorithms"""
 
 from py4dgeo.m3c2 import M3C2
 
