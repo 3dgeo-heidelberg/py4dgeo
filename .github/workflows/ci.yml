@@ -18,7 +18,7 @@ jobs:
     runs-on: ${{matrix.os}}
     strategy:
       matrix:
-        os: [ubuntu-22.04, macos-13, macos-14, windows-2019]
+        os: [ubuntu-latest, macos-13, macos-latest, windows-latest]
         python-version: ["3.9", "3.13"]
         openmp: ['ON', 'OFF']
 
@@ -71,7 +71,7 @@ jobs:
 
   coverage-test:
     name: Coverage Testing
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
     - uses: actions/checkout@v4
@@ -137,7 +137,7 @@ jobs:
 
   address-sanitizer:
     name: Address sanitizer run
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     env:
       ASAN_OPTIONS: "detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
 
