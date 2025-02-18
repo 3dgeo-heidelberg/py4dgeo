@@ -45,7 +45,7 @@ def test_fallback_implementations(epochs, distance_callback, workingset_callback
     pym3c2 = CxxTestM3C2(
         epochs=epochs,
         corepoints=epochs[0].cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
         max_distance=6.0,
     )
@@ -54,7 +54,7 @@ def test_fallback_implementations(epochs, distance_callback, workingset_callback
     m3c2 = PythonTestM3C2(
         epochs=epochs,
         corepoints=epochs[0].cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
         max_distance=6.0,
     )
@@ -65,12 +65,12 @@ def test_fallback_implementations(epochs, distance_callback, workingset_callback
 def test_python_fallback_m3c2(epochs):
     # Instantiate a fallback M3C2 instance
     pym3c2 = PythonFallbackM3C2(
-        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
+        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=3.0, normal_radii=(2.0,)
     )
 
     # And a regular C++ based one
     m3c2 = M3C2(
-        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
+        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=3.0, normal_radii=(2.0,)
     )
 
     compare_algorithms(m3c2, pym3c2)
@@ -87,7 +87,7 @@ def test_python_exception_in_callback(epochs):
 
     # Instantiate it
     m3c2 = ExcM3C2(
-        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=(3.0,), normal_radii=(2.0,)
+        epochs=epochs, corepoints=epochs[0].cloud, cyl_radii=3.0, normal_radii=(2.0,)
     )
 
     # Running it should throw the proper exception despite taking a detour

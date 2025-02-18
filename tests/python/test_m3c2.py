@@ -7,16 +7,15 @@ import pytest
 @pytest.mark.parametrize("robust_aggr", (True, False))
 def test_m3c2(epochs, robust_aggr):
     epoch1, epoch2 = epochs
-
     # Try with wrong number of epochs
     with pytest.raises(Py4DGeoError):
-        M3C2(epochs=(epoch1,), corepoints=epoch1.cloud, cyl_radii=(1.0,))
+        M3C2(epochs=(epoch1,), corepoints=epoch1.cloud, cyl_radii=1.0)
 
     # Instantiate an M3C2 instance
     m3c2 = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
         robust_aggr=robust_aggr,
     )
@@ -28,7 +27,7 @@ def test_m3c2(epochs, robust_aggr):
     distances, uncertainties = M3C2(
         epochs=(epoch1, epoch1),
         corepoints=epoch1.cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
         robust_aggr=robust_aggr,
     ).run()
@@ -43,7 +42,7 @@ def test_minimal_m3c2(epochs):
     m3c2 = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
     )
 
@@ -57,7 +56,7 @@ def test_registration_error(epochs):
     m3c2 = M3C2(
         epochs=(epoch1, epoch1),
         corepoints=epoch1.cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
         registration_error=1.0,
     )
@@ -73,7 +72,7 @@ def test_external_normals(epochs):
     d, u = M3C2(
         epochs=(epoch1, epoch2),
         corepoints=epoch1.cloud,
-        cyl_radii=(3.0,),
+        cyl_radii=3.0,
         normal_radii=(2.0,),
         corepoint_normals=np.array([[0, 0, 1]]),
     ).run()
@@ -82,7 +81,7 @@ def test_external_normals(epochs):
         d, u = M3C2(
             epochs=(epoch1, epoch2),
             corepoints=epoch1.cloud,
-            cyl_radii=(3.0,),
+            cyl_radii=3.0,
             normal_radii=(2.0,),
             corepoint_normals=np.array([[0, 0, 1], [0, 0, 1]]),
         ).run()
