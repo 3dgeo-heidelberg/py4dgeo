@@ -24,12 +24,13 @@ scalability_benchmark(benchmark::State& state)
 
     std::vector<double> normal_radii{ 1.0 };
     EigenNormalSet directions(corepoints->rows(), 3);
+    std::vector<double> used_radii;
     EigenNormalSet orientation(1, 3);
     orientation << 0, 0, 1;
 
     // Precompute the multiscale directions
     compute_multiscale_directions(
-      epoch, *corepoints, normal_radii, orientation, directions);
+      epoch, *corepoints, normal_radii, orientation, directions, used_radii);
 
     // We try to test all callback combinations
     auto wsfinder = radius_workingset_finder;

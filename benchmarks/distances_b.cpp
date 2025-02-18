@@ -14,13 +14,14 @@ distances_benchmark(benchmark::State& state)
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
   std::vector<double> normal_radii{ 1.0 };
+  std::vector<double> used_radii;
   EigenNormalSet directions(corepoints->rows(), 3);
   EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
 
   // Precompute the multiscale directions
   compute_multiscale_directions(
-    epoch, *corepoints, normal_radii, orientation, directions);
+    epoch, *corepoints, normal_radii, orientation, directions, used_radii);
 
   // We try to test all callback combinations
   auto wsfinder = radius_workingset_finder;

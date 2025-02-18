@@ -19,8 +19,11 @@ compute_multiscale_directions(const Epoch& epoch,
                               EigenPointCloudConstRef corepoints,
                               const std::vector<double>& normal_radii,
                               EigenNormalSetConstRef orientation,
-                              EigenNormalSetRef result)
+                              EigenNormalSetRef result,
+                              std::vector<double>& used_radii)
 {
+  used_radii.resize(corepoints.rows());
+
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
   CallbackExceptionVault vault;
@@ -55,6 +58,7 @@ compute_multiscale_directions(const Epoch& epoch,
             (solver.eigenvectors().col(0).dot(orientation.row(0).transpose()));
           double sign = (prod < 0.0) ? -1.0 : 1.0;
           result.row(i) = sign * solver.eigenvectors().col(0);
+          used_radii[i] = radius;
         }
       }
     });
