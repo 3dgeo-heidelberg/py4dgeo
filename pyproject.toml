@@ -59,10 +59,13 @@ BUILD_TESTING = "OFF"
 # Super-verbose output for debugging purpose
 build-verbosity = 3
 
+# We only do 64 bit builds
+archs = ["auto64"]
+
 # We restrict ourselves to recent Python versions.
 # We temporarily skip win32 builds, because lazrs
 # does not provide Win32 wheels.
-skip = "pp* *p27-* cp38-* *musllinux* *-win32"
+skip = "pp* cp38-* *musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
