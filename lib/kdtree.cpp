@@ -2,6 +2,10 @@
 #include <omp.h>
 #endif
 
+#ifdef PY4DGEO_WITH_TBB
+#include <tbb/parallel_for.h>
+#endif
+
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
@@ -90,6 +94,26 @@ KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
   result.resize(cloud.rows());
   nanoflann::SearchParams params;
 
+#ifdef PY4DGEO_WITH_TBB
+  tbb::parallel_for(
+    tbb::blocked_range<IndexType>(0, cloud.rows()),
+    [&](const tbb::blocked_range<IndexType>& r) {
+      for (IndexType i = r.begin(); i < r.end(); ++i) {
+        std::pair<std::vector<IndexType>, std::vector<double>> pointResult;
+
+        std::vector<IndexType>& ret_indices = pointResult.first;
+        std::vector<double>& out_dists_sqr = pointResult.second;
+        ret_indices.resize(k);
+        out_dists_sqr.resize(k);
+
+        nanoflann::KNNResultSet<double, IndexType> resultset(k);
+        auto qp = cloud.row(i).eval();
+        resultset.init(ret_indices.data(), out_dists_sqr.data());
+        search->findNeighbors(resultset, &(qp(0, 0)), params);
+        result[i] = pointResult;
+      }
+    });
+#else
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
@@ -107,6 +131,7 @@ KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
     search->findNeighbors(resultset, &(qp(0, 0)), params);
     result[i] = pointResult;
   }
+#endif
 }
 
 void
@@ -117,6 +142,27 @@ KDTree::nearest_neighbors(EigenPointCloudConstRef cloud,
   result.resize(cloud.rows());
   nanoflann::SearchParams params;
 
+#ifdef PY4DGEO_WITH_TBB
+  tbb::parallel_for(tbb::blocked_range<IndexType>(0, cloud.rows()),
+                    [&](const tbb::blocked_range<IndexType>& r) {
+                      for (IndexType i = r.begin(); i < r.end(); ++i) {
+                        std::vector<IndexType> pointResult;
+                        std::vector<double> dis_skip;
+
+                        std::vector<IndexType>& ret_indices = pointResult;
+                        std::vector<double>& out_dists_sqr = dis_skip;
+                        ret_indices.resize(k);
+                        out_dists_sqr.resize(k);
+
+                        nanoflann::KNNResultSet<double, IndexType> resultset(k);
+                        auto qp = cloud.row(i).eval();
+                        resultset.init(ret_indices.data(),
+                                       out_dists_sqr.data());
+                        search->findNeighbors(resultset, &(qp(0, 0)), params);
+                        result[i] = pointResult;
+                      }
+                    });
+#else
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
@@ -135,6 +181,7 @@ KDTree::nearest_neighbors(EigenPointCloudConstRef cloud,
     search->findNeighbors(resultset, &(qp(0, 0)), params);
     result[i] = pointResult;
   }
+#endif
 }
 
 int

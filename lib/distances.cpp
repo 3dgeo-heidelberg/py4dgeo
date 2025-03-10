@@ -3,6 +3,9 @@
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/openmp.hpp"
+#ifdef PY4DGEO_WITH_TBB
+#include <tbb/parallel_for.h>
+#endif
 #include "py4dgeo/py4dgeo.hpp"
 
 #include <algorithm>
@@ -30,7 +33,37 @@ compute_distances(
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
   CallbackExceptionVault vault;
-#ifdef PY4DGEO_WITH_OPENMP
+
+#ifdef PY4DGEO_WITH_TBB
+  tbb::parallel_for(
+    tbb::blocked_range<IndexType>(0, corepoints.rows()),
+    [&](const tbb::blocked_range<IndexType>& r) {
+      for (IndexType i = r.begin(); i < r.end(); ++i) {
+        // Either choose the ith row or the first (if there is no per-corepoint
+        // direction)
+        auto dir = directions.row(directions.rows() > 1 ? i : 0);
+
+        WorkingSetFinderParameters params1{
+          epoch1, scale, corepoints.row(i), dir, max_distance
+        };
+        auto subset1 = workingsetfinder(params1);
+        WorkingSetFinderParameters params2{
+          epoch2, scale, corepoints.row(i), dir, max_distance
+        };
+        auto subset2 = workingsetfinder(params2);
+
+        // Distance calculation
+        DistanceUncertaintyCalculationParameters d_params{
+          subset1, subset2, corepoints.row(i), dir, registration_error
+        };
+        auto dist = distancecalculator(d_params);
+
+        // Write distances into the resulting array
+        distances[i] = std::get<0>(dist);
+        uncertainties[i] = std::get<1>(dist);
+      }
+    });
+#elif defined(PY4DGEO_WITH_OPENMP)
 #pragma omp parallel for schedule(dynamic, 1)
 #endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
