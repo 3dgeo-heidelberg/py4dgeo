@@ -1,5 +1,6 @@
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/kdtree.hpp"
+#include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
 #include <memory>
@@ -10,6 +11,7 @@ Epoch::Epoch(const EigenPointCloudRef& cloud_)
   : owned_cloud(nullptr)
   , cloud(cloud_)
   , kdtree(cloud_)
+  , octree(cloud_)
 {
 }
 
@@ -17,6 +19,7 @@ Epoch::Epoch(std::shared_ptr<EigenPointCloud> cloud_)
   : owned_cloud(cloud_)
   , cloud(*cloud_)
   , kdtree(*cloud_)
+  , octree(*cloud_)
 {
 }
 
@@ -29,13 +32,19 @@ Epoch::to_stream(std::ostream& stream) const
   stream.write(reinterpret_cast<const char*>(&cloud(0, 0)),
                sizeof(double) * rows * 3);
 
-  // Write the leaf parameter
-  int leaf_parameter = kdtree.leaf_parameter;
-  stream.write(reinterpret_cast<const char*>(&leaf_parameter), sizeof(int));
+  // Write the leaf parameters
+  int kd_leaf_parameter = kdtree.leaf_parameter;
+  int oc_leaf_parameter = octree.leaf_parameter;
+  stream.write(reinterpret_cast<const char*>(&kd_leaf_parameter), sizeof(int));
+  stream.write(reinterpret_cast<const char*>(&oc_leaf_parameter), sizeof(int));
 
-  // Write the search index iff the index was built
-  if (leaf_parameter != 0)
+  // Write the KDTree search index iff the index was built
+  if (kd_leaf_parameter != 0)
     kdtree.search->saveIndex(stream);
+
+  // Write the Octree search index iff the index was built
+  if (oc_leaf_parameter != 0)
+    octree.saveIndex(stream);
 
   return stream;
 }
@@ -53,8 +62,11 @@ Epoch::from_stream(std::istream& stream)
   // Create the epoch
   auto epoch = std::make_unique<Epoch>(cloud);
 
-  // Read the leaf parameter
+  // Read the leaf parameters
   stream.read(reinterpret_cast<char*>(&(epoch->kdtree.leaf_parameter)),
+              sizeof(int));
+
+  stream.read(reinterpret_cast<char*>(&(epoch->octree.leaf_parameter)),
               sizeof(int));
 
   // Read the search index iff the index was built
@@ -65,6 +77,10 @@ Epoch::from_stream(std::istream& stream)
       nanoflann::KDTreeSingleIndexAdaptorParams(epoch->kdtree.leaf_parameter));
     epoch->kdtree.search->loadIndex(stream);
   }
+
+  // Load Octree iff it was built
+  if (epoch->octree.leaf_parameter != 0)
+    epoch->octree.loadIndex(stream);
 
   return epoch;
 }

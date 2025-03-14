@@ -1,16 +1,17 @@
 #pragma once
 
 #include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
 
 namespace py4dgeo {
 
 /** @brief A data structure representing an epoch
  *
- * It stores the point cloud itself (without taking ownership of it) and
- * the KDTree (with ownership). In the future, relevant metadata fields can
- * be easily added to this data structure without changing any signatures
- * that depend on Epoch.
+ * Stores the point cloud itself (without taking ownership of it) and
+ * provides two search trees: a KDTree for nearest neighbor searches and
+ * an Octree for radius searches. This structure allows efficient spatial
+ * queries without duplicating data.
  */
 class Epoch
 {
@@ -32,6 +33,7 @@ public:
   // realized through getter methods.
   EigenPointCloudRef cloud;
   KDTree kdtree;
+  Octree octree;
 
   // We can add a collection of metadata here
 };
