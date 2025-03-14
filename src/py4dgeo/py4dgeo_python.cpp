@@ -11,6 +11,7 @@
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/kdtree.hpp"
+#include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 #include "py4dgeo/registration.hpp"
@@ -64,9 +65,10 @@ PYBIND11_MODULE(_py4dgeo, m)
   // garbage collected as long as the Epoch object is alive
   epoch.def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>());
 
-  // We can directly access the point cloud and the kdtree
+  // We can directly access the point cloud, the kdtree and the octree
   epoch.def_readwrite("_cloud", &Epoch::cloud);
   epoch.def_readwrite("_kdtree", &Epoch::kdtree);
+  epoch.def_readwrite("_octree", &Epoch::octree);
 
   // Pickling support for the Epoch class
   epoch.def(py::pickle(
@@ -84,8 +86,14 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Expose the KDTree class
   py::class_<KDTree> kdtree(m, "KDTree", py::buffer_protocol());
 
+  // Expose the Octree class
+  py::class_<Octree> octree(m, "Octree", py::buffer_protocol());
+  
   // Map __init__ to constructor
   kdtree.def(py::init<>(&KDTree::create));
+
+  // Map __init__ to constructor
+  octree.def(py::init<>(&Octree::create));
 
   // Allow updating KDTree from a given file
   kdtree.def("load_index", [](KDTree& self, std::string filename) {
@@ -101,15 +109,15 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   // Allow building the KDTree structure
   kdtree.def(
-    "build_tree", &KDTree::build_tree, "Trigger building the search tree");
+    "build_tree", &KDTree::build_tree, "Trigger building the search k-d tree");
 
   // Allow invalidating the KDTree structure
-  kdtree.def("invalidate", &KDTree::invalidate, "Invalidate the search tree");
+  kdtree.def("invalidate", &KDTree::invalidate, "Invalidate the search k-d tree");
 
-  // Give access to the leaf parameter that the tree has been built with
+  // Give access to the leaf parameter that the k-d tree has been built with
   kdtree.def("leaf_parameter",
              &KDTree::get_leaf_parameter,
-             "Retrieve the leaf parameter that the tree has been built with.");
+             "Retrieve the leaf parameter that the k-d tree has been built with.");
 
   // Add all the radius search methods
   kdtree.def(
@@ -154,6 +162,46 @@ PYBIND11_MODULE(_py4dgeo, m)
     // users to pickle Epoch instead, which is the much cleaner solution.
     throw std::runtime_error{
       "Please pickle Epoch instead of KDTree. Otherwise unpickled KDTree does "
+      "not know the point cloud."
+    };
+  });
+
+  // Allow building the Octree structure
+  octree.def(
+    "build_tree", &Octree::build_tree, "Trigger building the search octree");
+
+  // Allow invalidating the Octree structure
+  octree.def("invalidate", &Octree::invalidate, "Invalidate the search octree");
+
+  // Allow extraction of number of points
+  octree.def("get_number_of_points", &Octree::get_number_of_points, "Return the number of points in the associated cloud");
+
+  // Allow extraction of cube size
+  octree.def("get_cube_size", &Octree::get_cube_size, "Return the side length of the bounding cube");
+
+  // Allow extraction of min point
+  octree.def("get_min_point", &Octree::get_min_point, "Return the minimum point of the bounding cube");
+
+  // Allow extraction of max point
+  octree.def("get_max_point", &Octree::get_max_point, "Return the maximum point of the bounding cube");
+
+  // Allow extraction of cell sizes
+  octree.def("get_cell_size", &Octree::get_cell_size, "Return the size of cells at a level of depth");
+
+  // Allow extraction of spatial keys
+  octree.def("get_spatial_keys", &Octree::get_spatial_keys, "Return the computed spatial keys");
+
+  // Allow extraction of point indices
+  octree.def("get_point_indices", &Octree::get_point_indices, "Return the sorted point indices");
+
+  // Pickling support for the Octree data structure
+  octree.def("__getstate__", [](const Octree&) {
+    // If a user pickles Octree itself, we end up redundantly storing
+    // the point cloud itself, because the Octree is only usable with the
+    // cloud (scipy does exactly the same). We solve the problem by asking
+    // users to pickle Epoch instead, which is the much cleaner solution.
+    throw std::runtime_error{
+      "Please pickle Epoch instead of Octree. Otherwise unpickled Octree does "
       "not know the point cloud."
     };
   });

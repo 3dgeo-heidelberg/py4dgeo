@@ -109,10 +109,20 @@ class Epoch(_py4dgeo.Epoch):
     def kdtree(self):
         return self._kdtree
 
+    @property
+    def octree(self):
+        return self._octree
+
     @kdtree.setter
     def kdtree(self, kdtree):
         raise Py4DGeoError(
             "The KDTree of an Epoch cannot be changed after initialization."
+        )
+
+    @octree.setter
+    def octree(self, octree):
+        raise Py4DGeoError(
+            "The Octree of an Epoch cannot be changed after initialization."
         )
 
     @property
