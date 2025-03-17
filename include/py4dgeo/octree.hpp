@@ -74,6 +74,9 @@ private:
   //! Cell size as a function of depth level
   std::array<double, max_depth + 1> cell_size;
 
+  //! Average amount of points per depth level
+  std::array<double, max_depth + 1> average_points_per_level;
+
   //! Allow the Epoch class to directly call the private constructor
   friend Epoch;
 
@@ -95,6 +98,9 @@ private:
    */
   void compute_bounding_cube();
 
+  /** @brief Computes the average number of points for all depth levels. */
+  void compute_average_number_of_points();
+
   /**
    * @brief Computes a unique spatial key (Z-order value) for a given point.
    *
@@ -113,7 +119,8 @@ private:
   /**
    * @brief Finds all neighboring Octree cells at a given depth level.
    *
-   * This function identifies all neighboring cells with the same level of depth.
+   * This function identifies all neighboring cells with the same level of
+   * depth.
    *
    * @param truncated_key The truncated spatial key of the query cell at the
    * given level.
@@ -156,23 +163,32 @@ public:
    * not sorted according to distance.
    */
   void radius_search(const double* querypoint,
-                            double radius,
-                            RadiusSearchResult& result) const;
+                     double radius,
+                     RadiusSearchResult& result) const;
 
   /** @brief Return the number of points in the associated cloud */
-  inline const unsigned int get_number_of_points() const;
+  inline unsigned int get_number_of_points() const { return number_of_points; };
 
   /** @brief Return the side length of the bounding cube */
-  double const get_cube_size() const;
+  inline double get_cube_size() const { return cube_size; };
 
   /** @brief Return the minimum point of the bounding cube */
-  Eigen::Vector3d const get_min_point() const;
+  inline Eigen::Vector3d get_min_point() const { return min_point; };
 
   /** @brief Return the maximum point of the bounding cube */
-  Eigen::Vector3d const get_max_point() const;
+  inline Eigen::Vector3d get_max_point() const { return max_point; };
 
   /** @brief Return the size of cells at a level of depth */
-  inline const double get_cell_size(unsigned int level) const;
+  inline double get_cell_size(unsigned int level) const
+  {
+    return cell_size[level];
+  };
+
+  /** @brief Return the average amount of points per level of depth */
+  inline double get_average_points_per_level(unsigned int level) const
+  {
+    return average_points_per_level[level];
+  };
 
   //! @brief Get all spatial keys (Z-order values) of the octree
   //! @return Vector of spatial keys (Z-order values)
@@ -182,6 +198,39 @@ public:
   //! @return Vector of point indices
   std::vector<IndexType> get_point_indices() const;
 
+  /**
+   * @brief Returns the index of a cell in the sorted array of point indices and
+   * point spatial keys
+   *
+   * @param key The spatial key of the query cell
+   * @param level The Octree depth level of the query cell
+   * @param start_index Optional start index
+   * @return The index of first occurrence of the cell spatial key
+   */
+  IndexType get_cell_index(SpatialKey key,
+                           unsigned int level,
+                           IndexType start_index = 0) const;
+
+  /**
+   * @brief Returns the position of the base of a cell at a certain level
+   *
+   * @param key The spatial key of the query cell
+   * @param level The Octree depth level of the query cell
+   * @return A vector to the base of the cell
+   */
+  Eigen::Vector3d get_cell_position(SpatialKey key, unsigned int level) const;
+
+  /**
+   * @brief Returns a vector of indices and spatial keys of points lying in
+   * multiple cells on a certain depth level
+   *
+   * @param keys The spatial keys of the query cell
+   * @param level The Octree depth level of the query cell
+   * @return vector of IndexAndKey
+   */
+  std::vector<IndexAndKey> get_points_indices_from_cells(
+    std::vector<SpatialKey> keys,
+    unsigned int level) const;
 };
 
 } // namespace py4dgeo

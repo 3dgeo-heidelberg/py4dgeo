@@ -88,7 +88,7 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   // Expose the Octree class
   py::class_<Octree> octree(m, "Octree", py::buffer_protocol());
-  
+
   // Map __init__ to constructor
   kdtree.def(py::init<>(&KDTree::create));
 
@@ -112,12 +112,14 @@ PYBIND11_MODULE(_py4dgeo, m)
     "build_tree", &KDTree::build_tree, "Trigger building the search k-d tree");
 
   // Allow invalidating the KDTree structure
-  kdtree.def("invalidate", &KDTree::invalidate, "Invalidate the search k-d tree");
+  kdtree.def(
+    "invalidate", &KDTree::invalidate, "Invalidate the search k-d tree");
 
   // Give access to the leaf parameter that the k-d tree has been built with
-  kdtree.def("leaf_parameter",
-             &KDTree::get_leaf_parameter,
-             "Retrieve the leaf parameter that the k-d tree has been built with.");
+  kdtree.def(
+    "leaf_parameter",
+    &KDTree::get_leaf_parameter,
+    "Retrieve the leaf parameter that the k-d tree has been built with.");
 
   // Add all the radius search methods
   kdtree.def(
@@ -174,25 +176,85 @@ PYBIND11_MODULE(_py4dgeo, m)
   octree.def("invalidate", &Octree::invalidate, "Invalidate the search octree");
 
   // Allow extraction of number of points
-  octree.def("get_number_of_points", &Octree::get_number_of_points, "Return the number of points in the associated cloud");
+  octree.def("get_number_of_points",
+             &Octree::get_number_of_points,
+             "Return the number of points in the associated cloud");
 
   // Allow extraction of cube size
-  octree.def("get_cube_size", &Octree::get_cube_size, "Return the side length of the bounding cube");
+  octree.def("get_cube_size",
+             &Octree::get_cube_size,
+             "Return the side length of the bounding cube");
 
   // Allow extraction of min point
-  octree.def("get_min_point", &Octree::get_min_point, "Return the minimum point of the bounding cube");
+  octree.def("get_min_point",
+             &Octree::get_min_point,
+             "Return the minimum point of the bounding cube");
 
   // Allow extraction of max point
-  octree.def("get_max_point", &Octree::get_max_point, "Return the maximum point of the bounding cube");
+  octree.def("get_max_point",
+             &Octree::get_max_point,
+             "Return the maximum point of the bounding cube");
 
   // Allow extraction of cell sizes
-  octree.def("get_cell_size", &Octree::get_cell_size, "Return the size of cells at a level of depth");
+  octree.def("get_cell_size",
+             &Octree::get_cell_size,
+             "Return the size of cells at a level of depth");
+
+  // Allow extraction of average amount of points
+  octree.def("get_average_points_per_level",
+             &Octree::get_average_points_per_level,
+             "Return the average amount of points per level of depth");
 
   // Allow extraction of spatial keys
-  octree.def("get_spatial_keys", &Octree::get_spatial_keys, "Return the computed spatial keys");
+  octree.def("get_spatial_keys",
+             &Octree::get_spatial_keys,
+             "Return the computed spatial keys");
 
   // Allow extraction of point indices
-  octree.def("get_point_indices", &Octree::get_point_indices, "Return the sorted point indices");
+  octree.def("get_point_indices",
+             &Octree::get_point_indices,
+             "Return the sorted point indices");
+
+  // Allow computation of cell position
+  octree.def(
+    "get_cell_position",
+    &Octree::get_cell_position,
+    "Compute the base position of a cell from its spatial key and level");
+
+  // Allow cell index computation
+  octree.def("get_cell_index",
+             &Octree::get_cell_index,
+             "Return the index of a cell in the sorted array of point indices "
+             "and point spatial keys");
+
+  // Allow extraction from points in cell
+  octree.def(
+    "get_points_indices_from_cells",
+    [](const Octree& self,
+       std::vector<Octree::SpatialKey> keys,
+       unsigned int level) {
+      std::vector<Octree::IndexAndKey> result =
+        self.get_points_indices_from_cells(keys, level);
+      size_t num_points = result.size();
+
+      // Create NumPy arrays for indices and keys
+      py::array_t<uint64_t> indices_array(num_points);
+      py::array_t<uint64_t> keys_array(num_points);
+
+      auto indices_ptr = indices_array.mutable_data();
+      auto keys_ptr = keys_array.mutable_data();
+
+      // Fill the arrays
+      for (size_t i = 0; i < num_points; ++i) {
+        indices_ptr[i] = result[i].index;
+        keys_ptr[i] = result[i].key;
+      }
+
+      return std::make_pair(indices_array, keys_array);
+    },
+    "Retrieve point indices and spatial keys for a given cell",
+    py::arg("spatial_key"),
+    py::arg("level"));
 
   // Pickling support for the Octree data structure
   octree.def("__getstate__", [](const Octree&) {

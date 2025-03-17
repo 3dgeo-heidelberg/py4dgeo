@@ -1,6 +1,7 @@
 #ifdef PY4DGEO_WITH_OPENMP
 #include <omp.h>
 #endif
+#include <bitset> // Include for bitset
 
 #include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
@@ -43,6 +44,22 @@ Octree::compute_bounding_cube()
   for (int i = 1; i <= max_depth; i++) {
     cell_size[i] = cell_size[i - 1] * 0.5;
   }
+}
+
+void
+Octree::compute_average_number_of_points()
+{
+  /*
+  average_points_per_level[0] = number_of_points;
+
+  double sum;
+  for (size_t l = 1; l <= max_depth; ++l) {
+    for (IndexType i = 0; i < indexed_keys.size(); ++i) {
+
+    }
+  average_points_per_level[l] = sum / ;
+  }
+  */
 }
 
 Octree::SpatialKey
@@ -92,11 +109,13 @@ Octree::invalidate()
 {
   number_of_points = 0;
   cube_size = 0.0;
-  min_point.setZero();
-  max_point.setZero();
+  min_point = max_point = Eigen::Vector3d::Zero();
 
   indexed_keys.clear();
   indexed_keys.shrink_to_fit();
+
+  std::fill(
+    average_points_per_level.begin(), average_points_per_level.end(), 0.0);
 }
 
 void
@@ -105,36 +124,6 @@ Octree::radius_search(const double* query,
                       RadiusSearchResult& result) const
 {
   // TODO
-}
-
-double const
-Octree::get_cube_size() const
-{
-  return cube_size;
-}
-
-Eigen::Vector3d const
-Octree::get_min_point() const
-{
-  return min_point;
-}
-
-Eigen::Vector3d const
-Octree::get_max_point() const
-{
-  return max_point;
-}
-
-inline const unsigned int
-Octree::get_number_of_points() const
-{
-  return number_of_points;
-}
-
-inline const double
-Octree::get_cell_size(unsigned int level) const
-{
-  return cell_size[level];
 }
 
 std::vector<Octree::SpatialKey>
@@ -157,6 +146,101 @@ Octree::get_point_indices() const
     indices.push_back(entry.index);
   }
   return indices;
+}
+
+IndexType
+Octree::get_cell_index(Octree::SpatialKey key,
+                       unsigned int level,
+                       IndexType start_index) const
+{
+  assert(level <= max_depth);
+
+  // Truncate the key ONCE
+  SpatialKey truncated_key = key >> (3 * (max_depth - level));
+
+  // Perform binary search for the first occurrence of the truncated key
+  auto it = std::lower_bound(indexed_keys.begin() + start_index,
+                             indexed_keys.end(),
+                             truncated_key, // Use only the truncated query key
+                             [level, this](const IndexAndKey& a, SpatialKey b) {
+                               return (a.key >> (3 * (max_depth - level))) < b;
+                             });
+
+  // Ensure the found key actually matches the truncated query key
+  if (it != indexed_keys.end() &&
+      (it->key >> (3 * (max_depth - level))) == truncated_key) {
+    return std::distance(indexed_keys.begin(), it);
+  }
+
+  return -1; // Cell not found
+}
+
+Eigen::Vector3d
+Octree::get_cell_position(Octree::SpatialKey key, unsigned int level) const
+{
+  assert(level <= max_depth);
+
+  Eigen::Vector3d position = min_point;
+  printf("Function called with level: %d\n", level);
+  printf("Full spatial key: %s\n", std::bitset<64>(key).to_string().c_str());
+  fflush(stdout);
+
+  for (int l = level; l > 0; --l) {
+    SpatialKey x_bit = (key >> (3 * (max_depth - l))) & 1;     // Extract x bit
+    SpatialKey y_bit = (key >> (3 * (max_depth - l) + 1)) & 1; // Extract y bit
+    SpatialKey z_bit = (key >> (3 * (max_depth - l) + 2)) & 1; // Extract z bit
+
+    printf("Level %d - Extracted bits: X: %d, Y: %d, Z: %d | cs = %g\n",
+           l,
+           x_bit,
+           y_bit,
+           z_bit,
+           cell_size[l]);
+    fflush(stdout);
+
+    Eigen::Vector3d step(x_bit, y_bit, z_bit);
+    position += step * cell_size[l];
+  }
+
+  return position;
+}
+
+std::vector<Octree::IndexAndKey>
+Octree::get_points_indices_from_cells(std::vector<Octree::SpatialKey> keys,
+                                      unsigned int level) const
+{
+  assert(level <= max_depth);
+
+  std::vector<IndexAndKey> result;
+
+  // Ensure input keys are sorted to optimize search (optional)
+  std::sort(keys.begin(), keys.end());
+  IndexType current_start = 0; // Start search from beginning
+
+  for (const SpatialKey& key : keys) {
+    // Find the first occurrence of the cell
+    IndexType first_index = get_cell_index(key, level, current_start);
+    if (first_index == -1) // Not found
+      continue;
+
+    // Truncate the key at the given level
+    SpatialKey truncated_key = key >> (3 * (max_depth - level));
+
+    // Iterate forward to collect all points in the same cell
+    for (IndexType i = first_index; i < indexed_keys.size(); ++i) {
+      SpatialKey current_truncated =
+        indexed_keys[i].key >> (3 * (max_depth - level));
+      if (current_truncated != truncated_key)
+        break; // Stop when reaching a different cell
+
+      result.push_back(indexed_keys[i]);
+    }
+
+    // Update search start index for the next key
+    current_start = first_index;
+  }
+
+  return result;
 }
 
 } // namespace py4dgeo
