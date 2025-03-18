@@ -49,17 +49,60 @@ Octree::compute_bounding_cube()
 void
 Octree::compute_average_number_of_points()
 {
-  /*
-  average_points_per_level[0] = number_of_points;
+  occupied_cells_per_level[0] = 1;
+  max_cell_population_per_level[0] = static_cast<double>(number_of_points);
+  ;
+  average_cell_population_per_level[0] = static_cast<double>(number_of_points);
+  std_cell_population_per_level[0] = 0.0;
 
-  double sum;
-  for (size_t l = 1; l <= max_depth; ++l) {
+  for (size_t level = 1; level <= max_depth; ++level) {
+    unsigned int bitShift = 3 * (max_depth - level);
+
+    unsigned int unique_cells = 0;
+    unsigned int max_population = 0;
+    double sum = 0.0;
+    double sum2 = 0.0;
+    unsigned int current_cell_population = 0;
+
+    // Initialize with the first element's truncated key.
+    SpatialKey previous_key = indexed_keys[0].key >> bitShift;
+    current_cell_population = 1; // Count the first point.
+
     for (IndexType i = 0; i < indexed_keys.size(); ++i) {
+      SpatialKey current_key = indexed_keys[i].key >> bitShift;
+      if (current_key == previous_key) {
+        current_cell_population++;
+      } else {
+        // New cell encountered
+        unique_cells++;
+        sum += current_cell_population;
+        sum2 += static_cast<double>(current_cell_population) *
+                current_cell_population;
+        if (current_cell_population > max_population)
+          max_population = current_cell_population;
 
+        // Reset for the new cell.
+        previous_key = current_key;
+        current_cell_population = 1;
+      }
     }
-  average_points_per_level[l] = sum / ;
+    // Process the final cell.
+    unique_cells++;
+    sum += current_cell_population;
+    sum2 +=
+      static_cast<double>(current_cell_population) * current_cell_population;
+    if (current_cell_population > max_population)
+      max_population = current_cell_population;
+
+    // Store computed statistics for this level.
+    occupied_cells_per_level[level] = unique_cells;
+    max_cell_population_per_level[level] = max_population;
+    average_cell_population_per_level[level] =
+      static_cast<double>(indexed_keys.size()) / unique_cells;
+    std_cell_population_per_level[level] = std::sqrt(
+      sum2 / unique_cells - average_cell_population_per_level[level] *
+                              average_cell_population_per_level[level]);
   }
-  */
 }
 
 Octree::SpatialKey
@@ -102,6 +145,9 @@ Octree::build_tree()
 
   // Step 2: Sort the indexed keys by Z-order value
   std::sort(indexed_keys.begin(), indexed_keys.end());
+
+  // Step 3: Compute related properties (max cell population, avg, ...)
+  compute_average_number_of_points();
 }
 
 void
@@ -115,21 +161,31 @@ Octree::invalidate()
   indexed_keys.shrink_to_fit();
 
   std::fill(
-    average_points_per_level.begin(), average_points_per_level.end(), 0.0);
+    occupied_cells_per_level.begin(), occupied_cells_per_level.end(), 0.0);
+  std::fill(max_cell_population_per_level.begin(),
+            max_cell_population_per_level.end(),
+            0.0);
+  std::fill(average_cell_population_per_level.begin(),
+            average_cell_population_per_level.end(),
+            0.0);
+  std::fill(std_cell_population_per_level.begin(),
+            std_cell_population_per_level.end(),
+            0.0);
 }
 
 void
-Octree::radius_search(const double* query,
+Octree::radius_search(Eigen::Vector3d& query,
                       double radius,
+                      unsigned int level,
                       RadiusSearchResult& result) const
 {
   // TODO
 }
 
-std::vector<Octree::SpatialKey>
+Octree::KeyContainer
 Octree::get_spatial_keys() const
 {
-  std::vector<SpatialKey> keys;
+  Octree::KeyContainer keys;
   keys.reserve(indexed_keys.size());
   for (const auto& entry : indexed_keys) {
     keys.push_back(entry.key);
@@ -205,16 +261,108 @@ Octree::get_cell_position(Octree::SpatialKey key, unsigned int level) const
   return position;
 }
 
-std::vector<Octree::IndexAndKey>
-Octree::get_points_indices_from_cells(std::vector<Octree::SpatialKey> keys,
-                                      unsigned int level) const
+std::size_t
+Octree::get_cells_intersected_by_sphere(Eigen::Vector3d& querypoint,
+                                        double radius,
+                                        unsigned int level,
+                                        KeyContainer& result) const
+{
+  // Clear previous results.
+  result.clear();
+
+  // Number of cells per axis at this level is 2^level.
+  const unsigned int num_cells = 1u << level;
+  const double cellSize = cell_size[level];
+
+  // Compute the AABB of the sphere.
+  Eigen::Vector3d sphere_min = querypoint - Eigen::Vector3d::Constant(radius);
+  Eigen::Vector3d sphere_max = querypoint + Eigen::Vector3d::Constant(radius);
+
+  // Helper: compute index range along a given axis.
+  auto compute_index_range =
+    [this, cellSize, num_cells](double coord_min, double coord_max, int axis)
+    -> std::pair<unsigned int, unsigned int> {
+    int i_min =
+      static_cast<int>(std::floor((coord_min - min_point[axis]) / cellSize));
+    int i_max =
+      static_cast<int>(std::floor((coord_max - min_point[axis]) / cellSize));
+    if (i_min < 0)
+      i_min = 0;
+    if (i_max >= static_cast<int>(num_cells))
+      i_max = num_cells - 1;
+    return { static_cast<unsigned int>(i_min),
+             static_cast<unsigned int>(i_max) };
+  };
+
+  // Compute index ranges for x, y, and z.
+  auto [imin, imax] = compute_index_range(sphere_min.x(), sphere_max.x(), 0);
+  auto [jmin, jmax] = compute_index_range(sphere_min.y(), sphere_max.y(), 1);
+  auto [kmin, kmax] = compute_index_range(sphere_min.z(), sphere_max.z(), 2);
+
+  // Precompute the squared radius.
+  const double radiusSq = radius * radius;
+
+  // Lambda to check sphere-AABB intersection for a cell.
+  auto sphereIntersectsCell =
+    [this, &querypoint, cellSize, radiusSq](
+      unsigned int i, unsigned int j, unsigned int k) -> bool {
+    // Compute the cell's axis-aligned bounding box.
+    Eigen::Vector3d cell_min =
+      min_point + Eigen::Vector3d(i * cellSize, j * cellSize, k * cellSize);
+    Eigen::Vector3d cell_max =
+      cell_min + Eigen::Vector3d(cellSize, cellSize, cellSize);
+    double distSq = 0.0;
+    // For each axis, add the squared distance if querypoint is outside the
+    // cell.
+    for (int d = 0; d < 3; ++d) {
+      double v = querypoint[d];
+      if (v < cell_min[d]) {
+        double diff = cell_min[d] - v;
+        distSq += diff * diff;
+      } else if (v > cell_max[d]) {
+        double diff = v - cell_max[d];
+        distSq += diff * diff;
+      }
+    }
+    return distSq <= radiusSq;
+  };
+
+  // Iterate over all cells in the AABB.
+  for (unsigned int i = imin; i <= imax; ++i) {
+    for (unsigned int j = jmin; j <= jmax; ++j) {
+      for (unsigned int k = kmin; k <= kmax; ++k) {
+        if (sphereIntersectsCell(i, j, k)) {
+          Eigen::Vector3d cell_center =
+            min_point + Eigen::Vector3d((i + 0.5) * cellSize,
+                                        (j + 0.5) * cellSize,
+                                        (k + 0.5) * cellSize);
+          // Compute the full Morton key using the existing function.
+          SpatialKey full_key = compute_spatial_key(cell_center);
+          // Truncate the key to the desired level.
+          SpatialKey cellKey = full_key >> (3 * (max_depth - level));
+          result.push_back(cellKey);
+        }
+      }
+    }
+  }
+
+  return result.size();
+}
+
+std::size_t
+Octree::get_points_indices_from_cells(
+  const std::vector<Octree::SpatialKey>& keys,
+  unsigned int level,
+  Octree::PointContainer& result) const
 {
   assert(level <= max_depth);
 
-  std::vector<IndexAndKey> result;
+  // Check that keys is sorted
+  assert(std::is_sorted(keys.begin(), keys.end()));
 
-  // Ensure input keys are sorted to optimize search (optional)
-  std::sort(keys.begin(), keys.end());
+  // Clear the passed-in result vector.
+  result.clear();
+
   IndexType current_start = 0; // Start search from beginning
 
   for (const SpatialKey& key : keys) {
@@ -240,7 +388,33 @@ Octree::get_points_indices_from_cells(std::vector<Octree::SpatialKey> keys,
     current_start = first_index;
   }
 
-  return result;
+  return result.size();
+  ;
+}
+
+unsigned int
+Octree::find_appropriate_level_for_radius_search(double radius) const
+{
+  double aim = radius / 2.5; // CC uses r/2.5
+
+  unsigned int best_level = 1;
+  double diff = cell_size[1] - aim;
+  double min_diff_sq = diff * diff;
+
+  for (size_t level = 2; level <= max_depth; ++level) {
+    if (average_cell_population_per_level[level] < 1.5) // Threshold from CC
+      break;
+
+    diff = cell_size[level] - aim;
+    double diff_sq = diff * diff;
+
+    if (diff_sq < min_diff_sq) {
+      best_level = level;
+      min_diff_sq = diff_sq;
+    }
+  }
+
+  return best_level;
 }
 
 } // namespace py4dgeo

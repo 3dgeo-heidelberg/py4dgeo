@@ -23,19 +23,6 @@ class Epoch;
 class Octree
 {
 public:
-  //! Return type used for radius searches
-  using RadiusSearchResult = std::vector<IndexType>;
-
-  //! Return type used for radius searches that export calculated distances
-  using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
-
-  //! Return type used for nearest neighbor with Euclidian distances searches
-  using NearestNeighborsDistanceResult =
-    std::vector<std::pair<std::vector<IndexType>, std::vector<double>>>;
-
-  //! Return type used for nearest neighbor searches
-  using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
-
   //! Alias for the spatial key type used for Z-order value encoding
   using SpatialKey = uint64_t; // 16-bit allows 5 depth levels, 32-bit allows 10
                                // levels, 64-bit allows 21 levels
@@ -50,6 +37,25 @@ public:
     bool operator<(const IndexAndKey& other) const { return key < other.key; }
   };
 
+  //! Return type used for radius searches
+  using RadiusSearchResult = std::vector<IndexType>;
+
+  //! Return type used for point
+  using PointContainer = std::vector<IndexAndKey>;
+
+  //! Return type used for cell searches
+  using KeyContainer = std::vector<SpatialKey>;
+
+  //! Return type used for radius searches that export calculated distances
+  using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
+
+  //! Return type used for nearest neighbor with Euclidian distances searches
+  using NearestNeighborsDistanceResult =
+    std::vector<std::pair<std::vector<IndexType>, std::vector<double>>>;
+
+  //! Return type used for nearest neighbor searches
+  using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
+
 private:
   //! Reference to the point cloud
   EigenPointCloudRef cloud;
@@ -58,7 +64,7 @@ private:
 
   //! Pairs of spatial key (Z-order values) and corresponding index, sorted by
   //! z-order value
-  std::vector<IndexAndKey> indexed_keys;
+  PointContainer indexed_keys;
 
   //! Min point of the bounding cube
   Eigen::Vector3d min_point;
@@ -74,8 +80,17 @@ private:
   //! Cell size as a function of depth level
   std::array<double, max_depth + 1> cell_size;
 
-  //! Average amount of points per depth level
-  std::array<double, max_depth + 1> average_points_per_level;
+  //! Number of occupied cells per depth level
+  std::array<unsigned int, max_depth + 1> occupied_cells_per_level;
+
+  //! Maximum number of points per depth level
+  std::array<unsigned int, max_depth + 1> max_cell_population_per_level;
+
+  //! Average number of points per depth level
+  std::array<double, max_depth + 1> average_cell_population_per_level;
+
+  //! Standard deviation of points per depth level
+  std::array<double, max_depth + 1> std_cell_population_per_level;
 
   //! Allow the Epoch class to directly call the private constructor
   friend Epoch;
@@ -111,6 +126,7 @@ private:
    * position in the Octree.
    *
    * @param point The 3D point for which to compute the spatial key.
+   *
    * @return A SpatialKey (unsigned integer) representing the spatial key of the
    * point.
    */
@@ -125,10 +141,10 @@ private:
    * @param truncated_key The truncated spatial key of the query cell at the
    * given level.
    * @param level The Octree depth level at which to find neighboring cells.
+   *
    * @return A vector of spatial keys representing neighboring cells.
    */
-  std::vector<SpatialKey> find_neighbors(SpatialKey truncated_key,
-                                         int level) const;
+  KeyContainer find_neighbors(SpatialKey truncated_key, int level) const;
 
 public:
   /** @brief Construct instance of Octree from a given point cloud
@@ -150,20 +166,29 @@ public:
   /**
    * @brief Clears the Octree structure, effectively resetting it.
    *
-   * This function deallocates all nodes in the Octree by setting the root node
-   * to nullptr. This operation invalidates the current Octree, requiring it
-   * to be rebuilt before further use.
+   * This function deallocates all nodes in the Octree by clearing
+   * the sorted arroy of indices and keys. This operation invalidates
+   * the current Octree, requiring it to be rebuilt before further use.
    */
   void invalidate();
 
-  /** @brief Perform radius search around given query point
+  /** @brief Peform radius search around given query point
    *
    * This method determines all the points from the point cloud within the given
    * radius of the query point. It returns only the indices and the result is
    * not sorted according to distance.
+   *
+   * @param[in] querypoint A pointer to the 3D coordinate of the query point
+   * @param[in] radius The radius to search within
+   * @param[in] level The depth level at which to perform the search
+   * @param[out] result A data structure to hold the result. It will be cleared
+   * during application.
+   *
+   * @return The amount of points in the return set
    */
-  void radius_search(const double* querypoint,
+  void radius_search(Eigen::Vector3d& querypoint,
                      double radius,
+                     unsigned int level,
                      RadiusSearchResult& result) const;
 
   /** @brief Return the number of points in the associated cloud */
@@ -184,15 +209,35 @@ public:
     return cell_size[level];
   };
 
-  /** @brief Return the average amount of points per level of depth */
-  inline double get_average_points_per_level(unsigned int level) const
+  /** @brief Return the number of occupied cells per level of depth */
+  inline unsigned int get_occupied_cells_per_level(unsigned int level) const
   {
-    return average_points_per_level[level];
+    return occupied_cells_per_level[level];
+  };
+
+  /** @brief Return the number of occupied cells per level of depth */
+  inline unsigned int get_max_cell_population_per_level(
+    unsigned int level) const
+  {
+    return max_cell_population_per_level[level];
+  };
+
+  /** @brief Return the average number of points per level of depth */
+  inline double get_average_cell_population_per_level(unsigned int level) const
+  {
+    return average_cell_population_per_level[level];
+  };
+
+  /** @brief Return the standard deviation of number of points per level of
+   * depth */
+  inline double get_std_cell_population_per_level(unsigned int level) const
+  {
+    return std_cell_population_per_level[level];
   };
 
   //! @brief Get all spatial keys (Z-order values) of the octree
   //! @return Vector of spatial keys (Z-order values)
-  std::vector<SpatialKey> get_spatial_keys() const;
+  KeyContainer get_spatial_keys() const;
 
   //! @brief Get all point indices corresponding to spatial keys
   //! @return Vector of point indices
@@ -205,6 +250,7 @@ public:
    * @param key The spatial key of the query cell
    * @param level The Octree depth level of the query cell
    * @param start_index Optional start index
+   *
    * @return The index of first occurrence of the cell spatial key
    */
   IndexType get_cell_index(SpatialKey key,
@@ -216,21 +262,51 @@ public:
    *
    * @param key The spatial key of the query cell
    * @param level The Octree depth level of the query cell
+   *
    * @return A vector to the base of the cell
    */
   Eigen::Vector3d get_cell_position(SpatialKey key, unsigned int level) const;
 
   /**
-   * @brief Returns a vector of indices and spatial keys of points lying in
-   * multiple cells on a certain depth level
+   * @brief Returns spatial keys of cells intersected by a sphere with specidied
+   * radius with it's center at the query point
    *
-   * @param keys The spatial keys of the query cell
-   * @param level The Octree depth level of the query cell
-   * @return vector of IndexAndKey
+   * @param[in] querypoint A reference to  of the query point
+   * @param[in] radius The radius to search within
+   * @param[in] level The depth level to be considered
+   * @param[out] result A vector of spatial keys of the intersected cells
+   *
+   * @return The spatial keys of the intersected cells
    */
-  std::vector<IndexAndKey> get_points_indices_from_cells(
-    std::vector<SpatialKey> keys,
-    unsigned int level) const;
+  std::size_t get_cells_intersected_by_sphere(Eigen::Vector3d& querypoint,
+                                              double radius,
+                                              unsigned int level,
+                                              KeyContainer& result) const;
+
+  /**
+   * @brief Returns indices and spatial keys of points lying in
+   * multiple cells on a specified depth level
+   *
+   * @param[in] keys The spatial keys of the query cell
+   * @param[in] level The Octree depth level of the query cell
+   * @param[out] result A data structure to hold the result. It will be cleared
+   * during application.
+   *
+   * @return The amount of points in the return set
+   */
+  std::size_t get_points_indices_from_cells(const KeyContainer& keys,
+                                            unsigned int level,
+                                            PointContainer& result) const;
+
+  /**
+   * @brief Returns the level of depth at which a radius search will be most
+   * efficient
+   *
+   * @param radius The radius of the search sphere
+   *
+   * @return The depth level at which to perform a radius search
+   */
+  unsigned int find_appropriate_level_for_radius_search(double radius) const;
 };
 
 } // namespace py4dgeo
