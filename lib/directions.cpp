@@ -37,7 +37,11 @@ compute_multiscale_directions(const Epoch& epoch,
         // Find the working set on this scale
         KDTree::RadiusSearchResult points;
         auto qp = corepoints.row(i).eval();
-        epoch.kdtree.radius_search(&(qp(0, 0)), radius, points);
+        Eigen::Vector3d query_point(qp(0), qp(1), qp(2));
+        unsigned int level =
+          epoch.octree.find_appropriate_level_for_radius_search(radius);
+        epoch.octree.radius_search(query_point, radius, level, points);
+        // epoch.kdtree.radius_search(&(qp(0, 0)), radius, points);
         auto subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
