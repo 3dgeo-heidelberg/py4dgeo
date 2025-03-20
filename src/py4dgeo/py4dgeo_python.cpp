@@ -255,24 +255,21 @@ PYBIND11_MODULE(_py4dgeo, m)
     [](const Octree& self,
        const Octree::KeyContainer& keys,
        unsigned int level) {
-      Octree::PointContainer result;
+      Octree::RadiusSearchResult result;
       size_t num_points =
         self.get_points_indices_from_cells(keys, level, result);
 
       // Create NumPy arrays for indices and keys
       py::array_t<uint64_t> indices_array(num_points);
-      py::array_t<uint64_t> keys_array(num_points);
 
       auto indices_ptr = indices_array.mutable_data();
-      auto keys_ptr = keys_array.mutable_data();
 
       // Fill the arrays
       for (size_t i = 0; i < num_points; ++i) {
-        indices_ptr[i] = result[i].index;
-        keys_ptr[i] = result[i].key;
+        indices_ptr[i] = result[i];
       }
 
-      return std::make_pair(indices_array, keys_array);
+      return indices_array;
     },
     "Retrieve point indices and spatial keys for a given cell",
     py::arg("spatial_key"),
@@ -439,6 +436,23 @@ PYBIND11_MODULE(_py4dgeo, m)
       std::vector<double> used_radii;
 
       compute_multiscale_directions(
+        epoch, corepoints, normal_radii, orientation, result, used_radii);
+
+      return std::make_tuple(std::move(result),
+                             as_pyarray(std::move(used_radii)));
+    },
+    "Compute M3C2 multiscale directions");
+
+  m.def(
+    "compute_multiscale_directions_octree",
+    [](const Epoch& epoch,
+       EigenPointCloudConstRef corepoints,
+       const std::vector<double>& normal_radii,
+       EigenNormalSetConstRef orientation) {
+      EigenNormalSet result(corepoints.rows(), 3);
+      std::vector<double> used_radii;
+
+      compute_multiscale_directions_octree(
         epoch, corepoints, normal_radii, orientation, result, used_radii);
 
       return std::make_tuple(std::move(result),

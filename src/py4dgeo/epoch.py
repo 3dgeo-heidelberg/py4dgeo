@@ -163,6 +163,34 @@ class Epoch(_py4dgeo.Epoch):
 
         return self.normals
 
+    def calculate_normals_octree(
+        self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
+    ):
+        """Calculate point cloud normals
+
+        :param radius:
+            The radius used to determine the neighborhood of a point.
+
+        :param orientation_vector:
+            A vector to determine orientation of the normals. It should point "up".
+        """
+
+        # Ensure that the Octree is built
+        if self.octree.get_number_of_points() == 0:
+            self.build_octree()
+
+        # Reuse the multiscale code with a single radius in order to
+        # avoid code duplication.
+        with logger_context("Calculating point cloud normals:"):
+            self._normals, _ = _py4dgeo.compute_multiscale_directions_octree(
+                self,
+                self.cloud,
+                [radius],
+                orientation_vector,
+            )
+
+        return self.normals
+
     def normals_attachment(self, normals_array):
         """Attach normals to the epoch object
 
@@ -292,6 +320,17 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def build_octree(self, force_rebuild=False):
+        """Build the search octree index
+
+        :param force_rebuild:
+            Rebuild the search tree even if it was already built before.
+        :type force_rebuild: bool
+        """
+        if self.octree.get_number_of_points() == 0 or force_rebuild:
+            logger.info(f"Building Otcree structure")
+            self.octree.build_tree()
+
     def transform(
         self,
         transformation: typing.Optional[Transformation] = None,
@@ -353,7 +392,7 @@ class Epoch(_py4dgeo.Epoch):
         # Invalidate the KDTree
         self.kdtree.invalidate()
 
-        # Invalidate the Ocree
+        # Invalidate the Octree
         self.octree.invalidate()
 
         if self._normals is None:

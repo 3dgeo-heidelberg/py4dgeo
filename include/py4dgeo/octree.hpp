@@ -4,6 +4,7 @@
 
 #include <istream>
 #include <memory>
+#include <optional>
 #include <ostream>
 #include <utility>
 #include <vector>
@@ -60,7 +61,7 @@ private:
   //! Reference to the point cloud
   EigenPointCloudRef cloud;
   //! Number of points in the cloud
-  unsigned int number_of_points;
+  unsigned int number_of_points = 0;
 
   //! Pairs of spatial key (Z-order values) and corresponding index, sorted by
   //! z-order value
@@ -73,11 +74,13 @@ private:
   //! Size of the bounding cube
   double cube_size;
 
-  //! Max depth level of the octree, depends solely on spatial key integer
-  //! representation
+  //! Max depth level, depends solely on spatial key integer representation
   static constexpr unsigned int max_depth = (sizeof(SpatialKey) * 8) / 3;
 
-  //! Bit shift per level, computed at compile time.
+  //! Number of cells per axis at the lowest level (2^max_depth)
+  inline static constexpr unsigned int grid_size = (1 << max_depth);
+
+  //! Bit shift per level
   inline static constexpr std::array<SpatialKey, max_depth + 1> bit_shift =
     []() {
       std::array<SpatialKey, max_depth + 1> arr{};
@@ -115,16 +118,15 @@ private:
    *
    * This function calculates the minimum and maximum coordinates of the point
    * cloud and determines a cube that fully encloses the data. The cube size is
-   * rounded up to the nearest power of two to ensure a well-balanced Octree
-   * structure.
+   * rounded up to the nearest power of two.
    *
    * The computed bounding cube is stored in `min_point`, `max_point`, and
    * `cube_size`.
    */
   void compute_bounding_cube();
 
-  /** @brief Computes the average number of points for all depth levels. */
-  void compute_average_number_of_points();
+  /** @brief Computes the average cell properties at all depth levels. */
+  void compute_statistics();
 
   /**
    * @brief Computes a unique spatial key (Z-order value) for a given point.
@@ -162,9 +164,9 @@ public:
   /**
    * @brief Clears the Octree structure, effectively resetting it.
    *
-   * This function deallocates all nodes in the Octree by clearing
-   * the sorted arroy of indices and keys. This operation invalidates
-   * the current Octree, requiring it to be rebuilt before further use.
+   * This function deallocates the Octree by clearing the sorted array of
+   * indices and keys. This operation invalidates the current Octree, requiring
+   * it to be rebuilt before further use.
    */
   void invalidate();
 
@@ -180,7 +182,6 @@ public:
    * @param[out] result A data structure to hold the result. It will be cleared
    * during application.
    *
-   * @return The amount of points in the return set
    */
   void radius_search(const Eigen::Vector3d& query_point,
                      double radius,
@@ -249,9 +250,9 @@ public:
    *
    * @return The index of first occurrence of the cell spatial key
    */
-  IndexType get_cell_index(SpatialKey truncated_key,
-                           unsigned int level,
-                           IndexType start_index = 0) const;
+  std::optional<IndexType> get_cell_index(SpatialKey truncated_key,
+                                          unsigned int level,
+                                          IndexType start_index = 0) const;
 
   /**
    * @brief Returns the position of the base of a cell at a certain level
@@ -294,7 +295,7 @@ public:
    */
   std::size_t get_points_indices_from_cells(const KeyContainer& truncated_keys,
                                             unsigned int level,
-                                            PointContainer& result) const;
+                                            RadiusSearchResult& result) const;
 
   /**
    * @brief Returns the level of depth at which a radius search will be most
