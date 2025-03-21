@@ -42,12 +42,21 @@ if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
       "'--recursive' flag or 'git submodule update --init' needs to be called")
 endif()
 
+# Properly add Eigen3
+add_subdirectory(ext/eigen)
+
 # Compile the library
 add_library(py4dgeo lib/directions.cpp lib/distances.cpp lib/epoch.cpp
                     lib/kdtree.cpp lib/registration.cpp lib/segmentation.cpp)
+
+# Add the include directories for header-only libraries
 target_include_directories(
-  py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
+  py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
+
+# Link against Eigen3
+target_link_libraries(py4dgeo PUBLIC Eigen3::Eigen)
+
 if(PY4DGEO_WITH_OPENMP)
   find_package(OpenMP)
   if(OpenMP_FOUND)
