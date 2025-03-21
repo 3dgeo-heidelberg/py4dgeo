@@ -191,9 +191,18 @@ PYBIND11_MODULE(_py4dgeo, m)
              "Return the minimum point of the bounding cube");
 
   // Allow extraction of max point
-  octree.def("get_max_point",
-             &Octree::get_max_point,
-             "Return the maximum point of the bounding cube");
+  octree.def(
+    "get_max_point", &Octree::get_max_point, "Return 8-bit dilated integer");
+
+  // Allow extraction dilater lookup table
+  octree.def("get_dilate8_table",
+             &Octree::get_dilate8_table,
+             "Return 5-bit dilated integer");
+
+  // Allow extraction dilater lookup table
+  octree.def("get_dilate5_table",
+             &Octree::get_dilate5_table,
+             "Return the size of cells at a level of depth");
 
   // Allow extraction of cell sizes
   octree.def("get_cell_size",

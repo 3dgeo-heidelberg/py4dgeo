@@ -31,6 +31,7 @@ Octree::compute_bounding_cube()
 
   // Gives the exponent x of 2^x needed, as ceiled integer
   cube_size = std::pow(2, std::ceil(std::log2(max_extent)));
+  inv_cube_size = 1.0 / cube_size;
 
   // Gives the corner of the min point
   min_point = center - Eigen::Vector3d::Constant(cube_size * 0.5);
@@ -104,25 +105,6 @@ Octree::compute_statistics()
   }
 }
 
-Octree::SpatialKey
-Octree::compute_spatial_key(const Eigen::Vector3d& point) const
-{
-  Eigen::Vector3d normalized = (point - min_point) / cube_size;
-
-  SpatialKey ix = static_cast<SpatialKey>(normalized.x() * grid_size);
-  SpatialKey iy = static_cast<SpatialKey>(normalized.y() * grid_size);
-  SpatialKey iz = static_cast<SpatialKey>(normalized.z() * grid_size);
-
-  // Interleave bits of x,y,z coordinates
-  SpatialKey key = 0;
-  for (SpatialKey i = 0; i < max_depth; i++) {
-    key |= ((ix >> i) & 1) << (3 * i);
-    key |= ((iy >> i) & 1) << (3 * i + 1);
-    key |= ((iz >> i) & 1) << (3 * i + 2);
-  }
-  return key;
-}
-
 Octree
 Octree::create(const EigenPointCloudRef& cloud)
 {
@@ -154,6 +136,7 @@ Octree::invalidate()
 {
   number_of_points = 0;
   cube_size = 0.0;
+  inv_cube_size = 0.0;
   min_point = max_point = Eigen::Vector3d::Zero();
 
   indexed_keys.clear();

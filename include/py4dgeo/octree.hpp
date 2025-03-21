@@ -16,6 +16,31 @@ namespace py4dgeo {
 // Forward declaration of Epoch
 class Epoch;
 
+// Expand 8-bit value into 24-bit interleaved format
+static constexpr uint64_t
+part1by2_8(uint64_t x)
+{
+  return ((x & 1) << 0) |   // Move bit 0 to position 0
+         ((x & 2) << 2) |   // Move bit 1 to position 3
+         ((x & 4) << 4) |   // Move bit 2 to position 6
+         ((x & 8) << 6) |   // Move bit 3 to position 9
+         ((x & 16) << 8) |  // Move bit 3 to position 9
+         ((x & 32) << 10) | // Move bit 3 to position 9
+         ((x & 64) << 12) | // Move bit 3 to position 9
+         ((x & 128) << 14); // Move bit 4 to position 12
+}
+
+// Expand 5-bit value into 15-bit interleaved format
+static constexpr uint64_t
+part1by2_5(uint64_t x)
+{
+  return ((x & 1) << 0) | // Move bit 0 to position 0
+         ((x & 2) << 2) | // Move bit 1 to position 3
+         ((x & 4) << 4) | // Move bit 2 to position 6
+         ((x & 8) << 6) | // Move bit 3 to position 9
+         ((x & 16) << 8); // Move bit 4 to position 12
+}
+
 /** @brief Efficient Octree data structure for nearest neighbor/radius searches
  *
  * This data structure allows efficient radius searches in 3D point cloud data.
@@ -73,6 +98,8 @@ private:
   Eigen::Vector3d max_point;
   //! Size of the bounding cube
   double cube_size;
+  //! Inverse of cube size
+  double inv_cube_size;
 
   //! Max depth level, depends solely on spatial key integer representation
   static constexpr unsigned int max_depth = (sizeof(SpatialKey) * 8) / 3;
@@ -89,6 +116,24 @@ private:
       }
       return arr;
     }();
+
+  //! Lookup table for dilating an 8-bit integer
+  static constexpr std::array<SpatialKey, 256> dilate8_table = []() {
+    std::array<SpatialKey, 256> table = {};
+    for (uint64_t i = 0; i < 256; ++i) {
+      table[i] = part1by2_8(i);
+    }
+    return table;
+  }();
+
+  //! Lookup table for dilating an 5-bit integer
+  static constexpr std::array<SpatialKey, 32> dilate5_table = []() {
+    std::array<SpatialKey, 32> table = {};
+    for (uint64_t i = 0; i < 32; ++i) {
+      table[i] = part1by2_5(i);
+    }
+    return table;
+  }();
 
   //! Cell size as a function of depth level
   std::array<double, max_depth + 1> cell_size;
@@ -142,7 +187,33 @@ private:
    * @return A SpatialKey (unsigned integer) representing the spatial key of the
    * point.
    */
-  SpatialKey compute_spatial_key(const Eigen::Vector3d& point) const;
+  inline SpatialKey compute_spatial_key(const Eigen::Vector3d& point) const
+  {
+    Eigen::Vector3d normalized = (point - min_point) * inv_cube_size;
+
+    SpatialKey ix = static_cast<SpatialKey>(normalized.x() * grid_size);
+    SpatialKey iy = static_cast<SpatialKey>(normalized.y() * grid_size);
+    SpatialKey iz = static_cast<SpatialKey>(normalized.z() * grid_size);
+
+    // Interleave bits of x,y,z coordinates
+    SpatialKey key = 0;
+
+    // Use lookup tables with precomputed dilated bits (Three times: 8 + 8 + 5 =
+    // 21). Then interleave
+    key |= dilate8_table[(ix >> 0) & 0xFF] << 0;
+    key |= dilate8_table[(iy >> 0) & 0xFF] << 1;
+    key |= dilate8_table[(iz >> 0) & 0xFF] << 2;
+
+    key |= dilate8_table[(ix >> 8) & 0xFF] << 24;
+    key |= dilate8_table[(iy >> 8) & 0xFF] << 25;
+    key |= dilate8_table[(iz >> 8) & 0xFF] << 26;
+
+    key |= dilate5_table[(ix >> 16) & 0x1F] << 48;
+    key |= dilate5_table[(iy >> 16) & 0x1F] << 49;
+    key |= dilate5_table[(iz >> 16) & 0x1F] << 50;
+
+    return key;
+  }
 
 public:
   /** @brief Construct instance of Octree from a given point cloud
@@ -199,6 +270,18 @@ public:
 
   /** @brief Return the maximum point of the bounding cube */
   inline Eigen::Vector3d get_max_point() const { return max_point; };
+
+  /** @brief Return the 8-bit delater lookup table*/
+  inline double get_dilate8_table(unsigned int i) const
+  {
+    return dilate8_table[i];
+  };
+
+  /** @brief Return the 8-bit delater lookup table*/
+  inline double get_dilate5_table(unsigned int i) const
+  {
+    return dilate5_table[i];
+  };
 
   /** @brief Return the size of cells at a level of depth */
   inline double get_cell_size(unsigned int level) const
