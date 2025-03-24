@@ -52,24 +52,21 @@ public:
   using SpatialKey = uint64_t; // 16-bit allows 5 depth levels, 32-bit allows 10
                                // levels, 64-bit allows 21 levels
 
+  //! Return type used for points
+  using PointContainer = std::vector<IndexType>;
+
+  //! Return type used for cell searches
+  using KeyContainer = std::vector<SpatialKey>;
+
   //! Struct combining Z-order value and original point index
   struct IndexAndKey
   {
-    SpatialKey key;  //!< Z-order value
-    IndexType index; //!< Index of the corresponding point in cloud
-
-    //! Sorting operator (sort by Z-vale)
-    bool operator<(const IndexAndKey& other) const { return key < other.key; }
+    KeyContainer keys;      //!< Z-order values
+    PointContainer indices; //!< Indices of the corresponding points in cloud
   };
 
   //! Return type used for radius searches
   using RadiusSearchResult = std::vector<IndexType>;
-
-  //! Return type used for point
-  using PointContainer = std::vector<IndexAndKey>;
-
-  //! Return type used for cell searches
-  using KeyContainer = std::vector<SpatialKey>;
 
   //! Return type used for radius searches that export calculated distances
   using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
@@ -89,7 +86,7 @@ private:
 
   //! Pairs of spatial key (Z-order values) and corresponding index, sorted by
   //! z-order value
-  PointContainer indexed_keys;
+  IndexAndKey indexed_keys;
 
   //! Min point of the bounding cube
   Eigen::Vector3d min_point;
@@ -246,7 +243,7 @@ public:
    */
   void invalidate();
 
-  /** @brief Peform radius search around given query point
+  /** @brief Perform radius search around given query point
    *
    * This method determines all the points from the point cloud within the given
    * radius of the query point. It returns only the indices and the result is
@@ -326,40 +323,47 @@ public:
     return std_cell_population_per_level[level];
   };
 
-  //! @brief Get all spatial keys (Z-order values) of the octree
+  //! @brief Get all spatial keys (Z-order values) of the Octree
   //! @return Vector of spatial keys (Z-order values)
   KeyContainer get_spatial_keys() const;
 
   //! @brief Get all point indices corresponding to spatial keys
   //! @return Vector of point indices
-  std::vector<IndexType> get_point_indices() const;
+  PointContainer get_point_indices() const;
 
   /**
-   * @brief Returns the index of a cell in the sorted array of point indices and
-   * point spatial keys
+   * @brief Returns the first occurrence of theindex of a cell in the sorted
+   * array of point indices and point spatial keys
    *
    * @param key The spatial key of the query cell
-   * @param level The Octree depth level of the query cell
+   * @param bitShift The bit shift corresponding to the Octree depth level of
+   * the query cell
    * @param start_index Optional start index
    *
    * @return The index of first occurrence of the cell spatial key
    */
-  std::optional<IndexType> get_cell_index(SpatialKey truncated_key,
-                                          unsigned int level,
-                                          IndexType start_index = 0) const;
+  std::optional<IndexType> get_cell_index_start(
+    SpatialKey truncated_key,
+    SpatialKey bitShift,
+    IndexType start_index = 0) const;
 
   /**
-   * @brief Returns the position of the base of a cell at a certain level
+   * @brief Returns the last occurrence of theindex of a cell in the sorted
+   * array of point indices and point spatial keys
    *
    * @param key The spatial key of the query cell
-   * @param level The Octree depth level of the query cell
+   * @param bitShift The bit shift corresponding to the Octree depth level of
+   * the query cell
+   * @param start_index Optional start index
    *
-   * @return A vector to the base of the cell
+   * @return The index of last occurrence of the cell spatial key
    */
-  Eigen::Vector3d get_cell_position(SpatialKey key, unsigned int level) const;
+  std::optional<IndexType> get_cell_index_end(SpatialKey truncated_key,
+                                              SpatialKey bitShift,
+                                              IndexType start_index = 0) const;
 
   /**
-   * @brief Returns spatial keys of cells intersected by a sphere with specidied
+   * @brief Returns spatial keys of cells intersected by a sphere with specified
    * radius with it's center at the query point
    *
    * @param[in] query_point A reference to  of the query point

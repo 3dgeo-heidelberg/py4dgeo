@@ -245,12 +245,6 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_point_indices,
              "Return the sorted point indices");
 
-  // Allow computation of cell position
-  octree.def(
-    "get_cell_position",
-    &Octree::get_cell_position,
-    "Compute the base position of a cell from its spatial key and level");
-
   // Allow computation of intersected cells
   octree.def("get_cells_intersected_by_sphere",
              &Octree::get_cells_intersected_by_sphere,
@@ -258,10 +252,18 @@ PYBIND11_MODULE(_py4dgeo, m)
              "specified radius");
 
   // Allow cell index computation
-  octree.def("get_cell_index",
-             &Octree::get_cell_index,
-             "Return the index of a cell in the sorted array of point indices "
-             "and point spatial keys");
+  octree.def(
+    "get_cell_index_start",
+    &Octree::get_cell_index_start,
+    "Return first the index of a cell in the sorted array of point indices "
+    "and point spatial keys");
+
+  // Allow cell index computation
+  octree.def(
+    "get_cell_index_end",
+    &Octree::get_cell_index_end,
+    "Return the last index of a cell in the sorted array of point indices "
+    "and point spatial keys");
 
   // Allow extraction from points in cell
   octree.def(
@@ -274,7 +276,7 @@ PYBIND11_MODULE(_py4dgeo, m)
         self.get_points_indices_from_cells(keys, level, result);
 
       // Create NumPy arrays for indices and keys
-      py::array_t<uint64_t> indices_array(num_points);
+      py::array_t<Octree::SpatialKey> indices_array(num_points);
 
       auto indices_ptr = indices_array.mutable_data();
 
@@ -320,10 +322,10 @@ PYBIND11_MODULE(_py4dgeo, m)
        const Eigen::Vector3d& query_point,
        double radius,
        unsigned int level) {
-      Octree::RadiusSearchResult indices;
-      self.radius_search(query_point, radius, level, indices);
+      Octree::RadiusSearchResult result;
+      self.radius_search(query_point, radius, level, result);
 
-      return as_pyarray(std::move(indices));
+      return as_pyarray(std::move(result));
     },
     "Retrieve the spatial keys of cells intersected by a sphere.",
     py::arg("query_point"),

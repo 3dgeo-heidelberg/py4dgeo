@@ -79,6 +79,13 @@ compute_multiscale_directions_octree(const Epoch& epoch,
 {
   used_radii.resize(corepoints.rows());
 
+  // Precompute levels corresponding to each radius in normal_radii.
+  std::vector<unsigned int> levels(normal_radii.size());
+  for (size_t i = 0; i < normal_radii.size(); ++i) {
+    levels[i] =
+      epoch.octree.find_appropriate_level_for_radius_search(normal_radii[i]);
+  }
+
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
   CallbackExceptionVault vault;
@@ -88,14 +95,13 @@ compute_multiscale_directions_octree(const Epoch& epoch,
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
-      for (auto radius : normal_radii) {
+      for (size_t r = 0; r < normal_radii.size(); ++r) {
         // Find the working set on this scale
         KDTree::RadiusSearchResult points;
         auto qp = corepoints.row(i).eval();
         Eigen::Vector3d query_point(qp(0), qp(1), qp(2));
-        unsigned int level =
-          epoch.octree.find_appropriate_level_for_radius_search(radius);
-        epoch.octree.radius_search(query_point, radius, level, points);
+        auto radius = normal_radii[r];
+        epoch.octree.radius_search(query_point, radius, levels[r], points);
         auto subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
