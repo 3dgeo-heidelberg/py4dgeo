@@ -13,33 +13,32 @@
 
 namespace py4dgeo {
 
+// Expand BITS-bit value into (BITS x 3)-bit interleaved format
+template<typename T, unsigned int BITS>
+constexpr T
+dilate(T x)
+{
+  T result = 0;
+  for (unsigned int i = 0; i < BITS; ++i) {
+    result |= ((x >> i) & 1ULL) << (3 * i);
+  }
+  return result;
+}
+
+// Helper to build a lookup table of dilated integers
+template<typename T, unsigned int BITS, size_t TABLE_SIZE = (1ULL << BITS)>
+static constexpr std::array<T, TABLE_SIZE>
+make_dilate_table()
+{
+  std::array<T, TABLE_SIZE> table = {};
+  for (size_t i = 0; i < TABLE_SIZE; ++i) {
+    table[i] = dilate<T, BITS>(static_cast<T>(i));
+  }
+  return table;
+}
+
 // Forward declaration of Epoch
 class Epoch;
-
-// Expand 8-bit value into 24-bit interleaved format
-static constexpr uint64_t
-part1by2_8(uint64_t x)
-{
-  return ((x & 1) << 0) |   // Move bit 0 to position 0
-         ((x & 2) << 2) |   // Move bit 1 to position 3
-         ((x & 4) << 4) |   // Move bit 2 to position 6
-         ((x & 8) << 6) |   // Move bit 3 to position 9
-         ((x & 16) << 8) |  // Move bit 3 to position 9
-         ((x & 32) << 10) | // Move bit 3 to position 9
-         ((x & 64) << 12) | // Move bit 3 to position 9
-         ((x & 128) << 14); // Move bit 4 to position 12
-}
-
-// Expand 5-bit value into 15-bit interleaved format
-static constexpr uint64_t
-part1by2_5(uint64_t x)
-{
-  return ((x & 1) << 0) | // Move bit 0 to position 0
-         ((x & 2) << 2) | // Move bit 1 to position 3
-         ((x & 4) << 4) | // Move bit 2 to position 6
-         ((x & 8) << 6) | // Move bit 3 to position 9
-         ((x & 16) << 8); // Move bit 4 to position 12
-}
 
 /** @brief Efficient Octree data structure for nearest neighbor/radius searches
  *
@@ -117,23 +116,17 @@ private:
       return arr;
     }();
 
-  //! Lookup table for dilating an 8-bit integer
-  static constexpr std::array<SpatialKey, 256> dilate8_table = []() {
-    std::array<SpatialKey, 256> table = {};
-    for (uint64_t i = 0; i < 256; ++i) {
-      table[i] = part1by2_8(i);
-    }
-    return table;
-  }();
+  //! Generic 8-bit dilation table already built:
+  static constexpr auto dilate8_table =
+    make_dilate_table<SpatialKey, 8>(); // 256 entries
 
-  //! Lookup table for dilating an 5-bit integer
-  static constexpr std::array<SpatialKey, 32> dilate5_table = []() {
-    std::array<SpatialKey, 32> table = {};
-    for (uint64_t i = 0; i < 32; ++i) {
-      table[i] = part1by2_5(i);
-    }
-    return table;
-  }();
+  //! Generic 5-bit dilation table already built:
+  static constexpr auto dilate5_table =
+    make_dilate_table<SpatialKey, 5>(); // 32 entries
+
+  //! Generic 2-bit dilation table already built:
+  static constexpr auto dilate2_table =
+    make_dilate_table<SpatialKey, 2>(); // 4 entries
 
   //! Cell size as a function of depth level
   std::array<double, max_depth + 1> cell_size;
@@ -198,19 +191,31 @@ private:
     // Interleave bits of x,y,z coordinates
     SpatialKey key = 0;
 
-    // Use lookup tables with precomputed dilated bits (Three times: 8 + 8 + 5 =
-    // 21). Then interleave
-    key |= dilate8_table[(ix >> 0) & 0xFF] << 0;
-    key |= dilate8_table[(iy >> 0) & 0xFF] << 1;
-    key |= dilate8_table[(iz >> 0) & 0xFF] << 2;
-
-    key |= dilate8_table[(ix >> 8) & 0xFF] << 24;
-    key |= dilate8_table[(iy >> 8) & 0xFF] << 25;
-    key |= dilate8_table[(iz >> 8) & 0xFF] << 26;
-
-    key |= dilate5_table[(ix >> 16) & 0x1F] << 48;
-    key |= dilate5_table[(iy >> 16) & 0x1F] << 49;
-    key |= dilate5_table[(iz >> 16) & 0x1F] << 50;
+    if constexpr (sizeof(SpatialKey) == 8) {
+      // For a 64-bit SpatialKey (using 21 bits per coordinate):
+      // Lower 8-bit chunk (bits 0-7)
+      key |= dilate8_table[ix & 0xFF];
+      key |= dilate8_table[iy & 0xFF] << 1;
+      key |= dilate8_table[iz & 0xFF] << 2;
+      // Next 8-bit chunk (bits 8-15)
+      key |= dilate8_table[(ix >> 8) & 0xFF] << 24;
+      key |= dilate8_table[(iy >> 8) & 0xFF] << 25;
+      key |= dilate8_table[(iz >> 8) & 0xFF] << 26;
+      // Final 5-bit chunk (bits 16-20)
+      key |= dilate5_table[(ix >> 16) & 0x1F] << 48;
+      key |= dilate5_table[(iy >> 16) & 0x1F] << 49;
+      key |= dilate5_table[(iz >> 16) & 0x1F] << 50;
+    } else if (sizeof(SpatialKey) == 4) {
+      // For a 32-bit SpatialKey (using 10 bits per coordinate):
+      // Lower 8-bit chunk (bits 0-7)
+      key |= dilate8_table[ix & 0xFF];
+      key |= dilate8_table[iy & 0xFF] << 1;
+      key |= dilate8_table[iz & 0xFF] << 2;
+      // Final 2-bit chunk (bits 8-9)
+      key |= dilate2_table[(ix >> 8) & 0x03] << 24;
+      key |= dilate2_table[(iy >> 8) & 0x03] << 25;
+      key |= dilate2_table[(iz >> 8) & 0x03] << 26;
+    }
 
     return key;
   }
@@ -272,15 +277,21 @@ public:
   inline Eigen::Vector3d get_max_point() const { return max_point; };
 
   /** @brief Return the 8-bit delater lookup table*/
-  inline double get_dilate8_table(unsigned int i) const
+  inline SpatialKey get_dilate8_table(unsigned int i) const
   {
     return dilate8_table[i];
   };
 
-  /** @brief Return the 8-bit delater lookup table*/
-  inline double get_dilate5_table(unsigned int i) const
+  /** @brief Return the 5-bit delater lookup table*/
+  inline SpatialKey get_dilate5_table(unsigned int i) const
   {
     return dilate5_table[i];
+  };
+
+  /** @brief Return the 2-bit delater lookup table*/
+  inline SpatialKey get_dilate2_table(unsigned int i) const
+  {
+    return dilate2_table[i];
   };
 
   /** @brief Return the size of cells at a level of depth */

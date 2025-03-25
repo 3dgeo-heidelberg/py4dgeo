@@ -330,7 +330,6 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     double v0 = query_point[0];
     double v1 = query_point[1];
     double v2 = query_point[2];
-    double dist_squared = 0.0;
 
     if (v0 < cell_min_x) {
       double diff = cell_min_x - v0;

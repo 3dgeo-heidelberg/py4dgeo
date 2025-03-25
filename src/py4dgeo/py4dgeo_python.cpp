@@ -197,12 +197,17 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Allow extraction dilater lookup table
   octree.def("get_dilate8_table",
              &Octree::get_dilate8_table,
-             "Return 5-bit dilated integer");
+             "Return 8-bit dilated integer");
 
   // Allow extraction dilater lookup table
   octree.def("get_dilate5_table",
              &Octree::get_dilate5_table,
-             "Return the size of cells at a level of depth");
+             "Return 5-bit dilated integer");
+
+  // Allow extraction dilater lookup table
+  octree.def("get_dilate2_table",
+             &Octree::get_dilate2_table,
+             "Return 2-bit dilated integer");
 
   // Allow extraction of cell sizes
   octree.def("get_cell_size",
