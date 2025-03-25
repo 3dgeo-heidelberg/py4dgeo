@@ -245,12 +245,6 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_point_indices,
              "Return the sorted point indices");
 
-  // Allow computation of intersected cells
-  octree.def("get_cells_intersected_by_sphere",
-             &Octree::get_cells_intersected_by_sphere,
-             "Compute spatial keys of all cells intersected by a sphere of "
-             "specified radius");
-
   // Allow cell index computation
   octree.def(
     "get_cell_index_start",
@@ -298,10 +292,27 @@ PYBIND11_MODULE(_py4dgeo, m)
        const Eigen::Vector3d& query_point,
        double radius,
        unsigned int level) {
-      Octree::KeyContainer keys;
-      self.get_cells_intersected_by_sphere(query_point, radius, level, keys);
+      Octree::KeyContainer cells_inside;
+      Octree::KeyContainer cells_intersecting;
+      self.get_cells_intersected_by_sphere(
+        query_point, radius, level, cells_inside, cells_intersecting);
 
-      return as_pyarray(std::move(keys));
+      /*
+            // Combine the two vectors
+            Octree::KeyContainer combined;
+            combined.reserve(cells_inside.size() + cells_intersecting.size());
+            combined.insert(combined.end(),
+                            std::make_move_iterator(cells_inside.begin()),
+                            std::make_move_iterator(cells_inside.end()));
+            combined.insert(combined.end(),
+                            std::make_move_iterator(cells_intersecting.begin()),
+                            std::make_move_iterator(cells_intersecting.end()));
+
+            return as_pyarray(std::move(combined));
+      */
+
+      return py::make_tuple(as_pyarray(std::move(cells_inside)),
+                            as_pyarray(std::move(cells_intersecting)));
     },
     "Retrieve the spatial keys of cells intersected by a sphere.",
     py::arg("query_point"),

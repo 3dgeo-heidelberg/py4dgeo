@@ -79,6 +79,14 @@ public:
   using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
 
 private:
+  //! Enum to describe the geometric relationship between a cell and a sphere.
+  enum class cell_relation_to_sphere
+  {
+    Intersecting,
+    Inside,
+    Outside
+  };
+
   //! Reference to the point cloud
   EigenPointCloudRef cloud;
   //! Number of points in the cloud
@@ -369,7 +377,9 @@ public:
    * @param[in] query_point A reference to  of the query point
    * @param[in] radius The radius to search within
    * @param[in] level The depth level to be considered
-   * @param[out] result A vector of spatial keys of the intersected cells
+   * @param[out] inside A vector of spatial keys of the cells entirely in the
+   * sphere
+   * @param[out] intersecting A vector of spatial keys of the intersected cells
    *
    * @return The spatial keys of the intersected cells
    */
@@ -377,7 +387,8 @@ public:
     const Eigen::Vector3d& query_point,
     double radius,
     unsigned int level,
-    KeyContainer& result) const;
+    KeyContainer& inside,
+    KeyContainer& intersecting) const;
 
   /**
    * @brief Returns indices and spatial keys of points lying in
