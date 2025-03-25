@@ -77,6 +77,16 @@ private:
   //! representation
   static constexpr unsigned int max_depth = (sizeof(SpatialKey) * 8) / 3;
 
+  //! Bit shift per level, computed at compile time.
+  inline static constexpr std::array<SpatialKey, max_depth + 1> bit_shift =
+    []() {
+      std::array<SpatialKey, max_depth + 1> arr{};
+      for (size_t level = 0; level <= max_depth; ++level) {
+        arr[level] = 3 * (max_depth - level);
+      }
+      return arr;
+    }();
+
   //! Cell size as a function of depth level
   std::array<double, max_depth + 1> cell_size;
 
@@ -132,20 +142,6 @@ private:
    */
   SpatialKey compute_spatial_key(const Eigen::Vector3d& point) const;
 
-  /**
-   * @brief Finds all neighboring Octree cells at a given depth level.
-   *
-   * This function identifies all neighboring cells with the same level of
-   * depth.
-   *
-   * @param truncated_key The truncated spatial key of the query cell at the
-   * given level.
-   * @param level The Octree depth level at which to find neighboring cells.
-   *
-   * @return A vector of spatial keys representing neighboring cells.
-   */
-  KeyContainer find_neighbors(SpatialKey truncated_key, int level) const;
-
 public:
   /** @brief Construct instance of Octree from a given point cloud
    *
@@ -178,7 +174,7 @@ public:
    * radius of the query point. It returns only the indices and the result is
    * not sorted according to distance.
    *
-   * @param[in] querypoint A pointer to the 3D coordinate of the query point
+   * @param[in] query_point A pointer to the 3D coordinate of the query point
    * @param[in] radius The radius to search within
    * @param[in] level The depth level at which to perform the search
    * @param[out] result A data structure to hold the result. It will be cleared
@@ -186,7 +182,7 @@ public:
    *
    * @return The amount of points in the return set
    */
-  void radius_search(Eigen::Vector3d& querypoint,
+  void radius_search(const Eigen::Vector3d& query_point,
                      double radius,
                      unsigned int level,
                      RadiusSearchResult& result) const;
@@ -253,7 +249,7 @@ public:
    *
    * @return The index of first occurrence of the cell spatial key
    */
-  IndexType get_cell_index(SpatialKey key,
+  IndexType get_cell_index(SpatialKey truncated_key,
                            unsigned int level,
                            IndexType start_index = 0) const;
 
@@ -271,30 +267,32 @@ public:
    * @brief Returns spatial keys of cells intersected by a sphere with specidied
    * radius with it's center at the query point
    *
-   * @param[in] querypoint A reference to  of the query point
+   * @param[in] query_point A reference to  of the query point
    * @param[in] radius The radius to search within
    * @param[in] level The depth level to be considered
    * @param[out] result A vector of spatial keys of the intersected cells
    *
    * @return The spatial keys of the intersected cells
    */
-  std::size_t get_cells_intersected_by_sphere(Eigen::Vector3d& querypoint,
-                                              double radius,
-                                              unsigned int level,
-                                              KeyContainer& result) const;
+  std::size_t get_cells_intersected_by_sphere(
+    const Eigen::Vector3d& query_point,
+    double radius,
+    unsigned int level,
+    KeyContainer& result) const;
 
   /**
    * @brief Returns indices and spatial keys of points lying in
    * multiple cells on a specified depth level
    *
-   * @param[in] keys The spatial keys of the query cell
+   * @param[in] truncated_keys The spatial keys of the query cell, truncated to
+   * the level of depth
    * @param[in] level The Octree depth level of the query cell
    * @param[out] result A data structure to hold the result. It will be cleared
    * during application.
    *
    * @return The amount of points in the return set
    */
-  std::size_t get_points_indices_from_cells(const KeyContainer& keys,
+  std::size_t get_points_indices_from_cells(const KeyContainer& truncated_keys,
                                             unsigned int level,
                                             PointContainer& result) const;
 

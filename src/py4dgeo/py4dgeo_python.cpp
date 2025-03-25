@@ -282,17 +282,16 @@ PYBIND11_MODULE(_py4dgeo, m)
   octree.def(
     "get_cells_intersected_by_sphere",
     [](const Octree& self,
-       const Eigen::Vector3d& querypoint,
+       const Eigen::Vector3d& query_point,
        double radius,
        unsigned int level) {
       Octree::KeyContainer keys;
-      self.get_cells_intersected_by_sphere(
-        const_cast<Eigen::Vector3d&>(querypoint), radius, level, keys);
+      self.get_cells_intersected_by_sphere(query_point, radius, level, keys);
 
       return as_pyarray(std::move(keys));
     },
     "Retrieve the spatial keys of cells intersected by a sphere.",
-    py::arg("querypoint"),
+    py::arg("query_point"),
     py::arg("radius"),
     py::arg("level"));
 
@@ -302,6 +301,23 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::find_appropriate_level_for_radius_search,
              "Return the level of depth at which a radius search will be most "
              "efficient");
+
+  // Allow radius search
+  octree.def(
+    "radius_search",
+    [](const Octree& self,
+       const Eigen::Vector3d& query_point,
+       double radius,
+       unsigned int level) {
+      Octree::RadiusSearchResult indices;
+      self.radius_search(query_point, radius, level, indices);
+
+      return as_pyarray(std::move(indices));
+    },
+    "Retrieve the spatial keys of cells intersected by a sphere.",
+    py::arg("query_point"),
+    py::arg("radius"),
+    py::arg("level"));
 
   // Pickling support for the Octree data structure
   octree.def("__getstate__", [](const Octree&) {
