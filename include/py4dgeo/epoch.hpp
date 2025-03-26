@@ -3,15 +3,15 @@
 #include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/octree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
 
 namespace py4dgeo {
 
 /** @brief A data structure representing an epoch
  *
  * Stores the point cloud itself (without taking ownership of it) and
- * provides two search trees: a KDTree for nearest neighbor searches and
- * an Octree for radius searches. This structure allows efficient spatial
- * queries without duplicating data.
+ * provides two search trees: a KDTree and an Octree. This structure allows
+ * efficient spatial queries without duplicating data.
  */
 class Epoch
 {

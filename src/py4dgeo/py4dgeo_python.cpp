@@ -15,6 +15,7 @@
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 #include "py4dgeo/registration.hpp"
+#include "py4dgeo/searchtree.hpp"
 #include "py4dgeo/segmentation.hpp"
 
 #include <fstream>
@@ -36,6 +37,12 @@ PYBIND11_MODULE(_py4dgeo, m)
     .value("MINIMAL", MemoryPolicy::MINIMAL)
     .value("COREPOINTS", MemoryPolicy::COREPOINTS)
     .value("RELAXED", MemoryPolicy::RELAXED)
+    .export_values();
+
+  // The enum class for the type of search tree
+  py::enum_<SearchTree>(m, "SearchTree")
+    .value("KDTreeSearch", SearchTree::KDTree)
+    .value("OctreeSearch", SearchTree::Octree)
     .export_values();
 
   // Register a numpy structured type for uncertainty calculation. This allows
@@ -447,33 +454,22 @@ PYBIND11_MODULE(_py4dgeo, m)
     [](const Epoch& epoch,
        EigenPointCloudConstRef corepoints,
        const std::vector<double>& normal_radii,
-       EigenNormalSetConstRef orientation) {
+       EigenNormalSetConstRef orientation,
+       SearchTree tree = SearchTree::KDTree) {
       EigenNormalSet result(corepoints.rows(), 3);
       std::vector<double> used_radii;
 
       compute_multiscale_directions(
-        epoch, corepoints, normal_radii, orientation, result, used_radii);
+        epoch, corepoints, normal_radii, orientation, result, used_radii, tree);
 
       return std::make_tuple(std::move(result),
                              as_pyarray(std::move(used_radii)));
     },
-    "Compute M3C2 multiscale directions");
-
-  m.def(
-    "compute_multiscale_directions_octree",
-    [](const Epoch& epoch,
-       EigenPointCloudConstRef corepoints,
-       const std::vector<double>& normal_radii,
-       EigenNormalSetConstRef orientation) {
-      EigenNormalSet result(corepoints.rows(), 3);
-      std::vector<double> used_radii;
-
-      compute_multiscale_directions_octree(
-        epoch, corepoints, normal_radii, orientation, result, used_radii);
-
-      return std::make_tuple(std::move(result),
-                             as_pyarray(std::move(used_radii)));
-    },
+    py::arg("epoch"),
+    py::arg("corepoints"),
+    py::arg("normal_radii"),
+    py::arg("orientation"),
+    py::arg("tree") = SearchTree::KDTree,
     "Compute M3C2 multiscale directions");
 
   // Corresponence distances computation

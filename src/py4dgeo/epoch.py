@@ -136,7 +136,10 @@ class Epoch(_py4dgeo.Epoch):
         return self._normals
 
     def calculate_normals(
-        self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
+        self,
+        radius=1.0,
+        orientation_vector: np.ndarray = np.array([0, 0, 1]),
+        searchtree: str = "kdtree",  # or "octree"
     ):
         """Calculate point cloud normals
 
@@ -145,11 +148,22 @@ class Epoch(_py4dgeo.Epoch):
 
         :param orientation_vector:
             A vector to determine orientation of the normals. It should point "up".
+
+        :param searchtree:
+            Which spatial search structure to use: 'kdtree' (default) or 'octree'
         """
 
-        # Ensure that the KDTree is built
-        if self.kdtree.leaf_parameter() == 0:
-            self.build_kdtree()
+        # Ensure that the tree is built
+        if searchtree == "kdtree":
+            if self.kdtree.leaf_parameter() == 0:
+                self.build_kdtree()
+            tree_type = _py4dgeo.SearchTree.KDTreeSearch
+        elif searchtree == "octree":
+            if self.octree.get_number_of_points() == 0:
+                self.build_octree()
+            tree_type = _py4dgeo.SearchTree.OctreeSearch
+        else:
+            raise ValueError(f"Unknown search tree type: {searchtree}")
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
@@ -159,6 +173,7 @@ class Epoch(_py4dgeo.Epoch):
                 self.cloud,
                 [radius],
                 orientation_vector,
+                tree_type,
             )
 
         return self.normals

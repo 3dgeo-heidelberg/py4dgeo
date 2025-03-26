@@ -90,16 +90,8 @@ compute_multiscale_directions(const Epoch&,
                               const std::vector<double>&,
                               EigenNormalSetConstRef,
                               EigenNormalSetRef,
-                              std::vector<double>&);
-
-/** @brief Compute M3C2 multi scale directions using Octree */
-void
-compute_multiscale_directions_octree(const Epoch&,
-                                     EigenPointCloudConstRef,
-                                     const std::vector<double>&,
-                                     EigenNormalSetConstRef,
-                                     EigenNormalSetRef,
-                                     std::vector<double>&);
+                              std::vector<double>&,
+                              SearchTree = SearchTree::KDTree);
 
 /** @brief Compute M3C2 distances */
 void

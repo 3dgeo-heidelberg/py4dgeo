@@ -3,8 +3,10 @@
 
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/kdtree.hpp"
+#include "py4dgeo/octree.hpp"
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
 
 #include <algorithm>
 #include <complex>
@@ -20,70 +22,35 @@ compute_multiscale_directions(const Epoch& epoch,
                               const std::vector<double>& normal_radii,
                               EigenNormalSetConstRef orientation,
                               EigenNormalSetRef result,
-                              std::vector<double>& used_radii)
+                              std::vector<double>& used_radii,
+                              SearchTree tree)
 {
   used_radii.resize(corepoints.rows());
 
-  // Instantiate a container for the first thrown exception in
-  // the following parallel region.
-  CallbackExceptionVault vault;
-#ifdef PY4DGEO_WITH_OPENMP
-#pragma omp parallel for schedule(dynamic, 1)
-#endif
-  for (IndexType i = 0; i < corepoints.rows(); ++i) {
-    vault.run([&]() {
-      double highest_planarity = 0.0;
-      for (auto radius : normal_radii) {
-        // Find the working set on this scale
-        KDTree::RadiusSearchResult points;
-        auto qp = corepoints.row(i).eval();
-        Eigen::Vector3d query_point(qp(0), qp(1), qp(2));
-        epoch.kdtree.radius_search(&(qp(0, 0)), radius, points);
-        auto subset = epoch.cloud(points, Eigen::all);
+  using RadiusSearchFunc = std::function<void(
+    const Eigen::Vector3d&, double, std::vector<IndexType>&)>;
 
-        // Calculate covariance matrix
-        auto centered = subset.rowwise() - subset.colwise().mean();
-        auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
-        auto coveval = cov.eval();
+  std::vector<unsigned int> levels;
+  RadiusSearchFunc radius_search;
 
-        // Calculate Eigen vectors
-        Eigen::SelfAdjointEigenSolver<decltype(coveval)> solver(coveval);
-        const auto& evalues = solver.eigenvalues();
+  if (tree == SearchTree::Octree) { // Octree
+    levels.resize(normal_radii.size());
+    for (size_t i = 0; i < normal_radii.size(); ++i) {
+      levels[i] =
+        epoch.octree.find_appropriate_level_for_radius_search(normal_radii[i]);
+    }
 
-        // Calculate planarity
-        double planarity = (evalues[1] - evalues[0]) / evalues[2];
-        if (planarity > highest_planarity) {
-          highest_planarity = planarity;
-
-          double prod =
-            (solver.eigenvectors().col(0).dot(orientation.row(0).transpose()));
-          double sign = (prod < 0.0) ? -1.0 : 1.0;
-          result.row(i) = sign * solver.eigenvectors().col(0);
-          used_radii[i] = radius;
-        }
-      }
-    });
-  }
-
-  // Potentially rethrow an exception that occurred in above parallel region
-  vault.rethrow();
-}
-
-void
-compute_multiscale_directions_octree(const Epoch& epoch,
-                                     EigenPointCloudConstRef corepoints,
-                                     const std::vector<double>& normal_radii,
-                                     EigenNormalSetConstRef orientation,
-                                     EigenNormalSetRef result,
-                                     std::vector<double>& used_radii)
-{
-  used_radii.resize(corepoints.rows());
-
-  // Precompute levels corresponding to each radius in normal_radii.
-  std::vector<unsigned int> levels(normal_radii.size());
-  for (size_t i = 0; i < normal_radii.size(); ++i) {
-    levels[i] =
-      epoch.octree.find_appropriate_level_for_radius_search(normal_radii[i]);
+    radius_search =
+      [&](const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
+        out.clear();
+        epoch.octree.radius_search(point, normal_radii[r], levels[r], out);
+      };
+  } else { // KDTree
+    radius_search =
+      [&](const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
+        out.clear();
+        epoch.kdtree.radius_search(point.data(), normal_radii[r], out);
+      };
   }
 
   // Instantiate a container for the first thrown exception in
@@ -95,14 +62,12 @@ compute_multiscale_directions_octree(const Epoch& epoch,
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
-      for (size_t r = 0; r < normal_radii.size(); ++r) {
-        // Find the working set on this scale
-        constexpr std::size_t estimated_point_count = 2048;
-        Octree::RadiusSearchResult points;
-        points.reserve(estimated_point_count);
-        Eigen::Map<const Eigen::Vector3d> query_point(corepoints.row(i).data());
-        auto radius = normal_radii[r];
-        epoch.octree.radius_search(query_point, radius, levels[r], points);
+      Eigen::Vector3d query_point = corepoints.row(i);
+      for (size_t radius = 0; radius < normal_radii.size(); ++radius) {
+
+        std::vector<IndexType> points;
+        radius_search(query_point, radius, points);
+
         auto subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
