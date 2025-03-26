@@ -97,9 +97,10 @@ compute_multiscale_directions_octree(const Epoch& epoch,
       double highest_planarity = 0.0;
       for (size_t r = 0; r < normal_radii.size(); ++r) {
         // Find the working set on this scale
-        KDTree::RadiusSearchResult points;
-        auto qp = corepoints.row(i).eval();
-        Eigen::Vector3d query_point(qp(0), qp(1), qp(2));
+        constexpr std::size_t estimated_point_count = 2048;
+        Octree::RadiusSearchResult points;
+        points.reserve(estimated_point_count);
+        Eigen::Map<const Eigen::Vector3d> query_point(corepoints.row(i).data());
         auto radius = normal_radii[r];
         epoch.octree.radius_search(query_point, radius, levels[r], points);
         auto subset = epoch.cloud(points, Eigen::all);

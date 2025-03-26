@@ -297,20 +297,6 @@ PYBIND11_MODULE(_py4dgeo, m)
       self.get_cells_intersected_by_sphere(
         query_point, radius, level, cells_inside, cells_intersecting);
 
-      /*
-            // Combine the two vectors
-            Octree::KeyContainer combined;
-            combined.reserve(cells_inside.size() + cells_intersecting.size());
-            combined.insert(combined.end(),
-                            std::make_move_iterator(cells_inside.begin()),
-                            std::make_move_iterator(cells_inside.end()));
-            combined.insert(combined.end(),
-                            std::make_move_iterator(cells_intersecting.begin()),
-                            std::make_move_iterator(cells_intersecting.end()));
-
-            return as_pyarray(std::move(combined));
-      */
-
       return py::make_tuple(as_pyarray(std::move(cells_inside)),
                             as_pyarray(std::move(cells_intersecting)));
     },
@@ -326,22 +312,25 @@ PYBIND11_MODULE(_py4dgeo, m)
              "Return the level of depth at which a radius search will be most "
              "efficient");
 
-  // Allow radius search
+  // Allow radius search with optional depth level specification
   octree.def(
     "radius_search",
     [](const Octree& self,
-       const Eigen::Vector3d& query_point,
+       Eigen::Ref<const Eigen::Vector3d> query_point,
        double radius,
-       unsigned int level) {
+       std::optional<unsigned int> level) {
+      unsigned int lvl =
+        level.value_or(self.find_appropriate_level_for_radius_search(radius));
       Octree::RadiusSearchResult result;
-      self.radius_search(query_point, radius, level, result);
+
+      self.radius_search(query_point, radius, lvl, result);
 
       return as_pyarray(std::move(result));
     },
     "Retrieve the spatial keys of cells intersected by a sphere.",
     py::arg("query_point"),
     py::arg("radius"),
-    py::arg("level"));
+    py::arg("level") = std::nullopt);
 
   // Pickling support for the Octree data structure
   octree.def("__getstate__", [](const Octree&) {

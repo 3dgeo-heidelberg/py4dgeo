@@ -181,7 +181,7 @@ Octree::invalidate()
             0.0);
 }
 
-void
+std::size_t
 Octree::radius_search(const Eigen::Vector3d& query_point,
                       double radius,
                       unsigned int level,
@@ -189,8 +189,8 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
 {
   result.clear();
 
-  constexpr std::size_t estimated_cell_count = 128;
-  constexpr std::size_t estimated_candidate_count = 512;
+  constexpr std::size_t estimated_cell_count = 1024;
+  constexpr std::size_t estimated_candidate_count = 1024;
 
   // Step 1: Retrieve all spatial keys of cells intersected by the sphere
   KeyContainer cells_inside, cells_intersecting;
@@ -234,6 +234,8 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
 
   result.insert(
     result.end(), points_inside_sphere.begin(), points_inside_sphere.end());
+
+  return result.size();
 }
 
 Octree::KeyContainer
@@ -353,12 +355,9 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
       unsigned int j,
       unsigned int k) -> cell_relation_to_sphere {
     // Compute the cell's axis-aligned bounding box
-    double cell_min_x = min_point.x() + i * cellSize.x();
-    double cell_min_y = min_point.y() + j * cellSize.y();
-    double cell_min_z = min_point.z() + k * cellSize.z();
-    double cell_max_x = cell_min_x + cellSize.x();
-    double cell_max_y = cell_min_y + cellSize.y();
-    double cell_max_z = cell_min_z + cellSize.z();
+    Eigen::Vector3d cell_min =
+      min_point + cellSize.cwiseProduct(Eigen::Vector3d(i, j, k));
+    Eigen::Vector3d cell_max = cell_min + cellSize;
 
     // Check whether all 8 corners of the cell are inside the sphere
     bool any_inside = false;
@@ -367,11 +366,9 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     for (size_t dx = 0; dx <= 1; ++dx) {
       for (size_t dy = 0; dy <= 1; ++dy) {
         for (size_t dz = 0; dz <= 1; ++dz) {
-          double cx = dx ? cell_max_x : cell_min_x;
-          double cy = dy ? cell_max_y : cell_min_y;
-          double cz = dz ? cell_max_z : cell_min_z;
-
-          Eigen::Vector3d corner(cx, cy, cz);
+          Eigen::Vector3d corner(dx ? cell_max.x() : cell_min.x(),
+                                 dy ? cell_max.y() : cell_min.y(),
+                                 dz ? cell_max.z() : cell_min.z());
           double dist_sq = (query_point - corner).squaredNorm();
 
           if (dist_sq <= radius_squared)
@@ -386,40 +383,41 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     if (any_inside)
       return cell_relation_to_sphere::Inside;
 
+    double qx = query_point[0];
+    double qy = query_point[1];
+    double qz = query_point[2];
+
     // Check if sphere center is inside the cell
-    if (query_point[0] >= cell_min_x && query_point[0] <= cell_max_x &&
-        query_point[1] >= cell_min_y && query_point[1] <= cell_max_y &&
-        query_point[2] >= cell_min_z && query_point[2] <= cell_max_z)
+    if ((query_point.array() >= cell_min.array()).all() &&
+        (query_point.array() <= cell_max.array()).all())
       return cell_relation_to_sphere::Intersecting;
 
     // Final fallback: conservative AABB-sphere check
     // For each axis, add squared distance if query_point is outside the cell
-    double v0 = query_point[0];
-    double v1 = query_point[1];
-    double v2 = query_point[2];
+
     double distance_squared = 0.0;
 
-    if (v0 < cell_min_x) {
-      double diff = cell_min_x - v0;
+    if (qx < cell_min.x()) {
+      double diff = cell_min.x() - qx;
       distance_squared += diff * diff;
-    } else if (v0 > cell_max_x) {
-      double diff = v0 - cell_max_x;
-      distance_squared += diff * diff;
-    }
-
-    if (v1 < cell_min_y) {
-      double diff = cell_min_y - v1;
-      distance_squared += diff * diff;
-    } else if (v1 > cell_max_y) {
-      double diff = v1 - cell_max_y;
+    } else if (qx > cell_max.x()) {
+      double diff = qx - cell_max.x();
       distance_squared += diff * diff;
     }
 
-    if (v2 < cell_min_z) {
-      double diff = cell_min_z - v2;
+    if (qy < cell_min.y()) {
+      double diff = cell_min.y() - qy;
       distance_squared += diff * diff;
-    } else if (v2 > cell_max_z) {
-      double diff = v2 - cell_max_z;
+    } else if (qy > cell_max.y()) {
+      double diff = qy - cell_max.y();
+      distance_squared += diff * diff;
+    }
+
+    if (qz < cell_min.z()) {
+      double diff = cell_min.z() - qz;
+      distance_squared += diff * diff;
+    } else if (qz > cell_max.z()) {
+      double diff = qz - cell_max.z();
       distance_squared += diff * diff;
     }
 
@@ -438,9 +436,8 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
         if (relation == cell_relation_to_sphere::Outside)
           continue;
         Eigen::Vector3d cell_center =
-          min_point + Eigen::Vector3d((i + 0.5) * cellSize.x(),
-                                      (j + 0.5) * cellSize.y(),
-                                      (k + 0.5) * cellSize.z());
+          min_point +
+          cellSize.cwiseProduct(Eigen::Vector3d(i + 0.5, j + 0.5, k + 0.5));
         SpatialKey full_key = compute_spatial_key(cell_center);
         SpatialKey cell_key = full_key >> bit_shift[level];
 
@@ -453,7 +450,7 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     }
   }
 
-  // Sort the keys before returning.
+  // Sort the keys before returning (required)
   std::sort(inside.begin(), inside.end());
   std::sort(intersecting.begin(), intersecting.end());
 

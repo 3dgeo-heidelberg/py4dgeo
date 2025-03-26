@@ -264,10 +264,10 @@ public:
    * during application.
    *
    */
-  void radius_search(const Eigen::Vector3d& query_point,
-                     double radius,
-                     unsigned int level,
-                     RadiusSearchResult& result) const;
+  std::size_t radius_search(const Eigen::Vector3d& query_point,
+                            double radius,
+                            unsigned int level,
+                            RadiusSearchResult& result) const;
 
   /** @brief Return the number of points in the associated cloud */
   inline unsigned int get_number_of_points() const { return number_of_points; };

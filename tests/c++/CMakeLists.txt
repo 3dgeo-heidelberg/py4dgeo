@@ -14,6 +14,7 @@ add_executable(
   distances_t.cpp
   epoch_t.cpp
   kdtree_t.cpp
+  octree_t.cpp
   registration_t.cpp
   segmentation_t.cpp)
 target_link_libraries(tests PUBLIC py4dgeo py4dgeo_test Catch2::Catch2)

@@ -320,14 +320,9 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
-    def build_octree(self, force_rebuild=False):
-        """Build the search octree index
-
-        :param force_rebuild:
-            Rebuild the search tree even if it was already built before.
-        :type force_rebuild: bool
-        """
-        if self.octree.get_number_of_points() == 0 or force_rebuild:
+    def build_octree(self):
+        """Build the search octree index"""
+        if self.octree.get_number_of_points() == 0:
             logger.info(f"Building Otcree structure")
             self.octree.build_tree()
 
