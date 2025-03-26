@@ -16,7 +16,7 @@ Octree::Octree(const EigenPointCloudRef& cloud)
 }
 
 void
-Octree::compute_bounding_cube()
+Octree::compute_bounding_box()
 {
   // Find the smallest value in each column (x,y,z)
   min_point = cloud.colwise().minCoeff();
@@ -25,22 +25,24 @@ Octree::compute_bounding_cube()
   max_point = cloud.colwise().maxCoeff();
   Eigen::Vector3d center = (min_point + max_point) * 0.5;
 
-  // (max_point - min_point) gives the width, height and depth of the bounding
-  // box
-  double max_extent = (max_point - min_point).maxCoeff();
+  // (max_point - min_point) gives width, height and depth of the bounding box
+  Eigen::Vector3d extent = max_point - min_point;
 
-  // Gives the exponent x of 2^x needed, as ceiled integer
-  cube_size = std::pow(2, std::ceil(std::log2(max_extent)));
-  inv_cube_size = 1.0 / cube_size;
+  // For each axis, round extent to next power of two
+  for (int i = 0; i < 3; ++i) {
+    box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+  }
+
+  inv_box_size = box_size.cwiseInverse();
 
   // Gives the corner of the min point
-  min_point = center - Eigen::Vector3d::Constant(cube_size * 0.5);
+  min_point = center - box_size * 0.5;
 
   // Gives the corner of the max point
-  max_point = center + Eigen::Vector3d::Constant(cube_size * 0.5);
+  max_point = center + box_size * 0.5;
 
   // Compute cell sizes
-  cell_size[0] = cube_size;
+  cell_size[0] = box_size;
 
   for (size_t i = 1; i <= max_depth; ++i) {
     cell_size[i] = cell_size[i - 1] * 0.5;
@@ -113,7 +115,7 @@ Octree::create(const EigenPointCloudRef& cloud)
 void
 Octree::build_tree()
 {
-  compute_bounding_cube();
+  compute_bounding_box();
 
   number_of_points = cloud.rows();
   indexed_keys.keys.resize(number_of_points);
@@ -156,8 +158,8 @@ void
 Octree::invalidate()
 {
   number_of_points = 0;
-  cube_size = 0.0;
-  inv_cube_size = 0.0;
+  box_size[0] = box_size[1] = box_size[2] = 0.0;
+  inv_box_size[0] = inv_box_size[1] = inv_box_size[2] = 0.0;
   min_point = max_point = Eigen::Vector3d::Zero();
 
   indexed_keys.keys.clear();
@@ -165,7 +167,7 @@ Octree::invalidate()
   indexed_keys.keys.shrink_to_fit();
   indexed_keys.indices.shrink_to_fit();
 
-  std::fill(cell_size.begin(), cell_size.end(), 0.0);
+  std::fill(cell_size.begin(), cell_size.end(), Eigen::Vector3d::Zero());
   std::fill(
     occupied_cells_per_level.begin(), occupied_cells_per_level.end(), 0.0);
   std::fill(max_cell_population_per_level.begin(),
@@ -314,25 +316,23 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
 
   // Number of cells per axis at this level is 2^level
   const unsigned int num_cells = 1u << level;
-  const double cellSize = cell_size[level];
+  const Eigen::Vector3d cellSize = cell_size[level];
 
   // Compute the AABB of the sphere.
   Eigen::Vector3d sphere_min = query_point - Eigen::Vector3d::Constant(radius);
   Eigen::Vector3d sphere_max = query_point + Eigen::Vector3d::Constant(radius);
 
   // Helper: compute index range along a given axis
-  const double inv_cell_size = 1.0 / cellSize;
+  const Eigen::Vector3d inv_cell_size = cellSize.cwiseInverse();
   auto compute_index_range = [this, inv_cell_size, num_cells](
                                double coord_min, double coord_max, int axis)
     -> std::pair<unsigned int, unsigned int> {
     int i_min = static_cast<int>(
-      std::floor((coord_min - min_point[axis]) * inv_cell_size));
+      std::floor((coord_min - min_point[axis]) * inv_cell_size[axis]));
     int i_max = static_cast<int>(
-      std::floor((coord_max - min_point[axis]) * inv_cell_size));
-    if (i_min < 0)
-      i_min = 0;
-    if (i_max >= static_cast<int>(num_cells))
-      i_max = num_cells - 1;
+      std::floor((coord_max - min_point[axis]) * inv_cell_size[axis]));
+    i_min = std::max(i_min, 0);
+    i_max = std::min(i_max, static_cast<int>(num_cells - 1));
     return { static_cast<unsigned int>(i_min),
              static_cast<unsigned int>(i_max) };
   };
@@ -348,115 +348,116 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
   // Lambda to check sphere-AABB intersection for a cell
   // Classify whether the cell is fully inside or just intersecting the sphere
   auto classify_cell_relation_to_sphere =
-    [ this, &query_point, cellSize,
-      radius_squared ](unsigned int i,
-                       unsigned int j,
-                       unsigned int k) -> enum cell_relation_to_sphere {
+    [this, &query_point, cellSize, radius_squared](
+      unsigned int i,
+      unsigned int j,
+      unsigned int k) -> cell_relation_to_sphere {
     // Compute the cell's axis-aligned bounding box
-    double cell_min_x = min_point.x() + i * cellSize;
-    double cell_min_y = min_point.y() + j * cellSize;
-    double cell_min_z = min_point.z() + k * cellSize;
-    double cell_max_x = cell_min_x + cellSize;
-    double cell_max_y = cell_min_y + cellSize;
-    double cell_max_z = cell_min_z + cellSize;
+    double cell_min_x = min_point.x() + i * cellSize.x();
+    double cell_min_y = min_point.y() + j * cellSize.y();
+    double cell_min_z = min_point.z() + k * cellSize.z();
+    double cell_max_x = cell_min_x + cellSize.x();
+    double cell_max_y = cell_min_y + cellSize.y();
+    double cell_max_z = cell_min_z + cellSize.z();
 
     // Check whether all 8 corners of the cell are inside the sphere
     bool any_inside = false;
     bool any_outside = false;
 
-    for (size_t dx = 0; dx <= 1; ++dx){
-      for (size_t dy = 0; dy <= 1; ++dy){ for (size_t dz = 0; dz <= 1; ++dz){
-        double cx = dx ? cell_max_x : cell_min_x;
-        double cy = dy ? cell_max_y : cell_min_y;
-        double cz = dz ? cell_max_z : cell_min_z;
+    for (size_t dx = 0; dx <= 1; ++dx) {
+      for (size_t dy = 0; dy <= 1; ++dy) {
+        for (size_t dz = 0; dz <= 1; ++dz) {
+          double cx = dx ? cell_max_x : cell_min_x;
+          double cy = dy ? cell_max_y : cell_min_y;
+          double cz = dz ? cell_max_z : cell_min_z;
 
-        double diff_x = query_point[0] - cx;
-        double diff_y = query_point[1] - cy;
-        double diff_z = query_point[2] - cz;
-        double dist_sq = diff_x * diff_x + diff_y * diff_y + diff_z * diff_z;
+          Eigen::Vector3d corner(cx, cy, cz);
+          double dist_sq = (query_point - corner).squaredNorm();
 
-        if (dist_sq <= radius_squared) any_inside = true;
-        else any_outside = true;
-        if (any_inside &&
-            any_outside) return cell_relation_to_sphere::Intersecting; }
-}
-}
-if (any_inside)
-  return cell_relation_to_sphere::Inside;
+          if (dist_sq <= radius_squared)
+            any_inside = true;
+          else
+            any_outside = true;
+          if (any_inside && any_outside)
+            return cell_relation_to_sphere::Intersecting;
+        }
+      }
+    }
+    if (any_inside)
+      return cell_relation_to_sphere::Inside;
 
-// Check if sphere center is inside the cell
-if (query_point[0] >= cell_min_x && query_point[0] <= cell_max_x &&
-    query_point[1] >= cell_min_y && query_point[1] <= cell_max_y &&
-    query_point[2] >= cell_min_z && query_point[2] <= cell_max_z)
-  return cell_relation_to_sphere::Intersecting;
+    // Check if sphere center is inside the cell
+    if (query_point[0] >= cell_min_x && query_point[0] <= cell_max_x &&
+        query_point[1] >= cell_min_y && query_point[1] <= cell_max_y &&
+        query_point[2] >= cell_min_z && query_point[2] <= cell_max_z)
+      return cell_relation_to_sphere::Intersecting;
 
-// Final fallback: conservative AABB-sphere check
-// For each axis, add squared distance if query_point is outside the cell
-double v0 = query_point[0];
-double v1 = query_point[1];
-double v2 = query_point[2];
-double distance_squared = 0.0;
+    // Final fallback: conservative AABB-sphere check
+    // For each axis, add squared distance if query_point is outside the cell
+    double v0 = query_point[0];
+    double v1 = query_point[1];
+    double v2 = query_point[2];
+    double distance_squared = 0.0;
 
-if (v0 < cell_min_x) {
-  double diff = cell_min_x - v0;
-  distance_squared += diff * diff;
-} else if (v0 > cell_max_x) {
-  double diff = v0 - cell_max_x;
-  distance_squared += diff * diff;
-}
+    if (v0 < cell_min_x) {
+      double diff = cell_min_x - v0;
+      distance_squared += diff * diff;
+    } else if (v0 > cell_max_x) {
+      double diff = v0 - cell_max_x;
+      distance_squared += diff * diff;
+    }
 
-if (v1 < cell_min_y) {
-  double diff = cell_min_y - v1;
-  distance_squared += diff * diff;
-} else if (v1 > cell_max_y) {
-  double diff = v1 - cell_max_y;
-  distance_squared += diff * diff;
-}
+    if (v1 < cell_min_y) {
+      double diff = cell_min_y - v1;
+      distance_squared += diff * diff;
+    } else if (v1 > cell_max_y) {
+      double diff = v1 - cell_max_y;
+      distance_squared += diff * diff;
+    }
 
-if (v2 < cell_min_z) {
-  double diff = cell_min_z - v2;
-  distance_squared += diff * diff;
-} else if (v2 > cell_max_z) {
-  double diff = v2 - cell_max_z;
-  distance_squared += diff * diff;
-}
+    if (v2 < cell_min_z) {
+      double diff = cell_min_z - v2;
+      distance_squared += diff * diff;
+    } else if (v2 > cell_max_z) {
+      double diff = v2 - cell_max_z;
+      distance_squared += diff * diff;
+    }
 
-if (distance_squared <= radius_squared)
-  return cell_relation_to_sphere::Intersecting;
+    if (distance_squared <= radius_squared)
+      return cell_relation_to_sphere::Intersecting;
 
-// Truly outside
-return cell_relation_to_sphere::Outside;
-}
-;
+    // Truly outside
+    return cell_relation_to_sphere::Outside;
+  };
 
-// Iterate over all cells in the AABB
-for (unsigned int i = imin; i <= imax; ++i) {
-  for (unsigned int j = jmin; j <= jmax; ++j) {
-    for (unsigned int k = kmin; k <= kmax; ++k) {
-      auto relation = classify_cell_relation_to_sphere(i, j, k);
-      if (relation == cell_relation_to_sphere::Outside)
-        continue;
-      Eigen::Vector3d cell_center =
-        min_point + Eigen::Vector3d((i + 0.5) * cellSize,
-                                    (j + 0.5) * cellSize,
-                                    (k + 0.5) * cellSize);
-      SpatialKey full_key = compute_spatial_key(cell_center);
-      SpatialKey cell_key = full_key >> bit_shift[level];
+  // Iterate over all cells in the AABB
+  for (unsigned int i = imin; i <= imax; ++i) {
+    for (unsigned int j = jmin; j <= jmax; ++j) {
+      for (unsigned int k = kmin; k <= kmax; ++k) {
+        auto relation = classify_cell_relation_to_sphere(i, j, k);
+        if (relation == cell_relation_to_sphere::Outside)
+          continue;
+        Eigen::Vector3d cell_center =
+          min_point + Eigen::Vector3d((i + 0.5) * cellSize.x(),
+                                      (j + 0.5) * cellSize.y(),
+                                      (k + 0.5) * cellSize.z());
+        SpatialKey full_key = compute_spatial_key(cell_center);
+        SpatialKey cell_key = full_key >> bit_shift[level];
 
-      if (relation == cell_relation_to_sphere::Inside) {
-        inside.push_back(cell_key);
-      } else {
-        intersecting.push_back(cell_key);
+        if (relation == cell_relation_to_sphere::Inside) {
+          inside.push_back(cell_key);
+        } else {
+          intersecting.push_back(cell_key);
+        }
       }
     }
   }
-}
 
-// Sort the keys before returning.
-std::sort(inside.begin(), inside.end());
-std::sort(intersecting.begin(), intersecting.end());
+  // Sort the keys before returning.
+  std::sort(inside.begin(), inside.end());
+  std::sort(intersecting.begin(), intersecting.end());
 
-return intersecting.size() + inside.size();
+  return intersecting.size() + inside.size();
 }
 
 std::size_t
@@ -508,15 +509,15 @@ Octree::find_appropriate_level_for_radius_search(double radius) const
   double aim = radius / 2.5; // CC uses r/2.5
 
   unsigned int best_level = 1;
-  double diff = cell_size[1] - aim;
-  double min_diff_sq = diff * diff;
+  double min_diff_sq =
+    (cell_size[1] - Eigen::Vector3d::Constant(aim)).squaredNorm();
 
   for (size_t level = 2; level <= max_depth; ++level) {
     if (average_cell_population_per_level[level] < min_population_threshold)
       break;
 
-    diff = cell_size[level] - aim;
-    double diff_sq = diff * diff;
+    Eigen::Vector3d diff = cell_size[level] - Eigen::Vector3d::Constant(aim);
+    double diff_sq = diff.squaredNorm();
 
     if (diff_sq < min_diff_sq) {
       best_level = level;

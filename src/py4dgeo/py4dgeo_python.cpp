@@ -180,15 +180,15 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_number_of_points,
              "Return the number of points in the associated cloud");
 
-  // Allow extraction of cube size
-  octree.def("get_cube_size",
-             &Octree::get_cube_size,
-             "Return the side length of the bounding cube");
+  // Allow extraction of bounding box size
+  octree.def("get_box_size",
+             &Octree::get_box_size,
+             "Return the side length of the bounding box");
 
   // Allow extraction of min point
   octree.def("get_min_point",
              &Octree::get_min_point,
-             "Return the minimum point of the bounding cube");
+             "Return the minimum point of the bounding box");
 
   // Allow extraction of max point
   octree.def(

@@ -82,8 +82,8 @@ private:
   //! Enum to describe the geometric relationship between a cell and a sphere.
   enum class cell_relation_to_sphere
   {
-    Intersecting,
     Inside,
+    Intersecting,
     Outside
   };
 
@@ -96,14 +96,14 @@ private:
   //! z-order value
   IndexAndKey indexed_keys;
 
-  //! Min point of the bounding cube
+  //! Min point of the bounding box
   Eigen::Vector3d min_point;
-  //! Max point of the bounding cube
+  //! Max point of the bounding box
   Eigen::Vector3d max_point;
-  //! Size of the bounding cube
-  double cube_size;
-  //! Inverse of cube size
-  double inv_cube_size;
+  //! Size of the bounding box
+  Eigen::Vector3d box_size;
+  //! Inverse of box size
+  Eigen::Vector3d inv_box_size;
 
   //! Max depth level, depends solely on spatial key integer representation
   static constexpr unsigned int max_depth = (sizeof(SpatialKey) * 8) / 3;
@@ -134,7 +134,7 @@ private:
     make_dilate_table<SpatialKey, 2>(); // 4 entries
 
   //! Cell size as a function of depth level
-  std::array<double, max_depth + 1> cell_size;
+  std::array<Eigen::Vector3d, max_depth + 1> cell_size;
 
   //! Number of occupied cells per depth level
   std::array<unsigned int, max_depth + 1> occupied_cells_per_level;
@@ -156,17 +156,17 @@ private:
 
 private:
   /**
-   * @brief Computes the smallest power-of-two bounding cube that contains all
+   * @brief Computes the smallest power-of-two bounding box that contains all
    * points.
    *
    * This function calculates the minimum and maximum coordinates of the point
-   * cloud and determines a cube that fully encloses the data. The cube size is
+   * cloud and determines a cuboid that fully encloses the data. The box size is
    * rounded up to the nearest power of two.
    *
-   * The computed bounding cube is stored in `min_point`, `max_point`, and
-   * `cube_size`.
+   * The computed bounding box is stored in `min_point`, `max_point`, and
+   * `box_size`.
    */
-  void compute_bounding_cube();
+  void compute_bounding_box();
 
   /** @brief Computes the average cell properties at all depth levels. */
   void compute_statistics();
@@ -174,7 +174,7 @@ private:
   /**
    * @brief Computes a unique spatial key (Z-order value) for a given point.
    *
-   * This function normalizes the input point within the bounding cube and maps
+   * This function normalizes the input point within the bounding box and maps
    * it to an integer 3D grid of size '2^max_depth × 2^max_depth × 2^max_depth'.
    * The computed grid coordinates are then interleaved using bitwise operations
    * to generate a Z-order value key that represents the point's hierarchical
@@ -187,7 +187,7 @@ private:
    */
   inline SpatialKey compute_spatial_key(const Eigen::Vector3d& point) const
   {
-    Eigen::Vector3d normalized = (point - min_point) * inv_cube_size;
+    Eigen::Vector3d normalized = (point - min_point).cwiseProduct(inv_box_size);
 
     SpatialKey ix = static_cast<SpatialKey>(normalized.x() * grid_size);
     SpatialKey iy = static_cast<SpatialKey>(normalized.y() * grid_size);
@@ -272,13 +272,13 @@ public:
   /** @brief Return the number of points in the associated cloud */
   inline unsigned int get_number_of_points() const { return number_of_points; };
 
-  /** @brief Return the side length of the bounding cube */
-  inline double get_cube_size() const { return cube_size; };
+  /** @brief Return the side length of the bounding box */
+  inline Eigen::Vector3d get_box_size() const { return box_size; };
 
-  /** @brief Return the minimum point of the bounding cube */
+  /** @brief Return the minimum point of the bounding box */
   inline Eigen::Vector3d get_min_point() const { return min_point; };
 
-  /** @brief Return the maximum point of the bounding cube */
+  /** @brief Return the maximum point of the bounding box */
   inline Eigen::Vector3d get_max_point() const { return max_point; };
 
   /** @brief Return the 8-bit delater lookup table*/
@@ -300,7 +300,7 @@ public:
   };
 
   /** @brief Return the size of cells at a level of depth */
-  inline double get_cell_size(unsigned int level) const
+  inline Eigen::Vector3d get_cell_size(unsigned int level) const
   {
     return cell_size[level];
   };
