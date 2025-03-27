@@ -209,25 +209,15 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
   // Precompute squared radius for efficiency
   double radius_square = radius * radius;
 
-  // Precompute query point components to avoid repeated function calls.
-  const double qx = query_point.x();
-  const double qy = query_point.y();
-  const double qz = query_point.z();
-
   // Step 3: Check each candidate point
   for (const auto& candidate : candidate_points) {
     // Direct element access from the cloud matrix.
-    const double px = cloud(candidate, 0);
-    const double py = cloud(candidate, 1);
-    const double pz = cloud(candidate, 2);
+    const Eigen::Vector3d point = cloud.row(candidate);
 
     // Compute squared Euclidean distance.
-    const double dx = px - qx;
-    const double dy = py - qy;
-    const double dz = pz - qz;
-    const double dist_sq = dx * dx + dy * dy + dz * dz;
+    double dist_squared = (point - query_point).squaredNorm();
 
-    if (dist_sq <= radius_square) {
+    if (dist_squared <= radius_square) {
       result.push_back(candidate);
     }
   }
@@ -236,28 +226,6 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
     result.end(), points_inside_sphere.begin(), points_inside_sphere.end());
 
   return result.size();
-}
-
-Octree::KeyContainer
-Octree::get_spatial_keys() const
-{
-  Octree::KeyContainer keys;
-  keys.reserve(indexed_keys.keys.size());
-  for (const auto& key : indexed_keys.keys) {
-    keys.push_back(key);
-  }
-  return keys;
-}
-
-Octree::PointContainer
-Octree::get_point_indices() const
-{
-  std::vector<IndexType> indices;
-  indices.reserve(indexed_keys.indices.size());
-  for (const auto& index : indexed_keys.indices) {
-    indices.push_back(index);
-  }
-  return indices;
 }
 
 std::optional<IndexType>
@@ -466,6 +434,8 @@ Octree::get_points_indices_from_cells(
   assert(level <= max_depth);
   assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
   result.clear();
+  result.reserve(truncated_keys.size() *
+                 average_cell_population_per_level[level]);
 
   IndexType current_start = 0;
   SpatialKey bitShift = bit_shift[level];
@@ -485,10 +455,9 @@ Octree::get_points_indices_from_cells(
       continue;
     IndexType last_index = *opt_last_index;
 
-    // Copy the corresponding indices into the result.
-    std::copy(indexed_keys.indices.begin() + first_index,
-              indexed_keys.indices.begin() + last_index,
-              std::back_inserter(result));
+    result.insert(result.end(),
+                  indexed_keys.indices.begin() + first_index,
+                  indexed_keys.indices.begin() + last_index);
 
     // Update current_start for the next search: start after the current cell's
     // block

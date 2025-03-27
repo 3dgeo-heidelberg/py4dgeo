@@ -333,11 +333,14 @@ public:
 
   //! @brief Get all spatial keys (Z-order values) of the Octree
   //! @return Vector of spatial keys (Z-order values)
-  KeyContainer get_spatial_keys() const;
+  const KeyContainer& get_spatial_keys() const { return indexed_keys.keys; }
 
   //! @brief Get all point indices corresponding to spatial keys
   //! @return Vector of point indices
-  PointContainer get_point_indices() const;
+  const PointContainer& get_point_indices() const
+  {
+    return indexed_keys.indices;
+  }
 
   /**
    * @brief Returns the first occurrence of theindex of a cell in the sorted
