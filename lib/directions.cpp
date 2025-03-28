@@ -23,6 +23,7 @@ compute_multiscale_directions(const Epoch& epoch,
                               std::vector<double>& used_radii)
 {
   used_radii.resize(corepoints.rows());
+  const auto orientation_vector = orientation.row(0).transpose();
 
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
@@ -41,12 +42,12 @@ compute_multiscale_directions(const Epoch& epoch,
         auto subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
-        auto centered = subset.rowwise() - subset.colwise().mean();
-        auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
-        auto coveval = cov.eval();
+        auto centered = (subset.rowwise() - subset.colwise().mean()).eval();
+        auto cov =
+          ((centered.adjoint() * centered) / double(subset.rows() - 1)).eval();
 
         // Calculate Eigen vectors
-        Eigen::SelfAdjointEigenSolver<decltype(coveval)> solver(coveval);
+        Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
         const auto& evalues = solver.eigenvalues();
 
         // Calculate planarity
@@ -54,8 +55,7 @@ compute_multiscale_directions(const Epoch& epoch,
         if (planarity > highest_planarity) {
           highest_planarity = planarity;
 
-          double prod =
-            (solver.eigenvectors().col(0).dot(orientation.row(0).transpose()));
+          double prod = (solver.eigenvectors().col(0).dot(orientation_vector));
           double sign = (prod < 0.0) ? -1.0 : 1.0;
           result.row(i) = sign * solver.eigenvectors().col(0);
           used_radii[i] = radius;
@@ -86,11 +86,11 @@ compute_correspondence_distances(const Epoch& epoch,
     if (epoch.cloud.rows() != check_size) {
       auto subset = corepoints[result[i].first[0]];
       // Calculate covariance matrix
-      auto centered = subset.rowwise() - subset.colwise().mean();
-      auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
-      auto coveval = cov.eval();
+      auto centered = (subset.rowwise() - subset.colwise().mean()).eval();
+      auto cov =
+        ((centered.adjoint() * centered) / double(subset.rows() - 1)).eval();
       // Calculate Eigen vectors
-      Eigen::SelfAdjointEigenSolver<decltype(coveval)> solver(coveval);
+      Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
       Eigen::Vector3d normal_vector = solver.eigenvectors().col(0);
       // calculate cor distance
       Eigen::Vector3d displacement_vector =
