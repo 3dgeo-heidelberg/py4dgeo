@@ -269,7 +269,11 @@ def initialize_openmp_defaults():
     """Set OpenMP environment variables for optimal performance on Windows with llvm OpenMP"""
 
     # Only apply when using Windows
+<<<<<<< HEAD
     if platform.system() != "Windows":
+=======
+    if os.name != "nt":
+>>>>>>> 6025e6a (Improve OpenMP support on Windows: Use /openmp:llvm and set OMP environment variables)
         return
 
     # Only set if the user hasn't already
