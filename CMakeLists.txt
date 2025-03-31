@@ -54,6 +54,18 @@ if(PY4DGEO_WITH_OPENMP)
     target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP
                                               EIGEN_DONT_PARALLELIZE)
+    if(MSVC)
+      include(CheckCXXCompilerFlag)
+      check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
+      if(MSVC_SUPPORTS_OPENMP_LLVM)
+        target_compile_options(py4dgeo PRIVATE "/openmp:llvm")
+        message(STATUS "MSVC: Using /openmp:llvm for OpenMP support")
+      else()
+        message(
+          WARNING
+            "MSVC: /openmp:llvm not supported, falling back to legacy /openmp")
+      endif()
+    endif()
   endif()
 endif()
 

@@ -39,6 +39,7 @@ dependencies = [
     "scikit-learn",
     "vedo",
     "xdg",
+    "psutil"
 ]
 
 # Command line scripts installed as part of the installation
