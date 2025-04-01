@@ -31,10 +31,10 @@ set(BUILD_BENCHMARKS
     OFF
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
-    ON
+    OFF
     CACHE BOOL "Enable OpenMP parallelization")
 set(PY4DGEO_WITH_TBB
-    OFF
+    ON
     CACHE BOOL "Enable TBB parallelization")
 
 # Ensure only one (or none) is enabled
