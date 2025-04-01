@@ -134,8 +134,10 @@ variance(EigenPointCloudConstRef subset,
          const Eigen::Matrix<double, 1, 3>& mean,
          EigenNormalSetConstRef direction)
 {
-  auto centered = subset.rowwise() - mean;
-  auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
+  auto centered = (subset.rowwise() - mean).eval();
+  auto cov =
+    ((centered.adjoint() * centered) / double(subset.rows() - 1)).eval();
+
   auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
   return multiplied.eval()(0, 0);
 }
