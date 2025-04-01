@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.30)
 
 # Set a name and a version number for your project:
 project(
@@ -49,23 +49,18 @@ target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
 if(PY4DGEO_WITH_OPENMP)
+  if(MSVC)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
+    if(MSVC_SUPPORTS_OPENMP_LLVM)
+      set(OpenMP_RUNTIME_MSVC "llvm")
+    endif()
+  endif()
+
   find_package(OpenMP)
   if(OpenMP_FOUND)
     target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)
-    target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP
-                                              EIGEN_DONT_PARALLELIZE)
-    if(MSVC)
-      include(CheckCXXCompilerFlag)
-      check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
-      if(MSVC_SUPPORTS_OPENMP_LLVM)
-        target_compile_options(py4dgeo PRIVATE "/openmp:llvm")
-        message(STATUS "MSVC: Using /openmp:llvm for OpenMP support")
-      else()
-        message(
-          WARNING
-            "MSVC: /openmp:llvm not supported, falling back to legacy /openmp")
-      endif()
-    endif()
+    target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP EIGEN_DONT_PARALLELIZE)
   endif()
 endif()
 

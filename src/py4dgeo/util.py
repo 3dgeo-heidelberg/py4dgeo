@@ -3,6 +3,7 @@ import logging
 import numpy as np
 import os
 import platform
+import psutil
 import pooch
 import requests
 import sys
@@ -269,23 +270,13 @@ def initialize_openmp_defaults():
     """Set OpenMP environment variables for optimal performance on Windows with llvm OpenMP"""
 
     # Only apply when using Windows
-<<<<<<< HEAD
     if platform.system() != "Windows":
-=======
-    if os.name != "nt":
->>>>>>> 6025e6a (Improve OpenMP support on Windows: Use /openmp:llvm and set OMP environment variables)
         return
 
-    # Only set if the user hasn't already
+    # Only set if the user has not already
     if "OMP_NUM_THREADS" not in os.environ:
-        try:
-            import psutil
-
-            num_cores = psutil.cpu_count(logical=False)
-            os.environ["OMP_NUM_THREADS"] = str(num_cores)
-        except Exception:
-            # Fallback if psutil not available or fails
-            os.environ["OMP_NUM_THREADS"] = str(max(1, os.cpu_count() // 2))
+        num_cores = psutil.cpu_count(logical=False)
+        os.environ["OMP_NUM_THREADS"] = str(num_cores)
 
     os.environ.setdefault("OMP_PROC_BIND", "close")
     os.environ.setdefault("OMP_PLACES", "threads")
