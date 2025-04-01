@@ -60,7 +60,8 @@ if(PY4DGEO_WITH_OPENMP)
   find_package(OpenMP)
   if(OpenMP_FOUND)
     target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)
-    target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP EIGEN_DONT_PARALLELIZE)
+    target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP
+                                              EIGEN_DONT_PARALLELIZE)
   endif()
 endif()
 
