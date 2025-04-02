@@ -18,6 +18,7 @@
 #include "py4dgeo/searchtree.hpp"
 #include "py4dgeo/segmentation.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <string>
@@ -76,6 +77,50 @@ PYBIND11_MODULE(_py4dgeo, m)
   epoch.def_readwrite("_cloud", &Epoch::cloud);
   epoch.def_readwrite("_kdtree", &Epoch::kdtree);
   epoch.def_readwrite("_octree", &Epoch::octree);
+
+  // Set and get default search trees
+  epoch.def(
+    "set_default_radius_search_tree",
+    [](Epoch& self, const std::string& tree_name_input) {
+      std::string tree_name = tree_name_input;
+      std::transform(
+        tree_name.begin(), tree_name.end(), tree_name.begin(), ::tolower);
+
+      if (tree_name == "kdtree") {
+        self.set_default_radius_search_tree(SearchTree::KDTree);
+      } else if (tree_name == "octree") {
+        self.set_default_radius_search_tree(SearchTree::Octree);
+      } else {
+        throw std::invalid_argument("Unknown search tree type: " +
+                                    tree_name_input);
+      }
+    },
+    py::arg("tree_name"),
+    "Set the default search tree for radius searches (\"kdtree\" or "
+    "\"octree\")");
+  epoch.def(
+    "set_default_nearest_neighbor_tree",
+    [](Epoch& self, const std::string& tree_name_input) {
+      std::string tree_name = tree_name_input;
+      std::transform(
+        tree_name.begin(), tree_name.end(), tree_name.begin(), ::tolower);
+
+      if (tree_name == "kdtree") {
+        self.set_default_nearest_neighbor_tree(SearchTree::KDTree);
+      } else if (tree_name == "octree") {
+        self.set_default_nearest_neighbor_tree(SearchTree::Octree);
+      } else {
+        throw std::invalid_argument("Unknown search tree type: " +
+                                    tree_name_input);
+      }
+    },
+    py::arg("tree_name"),
+    "Set the default search tree for nearest neighbor searches (\"kdtree\" or "
+    "\"octree\")");
+  epoch.def("get_default_radius_search_tree",
+            &Epoch::get_default_radius_search_tree);
+  epoch.def("get_default_nearest_neighbor_tree",
+            &Epoch::get_default_nearest_neighbor_tree);
 
   // Pickling support for the Epoch class
   epoch.def(py::pickle(

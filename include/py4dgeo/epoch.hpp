@@ -24,9 +24,34 @@ public:
   static std::unique_ptr<Epoch> from_stream(std::istream&);
   std::ostream& to_stream(std::ostream&) const;
 
+  // Optional setters
+  void set_default_radius_search_tree(SearchTree tree)
+  {
+    default_radius_search_tree = tree;
+  }
+
+  void set_default_nearest_neighbor_tree(SearchTree tree)
+  {
+    default_nearest_neighbor_tree = tree;
+  }
+
+  SearchTree get_default_radius_search_tree() const
+  {
+    return default_radius_search_tree;
+  }
+
+  SearchTree get_default_nearest_neighbor_tree() const
+  {
+    return default_nearest_neighbor_tree;
+  }
+
 private:
   // If this epoch is unserialized, it owns the point cloud
   std::shared_ptr<EigenPointCloud> owned_cloud;
+
+  // Default for search operations
+  SearchTree default_radius_search_tree = SearchTree::Octree;
+  SearchTree default_nearest_neighbor_tree = SearchTree::KDTree;
 
 public:
   // The data members are accessible from the outside. This could be

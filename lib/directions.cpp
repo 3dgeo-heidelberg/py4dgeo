@@ -29,13 +29,12 @@ compute_multiscale_directions(const Epoch& epoch,
   const auto orientation_vector = orientation.row(0).transpose();
 
   using RadiusSearchFunc = std::function<void(
-    const Eigen::Vector3d&, double, std::vector<IndexType>&)>;
+    const Eigen::Vector3d&, size_t, std::vector<IndexType>&)>;
 
-  std::vector<unsigned int> levels;
   RadiusSearchFunc radius_search;
 
   if (tree == SearchTree::Octree) { // Octree
-    levels.resize(normal_radii.size());
+    std::vector<unsigned int> levels(normal_radii.size());
     for (size_t i = 0; i < normal_radii.size(); ++i) {
       levels[i] =
         epoch.octree.find_appropriate_level_for_radius_search(normal_radii[i]);

@@ -139,7 +139,7 @@ class Epoch(_py4dgeo.Epoch):
         self,
         radius=1.0,
         orientation_vector: np.ndarray = np.array([0, 0, 1]),
-        searchtree: str = "kdtree",  # or "octree"
+        searchtree: typing.Optional[str] = None,
     ):
         """Calculate point cloud normals
 
@@ -150,20 +150,26 @@ class Epoch(_py4dgeo.Epoch):
             A vector to determine orientation of the normals. It should point "up".
 
         :param searchtree:
-            Which spatial search structure to use: 'kdtree' (default) or 'octree'
+            Optional override for which spatial structure to use: "kdtree" or "octree".
+            If not provided, the current default of the Epoch is used.
         """
 
-        # Ensure that the tree is built
-        if searchtree == "kdtree":
-            if self.kdtree.leaf_parameter() == 0:
-                self.build_kdtree()
+        if searchtree is None:
+            tree_type = self.get_default_radius_search_tree()
+        elif searchtree == "kdtree":
             tree_type = _py4dgeo.SearchTree.KDTreeSearch
         elif searchtree == "octree":
-            if self.octree.get_number_of_points() == 0:
-                self.build_octree()
             tree_type = _py4dgeo.SearchTree.OctreeSearch
         else:
             raise ValueError(f"Unknown search tree type: {searchtree}")
+
+        # Ensure appropriate tree is built
+        if tree_type == _py4dgeo.SearchTree.KDTreeSearch:
+            if self.kdtree.leaf_parameter() == 0:
+                self.build_kdtree()
+        else:
+            if self.octree.get_number_of_points() == 0:
+                self.build_octree()
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
@@ -174,34 +180,6 @@ class Epoch(_py4dgeo.Epoch):
                 [radius],
                 orientation_vector,
                 tree_type,
-            )
-
-        return self.normals
-
-    def calculate_normals_octree(
-        self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
-    ):
-        """Calculate point cloud normals
-
-        :param radius:
-            The radius used to determine the neighborhood of a point.
-
-        :param orientation_vector:
-            A vector to determine orientation of the normals. It should point "up".
-        """
-
-        # Ensure that the Octree is built
-        if self.octree.get_number_of_points() == 0:
-            self.build_octree()
-
-        # Reuse the multiscale code with a single radius in order to
-        # avoid code duplication.
-        with logger_context("Calculating point cloud normals:"):
-            self._normals, _ = _py4dgeo.compute_multiscale_directions_octree(
-                self,
-                self.cloud,
-                [radius],
-                orientation_vector,
             )
 
         return self.normals
