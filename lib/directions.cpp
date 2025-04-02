@@ -70,7 +70,6 @@ compute_multiscale_directions(const Epoch& epoch,
     });
 #elif defined(PY4DGEO_WITH_OPENMP)
 #pragma omp parallel for schedule(dynamic, 1)
-#endif
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
@@ -103,6 +102,7 @@ compute_multiscale_directions(const Epoch& epoch,
       }
     });
   }
+#endif
 
   // Potentially rethrow an exception that occurred in above parallel region
   vault.rethrow();
