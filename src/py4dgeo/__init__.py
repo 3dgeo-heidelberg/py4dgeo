@@ -27,6 +27,9 @@ from py4dgeo.util import (
     set_memory_policy,
     get_num_threads,
     set_num_threads,
+    initialize_openmp_defaults,
 )
+
+initialize_openmp_defaults()
 
 from py4dgeo.pbm3c2 import *

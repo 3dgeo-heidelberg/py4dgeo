@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.9)
+cmake_minimum_required(VERSION 3.30)
 
 # Set a name and a version number for your project:
 project(
@@ -56,6 +56,14 @@ target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
 if(PY4DGEO_WITH_OPENMP)
+  if(MSVC)
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
+    if(MSVC_SUPPORTS_OPENMP_LLVM)
+      set(OpenMP_RUNTIME_MSVC "llvm")
+    endif()
+  endif()
+
   find_package(OpenMP)
   if(OpenMP_FOUND)
     target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)

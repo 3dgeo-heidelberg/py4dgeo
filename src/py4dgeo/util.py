@@ -3,9 +3,11 @@ import logging
 import numpy as np
 import os
 import platform
+import psutil
 import pooch
 import requests
 import sys
+import warnings
 import xdg
 
 from importlib import metadata
@@ -217,6 +219,16 @@ def set_num_threads(num_threads: int):
     "type num_threads: int
     """
 
+    env_threads = os.environ.get("OMP_NUM_THREADS")
+    if env_threads:
+        try:
+            env_threads_int = int(env_threads)
+            if env_threads_int != num_threads:
+                warnings.warn(
+                    f"OMP_NUM_THREADS environment variable is set to {env_threads_int}, but set_num_threads({num_threads}) was called. The environment variable may override this setting."
+                )
+        except ValueError:
+            raise Py4DGeoError(f"Invalid value for OMP_NUM_THREADS: '{env_threads}'")
     try:
         _py4dgeo.omp_set_num_threads(num_threads)
     except AttributeError:
@@ -252,6 +264,22 @@ def append_file_extension(filename, extension):
 def is_iterable(obj):
     """Whether the object is an iterable (excluding a string)"""
     return isinstance(obj, collections.abc.Iterable) and not isinstance(obj, str)
+
+
+def initialize_openmp_defaults():
+    """Set OpenMP environment variables for optimal performance on Windows with llvm OpenMP"""
+
+    # Only apply when using Windows
+    if platform.system() != "Windows":
+        return
+
+    # Only set if the user has not already
+    if "OMP_NUM_THREADS" not in os.environ:
+        num_cores = psutil.cpu_count(logical=False)
+        os.environ["OMP_NUM_THREADS"] = str(num_cores)
+
+    os.environ.setdefault("OMP_PROC_BIND", "close")
+    os.environ.setdefault("OMP_PLACES", "threads")
 
 
 def copy_test_data_entrypoint():
