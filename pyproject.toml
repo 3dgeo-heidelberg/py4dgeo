@@ -51,6 +51,8 @@ minimum-version = "3.17"
 [tool.scikit-build.cmake.define]
 BUILD_DOCS = "OFF"
 BUILD_TESTING = "OFF"
+CMAKE_VERBOSE_MAKEFILE = "ON"
+TBB_DIR = "/usr/local/lib/cmake/TBB"
 
 # The next section configures building wheels in Continuous Integration
 # The cibuildwheel documentation covers the available options in detail:

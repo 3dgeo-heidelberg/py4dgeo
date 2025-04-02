@@ -15,6 +15,7 @@
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 #include "py4dgeo/registration.hpp"
 #include "py4dgeo/segmentation.hpp"
+#include "py4dgeo/tbb_pinning_observer.hpp"
 
 #include <fstream>
 #include <sstream>
@@ -265,8 +266,21 @@ PYBIND11_MODULE(_py4dgeo, m)
       EigenNormalSet result(corepoints.rows(), 3);
       std::vector<double> used_radii;
 
-      compute_multiscale_directions(
-        epoch, corepoints, normal_radii, orientation, result, used_radii);
+      const int num_threads = std::min(12, static_cast<int>(corepoints.rows()));
+      std::vector<int> cpus;
+      for (int i = 0; i < num_threads; ++i)
+        cpus.push_back(i);
+
+      tbb::task_arena arena(num_threads);
+
+#if defined(_WIN32) || defined(__linux__)
+      PinningObserver observer(arena, cpus);
+#endif
+
+      arena.execute([&] {
+        compute_multiscale_directions(
+          epoch, corepoints, normal_radii, orientation, result, used_radii);
+      });
 
       return std::make_tuple(std::move(result),
                              as_pyarray(std::move(used_radii)));

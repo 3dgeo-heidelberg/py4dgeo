@@ -33,6 +33,8 @@ compute_multiscale_directions(const Epoch& epoch,
   CallbackExceptionVault vault;
 
 #ifdef PY4DGEO_WITH_TBB
+  printf("PY4DGEO_WITH_TBB\n");
+  fflush(stdout);
   tbb::parallel_for(
     tbb::blocked_range<IndexType>(0, corepoints.rows()),
     [&](const tbb::blocked_range<IndexType>& r) {
