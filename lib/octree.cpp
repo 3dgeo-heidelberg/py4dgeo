@@ -112,6 +112,58 @@ Octree::create(const EigenPointCloudRef& cloud)
   return Octree(cloud);
 }
 
+std::ostream&
+Octree::saveIndex(std::ostream& stream) const
+{
+  // Write indicator
+  stream.write(reinterpret_cast<const char*>(&number_of_points),
+               sizeof(number_of_points));
+
+  stream.write(reinterpret_cast<const char*>(min_point.data()),
+               sizeof(double) * 3);
+  stream.write(reinterpret_cast<const char*>(max_point.data()),
+               sizeof(double) * 3);
+
+  IndexType size = static_cast<IndexType>(indexed_keys.indices.size());
+  stream.write(reinterpret_cast<const char*>(&size), sizeof(IndexType));
+
+  stream.write(reinterpret_cast<const char*>(indexed_keys.indices.data()),
+               sizeof(IndexType) * size);
+  stream.write(reinterpret_cast<const char*>(indexed_keys.keys.data()),
+               sizeof(SpatialKey) * size);
+
+  return stream;
+}
+
+std::istream&
+Octree::loadIndex(std::istream& stream)
+{
+  // Read the indicator
+  stream.read(reinterpret_cast<char*>(&number_of_points),
+              sizeof(number_of_points));
+
+  stream.read(reinterpret_cast<char*>(min_point.data()), sizeof(double) * 3);
+  stream.read(reinterpret_cast<char*>(max_point.data()), sizeof(double) * 3);
+
+  box_size = max_point - min_point;
+  inv_box_size = box_size.cwiseInverse();
+
+  IndexType size;
+  stream.read(reinterpret_cast<char*>(&size), sizeof(IndexType));
+
+  indexed_keys.indices.resize(size);
+  indexed_keys.keys.resize(size);
+
+  stream.read(reinterpret_cast<char*>(indexed_keys.indices.data()),
+              sizeof(IndexType) * size);
+  stream.read(reinterpret_cast<char*>(indexed_keys.keys.data()),
+              sizeof(SpatialKey) * size);
+
+  compute_statistics(); // Recompute per-level stats
+
+  return stream;
+}
+
 void
 Octree::build_tree()
 {

@@ -40,6 +40,13 @@ Epoch::to_stream(std::ostream& stream) const
   if (kd_leaf_parameter != 0)
     kdtree.search->saveIndex(stream);
 
+  // Write the Octree only if it was built
+  unsigned int octree_points = octree.get_number_of_points();
+  stream.write(reinterpret_cast<const char*>(&octree_points),
+               sizeof(unsigned int));
+  if (octree_points != 0)
+    octree.saveIndex(stream);
+
   return stream;
 }
 
@@ -67,6 +74,13 @@ Epoch::from_stream(std::istream& stream)
       epoch->kdtree.adaptor,
       nanoflann::KDTreeSingleIndexAdaptorParams(epoch->kdtree.leaf_parameter));
     epoch->kdtree.search->loadIndex(stream);
+  }
+
+  // Read the octree point count
+  unsigned int octree_points;
+  stream.read(reinterpret_cast<char*>(&octree_points), sizeof(unsigned int));
+  if (octree_points != 0) {
+    epoch->octree.loadIndex(stream);
   }
 
   return epoch;

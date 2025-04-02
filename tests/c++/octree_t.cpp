@@ -32,7 +32,7 @@ TEST_CASE("Octree is correctly build", "[octree]")
     double radius = 100.;
     unsigned int level =
       epoch.octree.find_appropriate_level_for_radius_search(radius);
-    auto num = tree.radius_search(o.data(), radius, level, result);
+    auto num = tree.radius_search(query_point, radius, level, result);
     REQUIRE(num == epoch.cloud.rows());
     REQUIRE(result.size() == epoch.cloud.rows());
   }

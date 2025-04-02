@@ -235,6 +235,12 @@ public:
    */
   static Octree create(const EigenPointCloudRef& cloud);
 
+  /** @brief Save the index to a (file) stream */
+  std::ostream& saveIndex(std::ostream& stream) const;
+
+  /** @brief Load the index from a (file) stream */
+  std::istream& loadIndex(std::istream& stream);
+
   /** @brief Build the Octree index
    *
    * This initializes the Octree search index. Calling this method is required
