@@ -241,43 +241,43 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
 {
   result.clear();
 
-  constexpr std::size_t estimated_cell_count = 1024;
-  constexpr std::size_t estimated_candidate_count = 1024;
+  return radius_search_backend(
+    query_point,
+    radius,
+    level,
+    [&](IndexType index, double /*dist*/) { result.push_back(index); },
+    [&](const RadiusSearchResult& all_inside) {
+      result.insert(result.end(), all_inside.begin(), all_inside.end());
+    });
+}
 
-  // Step 1: Retrieve all spatial keys of cells intersected by the sphere
-  KeyContainer cells_inside, cells_intersecting;
-  cells_inside.reserve(estimated_cell_count);
-  cells_intersecting.reserve(estimated_cell_count);
-  get_cells_intersected_by_sphere(
-    query_point, radius, level, cells_inside, cells_intersecting);
+std::size_t
+Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
+                                     double radius,
+                                     unsigned int level,
+                                     RadiusSearchDistanceResult& result) const
+{
+  result.clear();
 
-  // Step 2: Get candidate point indices from the intersected cells
-  RadiusSearchResult points_inside_sphere, candidate_points;
-  points_inside_sphere.reserve(estimated_candidate_count);
-  candidate_points.reserve(estimated_candidate_count);
-  get_points_indices_from_cells(cells_inside, level, points_inside_sphere);
-  get_points_indices_from_cells(cells_intersecting, level, candidate_points);
+  std::size_t found = radius_search_backend(
+    query_point,
+    radius,
+    level,
+    [&](IndexType index, double dist) { result.emplace_back(index, dist); },
+    [&](const RadiusSearchResult& all_inside) {
+      for (const auto& idx : all_inside) {
+        const Eigen::Vector3d point = cloud.row(idx);
+        double dist = (point - query_point).norm();
+        result.emplace_back(idx, dist);
+      }
+    });
 
-  // Precompute squared radius for efficiency
-  double radius_square = radius * radius;
+  // Sort the result by distance (ascending)
+  std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
+    return a.second < b.second;
+  });
 
-  // Step 3: Check each candidate point
-  for (const auto& candidate : candidate_points) {
-    // Direct element access from the cloud matrix.
-    const Eigen::Vector3d point = cloud.row(candidate);
-
-    // Compute squared Euclidean distance.
-    double dist_squared = (point - query_point).squaredNorm();
-
-    if (dist_squared <= radius_square) {
-      result.push_back(candidate);
-    }
-  }
-
-  result.insert(
-    result.end(), points_inside_sphere.begin(), points_inside_sphere.end());
-
-  return result.size();
+  return found;
 }
 
 std::optional<IndexType>

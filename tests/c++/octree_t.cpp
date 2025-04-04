@@ -36,4 +36,23 @@ TEST_CASE("Octree is correctly build", "[octree]")
     REQUIRE(num == epoch.cloud.rows());
     REQUIRE(result.size() == epoch.cloud.rows());
   }
+
+  SECTION("Perform radius search with distances")
+  {
+    // Find all nodes with a radius search
+    Eigen::Vector3d query_point{ 0.0, 0.0, 0.0 };
+    Octree::RadiusSearchDistanceResult result;
+
+    // Do radius search with radius wide enough to cover the entire cloud
+    double radius = 100.;
+    unsigned int level =
+      epoch.octree.find_appropriate_level_for_radius_search(radius);
+    auto num =
+      tree.radius_search_with_distances(query_point, radius, level, result);
+    REQUIRE(num == epoch.cloud.rows());
+    REQUIRE(result.size() == epoch.cloud.rows());
+    REQUIRE(std::is_sorted(result.begin(), result.end(), [](auto a, auto b) {
+      return a.second < b.second;
+    }));
+  }
 }

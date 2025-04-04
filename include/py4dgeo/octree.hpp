@@ -225,6 +225,69 @@ private:
     return key;
   }
 
+  /**
+   * @brief Perform radius search with a callback for each matching point
+   *
+   * Searches all points within the given radius around a query point at a
+   * specified octree level. For each point inside the radius, the provided
+   * callback is called with its index and distance.
+   *
+   * Used internally to implement both index-only and distance-returning
+   * search variants.
+   *
+   * @tparam Callback A callable accepting (IndexType, double)
+   * @param[in] query_point The 3D coordinates of the query point
+   * @param[in] radius The search radius
+   * @param[in] level The octree depth level
+   * @param[in] check_candidate Called for each candidate point found within the
+   * sphere
+   * @param[in] take_all Called for all points in cells that are completely
+   * within the sphere
+   * @return Number of points found
+   */
+  template<typename CallbackNear, typename CallbackInside>
+  std::size_t radius_search_backend(const Eigen::Vector3d& query_point,
+                                    double radius,
+                                    unsigned int level,
+                                    CallbackNear&& check_candidate,
+                                    CallbackInside&& take_all) const
+  {
+    constexpr std::size_t estimated_cell_count = 1024;
+    constexpr std::size_t estimated_candidate_count = 1024;
+
+    // Step 1: Retrieve all spatial keys of cells intersected by the sphere
+    KeyContainer cells_inside, cells_intersecting;
+    cells_inside.reserve(estimated_cell_count);
+    cells_intersecting.reserve(estimated_cell_count);
+    get_cells_intersected_by_sphere(
+      query_point, radius, level, cells_inside, cells_intersecting);
+
+    // Step 2: Get candidate point indices from the intersected cells
+    RadiusSearchResult points_inside_sphere, candidate_points;
+    points_inside_sphere.reserve(estimated_candidate_count);
+    candidate_points.reserve(estimated_candidate_count);
+    get_points_indices_from_cells(cells_inside, level, points_inside_sphere);
+    get_points_indices_from_cells(cells_intersecting, level, candidate_points);
+
+    // Step 3: Check each candidate point
+    for (const auto& candidate : candidate_points) {
+      // Direct element access from the cloud matrix.
+      const Eigen::Vector3d point = cloud.row(candidate);
+
+      // Compute squared Euclidean distance.
+      double dist = (point - query_point).norm();
+
+      if (dist <= radius) {
+        check_candidate(candidate, dist);
+      }
+    }
+
+    // Step 4: Candidates from fully included cells: no distance check needed
+    take_all(points_inside_sphere);
+
+    return points_inside_sphere.size() + candidate_points.size();
+  }
+
 public:
   /** @brief Construct instance of Octree from a given point cloud
    *
@@ -266,14 +329,33 @@ public:
    * @param[in] query_point A pointer to the 3D coordinate of the query point
    * @param[in] radius The radius to search within
    * @param[in] level The depth level at which to perform the search
-   * @param[out] result A data structure to hold the result. It will be cleared
-   * during application.
+   * @param[out] result A data structure to hold the point indices. It will be
+   * cleared during application.
    *
    */
   std::size_t radius_search(const Eigen::Vector3d& query_point,
                             double radius,
                             unsigned int level,
                             RadiusSearchResult& result) const;
+
+  /** @brief Perform radius search around given query point
+   *
+   * This method determines all the points from the point cloud within the given
+   * radius of the query point. It returns only the indices and the result is
+   * not sorted according to distance.
+   *
+   * @param[in] query_point A pointer to the 3D coordinate of the query point
+   * @param[in] radius The radius to search within
+   * @param[in] level The depth level at which to perform the search
+   * @param[out] result A data structure to hold the point indices and
+   * corresponding distances. It will be cleared during application.
+   *
+   */
+  std::size_t radius_search_with_distances(
+    const Eigen::Vector3d& query_point,
+    double radius,
+    unsigned int level,
+    RadiusSearchDistanceResult& result) const;
 
   /** @brief Return the number of points in the associated cloud */
   inline unsigned int get_number_of_points() const { return number_of_points; };
