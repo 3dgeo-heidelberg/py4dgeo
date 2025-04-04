@@ -41,7 +41,8 @@ compute_multiscale_directions(const Epoch& epoch,
     }
 
     radius_search =
-      [&](const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
+      [&, levels = std::move(levels)](
+        const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
         out.clear();
         epoch.octree.radius_search(point, normal_radii[r], levels[r], out);
       };
@@ -63,10 +64,10 @@ compute_multiscale_directions(const Epoch& epoch,
     vault.run([&]() {
       double highest_planarity = 0.0;
       Eigen::Vector3d query_point = corepoints.row(i);
-      for (size_t radius = 0; radius < normal_radii.size(); ++radius) {
+      for (size_t r = 0; r < normal_radii.size(); ++r) {
 
         std::vector<IndexType> points;
-        radius_search(query_point, radius, points);
+        radius_search(query_point, r, points);
 
         auto subset = epoch.cloud(points, Eigen::all);
 
@@ -78,16 +79,16 @@ compute_multiscale_directions(const Epoch& epoch,
         // Calculate Eigen vectors
         Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
         const auto& evalues = solver.eigenvalues();
+        const auto evec = solver.eigenvectors().col(0);
 
         // Calculate planarity
         double planarity = (evalues[1] - evalues[0]) / evalues[2];
         if (planarity > highest_planarity) {
           highest_planarity = planarity;
 
-          double prod = (solver.eigenvectors().col(0).dot(orientation_vector));
-          double sign = (prod < 0.0) ? -1.0 : 1.0;
-          result.row(i) = sign * solver.eigenvectors().col(0);
-          used_radii[i] = radius;
+          double sign = (evec.dot(orientation_vector) < 0.0) ? -1.0 : 1.0;
+          result.row(i) = sign * evec;
+          used_radii[i] = normal_radii[r];
         }
       }
     });
