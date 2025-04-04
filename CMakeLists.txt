@@ -51,7 +51,8 @@ add_library(
   lib/kdtree.cpp
   lib/octree.cpp
   lib/registration.cpp
-  lib/segmentation.cpp)
+  lib/segmentation.cpp
+  lib/searchtree.cpp)
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)

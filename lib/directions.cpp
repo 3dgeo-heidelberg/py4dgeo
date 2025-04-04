@@ -28,31 +28,7 @@ compute_multiscale_directions(const Epoch& epoch,
   used_radii.resize(corepoints.rows());
   const auto orientation_vector = orientation.row(0).transpose();
 
-  using RadiusSearchFunc = std::function<void(
-    const Eigen::Vector3d&, size_t, std::vector<IndexType>&)>;
-
-  RadiusSearchFunc radius_search;
-
-  if (tree == SearchTree::Octree) { // Octree
-    std::vector<unsigned int> levels(normal_radii.size());
-    for (size_t i = 0; i < normal_radii.size(); ++i) {
-      levels[i] =
-        epoch.octree.find_appropriate_level_for_radius_search(normal_radii[i]);
-    }
-
-    radius_search =
-      [&, levels = std::move(levels)](
-        const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
-        out.clear();
-        epoch.octree.radius_search(point, normal_radii[r], levels[r], out);
-      };
-  } else { // KDTree
-    radius_search =
-      [&](const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
-        out.clear();
-        epoch.kdtree.radius_search(point.data(), normal_radii[r], out);
-      };
-  }
+  auto radius_search = get_radius_search_function(epoch, normal_radii, tree);
 
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
