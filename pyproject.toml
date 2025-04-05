@@ -3,6 +3,7 @@
 # introduce pyproject.toml
 [build-system]
 requires = [
+    "pybind11[global]",
     "scikit-build-core >=0.6.1",
 ]
 build-backend = "scikit_build_core.build"
