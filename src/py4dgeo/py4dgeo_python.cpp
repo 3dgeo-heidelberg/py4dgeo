@@ -26,6 +26,9 @@ namespace py = pybind11;
 
 namespace py4dgeo {
 
+#ifdef STRICT
+#  undef STRICT
+#endif
 PYBIND11_MODULE(_py4dgeo, m)
 {
   m.doc() = "Python Bindings for py4dgeo";
@@ -266,7 +269,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       EigenNormalSet result(corepoints.rows(), 3);
       std::vector<double> used_radii;
 
-      const int num_threads = std::min(12, static_cast<int>(corepoints.rows()));
+      const int num_threads = std::min(24, static_cast<int>(corepoints.rows()));
       std::vector<int> cpus;
       for (int i = 0; i < num_threads; ++i)
         cpus.push_back(i);
@@ -275,6 +278,7 @@ PYBIND11_MODULE(_py4dgeo, m)
 
 #if defined(_WIN32) || defined(__linux__)
       PinningObserver observer(arena, cpus);
+      printf("Windows specific: PinningObserver\n");  fflush(stdout);
 #endif
 
       arena.execute([&] {

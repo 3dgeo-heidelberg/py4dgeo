@@ -29,9 +29,19 @@ public:
     int thread_index = tbb::this_task_arena::current_thread_index();
     if (thread_index < 0 || thread_index >= static_cast<int>(cpu_ids_.size()))
       return;
-
-    int cpu = cpu_ids_[thread_index];
-    SetThreadAffinityMask(GetCurrentThread(), 1ULL << cpu);
+  
+    int requested_cpu = cpu_ids_[thread_index];
+    HANDLE thread = GetCurrentThread();
+  
+    // Set affinity mask
+    DWORD_PTR result = SetThreadAffinityMask(thread, 1ULL << requested_cpu);
+  
+    // Now report where this thread is actually running
+    int actual_cpu = GetCurrentProcessorNumber();  // Very useful!
+  
+    printf("[TBB] Thread %2d pinned to CPU %2d, running on CPU %2d\n",
+           thread_index, requested_cpu, actual_cpu);
+    fflush(stdout);
 #endif
   }
 
