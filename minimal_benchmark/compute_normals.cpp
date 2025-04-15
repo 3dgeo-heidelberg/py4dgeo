@@ -21,8 +21,6 @@ main(int argc, char** argv)
   std::string filename = argv[1];
   auto cloud = benchcloud_from_file(filename);
 
-  std::cout << "Point cloud with " << cloud->rows() << " points.\n";
-
   Epoch epoch(*cloud);
   epoch.kdtree.build_tree(10);
 

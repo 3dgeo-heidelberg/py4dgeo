@@ -15,7 +15,9 @@ benchcloud_from_file(const std::string& filename)
 {
   std::ifstream stream(filename);
   if (!stream) {
-    std::cerr << "Could not open file: " << filename << std::endl;
+    std::cerr << "Was not successfully opened. Please check that the file "
+                 "currently exists: "
+              << filename << std::endl;
     std::exit(1);
   }
 

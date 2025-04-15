@@ -736,6 +736,14 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
             lasfile.points[column_id], dtype=np.int32
         ).reshape(-1, 1)
 
+    # Check data alignment
+    # cloud = np.require(cloud, dtype=np.float64, requirements=["A", "O", "F", "W"])
+    print("cloud.shape:", cloud.shape)
+    print("cloud.dtype:", cloud.dtype)
+    print("cloud.flags:", cloud.flags)
+    print("cloud.ctypes.data % 64:", cloud.ctypes.data % 64)
+    print(cloud.__array_interface__)
+
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
         cloud,
