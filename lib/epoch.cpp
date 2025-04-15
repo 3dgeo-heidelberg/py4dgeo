@@ -14,11 +14,6 @@ Epoch::Epoch(const EigenPointCloudRef& cloud_)
   , cloud(cloud_)
   , kdtree(cloud_)
 {
-  std::uintptr_t cloud_address = reinterpret_cast<std::uintptr_t>(cloud.data());
-  std::cout << "[Epoch] Eigen cloud data pointer: 0x" << std::hex
-            << cloud_address << std::dec << "\n";
-  std::cout << "[Epoch] Alignment mod 64: " << (cloud_address % 64)
-            << std::endl;
 }
 
 Epoch::Epoch(std::shared_ptr<EigenPointCloud> cloud_)
@@ -26,11 +21,6 @@ Epoch::Epoch(std::shared_ptr<EigenPointCloud> cloud_)
   , cloud(*cloud_)
   , kdtree(*cloud_)
 {
-  std::uintptr_t cloud_address = reinterpret_cast<std::uintptr_t>(cloud.data());
-  std::cout << "[Epoch] Eigen cloud data pointer: 0x" << std::hex
-            << cloud_address << std::dec << "\n";
-  std::cout << "[Epoch] Alignment mod 64: " << (cloud_address % 64)
-            << std::endl;
 }
 
 std::ostream&
