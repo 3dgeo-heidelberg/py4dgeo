@@ -23,7 +23,7 @@ compute_multiscale_directions(const Epoch& epoch,
                               std::vector<double>& used_radii)
 {
   used_radii.resize(corepoints.rows());
-  const auto orientation_vector = orientation.row(0).transpose();
+  const Eigen::Vector3d orientation_vector = orientation.row(0).transpose();
 
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
@@ -34,21 +34,27 @@ compute_multiscale_directions(const Epoch& epoch,
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
-      for (auto radius : normal_radii) {
+      KDTree::RadiusSearchResult points;
+      Eigen::Matrix3d cov;
+      Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
+      for (const auto radius : normal_radii) {
         // Find the working set on this scale
-        KDTree::RadiusSearchResult points;
-        auto qp = corepoints.row(i).eval();
-        epoch.kdtree.radius_search(&(qp(0, 0)), radius, points);
-        auto subset = epoch.cloud(points, Eigen::all);
+        epoch.kdtree.radius_search(corepoints.row(i).data(), radius, points);
+        EigenPointCloud subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
-        auto centered = (subset.rowwise() - subset.colwise().mean()).eval();
-        auto cov =
-          ((centered.adjoint() * centered) / double(subset.rows() - 1)).eval();
+        const Eigen::Vector3d mean = subset.colwise().mean();
+        subset.rowwise() -= mean.transpose();
+        // only need the lower-triangular elements of the covariance matrix
+        cov.diagonal() = subset.colwise().squaredNorm();
+        cov(0, 1) = subset.col(0).dot(subset.col(1));
+        cov(0, 2) = subset.col(0).dot(subset.col(2));
+        cov(1, 2) = subset.col(1).dot(subset.col(2));
+        cov /= double(subset.rows() - 1);
 
-        // Calculate Eigen vectors
-        Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
-        const auto& evalues = solver.eigenvalues();
+        // Calculate Eigen vectors using direct 3x3 solver
+        solver.computeDirect(cov.transpose());
+        const Eigen::Vector3d& evalues = solver.eigenvalues();
 
         // Calculate planarity
         double planarity = (evalues[1] - evalues[0]) / evalues[2];
