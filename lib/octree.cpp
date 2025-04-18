@@ -252,7 +252,6 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
       result.insert(result.end(), all_inside.begin(), all_inside.end());
     });
 }
-
 std::size_t
 Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
                                      double radius,

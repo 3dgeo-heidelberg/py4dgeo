@@ -51,7 +51,7 @@ minimum-version = "3.30"
 
 [tool.scikit-build.cmake.define]
 BUILD_DOCS = "OFF"
-BUILD_TESTING = "OFF"
+BUILD_TESTING = "ON"
 CMAKE_BUILD_TYPE = "RelWithDebInfo"
 
 # The next section configures building wheels in Continuous Integration

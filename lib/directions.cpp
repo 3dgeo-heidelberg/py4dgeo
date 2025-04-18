@@ -26,7 +26,7 @@ compute_multiscale_directions(const Epoch& epoch,
                               SearchTree tree)
 {
   used_radii.resize(corepoints.rows());
-  const auto orientation_vector = orientation.row(0).transpose();
+  const Eigen::Vector3d orientation_vector = orientation.row(0).transpose();
 
   auto radius_search = get_radius_search_function(epoch, normal_radii, tree);
 
@@ -39,23 +39,22 @@ compute_multiscale_directions(const Epoch& epoch,
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
-      Eigen::Vector3d query_point = corepoints.row(i);
+      Eigen::Matrix3d cov;
       for (size_t r = 0; r < normal_radii.size(); ++r) {
 
         std::vector<IndexType> points;
-        radius_search(query_point, r, points);
+        radius_search(corepoints.row(i), r, points);
 
-        auto subset = epoch.cloud(points, Eigen::all);
+        EigenPointCloud subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
-        auto centered = (subset.rowwise() - subset.colwise().mean()).eval();
-        auto cov =
-          ((centered.adjoint() * centered) / double(subset.rows() - 1)).eval();
+        EigenPointCloud centered = subset.rowwise() - subset.colwise().mean();
+        cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
 
         // Calculate Eigen vectors
         Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
-        const auto& evalues = solver.eigenvalues();
-        const auto evec = solver.eigenvectors().col(0);
+        const Eigen::Vector3d& evalues = solver.eigenvalues();
+        const Eigen::Vector3d evec = solver.eigenvectors().col(0);
 
         // Calculate planarity
         double planarity = (evalues[1] - evalues[0]) / evalues[2];

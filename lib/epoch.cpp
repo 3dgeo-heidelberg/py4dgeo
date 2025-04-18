@@ -5,6 +5,9 @@
 
 #include <memory>
 
+#include <cstdint> // for uintptr_t
+#include <iostream>
+
 namespace py4dgeo {
 
 Epoch::Epoch(const EigenPointCloudRef& cloud_)

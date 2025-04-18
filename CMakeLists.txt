@@ -103,6 +103,8 @@ if(BUILD_PYTHON)
   install(TARGETS _py4dgeo DESTINATION .)
 endif()
 
+add_subdirectory(minimal_benchmark)
+
 # This prints a summary of found dependencies
 include(FeatureSummary)
 feature_summary(WHAT ALL)

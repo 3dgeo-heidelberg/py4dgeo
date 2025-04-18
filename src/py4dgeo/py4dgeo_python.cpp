@@ -500,7 +500,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        EigenPointCloudConstRef corepoints,
        const std::vector<double>& normal_radii,
        EigenNormalSetConstRef orientation,
-       SearchTree tree = SearchTree::KDTree) {
+       SearchTree tree) {
       EigenNormalSet result(corepoints.rows(), 3);
       std::vector<double> used_radii;
 
@@ -514,7 +514,7 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("corepoints"),
     py::arg("normal_radii"),
     py::arg("orientation"),
-    py::arg("tree") = SearchTree::KDTree,
+    py::arg("tree"),
     "Compute M3C2 multiscale directions");
 
   // Corresponence distances computation
