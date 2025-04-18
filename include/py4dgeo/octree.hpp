@@ -1,15 +1,14 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include "py4dgeo.hpp"
+
+#include <Eigen/Core>
 
 #include <istream>
-#include <memory>
 #include <optional>
 #include <ostream>
 #include <utility>
 #include <vector>
-
-#include "py4dgeo.hpp"
 
 namespace py4dgeo {
 
@@ -271,18 +270,18 @@ private:
 
     // Step 3: Check each candidate point
     for (const auto& candidate : candidate_points) {
-      // Direct element access from the cloud matrix.
-      const Eigen::Vector3d point = cloud.row(candidate);
+      // Direct element access from the cloud matrix
+      const Eigen::Vector3d candidate_point = cloud.row(candidate);
 
-      // Compute squared Euclidean distance.
-      double dist = (point - query_point).norm();
+      // Compute squared Euclidean distance
+      double dist = (candidate_point - query_point).norm();
 
       if (dist <= radius) {
         check_candidate(candidate, dist);
       }
     }
 
-    // Step 4: Candidates from fully included cells: no distance check needed
+    // Step 4: Points from fully included cells do not need a distance check
     take_all(points_inside_sphere);
 
     return points_inside_sphere.size() + candidate_points.size();
@@ -312,7 +311,7 @@ public:
   void build_tree();
 
   /**
-   * @brief Clears the Octree structure, effectively resetting it.
+   * @brief Clears the Octree structure, effectively resetting it
    *
    * This function deallocates the Octree by clearing the sorted array of
    * indices and keys. This operation invalidates the current Octree, requiring

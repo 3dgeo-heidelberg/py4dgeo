@@ -1,11 +1,13 @@
-#ifdef PY4DGEO_WITH_OPENMP
-#include <omp.h>
-#endif
-
 #include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
+#include <Eigen/Core>
+
+#include <istream>
 #include <numeric>
+#include <optional>
+#include <ostream>
+#include <utility>
 #include <vector>
 
 namespace py4dgeo {

@@ -1,5 +1,10 @@
 #include "py4dgeo/searchtree.hpp"
+
 #include <py4dgeo/epoch.hpp>
+
+#include <Eigen/Core>
+
+#include <vector>
 
 namespace py4dgeo {
 

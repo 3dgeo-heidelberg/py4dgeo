@@ -1,10 +1,11 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include <py4dgeo/py4dgeo.hpp>
+
+#include <Eigen/Core>
+
 #include <functional>
 #include <vector>
-
-#include <py4dgeo/py4dgeo.hpp>
 
 namespace py4dgeo {
 
