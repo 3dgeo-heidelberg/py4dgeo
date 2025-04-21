@@ -261,6 +261,11 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_dilate2_table,
              "Return 2-bit dilated integer");
 
+  // Allow extraction of bit shift per level
+  octree.def("get_bit_shift",
+             &Octree::get_bit_shift,
+             "Return the bit shift per cell per level of depth");
+
   // Allow extraction of cell sizes
   octree.def("get_cell_size",
              &Octree::get_cell_size,
@@ -373,6 +378,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        std::optional<unsigned int> level) {
       unsigned int lvl =
         level.value_or(self.find_appropriate_level_for_radius_search(radius));
+
       Octree::RadiusSearchResult result;
 
       self.radius_search(query_point, radius, lvl, result);

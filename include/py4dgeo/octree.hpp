@@ -386,6 +386,12 @@ public:
     return dilate2_table[i];
   };
 
+  /** @brief Return the bit shift per level */
+  inline unsigned int get_bit_shift(unsigned int level) const
+  {
+    return bit_shift[level];
+  };
+
   /** @brief Return the size of cells at a level of depth */
   inline Eigen::Vector3d get_cell_size(unsigned int level) const
   {

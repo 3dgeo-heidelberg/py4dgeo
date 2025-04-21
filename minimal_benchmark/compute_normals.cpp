@@ -32,12 +32,28 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud)
                                 orientation,
                                 directions,
                                 used_radii,
-                                SearchTree::Octree);
+                                SearchTree::KDTree);
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end - start;
-  std::cout << "compute_multiscale_directions executed in " << duration.count()
-            << " seconds.\n";
+  std::cout << "compute_multiscale_directions (Octree) executed in "
+            << duration.count() << " seconds.\n";
   std::cout << directions.rows() << " normals computed.\n";
+  /*
+    start = std::chrono::high_resolution_clock::now();
+    compute_multiscale_directions(epoch,
+                                  *cloud,
+                                  normal_radii,
+                                  orientation,
+                                  directions,
+                                  used_radii,
+                                  SearchTree::KDTree);
+    end = std::chrono::high_resolution_clock::now();
+    duration = end - start;
+    std::cout << "compute_multiscale_directions (kdtree) executed in " <<
+    duration.count()
+              << " seconds.\n";
+    std::cout << directions.rows() << " normals computed.\n";
+  */
 }
 
 int
