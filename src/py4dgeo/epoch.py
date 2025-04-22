@@ -1,4 +1,5 @@
 from py4dgeo.logger import logger_context
+from py4dgeo.visualization import PCloudProjection
 from py4dgeo.registration import Transformation
 from py4dgeo.util import (
     Py4DGeoError,
@@ -48,6 +49,7 @@ class Epoch(_py4dgeo.Epoch):
         additional_dimensions: np.ndarray = None,
         timestamp=None,
         scanpos_info: dict = None,
+        image = None,
     ):
         """
 
@@ -527,6 +529,16 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set the base class object
         _py4dgeo.Epoch.__setstate__(self, base)
+
+
+    def project_pc(self, **args):
+        """Project the point cloud
+        """
+        # Ensure that we have a valid epoch
+        if self.scanpos_info is None:
+            raise Py4DGeoError("Cannot project without scan position information!")
+
+        self.image = PCloudProjection(self, **args)
 
 
 def save_epoch(epoch, filename):

@@ -20,24 +20,22 @@ from py4dgeo.change_events import ChangeEventCollection
 
 class PCloudProjection:
     """
-    Point Cloud Projection Module.
+    Class PCloudProjection
+    This class is responsible for projecting a 3D point cloud into 2D images, such as range and color images, 
+    with optional shading and smoothing. It supports saving the generated images with metadata.
 
-    This module processes point clouds, creating 2D projections (color and range images)
-    from either a top-down or scanner-based perspective.
-
-    Classes:
-        - PCloudProjection: Main class for handling point cloud processing and projection.
-
-    Methods:
-        - __init__: Initializes the PCloudProjection class with configuration parameters.
-        - project_pc: Main function to execute the projection process.
-        - load_pc_file: Loads point cloud data from .las or .laz files.
-        - main_projection: Projects the point cloud into 2D image space.
-        - create_shading: Calculates surface normals for image shading.
-        - apply_shading_to_color_img: Applies lighting effects to color images.
-        - apply_shading_to_range_img: Applies lighting effects to range images.
-        - apply_smoothing: Smoothens images using Gaussian blur.
-        - save_image: Saves generated images with metadata.
+    Parameters:
+        epoch (object): An object containing the point cloud and scan position information.
+        projected_image_folder (str, optional): Path to the folder where projected images will be saved. Defaults to None.
+        project_name (str, optional): Name of the project. Defaults to "Untitled".
+        cloud_path (str, optional): Path to the point cloud file. Defaults to "Unknown".
+        make_range_image (bool, optional): Whether to generate a range image. Defaults to True.
+        make_color_image (bool, optional): Whether to generate a color image. Defaults to False.
+        resolution_cm (int, optional): Resolution of the images in centimeters. Defaults to 8.
+        rgb_light_intensity (int, optional): Intensity of the light for the RGB image. Defaults to 100.
+        range_light_intensity (int, optional): Intensity of the light for the range image. Defaults to 100.
+        apply_shading (bool, optional): Whether to apply shading to the images. Defaults to True.
+        save_image (bool, optional): Whether to save the generated images. Defaults to True.
     """
 
     def __init__(
@@ -54,31 +52,6 @@ class PCloudProjection:
         apply_shading = True,
         save_image = False
     ):
-        """
-        Initialize the visualization class with the given parameters.
-
-        Parameters:
-            epoch (object): An object containing the point cloud and scan position information.
-            projected_image_folder (str, optional): Path to the folder where projected images will be saved. Defaults to None.
-            project_name (str, optional): Name of the project. Defaults to "Untitled".
-            cloud_path (str, optional): Path to the point cloud file. Defaults to "Unknown".
-            make_range_image (bool, optional): Whether to generate a range image. Defaults to True.
-            make_color_image (bool, optional): Whether to generate a color image. Defaults to False.
-            resolution_cm (int, optional): Resolution of the images in centimeters. Defaults to 8.
-            rgb_light_intensity (int, optional): Intensity of the light for the RGB image. Defaults to 100.
-            range_light_intensity (int, optional): Intensity of the light for the range image. Defaults to 100.
-            apply_shading (bool, optional): Whether to apply shading to the images. Defaults to True.
-            save_image (bool, optional): Whether to save the generated images. Defaults to False.
-
-        Raises:
-            Py4DGeoError: If the scan position information (epoch.scanpos_info) is not provided or is invalid.
-
-        Notes:
-            - The method initializes various attributes required for visualization.
-            - It performs data preparation, main projection, and shading creation.
-            - Depending on the flags, it applies shading and saves the generated images.
-        """
-
         self.xyz = epoch.cloud
         self.camera_position = epoch.scanpos_info
         self.projected_image_folder = projected_image_folder
@@ -90,21 +63,28 @@ class PCloudProjection:
         self.rgb_light_intensity = rgb_light_intensity
         self.range_light_intensity = range_light_intensity
         self.apply_shading = apply_shading
+        self.save_im = save_image
 
         if epoch.scanpos_info is None or len(epoch.scanpos_info) != 3:
             raise Py4DGeoError("Scan position needed. Please provide with epoch.scanpos_info")
+        
+        self.main()
 
+
+    def main(self):
         self.data_prep()
         self.main_projection()
         self.create_shading()
         if self.make_color_image:
             self.apply_shading_to_color_img()
-            if save_image:
+            if self.save_im:
                 self.save_image()
         if self.make_range_image:
             self.apply_shading_to_range_img()
-            if save_image:
+            if self.save_im:
                 self.save_image()
+        
+        return self.shaded_image
 
 
     # Define a function to remove isolated black pixels - Only for RGB image
