@@ -1,5 +1,5 @@
 import os
-import laspy
+import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import rasterio
@@ -43,16 +43,42 @@ class PCloudProjection:
     def __init__(
         self,
         epoch,
-        projected_image_folder,
+        projected_image_folder = None,
         project_name = "Untitled",
         cloud_path = "Unknown",
         make_range_image = True,
         make_color_image = False,
-        resolution_cm = 4,
+        resolution_cm = 8,
         rgb_light_intensity = 100,
         range_light_intensity = 100,
-        apply_shading = True
+        apply_shading = True,
+        save_image = False
     ):
+        """
+        Initialize the visualization class with the given parameters.
+
+        Parameters:
+            epoch (object): An object containing the point cloud and scan position information.
+            projected_image_folder (str, optional): Path to the folder where projected images will be saved. Defaults to None.
+            project_name (str, optional): Name of the project. Defaults to "Untitled".
+            cloud_path (str, optional): Path to the point cloud file. Defaults to "Unknown".
+            make_range_image (bool, optional): Whether to generate a range image. Defaults to True.
+            make_color_image (bool, optional): Whether to generate a color image. Defaults to False.
+            resolution_cm (int, optional): Resolution of the images in centimeters. Defaults to 8.
+            rgb_light_intensity (int, optional): Intensity of the light for the RGB image. Defaults to 100.
+            range_light_intensity (int, optional): Intensity of the light for the range image. Defaults to 100.
+            apply_shading (bool, optional): Whether to apply shading to the images. Defaults to True.
+            save_image (bool, optional): Whether to save the generated images. Defaults to False.
+
+        Raises:
+            Py4DGeoError: If the scan position information (epoch.scanpos_info) is not provided or is invalid.
+
+        Notes:
+            - The method initializes various attributes required for visualization.
+            - It performs data preparation, main projection, and shading creation.
+            - Depending on the flags, it applies shading and saves the generated images.
+        """
+
         self.xyz = epoch.cloud
         self.camera_position = epoch.scanpos_info
         self.projected_image_folder = projected_image_folder
@@ -65,7 +91,6 @@ class PCloudProjection:
         self.range_light_intensity = range_light_intensity
         self.apply_shading = apply_shading
 
-
         if epoch.scanpos_info is None or len(epoch.scanpos_info) != 3:
             raise Py4DGeoError("Scan position needed. Please provide with epoch.scanpos_info")
 
@@ -74,10 +99,12 @@ class PCloudProjection:
         self.create_shading()
         if self.make_color_image:
             self.apply_shading_to_color_img()
-            self.save_image()
+            if save_image:
+                self.save_image()
         if self.make_range_image:
             self.apply_shading_to_range_img()
-            self.save_image()
+            if save_image:
+                self.save_image()
 
 
     # Define a function to remove isolated black pixels - Only for RGB image
