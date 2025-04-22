@@ -6,6 +6,7 @@
 #include <py4dgeo/py4dgeo.hpp>
 #include <py4dgeo/segmentation.hpp>
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 namespace py4dgeo {
