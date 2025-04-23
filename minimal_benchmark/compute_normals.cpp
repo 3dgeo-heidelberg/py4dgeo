@@ -32,7 +32,7 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud)
                                 orientation,
                                 directions,
                                 used_radii,
-                                SearchTree::KDTree);
+                                SearchTree::Octree);
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end - start;
   std::cout << "compute_multiscale_directions (Octree) executed in "

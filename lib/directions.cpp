@@ -1,4 +1,4 @@
-#include <Eigen/Eigen>
+#include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
 #include "py4dgeo/compute.hpp"
@@ -42,7 +42,7 @@ compute_multiscale_directions(const Epoch& epoch,
       Eigen::Matrix3d cov;
       for (size_t r = 0; r < normal_radii.size(); ++r) {
 
-        std::vector<IndexType> points;
+        RadiusSearchResult points;
         radius_search(corepoints.row(i), r, points);
 
         EigenPointCloud subset = epoch.cloud(points, Eigen::all);
@@ -80,7 +80,7 @@ compute_correspondence_distances(const Epoch& epoch,
                                  unsigned int check_size)
 {
 
-  KDTree::NearestNeighborsDistanceResult result;
+  NearestNeighborsDistanceResult result;
   epoch.kdtree.nearest_neighbors_with_distances(transformated_pc, result, 1);
   std::vector<double> p2pdist(transformated_pc.rows());
 

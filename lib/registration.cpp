@@ -1,8 +1,10 @@
 #include <py4dgeo/registration.hpp>
 
-#include <Eigen/Dense>
-#include <Eigen/Eigen>
+#include <py4dgeo/searchtree.hpp>
+
+#include <Eigen/Core>
 #include <Eigen/StdVector>
+
 #include <limits>
 #include <numeric>
 #include <queue>
@@ -153,7 +155,7 @@ supervoxel_segmentation(Epoch& epoch,
   DisjointSet set(epoch.cloud.rows());
 
   // Calculate k neigbors and its distances for each point
-  KDTree::NearestNeighborsDistanceResult result;
+  NearestNeighborsDistanceResult result;
   kdtree.nearest_neighbors_with_distances(epoch.cloud, result, k);
 
   int supervoxels_amount = epoch.cloud.rows();

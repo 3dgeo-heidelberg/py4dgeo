@@ -2,6 +2,7 @@
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
 #include "testsetup.hpp"
 
 #include <algorithm>
@@ -26,7 +27,7 @@ TEST_CASE("Octree is correctly build", "[octree]")
   {
     // Find all nodes with a radius search
     Eigen::Vector3d query_point{ 0.0, 0.0, 0.0 };
-    Octree::RadiusSearchResult result;
+    RadiusSearchResult result;
 
     // Do radius search with radius wide enough to cover the entire cloud
     double radius = 100.;
@@ -41,7 +42,7 @@ TEST_CASE("Octree is correctly build", "[octree]")
   {
     // Find all nodes with a radius search
     Eigen::Vector3d query_point{ 0.0, 0.0, 0.0 };
-    Octree::RadiusSearchDistanceResult result;
+    RadiusSearchDistanceResult result;
 
     // Do radius search with radius wide enough to cover the entire cloud
     double radius = 100.;

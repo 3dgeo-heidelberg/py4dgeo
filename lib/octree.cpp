@@ -243,14 +243,16 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
 {
   result.clear();
 
-  return radius_search_backend(
+  radius_search_backend(
     query_point,
     radius,
     level,
-    [&](IndexType index, double /*dist*/) { result.push_back(index); },
+    [&](IndexType index, double squared_dist) { result.push_back(index); },
     [&](const RadiusSearchResult& all_inside) {
       result.insert(result.end(), all_inside.begin(), all_inside.end());
     });
+
+  return result.size();
 }
 
 std::size_t
@@ -261,11 +263,13 @@ Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
 {
   result.clear();
 
-  std::size_t found = radius_search_backend(
+  radius_search_backend(
     query_point,
     radius,
     level,
-    [&](IndexType index, double dist) { result.emplace_back(index, dist); },
+    [&](IndexType index, double squared_dist) {
+      result.emplace_back(index, std::sqrt(squared_dist));
+    },
     [&](const RadiusSearchResult& all_inside) {
       for (const auto& idx : all_inside) {
         const Eigen::Vector3d point = cloud.row(idx);
@@ -274,12 +278,7 @@ Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
       }
     });
 
-  // Sort the result by distance (ascending)
-  std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
-    return a.second < b.second;
-  });
-
-  return found;
+  return result.size();
 }
 
 std::optional<IndexType>
@@ -472,13 +471,10 @@ std::size_t
 Octree::get_points_indices_from_cells(
   const Octree::KeyContainer& truncated_keys,
   unsigned int level,
-  Octree::RadiusSearchResult& result) const
+  RadiusSearchResult& result) const
 {
   assert(level <= max_depth);
   assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
-  result.clear();
-  result.reserve(truncated_keys.size() *
-                 average_cell_population_per_level[level]);
 
   IndexType current_start = 0;
   SpatialKey bitShift = bit_shift[level];

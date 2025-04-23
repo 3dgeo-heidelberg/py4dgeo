@@ -1,9 +1,11 @@
-#include <Eigen/Eigen>
-
 #include "py4dgeo/compute.hpp"
+
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
+
+#include <Eigen/Core>
 
 #include <algorithm>
 
@@ -68,7 +70,7 @@ EigenPointCloud
 radius_workingset_finder(const WorkingSetFinderParameters& params)
 {
   // Find the working set in the other epoch
-  KDTree::RadiusSearchResult points;
+  RadiusSearchResult points;
   params.epoch.kdtree.radius_search(
     params.corepoint.data(), params.radius, points);
   return params.epoch.cloud(points, Eigen::all);
@@ -100,7 +102,7 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
                (static_cast<double>(2 * i + 1 - N) / static_cast<double>(N)) *
                  cylinder_length * params.cylinder_axis.row(0))
                 .eval();
-    KDTree::RadiusSearchResult ball_points;
+    RadiusSearchResult ball_points;
     params.epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
     merged.reserve(merged.capacity() + ball_points.size());
 

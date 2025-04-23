@@ -1,5 +1,9 @@
 #include "py4dgeo/segmentation.hpp"
+
 #include "py4dgeo/openmp.hpp"
+#include "py4dgeo/searchtree.hpp"
+
+#include <Eigen/Core>
 
 #include <algorithm>
 #include <cmath>
@@ -47,7 +51,7 @@ fixed_threshold_region_growing(
     candidates_distances.erase(candidates_distances.begin());
 
     // Add neighboring corepoints to list of candidates
-    KDTree::RadiusSearchResult neighbors;
+    RadiusSearchResult neighbors;
     data.corepoints.kdtree.radius_search(
       &data.corepoints.cloud(candidate, 0), data.radius, neighbors);
     for (auto n : neighbors) {

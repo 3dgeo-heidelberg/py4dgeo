@@ -1,6 +1,7 @@
 #pragma once
 
 #include "py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
 
 #include <Eigen/Core>
 
@@ -63,19 +64,6 @@ public:
     KeyContainer keys;      //!< Z-order values
     PointContainer indices; //!< Indices of the corresponding points in cloud
   };
-
-  //! Return type used for radius searches
-  using RadiusSearchResult = std::vector<IndexType>;
-
-  //! Return type used for radius searches that export calculated distances
-  using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
-
-  //! Return type used for nearest neighbor with Euclidian distances searches
-  using NearestNeighborsDistanceResult =
-    std::vector<std::pair<std::vector<IndexType>, std::vector<double>>>;
-
-  //! Return type used for nearest neighbor searches
-  using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
 
 private:
   //! Enum to describe the geometric relationship between a cell and a sphere.
@@ -242,14 +230,13 @@ private:
    * sphere
    * @param[in] take_all Called for all points in cells that are completely
    * within the sphere
-   * @return Number of points found
    */
   template<typename CallbackNear, typename CallbackInside>
-  std::size_t radius_search_backend(const Eigen::Vector3d& query_point,
-                                    double radius,
-                                    unsigned int level,
-                                    CallbackNear&& check_candidate,
-                                    CallbackInside&& take_all) const
+  void radius_search_backend(const Eigen::Vector3d& query_point,
+                             double radius,
+                             unsigned int level,
+                             CallbackNear&& check_candidate,
+                             CallbackInside&& take_all) const
   {
     constexpr std::size_t estimated_cell_count = 1024;
     constexpr std::size_t estimated_candidate_count = 1024;
@@ -263,28 +250,24 @@ private:
 
     // Step 2: Get candidate point indices from the intersected cells
     RadiusSearchResult points_inside_sphere, candidate_points;
-    points_inside_sphere.reserve(estimated_candidate_count);
-    candidate_points.reserve(estimated_candidate_count);
+    points_inside_sphere.reserve(cells_inside.size() *
+                                 max_cell_population_per_level[level]);
+    candidate_points.reserve(cells_intersecting.size() *
+                             max_cell_population_per_level[level]);
     get_points_indices_from_cells(cells_inside, level, points_inside_sphere);
     get_points_indices_from_cells(cells_intersecting, level, candidate_points);
 
     // Step 3: Check each candidate point
     for (const auto& candidate : candidate_points) {
-      // Direct element access from the cloud matrix
       const Eigen::Vector3d candidate_point = cloud.row(candidate);
-
-      // Compute squared Euclidean distance
-      double dist = (candidate_point - query_point).norm();
-
-      if (dist <= radius) {
-        check_candidate(candidate, dist);
+      double squared_dist = (candidate_point - query_point).squaredNorm();
+      if (squared_dist <= radius * radius) {
+        check_candidate(candidate, squared_dist);
       }
     }
 
     // Step 4: Points from fully included cells do not need a distance check
     take_all(points_inside_sphere);
-
-    return points_inside_sphere.size() + candidate_points.size();
   }
 
 public:
@@ -331,6 +314,7 @@ public:
    * @param[out] result A data structure to hold the point indices. It will be
    * cleared during application.
    *
+   * @return Number of points found
    */
   std::size_t radius_search(const Eigen::Vector3d& query_point,
                             double radius,
@@ -349,6 +333,7 @@ public:
    * @param[out] result A data structure to hold the point indices and
    * corresponding distances. It will be cleared during application.
    *
+   * @return Number of points found
    */
   std::size_t radius_search_with_distances(
     const Eigen::Vector3d& query_point,

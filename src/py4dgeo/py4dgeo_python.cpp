@@ -180,7 +180,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       // Get a pointer for the query point
       auto ptr = static_cast<const double*>(qp.request().ptr);
 
-      KDTree::RadiusSearchResult result;
+      RadiusSearchResult result;
       self.radius_search(ptr, radius, result);
 
       return as_pyarray(std::move(result));
@@ -190,7 +190,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   kdtree.def(
     "nearest_neighbors",
     [](const KDTree& self, EigenPointCloudConstRef cloud, int k) {
-      KDTree::NearestNeighborsDistanceResult result;
+      NearestNeighborsDistanceResult result;
       self.nearest_neighbors_with_distances(cloud, result, k);
 
       py::array_t<long int> indices_array(result.size());
@@ -322,7 +322,7 @@ PYBIND11_MODULE(_py4dgeo, m)
     [](const Octree& self,
        const Octree::KeyContainer& keys,
        unsigned int level) {
-      Octree::RadiusSearchResult result;
+      RadiusSearchResult result;
       size_t num_points =
         self.get_points_indices_from_cells(keys, level, result);
 
@@ -379,7 +379,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       unsigned int lvl =
         level.value_or(self.find_appropriate_level_for_radius_search(radius));
 
-      Octree::RadiusSearchResult result;
+      RadiusSearchResult result;
 
       self.radius_search(query_point, radius, lvl, result);
 
