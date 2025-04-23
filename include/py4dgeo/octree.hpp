@@ -49,7 +49,7 @@ class Octree
 {
 public:
   //! Alias for the spatial key type used for Z-order value encoding
-  using SpatialKey = uint64_t; // 16-bit allows 5 depth levels, 32-bit allows 10
+  using SpatialKey = uint32_t; // 16-bit allows 5 depth levels, 32-bit allows 10
                                // levels, 64-bit allows 21 levels
 
   //! Return type used for points
@@ -109,15 +109,15 @@ private:
     }();
 
   //! Generic 8-bit dilation table already built:
-  static constexpr auto dilate8_table =
+  inline static constexpr auto dilate8_table =
     make_dilate_table<SpatialKey, 8>(); // 256 entries
 
   //! Generic 5-bit dilation table already built:
-  static constexpr auto dilate5_table =
+  inline static constexpr auto dilate5_table =
     make_dilate_table<SpatialKey, 5>(); // 32 entries
 
   //! Generic 2-bit dilation table already built:
-  static constexpr auto dilate2_table =
+  inline static constexpr auto dilate2_table =
     make_dilate_table<SpatialKey, 2>(); // 4 entries
 
   //! Cell size as a function of depth level
@@ -176,9 +176,9 @@ private:
   {
     Eigen::Vector3d normalized = (point - min_point).cwiseProduct(inv_box_size);
 
-    SpatialKey ix = static_cast<SpatialKey>(normalized.x() * grid_size);
-    SpatialKey iy = static_cast<SpatialKey>(normalized.y() * grid_size);
-    SpatialKey iz = static_cast<SpatialKey>(normalized.z() * grid_size);
+    const SpatialKey ix = static_cast<SpatialKey>(normalized.x() * grid_size);
+    const SpatialKey iy = static_cast<SpatialKey>(normalized.y() * grid_size);
+    const SpatialKey iz = static_cast<SpatialKey>(normalized.z() * grid_size);
 
     // Interleave bits of x,y,z coordinates
     SpatialKey key = 0;
@@ -197,7 +197,7 @@ private:
       key |= dilate5_table[(ix >> 16) & 0x1F] << 48;
       key |= dilate5_table[(iy >> 16) & 0x1F] << 49;
       key |= dilate5_table[(iz >> 16) & 0x1F] << 50;
-    } else if (sizeof(SpatialKey) == 4) {
+    } else if constexpr (sizeof(SpatialKey) == 4) {
       // For a 32-bit SpatialKey (using 10 bits per coordinate):
       // Lower 8-bit chunk (bits 0-7)
       key |= dilate8_table[ix & 0xFF];
@@ -462,7 +462,8 @@ public:
    * sphere
    * @param[out] intersecting A vector of spatial keys of the intersected cells
    *
-   * @return The spatial keys of the intersected cells
+   * @return The number of intersected cells and cells that are fully inside the
+   * sphere
    */
   std::size_t get_cells_intersected_by_sphere(
     const Eigen::Vector3d& query_point,

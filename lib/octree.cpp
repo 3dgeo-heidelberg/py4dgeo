@@ -184,7 +184,7 @@ Octree::build_tree()
   }
 
   // Step 2: Sort the indexed keys by Z-order value
-  std::vector<IndexType> permutation(number_of_points);
+  PointContainer permutation(number_of_points);
   std::iota(permutation.begin(), permutation.end(), 0);
 
   std::sort(
@@ -193,8 +193,8 @@ Octree::build_tree()
     });
 
   // Reorder the keys and indices based on the sorted permutation
-  std::vector<SpatialKey> sorted_keys(number_of_points);
-  std::vector<IndexType> sorted_indices(number_of_points);
+  KeyContainer sorted_keys(number_of_points);
+  PointContainer sorted_indices(number_of_points);
   for (IndexType i = 0; i < number_of_points; ++i) {
     sorted_keys[i] = indexed_keys.keys[permutation[i]];
     sorted_indices[i] = indexed_keys.indices[permutation[i]];
@@ -287,13 +287,12 @@ Octree::get_cell_index_start(Octree::SpatialKey truncated_key,
                              IndexType start_index) const
 {
   // Perform binary search for the first occurrence of the truncated key
-  auto it =
-    std::lower_bound(indexed_keys.keys.begin() + start_index,
-                     indexed_keys.keys.end(),
-                     truncated_key, // search value (already truncated)
-                     [bitShift, this](SpatialKey element, SpatialKey value) {
-                       return (element >> bitShift) < value;
-                     });
+  auto it = std::lower_bound(indexed_keys.keys.begin() + start_index,
+                             indexed_keys.keys.end(),
+                             truncated_key, // search value (already truncated)
+                             [bitShift](SpatialKey element, SpatialKey value) {
+                               return (element >> bitShift) < value;
+                             });
 
   // Ensure the found key actually matches the truncated query key
   if (it != indexed_keys.keys.end() && ((*it) >> bitShift) == truncated_key) {
@@ -309,17 +308,16 @@ Octree::get_cell_index_end(SpatialKey truncated_key,
                            IndexType start_index) const
 {
   // Use upper_bound to find the first index after the block of keys that match
-  auto it =
-    std::upper_bound(indexed_keys.keys.begin() + start_index,
-                     indexed_keys.keys.end(),
-                     truncated_key, // search value (already truncated)
-                     [bitShift, this](SpatialKey value, SpatialKey element) {
-                       // Compare the search value with the truncated value of
-                       // the container element
-                       return value < (element >> bitShift);
-                     });
+  auto it = std::upper_bound(indexed_keys.keys.begin() + start_index,
+                             indexed_keys.keys.end(),
+                             truncated_key, // search value (already truncated)
+                             [bitShift](SpatialKey value, SpatialKey element) {
+                               // Compare the search value with the truncated
+                               // value of the container element
+                               return value < (element >> bitShift);
+                             });
 
-  // If we've found an element (or reached the end), return its index
+  // If we have found an element (or reached the end), return its index
   if (it != indexed_keys.keys.begin()) {
     return std::distance(indexed_keys.keys.begin(), it);
   }
@@ -334,9 +332,6 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
                                         KeyContainer& inside,
                                         KeyContainer& intersecting) const
 {
-  inside.clear();
-  intersecting.clear();
-
   // Number of cells per axis at this level is 2^level
   const unsigned int num_cells = 1u << level;
   const Eigen::Vector3d cellSize = cell_size[level];
@@ -477,7 +472,8 @@ Octree::get_points_indices_from_cells(
   assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
 
   IndexType current_start = 0;
-  SpatialKey bitShift = bit_shift[level];
+  const SpatialKey bitShift = bit_shift[level];
+  const auto indices_begin = indexed_keys.indices.begin();
 
   // Process each truncated key (i.e., each cell that intersects the search
   // sphere)
@@ -494,9 +490,8 @@ Octree::get_points_indices_from_cells(
       continue;
     IndexType last_index = *opt_last_index;
 
-    result.insert(result.end(),
-                  indexed_keys.indices.begin() + first_index,
-                  indexed_keys.indices.begin() + last_index);
+    result.insert(
+      result.end(), indices_begin + first_index, indices_begin + last_index);
 
     // Update current_start for the next search: start after the current cell's
     // block
