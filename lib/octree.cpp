@@ -284,45 +284,48 @@ Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
 std::optional<IndexType>
 Octree::get_cell_index_start(Octree::SpatialKey truncated_key,
                              SpatialKey bitShift,
-                             IndexType start_index) const
+                             IndexType start_index,
+                             IndexType end_index) const
 {
-  // Perform binary search for the first occurrence of the truncated key
-  auto it = std::lower_bound(indexed_keys.keys.begin() + start_index,
-                             indexed_keys.keys.end(),
-                             truncated_key, // search value (already truncated)
+  const auto keys_begin = indexed_keys.keys.begin();
+  auto it = std::lower_bound(keys_begin + start_index,
+                             keys_begin + end_index,
+                             truncated_key,
                              [bitShift](SpatialKey element, SpatialKey value) {
                                return (element >> bitShift) < value;
                              });
 
-  // Ensure the found key actually matches the truncated query key
-  if (it != indexed_keys.keys.end() && ((*it) >> bitShift) == truncated_key) {
-    return std::distance(indexed_keys.keys.begin(), it);
+  if (it != keys_begin + end_index && ((*it) >> bitShift) == truncated_key) {
+    return std::distance(keys_begin, it);
   }
 
-  return std::nullopt; // Cell not found
+  return std::nullopt;
 }
 
 std::optional<IndexType>
 Octree::get_cell_index_end(SpatialKey truncated_key,
                            SpatialKey bitShift,
-                           IndexType start_index) const
+                           IndexType start_index,
+                           IndexType end_index) const
 {
-  // Use upper_bound to find the first index after the block of keys that match
-  auto it = std::upper_bound(indexed_keys.keys.begin() + start_index,
-                             indexed_keys.keys.end(),
-                             truncated_key, // search value (already truncated)
+  const auto keys_begin = indexed_keys.keys.begin();
+
+  auto it = std::upper_bound(keys_begin + start_index,
+                             keys_begin + end_index,
+                             truncated_key,
                              [bitShift](SpatialKey value, SpatialKey element) {
-                               // Compare the search value with the truncated
-                               // value of the container element
                                return value < (element >> bitShift);
                              });
 
-  // If we have found an element (or reached the end), return its index
-  if (it != indexed_keys.keys.begin()) {
-    return std::distance(indexed_keys.keys.begin(), it);
+  // Check if the element just before it (if any) matches the key
+  if (it != keys_begin + start_index) {
+    auto prev = it - 1;
+    if (((*prev) >> bitShift) == truncated_key) {
+      return std::distance(keys_begin, it);
+    }
   }
 
-  return std::nullopt; // Cell not found
+  return std::nullopt;
 }
 
 std::size_t
@@ -471,21 +474,33 @@ Octree::get_points_indices_from_cells(
   assert(level <= max_depth);
   assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
 
-  IndexType current_start = 0;
   const SpatialKey bitShift = bit_shift[level];
   const auto indices_begin = indexed_keys.indices.begin();
 
-  // Process each truncated key (i.e., each cell that intersects the search
-  // sphere)
+  IndexType current_start_index = 0;
+  IndexType search_limit_index = indexed_keys.keys.size();
+
+  // Find upper limit for search range
+  for (auto it = truncated_keys.rbegin(); it != truncated_keys.rend(); ++it) {
+    if (auto opt_end = get_cell_index_end(
+          *it, bitShift, current_start_index, search_limit_index)) {
+      search_limit_index = *opt_end;
+      break;
+    }
+  }
+
+  // Process each truncated key and store corresponding point indices
   for (const SpatialKey& key : truncated_keys) {
     // Find the first occurrence of the cell
-    auto opt_first_index = get_cell_index_start(key, bitShift, current_start);
+    auto opt_first_index = get_cell_index_start(
+      key, bitShift, current_start_index, search_limit_index);
     if (!opt_first_index)
       continue;
     IndexType first_index = *opt_first_index;
 
     // Find the last occurrence of the cell
-    auto opt_last_index = get_cell_index_end(key, bitShift, first_index);
+    auto opt_last_index =
+      get_cell_index_end(key, bitShift, first_index, search_limit_index);
     if (!opt_last_index)
       continue;
     IndexType last_index = *opt_last_index;
@@ -493,9 +508,8 @@ Octree::get_points_indices_from_cells(
     result.insert(
       result.end(), indices_begin + first_index, indices_begin + last_index);
 
-    // Update current_start for the next search: start after the current cell's
-    // block
-    current_start = last_index;
+    // Update current_start: start after the current cell's block
+    current_start_index = last_index;
   }
 
   return result.size();

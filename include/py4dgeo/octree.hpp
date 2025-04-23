@@ -427,14 +427,16 @@ public:
    * @param key The spatial key of the query cell
    * @param bitShift The bit shift corresponding to the Octree depth level of
    * the query cell
-   * @param start_index Optional start index
+   * @param start_index Start index
+   * @param end_index End index
+
    *
    * @return The index of first occurrence of the cell spatial key
    */
-  std::optional<IndexType> get_cell_index_start(
-    SpatialKey truncated_key,
-    SpatialKey bitShift,
-    IndexType start_index = 0) const;
+  std::optional<IndexType> get_cell_index_start(SpatialKey truncated_key,
+                                                SpatialKey bitShift,
+                                                IndexType start_index,
+                                                IndexType end_index) const;
 
   /**
    * @brief Returns the last occurrence of theindex of a cell in the sorted
@@ -443,13 +445,15 @@ public:
    * @param key The spatial key of the query cell
    * @param bitShift The bit shift corresponding to the Octree depth level of
    * the query cell
-   * @param start_index Optional start index
+   * @param start_index Start index
+   * @param end_index End index
    *
    * @return The index of last occurrence of the cell spatial key
    */
   std::optional<IndexType> get_cell_index_end(SpatialKey truncated_key,
                                               SpatialKey bitShift,
-                                              IndexType start_index = 0) const;
+                                              IndexType start_index,
+                                              IndexType end_index) const;
 
   /**
    * @brief Returns spatial keys of cells intersected by a sphere with specified
