@@ -5,6 +5,8 @@
 #include <py4dgeo/py4dgeo.hpp>
 #include <py4dgeo/searchtree.hpp>
 
+#include <iostream>
+
 namespace py4dgeo {
 
 /** @brief A data structure representing an epoch
@@ -32,6 +34,11 @@ public:
 
   void set_default_nearest_neighbor_tree(SearchTree tree)
   {
+    if (tree == SearchTree::Octree) {
+      std::cerr << "[Warning] Octree is not yet implemented for nearest "
+                   "neighbor queries. Use KDTree instead.\n";
+      return;
+    }
     default_nearest_neighbor_tree = tree;
   }
 
