@@ -328,6 +328,34 @@ Octree::get_cell_index_end(SpatialKey truncated_key,
   return std::nullopt;
 }
 
+std::optional<IndexType>
+Octree::get_cell_index_end_exponential(SpatialKey truncated_key,
+                                       unsigned int level,
+                                       IndexType first_index,
+                                       IndexType global_end_index) const
+{
+  // 1. Estimate the last occurrence of the truncated key using the average cell
+  // population at this level
+  IndexType avg_cell_pop = average_cell_population_per_level[level];
+  IndexType bound = avg_cell_pop;
+  SpatialKey bitShift = bit_shift[level];
+
+  // 2. Perform exponential search to find an upper bound, where the
+  // truncated_key is no longer present
+  while (
+    (first_index + bound < global_end_index) &&
+    (indexed_keys.keys[first_index + bound] >> bitShift == truncated_key)) {
+    bound += avg_cell_pop;
+  }
+
+  // 3. Delegate to binary search (upper_bound) within the discovered narrow
+  // range Cap it to avoid overshooting the array
+  return get_cell_index_end(truncated_key,
+                            bitShift,
+                            first_index,
+                            std::min(first_index + bound, global_end_index));
+}
+
 std::size_t
 Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
                                         double radius,
@@ -480,15 +508,6 @@ Octree::get_points_indices_from_cells(
   IndexType current_start_index = 0;
   IndexType search_limit_index = indexed_keys.keys.size();
 
-  // Find upper limit for search range
-  for (auto it = truncated_keys.rbegin(); it != truncated_keys.rend(); ++it) {
-    if (auto opt_end = get_cell_index_end(
-          *it, bitShift, current_start_index, search_limit_index)) {
-      search_limit_index = *opt_end;
-      break;
-    }
-  }
-
   // Process each truncated key and store corresponding point indices
   for (const SpatialKey& key : truncated_keys) {
     // Find the first occurrence of the cell
@@ -499,8 +518,12 @@ Octree::get_points_indices_from_cells(
     IndexType first_index = *opt_first_index;
 
     // Find the last occurrence of the cell
-    auto opt_last_index =
-      get_cell_index_end(key, bitShift, first_index, search_limit_index);
+    auto opt_last_index = get_cell_index_end_exponential(
+      key,
+      level,
+      first_index,
+      std::min(first_index + max_cell_population_per_level[level],
+               search_limit_index));
     if (!opt_last_index)
       continue;
     IndexType last_index = *opt_last_index;

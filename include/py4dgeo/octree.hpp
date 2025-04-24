@@ -442,7 +442,7 @@ public:
    * @brief Returns the last occurrence of theindex of a cell in the sorted
    * array of point indices and point spatial keys
    *
-   * @param key The spatial key of the query cell
+   * @param truncated_key The spatial key of the query cell
    * @param bitShift The bit shift corresponding to the Octree depth level of
    * the query cell
    * @param start_index Start index
@@ -454,6 +454,37 @@ public:
                                               SpatialKey bitShift,
                                               IndexType start_index,
                                               IndexType end_index) const;
+
+  /**
+   * @brief Efficiently finds the end index of a block of points belonging to
+   * the same truncated spatial key
+   *
+   * This function assumes the data is sorted by spatial keys and performs a
+   * stride-based search to narrow the interval where the last matching key may
+   * occur. The search begins from the known start index of a cell and advances
+   * by the estimated average number of points per cell (based on depth level
+   * statistics). Once a non-matching key is detected or the global bounds are
+   * exceeded, a binary search is performed within the refined interval to find
+   * the precise end.
+   *
+   * This hybrid approach combines data-aware range narrowing with binary search
+   * for performance.
+   *
+   * @param truncated_key The spatial key (already bit-shifted) identifying the
+   * target cell
+   * @param level Octree depth level (used to get average cell population)
+   * @param first_index Start index of the block in the sorted array
+   * @param global_end_index Absolute upper bound for the search (typically the
+   * size of the array)
+   *
+   * @return Index one past the last occurrence of the given spatial key, or
+   * std::nullopt if not found
+   */
+  std::optional<IndexType> get_cell_index_end_exponential(
+    SpatialKey truncated_key,
+    unsigned int level,
+    IndexType first_index,
+    IndexType global_end_index) const;
 
   /**
    * @brief Returns spatial keys of cells intersected by a sphere with specified
