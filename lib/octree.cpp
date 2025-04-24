@@ -268,15 +268,20 @@ Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
     radius,
     level,
     [&](IndexType index, double squared_dist) {
-      result.emplace_back(index, std::sqrt(squared_dist));
+      result.emplace_back(index, squared_dist);
     },
     [&](const RadiusSearchResult& all_inside) {
       for (const auto& idx : all_inside) {
         const Eigen::Vector3d point = cloud.row(idx);
-        double dist = (point - query_point).norm();
-        result.emplace_back(idx, dist);
+        double squared_dist = (point - query_point).squaredNorm();
+        result.emplace_back(idx, squared_dist);
       }
     });
+
+  // Sort the result by distance (ascending)
+  std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
+    return a.second < b.second;
+  });
 
   return result.size();
 }

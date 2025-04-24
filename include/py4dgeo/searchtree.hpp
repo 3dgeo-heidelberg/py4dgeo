@@ -12,7 +12,8 @@ namespace py4dgeo {
 //! Return type used for radius searches
 using RadiusSearchResult = std::vector<IndexType>;
 
-//! Return type used for radius searches that export calculated distances
+//! Return type used for radius searches that export calculated **squared**
+//! distances
 using RadiusSearchDistanceResult = std::vector<std::pair<IndexType, double>>;
 
 //! Return type used for nearest neighbor with Euclidian distances searches
@@ -31,8 +32,8 @@ enum class SearchTree
 class Epoch;
 
 // Helper type
-using RadiusSearchFunc =
-  std::function<void(const Eigen::Vector3d&, size_t, std::vector<IndexType>&)>;
+using RadiusSearchFunc = std::function<
+  void(const Eigen::Vector3d&, std::size_t, std::vector<IndexType>&)>;
 
 // Declaration
 RadiusSearchFunc

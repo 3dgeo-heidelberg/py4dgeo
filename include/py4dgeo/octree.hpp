@@ -26,12 +26,12 @@ dilate(T x)
 }
 
 // Helper to build a lookup table of dilated integers
-template<typename T, unsigned int BITS, size_t TABLE_SIZE = (1ULL << BITS)>
+template<typename T, unsigned int BITS, std::size_t TABLE_SIZE = (1ULL << BITS)>
 static constexpr std::array<T, TABLE_SIZE>
 make_dilate_table()
 {
   std::array<T, TABLE_SIZE> table = {};
-  for (size_t i = 0; i < TABLE_SIZE; ++i) {
+  for (std::size_t i = 0; i < TABLE_SIZE; ++i) {
     table[i] = dilate<T, BITS>(static_cast<T>(i));
   }
   return table;
@@ -102,7 +102,7 @@ private:
   inline static constexpr std::array<SpatialKey, max_depth + 1> bit_shift =
     []() {
       std::array<SpatialKey, max_depth + 1> arr{};
-      for (size_t level = 0; level <= max_depth; ++level) {
+      for (std::size_t level = 0; level <= max_depth; ++level) {
         arr[level] = 3 * (max_depth - level);
       }
       return arr;
