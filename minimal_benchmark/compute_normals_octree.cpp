@@ -2,7 +2,7 @@
 
 #include <py4dgeo/compute.hpp>
 #include <py4dgeo/epoch.hpp>
-#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
 #include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
@@ -17,7 +17,6 @@ void
 benchmark(std::shared_ptr<EigenPointCloud> cloud)
 {
   Epoch epoch(*cloud);
-  epoch.kdtree.build_tree(10);
   epoch.octree.build_tree();
   std::vector<double> normal_radii{ 1.0 };
   std::vector<double> used_radii;
@@ -38,22 +37,6 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud)
   std::cout << "compute_multiscale_directions (Octree) executed in "
             << duration.count() << " seconds.\n";
   std::cout << directions.rows() << " normals computed.\n";
-  /*
-    start = std::chrono::high_resolution_clock::now();
-    compute_multiscale_directions(epoch,
-                                  *cloud,
-                                  normal_radii,
-                                  orientation,
-                                  directions,
-                                  used_radii,
-                                  SearchTree::KDTree);
-    end = std::chrono::high_resolution_clock::now();
-    duration = end - start;
-    std::cout << "compute_multiscale_directions (kdtree) executed in " <<
-    duration.count()
-              << " seconds.\n";
-    std::cout << directions.rows() << " normals computed.\n";
-  */
 }
 
 int
