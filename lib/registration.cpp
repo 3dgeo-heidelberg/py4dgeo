@@ -1,9 +1,7 @@
 #include <py4dgeo/registration.hpp>
-
 #include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
-#include <Eigen/StdVector>
 
 #include <limits>
 #include <numeric>
@@ -101,17 +99,14 @@ estimate_supervoxel_count(EigenPointCloudConstRef cloud, double seed_resolution)
   using std::floor;
   using MultiIndex = Eigen::Array<std::size_t, 1, 3>;
   MultiIndex voxelsizes =
-    floor(((upperright - lowerleft) / seed_resolution) + 1)
-      .cast<std::size_t>()
-      .eval();
+    floor(((upperright - lowerleft) / seed_resolution) + 1).cast<std::size_t>();
 
   // Assign all points to their voxels by throwing them in a hashmap
   std::unordered_map<std::size_t, std::vector<Eigen::Index>> voxelmap;
   for (IndexType i = 0; i < cloud.rows(); ++i) {
     Coordinate coord(cloud.row(i));
-    auto ind = floor(((coord - lowerleft) / seed_resolution) + 1)
-                 .cast<std::size_t>()
-                 .eval();
+    MultiIndex ind =
+      floor(((coord - lowerleft) / seed_resolution) + 1).cast<std::size_t>();
     voxelmap[ind[2] * voxelsizes[1] * voxelsizes[0] + ind[1] * voxelsizes[0] +
              ind[0]]
       .push_back(i);
@@ -127,12 +122,9 @@ point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
                             const Eigen::RowVector3d& normal2,
                             double resolution)
 {
-  const Eigen::RowVector3d diff = point1 - point2;
+  double distance = (point1 - point2).norm();
 
-  double squaredDistance = diff.squaredNorm();
-
-  return 1.0 - std::fabs(normal1.dot(normal2)) +
-         std::sqrt(squaredDistance) / resolution * 0.4;
+  return 1.0 - std::fabs(normal1.dot(normal2)) + distance / resolution * 0.4;
 }
 
 std::vector<std::vector<int>>

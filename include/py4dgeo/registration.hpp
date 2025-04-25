@@ -7,6 +7,7 @@
 #include <py4dgeo/searchtree.hpp>
 #include <py4dgeo/segmentation.hpp>
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
 
 #include <vector>

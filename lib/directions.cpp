@@ -40,19 +40,26 @@ compute_multiscale_directions(const Epoch& epoch,
     vault.run([&]() {
       double highest_planarity = 0.0;
       Eigen::Matrix3d cov;
+      Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
+      RadiusSearchResult points;
       for (size_t r = 0; r < normal_radii.size(); ++r) {
 
-        RadiusSearchResult points;
         radius_search(corepoints.row(i), r, points);
 
         EigenPointCloud subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
-        EigenPointCloud centered = subset.rowwise() - subset.colwise().mean();
-        cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
+        const Eigen::Vector3d mean = subset.colwise().mean();
+        subset.rowwise() -= mean.transpose();
+        // only need the lower-triangular elements of the covariance matrix
+        cov.diagonal() = subset.colwise().squaredNorm();
+        cov(1, 0) = subset.col(0).dot(subset.col(1));
+        cov(2, 0) = subset.col(0).dot(subset.col(2));
+        cov(2, 1) = subset.col(1).dot(subset.col(2));
+        cov /= double(subset.rows() - 1);
 
         // Calculate Eigen vectors
-        Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
+        solver.computeDirect(cov);
         const Eigen::Vector3d& evalues = solver.eigenvalues();
         const Eigen::Vector3d evec = solver.eigenvectors().col(0);
 
@@ -89,15 +96,26 @@ compute_correspondence_distances(const Epoch& epoch,
 #endif
   for (IndexType i = 0; i < transformated_pc.rows(); ++i) {
     if (epoch.cloud.rows() != check_size) {
-      auto subset = corepoints[result[i].first[0]];
+      EigenPointCloud subset = corepoints[result[i].first[0]];
+
       // Calculate covariance matrix
-      auto centered = (subset.rowwise() - subset.colwise().mean()).eval();
-      auto cov =
-        ((centered.adjoint() * centered) / double(subset.rows() - 1)).eval();
+      Eigen::Matrix3d cov;
+      const Eigen::Vector3d mean = subset.colwise().mean();
+      subset.rowwise() -= mean.transpose();
+      // only need the lower-triangular elements of the covariance matrix
+      cov.diagonal() = subset.colwise().squaredNorm();
+      cov(1, 0) = subset.col(0).dot(subset.col(1));
+      cov(2, 0) = subset.col(0).dot(subset.col(2));
+      cov(2, 1) = subset.col(1).dot(subset.col(2));
+      cov /= double(subset.rows() - 1);
+
+      // Calculate eigenvectors using direct 3x3 solver
+      Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver;
+      solver.computeDirect(cov);
+
       // Calculate Eigen vectors
-      Eigen::SelfAdjointEigenSolver<decltype(cov)> solver(cov);
       Eigen::Vector3d normal_vector = solver.eigenvectors().col(0);
-      // calculate cor distance
+      // Calculate cor distance
       Eigen::Vector3d displacement_vector =
         epoch.cloud.row(result[i].first[0]) - transformated_pc.row(i);
       p2pdist[i] = std::abs(displacement_vector.dot(normal_vector));

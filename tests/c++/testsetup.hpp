@@ -13,9 +13,6 @@
 std::shared_ptr<py4dgeo::EigenPointCloud>
 benchcloud_from_file(const std::string& filename);
 
-std::shared_ptr<py4dgeo::EigenPointCloud>
-benchcloud_from_file_old(const std::string& filename);
-
 std::pair<std::shared_ptr<py4dgeo::EigenPointCloud>,
           std::shared_ptr<py4dgeo::EigenPointCloud>>
 ahk_benchcloud();
