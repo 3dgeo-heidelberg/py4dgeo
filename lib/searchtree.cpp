@@ -22,14 +22,12 @@ get_radius_search_function(const Epoch& epoch,
 
     return [&, levels = std::move(levels)](const Eigen::Vector3d& point,
                                            size_t r,
-                                           std::vector<IndexType>& out) {
-      out.clear();
+                                           RadiusSearchResult& out) {
       epoch.octree.radius_search(point, radii[r], levels[r], out);
     };
   } else {
     return
-      [&](const Eigen::Vector3d& point, size_t r, std::vector<IndexType>& out) {
-        out.clear();
+      [&](const Eigen::Vector3d& point, size_t r, RadiusSearchResult& out) {
         epoch.kdtree.radius_search(point.data(), radii[r], out);
       };
   }
