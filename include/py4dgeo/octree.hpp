@@ -231,15 +231,17 @@ private:
    * @param[in] take_all Called for all points in cells that are completely
    * within the sphere
    */
-  template<typename CallbackNear, typename CallbackInside>
+  template<typename Reserve,
+           typename CallbackCandidate,
+           typename CallbackInside>
   void radius_search_backend(const Eigen::Vector3d& query_point,
                              double radius,
                              unsigned int level,
-                             CallbackNear&& check_candidate,
+                             Reserve&& reserve,
+                             CallbackCandidate&& check_candidate,
                              CallbackInside&& take_all) const
   {
     constexpr std::size_t estimated_cell_count = 1024;
-    constexpr std::size_t estimated_candidate_count = 1024;
 
     // Step 1: Retrieve all spatial keys of cells intersected by the sphere
     KeyContainer cells_inside, cells_intersecting;
@@ -257,16 +259,20 @@ private:
     get_points_indices_from_cells(cells_inside, level, points_inside_sphere);
     get_points_indices_from_cells(cells_intersecting, level, candidate_points);
 
-    // Step 3: Check each candidate point
+    // Step 3: Reserve based on size of cells_inside and cells_intersecting
+    reserve(points_inside_sphere.size() + candidate_points.size());
+
+    // Step 4: Check each candidate point
+    double radius_squared = radius * radius;
     for (const auto& candidate : candidate_points) {
       const Eigen::Vector3d candidate_point = cloud.row(candidate);
       double squared_dist = (candidate_point - query_point).squaredNorm();
-      if (squared_dist <= radius * radius) {
+      if (squared_dist <= radius_squared) {
         check_candidate(candidate, squared_dist);
       }
     }
 
-    // Step 4: Points from fully included cells do not need a distance check
+    // Step 5: Points from fully included cells do not need a distance check
     take_all(points_inside_sphere);
   }
 
@@ -389,7 +395,7 @@ public:
     return occupied_cells_per_level[level];
   };
 
-  /** @brief Return the number of occupied cells per level of depth */
+  /** @brief Return the maximum cell population per level of depth */
   inline unsigned int get_max_cell_population_per_level(
     unsigned int level) const
   {

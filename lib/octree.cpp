@@ -242,14 +242,12 @@ Octree::radius_search(const Eigen::Vector3d& query_point,
                       RadiusSearchResult& result) const
 {
   result.clear();
-  // Reserve estimated result size
-  double rc = radius / cell_size[level].norm();
-  result.reserve(rc*rc*rc * max_cell_population_per_level[level]);
 
   radius_search_backend(
     query_point,
     radius,
     level,
+    [&](std::size_t size) { result.reserve(size); },
     [&](IndexType index, double squared_dist) { result.push_back(index); },
     [&](const RadiusSearchResult& all_inside) {
       result.insert(result.end(), all_inside.begin(), all_inside.end());
@@ -265,14 +263,12 @@ Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
                                      RadiusSearchDistanceResult& result) const
 {
   result.clear();
-  // Reserve estimated result size
-  double rc = radius / cell_size[level].norm();
-  result.reserve(rc*rc*rc * max_cell_population_per_level[level]);
 
   radius_search_backend(
     query_point,
     radius,
     level,
+    [&](std::size_t size) { result.reserve(size); },
     [&](IndexType index, double squared_dist) {
       result.emplace_back(index, squared_dist);
     },
