@@ -20,9 +20,8 @@ get_radius_search_function(const Epoch& epoch,
         epoch.octree.find_appropriate_level_for_radius_search(radii[i]);
     }
 
-    return [&, levels = std::move(levels)](const Eigen::Vector3d& point,
-                                           size_t r,
-                                           RadiusSearchResult& out) {
+    return [&, levels = std::move(levels)](
+             const Eigen::Vector3d& point, size_t r, RadiusSearchResult& out) {
       epoch.octree.radius_search(point, radii[r], levels[r], out);
     };
   } else {
