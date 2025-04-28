@@ -48,6 +48,10 @@ class Epoch;
 class Octree
 {
 public:
+  // ==========================================================
+  //                            Types
+  // ==========================================================
+
   //! Alias for the spatial key type used for Z-order value encoding
   using SpatialKey = uint32_t; // 16-bit allows 5 depth levels, 32-bit allows 10
                                // levels, 64-bit allows 21 levels
@@ -74,23 +78,9 @@ private:
     Outside
   };
 
-  //! Reference to the point cloud
-  EigenPointCloudRef cloud;
-  //! Number of points in the cloud
-  unsigned int number_of_points = 0;
-
-  //! Pairs of spatial key (Z-order values) and corresponding index, sorted by
-  //! z-order value
-  IndexAndKey indexed_keys;
-
-  //! Min point of the bounding box
-  Eigen::Vector3d min_point;
-  //! Max point of the bounding box
-  Eigen::Vector3d max_point;
-  //! Size of the bounding box
-  Eigen::Vector3d box_size;
-  //! Inverse of box size
-  Eigen::Vector3d inv_box_size;
+  // ==========================================================
+  //                          Constants
+  // ==========================================================
 
   //! Max depth level, depends solely on spatial key integer representation
   static constexpr unsigned int max_depth = (sizeof(SpatialKey) * 8) / 3;
@@ -120,6 +110,32 @@ private:
   inline static constexpr auto dilate2_table =
     make_dilate_table<SpatialKey, 2>(); // 4 entries
 
+  // ==========================================================
+  //                     Bounding box info
+  // ==========================================================
+
+  //! Reference to the point cloud
+  EigenPointCloudRef cloud;
+  //! Number of points in the cloud
+  unsigned int number_of_points = 0;
+
+  //! Pairs of spatial key (Z-order values) and corresponding index, sorted by
+  //! z-order value
+  IndexAndKey indexed_keys;
+
+  //! Min point of the bounding box
+  Eigen::Vector3d min_point;
+  //! Max point of the bounding box
+  Eigen::Vector3d max_point;
+  //! Size of the bounding box
+  Eigen::Vector3d box_size;
+  //! Inverse of box size
+  Eigen::Vector3d inv_box_size;
+
+  // ============================================================
+  //                     Per-level statistics
+  // ============================================================
+
   //! Cell size as a function of depth level
   std::array<Eigen::Vector3d, max_depth + 1> cell_size;
 
@@ -142,21 +158,9 @@ private:
   Octree(const EigenPointCloudRef&);
 
 private:
-  /**
-   * @brief Computes the smallest power-of-two bounding box that contains all
-   * points.
-   *
-   * This function calculates the minimum and maximum coordinates of the point
-   * cloud and determines a cuboid that fully encloses the data. The box size is
-   * rounded up to the nearest power of two.
-   *
-   * The computed bounding box is stored in `min_point`, `max_point`, and
-   * `box_size`.
-   */
-  void compute_bounding_box();
-
-  /** @brief Computes the average cell properties at all depth levels. */
-  void compute_statistics();
+  // =============================================================
+  //                        Key computation
+  // =============================================================
 
   /**
    * @brief Computes a unique spatial key (Z-order value) for a given point.
@@ -211,6 +215,54 @@ private:
 
     return key;
   }
+
+  // =============================================================
+  //                         Tree building
+  // =============================================================
+
+  /**
+   * @brief Computes the smallest power-of-two bounding box that contains all
+   * points.
+   *
+   * This function calculates the minimum and maximum coordinates of the point
+   * cloud and determines a cuboid that fully encloses the data. The box size is
+   * rounded up to the nearest power of two.
+   *
+   * The computed bounding box is stored in `min_point`, `max_point`, and
+   * `box_size`.
+   */
+  void compute_bounding_box();
+
+  /** @brief Computes the average cell properties at all depth levels. */
+  void compute_statistics();
+
+  // ================================================================
+  //                         Lookup functions
+  // ================================================================
+
+  /** @brief Return the 8-bit dilated lookup table*/
+  static constexpr SpatialKey get_dilate8_table(unsigned int i)
+  {
+    return dilate8_table[i];
+  };
+
+  /** @brief Return the 5-bit dilated lookup table*/
+  static constexpr SpatialKey get_dilate5_table(unsigned int i)
+  {
+    return dilate5_table[i];
+  };
+
+  /** @brief Return the 2-bit dilated lookup table*/
+  static constexpr SpatialKey get_dilate2_table(unsigned int i)
+  {
+    return dilate2_table[i];
+  };
+
+  /** @brief Return the bit shift per level */
+  static constexpr unsigned int get_bit_shift(unsigned int level)
+  {
+    return bit_shift[level];
+  };
 
   /**
    * @brief Perform radius search with a callback for each matching point
@@ -286,12 +338,6 @@ public:
    */
   static Octree create(const EigenPointCloudRef& cloud);
 
-  /** @brief Save the index to a (file) stream */
-  std::ostream& saveIndex(std::ostream& stream) const;
-
-  /** @brief Load the index from a (file) stream */
-  std::istream& loadIndex(std::istream& stream);
-
   /** @brief Build the Octree index
    *
    * This initializes the Octree search index. Calling this method is required
@@ -307,6 +353,16 @@ public:
    * it to be rebuilt before further use.
    */
   void invalidate();
+
+  /** @brief Save the index to a (file) stream */
+  std::ostream& saveIndex(std::ostream& stream) const;
+
+  /** @brief Load the index from a (file) stream */
+  std::istream& loadIndex(std::istream& stream);
+
+  // ================================================================
+  //                          Search methods
+  // ================================================================
 
   /** @brief Perform radius search around given query point
    *
@@ -347,6 +403,10 @@ public:
     unsigned int level,
     RadiusSearchDistanceResult& result) const;
 
+  // =================================================================
+  //                           Metadata
+  // =================================================================
+
   /** @brief Return the number of points in the associated cloud */
   inline unsigned int get_number_of_points() const { return number_of_points; };
 
@@ -359,29 +419,9 @@ public:
   /** @brief Return the maximum point of the bounding box */
   inline Eigen::Vector3d get_max_point() const { return max_point; };
 
-  /** @brief Return the 8-bit delater lookup table*/
-  inline SpatialKey get_dilate8_table(unsigned int i) const
-  {
-    return dilate8_table[i];
-  };
-
-  /** @brief Return the 5-bit delater lookup table*/
-  inline SpatialKey get_dilate5_table(unsigned int i) const
-  {
-    return dilate5_table[i];
-  };
-
-  /** @brief Return the 2-bit delater lookup table*/
-  inline SpatialKey get_dilate2_table(unsigned int i) const
-  {
-    return dilate2_table[i];
-  };
-
-  /** @brief Return the bit shift per level */
-  inline unsigned int get_bit_shift(unsigned int level) const
-  {
-    return bit_shift[level];
-  };
+  // ======================================================================
+  //                        Per-level statistics
+  // ======================================================================
 
   /** @brief Return the size of cells at a level of depth */
   inline Eigen::Vector3d get_cell_size(unsigned int level) const
@@ -415,6 +455,10 @@ public:
     return std_cell_population_per_level[level];
   };
 
+  // ======================================================================
+  //                     Access raw keys and indices
+  // ======================================================================
+
   //! @brief Get all spatial keys (Z-order values) of the Octree
   //! @return Vector of spatial keys (Z-order values)
   const KeyContainer& get_spatial_keys() const { return indexed_keys.keys; }
@@ -425,6 +469,10 @@ public:
   {
     return indexed_keys.indices;
   }
+
+  // ======================================================================
+  //                           Fine-grain helpers
+  // ======================================================================
 
   /**
    * @brief Returns the first occurrence of theindex of a cell in the sorted
