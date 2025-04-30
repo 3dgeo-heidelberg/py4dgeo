@@ -186,15 +186,16 @@ Octree::invalidate()
 std::ostream&
 Octree::saveIndex(std::ostream& stream) const
 {
-  // Write indicator
+  // Write number of points as an indicator
   stream.write(reinterpret_cast<const char*>(&number_of_points),
                sizeof(number_of_points));
 
-  stream.write(reinterpret_cast<const char*>(min_point.data()),
-               sizeof(double) * 3);
-  stream.write(reinterpret_cast<const char*>(max_point.data()),
-               sizeof(double) * 3);
+  // If no points, skip the rest
+  if (number_of_points == 0) {
+    return stream;
+  }
 
+  // Save keys
   IndexType size = static_cast<IndexType>(indexed_keys.indices.size());
   stream.write(reinterpret_cast<const char*>(&size), sizeof(IndexType));
 
@@ -209,16 +210,16 @@ Octree::saveIndex(std::ostream& stream) const
 std::istream&
 Octree::loadIndex(std::istream& stream)
 {
-  // Read the indicator
+  // Read the number of points, serving as indicator
   stream.read(reinterpret_cast<char*>(&number_of_points),
               sizeof(number_of_points));
 
-  stream.read(reinterpret_cast<char*>(min_point.data()), sizeof(double) * 3);
-  stream.read(reinterpret_cast<char*>(max_point.data()), sizeof(double) * 3);
+  // If no points, skip loading
+  if (number_of_points == 0) {
+    return stream;
+  }
 
-  box_size = max_point - min_point;
-  inv_box_size = box_size.cwiseInverse();
-
+  // Load keys
   IndexType size;
   stream.read(reinterpret_cast<char*>(&size), sizeof(IndexType));
 
@@ -230,7 +231,10 @@ Octree::loadIndex(std::istream& stream)
   stream.read(reinterpret_cast<char*>(indexed_keys.keys.data()),
               sizeof(SpatialKey) * size);
 
-  compute_statistics(); // Recompute per-level stats
+  compute_bounding_box(); // Recalculates box_size, cell_size, etc.
+  compute_statistics();   // Recomputes level-wise stats
+  assert(box_size.allFinite());
+  assert(!cell_size[1].isZero());
 
   return stream;
 }
@@ -392,6 +396,12 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     return { static_cast<unsigned int>(i_min),
              static_cast<unsigned int>(i_max) };
   };
+
+  // Early out: if sphere AABB does not intersect octree AABB
+  if ((sphere_max.array() < min_point.array()).any() ||
+      (sphere_min.array() > max_point.array()).any()) {
+    return 0;
+  }
 
   // Compute index ranges of the AABB for x, y, and z
   auto [imin, imax] = compute_index_range(sphere_min.x(), sphere_max.x(), 0);
