@@ -136,10 +136,7 @@ class Epoch(_py4dgeo.Epoch):
         return self._normals
 
     def calculate_normals(
-        self,
-        radius=1.0,
-        orientation_vector: np.ndarray = np.array([0, 0, 1]),
-        searchtree: typing.Optional[str] = None,
+        self, radius=1.0, orientation_vector: np.ndarray = np.array([0, 0, 1])
     ):
         """Calculate point cloud normals
 
@@ -148,28 +145,9 @@ class Epoch(_py4dgeo.Epoch):
 
         :param orientation_vector:
             A vector to determine orientation of the normals. It should point "up".
-
-        :param searchtree:
-            Optional override for which spatial structure to use: "kdtree" or "octree".
-            If not provided, the current default of the Epoch is used.
         """
 
-        if searchtree is None:
-            tree_type = self.get_default_radius_search_tree()
-        elif searchtree == "kdtree":
-            tree_type = _py4dgeo.SearchTree.KDTreeSearch
-        elif searchtree == "octree":
-            tree_type = _py4dgeo.SearchTree.OctreeSearch
-        else:
-            raise ValueError(f"Unknown search tree type: {searchtree}")
-
-        # Ensure appropriate tree is built
-        if tree_type == _py4dgeo.SearchTree.KDTreeSearch:
-            if self.kdtree.leaf_parameter() == 0:
-                self.build_kdtree()
-        else:
-            if self.octree.get_number_of_points() == 0:
-                self.build_octree()
+        self.ensure_searchtree_built()
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
@@ -179,10 +157,19 @@ class Epoch(_py4dgeo.Epoch):
                 self.cloud,
                 [radius],
                 orientation_vector,
-                tree_type,
             )
 
         return self.normals
+
+    def ensure_searchtree_built(self):
+        tree_type = self.get_default_radius_search_tree()
+
+        if tree_type == _py4dgeo.SearchTree.KDTreeSearch:
+            if self.kdtree.leaf_parameter() == 0:
+                self.build_kdtree()
+        else:
+            if self.octree.get_number_of_points() == 0:
+                self.build_octree()
 
     def normals_attachment(self, normals_array):
         """Attach normals to the epoch object
@@ -493,6 +480,11 @@ class Epoch(_py4dgeo.Epoch):
                     self.kdtree.save_index(kdtreefile)
                 zf.write(kdtreefile, arcname="kdtree")
 
+                octreefile = os.path.join(tmp_dir, "octree")
+                with open(octreefile, "w") as f:
+                    self.octree.save_index(octreefile)
+                zf.write(octreefile, arcname="octree")
+
     @staticmethod
     def load(filename):
         """Construct an Epoch instance by loading it from a file
@@ -538,6 +530,10 @@ class Epoch(_py4dgeo.Epoch):
                 # Restore the KDTree object
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
                 epoch.kdtree.load_index(kdtreefile)
+
+                # Restore the Octree object
+                octreefile = zf.extract("octree", path=tmp_dir)
+                epoch.octree.load_index(octreefile)
 
                 # Read the transformation if it exists
                 if version >= 3:

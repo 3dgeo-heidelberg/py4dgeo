@@ -111,9 +111,10 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
 
 
 def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
+    Epoch.set_default_radius_search_tree("kdtree")
     epoch1, epoch2 = epochs_m3c2ep
-    epoch1.build_kdtree()
-    epoch2.build_kdtree()
+    epoch1.ensure_searchtree_built()
+    epoch2.ensure_searchtree_built()
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
     with tempfile.TemporaryDirectory() as dir:
@@ -124,7 +125,8 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         epoch2.save(filename2)
         load1 = py4dgeo.load_epoch(filename1)
         load2 = py4dgeo.load_epoch(filename2)
-
+        load1.ensure_searchtree_built()
+        load2.ensure_searchtree_built()
         # Assert that the two object behave the same
         assert load1.cloud.shape[0] == epoch1.cloud.shape[0]
         assert load2.cloud.shape[0] == epoch2.cloud.shape[0]
@@ -133,12 +135,12 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         assert np.allclose(load2.cloud - epoch2.cloud, 0)
 
         assert np.allclose(
-            load1.kdtree.radius_search(np.array([0, 0, 0]), 10),
-            epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+            load1.radius_search(np.array([0, 0, 0]), 10),
+            epoch1.radius_search(np.array([0, 0, 0]), 10),
         )
         assert np.allclose(
-            load2.kdtree.radius_search(np.array([0, 0, 0]), 10),
-            epoch2.kdtree.radius_search(np.array([0, 0, 0]), 10),
+            load2.radius_search(np.array([0, 0, 0]), 10),
+            epoch2.radius_search(np.array([0, 0, 0]), 10),
         )
 
 

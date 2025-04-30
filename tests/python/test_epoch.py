@@ -35,6 +35,7 @@ def test_epoch_pickle(epochs):
 def test_epoch_saveload(epochs):
     epoch1, _ = epochs
     epoch1.build_kdtree()
+    epoch1.build_octree()
 
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
@@ -48,6 +49,10 @@ def test_epoch_saveload(epochs):
         assert np.allclose(
             loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+        )
+        assert np.allclose(
+            loaded.octree.radius_search(np.array([0, 0, 0]), 10),
+            epoch1.octree.radius_search(np.array([0, 0, 0]), 10),
         )
 
 
@@ -231,7 +236,7 @@ def test_trafo_serialization(epochs):
     trafo[0, 3] = 1
     rp = np.array([1, 2, 3], dtype=np.float64)
     epoch.transform(affine_transformation=trafo, reduction_point=rp)
-
+    print("test_trafo_serialization")
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
         # Save and load it

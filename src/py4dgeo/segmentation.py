@@ -133,6 +133,9 @@ class SpatiotemporalAnalysis:
             # Ensure that the KDTree is built - no-op if triggered by the user
             epoch.build_kdtree()
 
+            # Ensure that the Octree is built - no-op if triggered by the user
+            epoch.build_octree()
+
             # Write the reference epoch into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
                 epochfilename = os.path.join(tmp_dir, "reference_epoch.zip")
@@ -173,9 +176,10 @@ class SpatiotemporalAnalysis:
                     "Corepoints cannot be changed - please start a new analysis"
                 )
 
-            # Ensure that the corepoints are stored as an epoch and build its KDTree
+            # Ensure that the corepoints are stored as an epoch and its search trees are built
             self._corepoints = as_epoch(_corepoints)
             self._corepoints.build_kdtree()
+            self._corepoints.build_octree()
 
             # Write the corepoints into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -718,6 +722,7 @@ class RegionGrowingAlgorithmBase:
         # Get corepoints from M3C2 class and build a KDTree on them
         corepoints = as_epoch(analysis.corepoints)
         corepoints.build_kdtree()
+        corepoints.build_octree()
 
         # Calculate the list of seed points and sort them
         seeds = analysis.seeds

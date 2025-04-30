@@ -675,9 +675,9 @@ def add_no_corresponding_seg(
     epoch1_set = segments[epoch1_mask][X_Y_Z_Columns]
 
     epoch0_set = epoch0_set.T
-    # generate kd-tree
+    # generate search tree
     epoch1 = Epoch(epoch1_set.T)
-    epoch1.build_kdtree()
+    epoch1.ensure_searchtree_built()
 
     # search for the near segments and build the 'extended y'
     # for row in pairs_of_points:

@@ -22,13 +22,12 @@ compute_multiscale_directions(const Epoch& epoch,
                               const std::vector<double>& normal_radii,
                               EigenNormalSetConstRef orientation,
                               EigenNormalSetRef result,
-                              std::vector<double>& used_radii,
-                              SearchTree tree)
+                              std::vector<double>& used_radii)
 {
   used_radii.resize(corepoints.rows());
   const Eigen::Vector3d orientation_vector = orientation.row(0).transpose();
 
-  auto radius_search = get_radius_search_function(epoch, normal_radii, tree);
+  auto radius_search = get_radius_search_function(epoch, normal_radii);
 
   // Instantiate a container for the first thrown exception in
   // the following parallel region.

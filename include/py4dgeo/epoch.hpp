@@ -26,13 +26,12 @@ public:
   static std::unique_ptr<Epoch> from_stream(std::istream&);
   std::ostream& to_stream(std::ostream&) const;
 
-  // Optional setters
-  void set_default_radius_search_tree(SearchTree tree)
+  static void set_default_radius_search_tree(SearchTree tree)
   {
     default_radius_search_tree = tree;
   }
 
-  void set_default_nearest_neighbor_tree(SearchTree tree)
+  static void set_default_nearest_neighbor_tree(SearchTree tree)
   {
     if (tree == SearchTree::Octree) {
       std::cerr << "[Warning] Octree is not yet implemented for nearest "
@@ -42,12 +41,12 @@ public:
     default_nearest_neighbor_tree = tree;
   }
 
-  SearchTree get_default_radius_search_tree() const
+  static SearchTree get_default_radius_search_tree()
   {
     return default_radius_search_tree;
   }
 
-  SearchTree get_default_nearest_neighbor_tree() const
+  static SearchTree get_default_nearest_neighbor_tree()
   {
     return default_nearest_neighbor_tree;
   }
@@ -57,8 +56,8 @@ private:
   std::shared_ptr<EigenPointCloud> owned_cloud;
 
   // Default for search operations
-  SearchTree default_radius_search_tree = SearchTree::Octree;
-  SearchTree default_nearest_neighbor_tree = SearchTree::KDTree;
+  static SearchTree default_radius_search_tree;
+  static SearchTree default_nearest_neighbor_tree;
 
 public:
   // The data members are accessible from the outside. This could be

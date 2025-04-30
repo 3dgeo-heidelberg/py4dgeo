@@ -31,14 +31,20 @@ enum class SearchTree
 
 class Epoch;
 
-// Helper type
+// Helper types
+using RadiusSearchFuncSingle =
+  std::function<void(const Eigen::Vector3d&, std::vector<IndexType>&)>;
+
 using RadiusSearchFunc = std::function<
   void(const Eigen::Vector3d&, std::size_t, std::vector<IndexType>&)>;
 
-// Declaration
+// For a single radius
+RadiusSearchFuncSingle
+get_radius_search_function(const Epoch& epoch, double radius);
+
+// For a vector of radii
 RadiusSearchFunc
 get_radius_search_function(const Epoch& epoch,
-                           const std::vector<double>& radii,
-                           SearchTree tree);
+                           const std::vector<double>& radii);
 
 } // namespace py4dgeo

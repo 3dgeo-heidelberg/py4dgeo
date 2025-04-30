@@ -17,6 +17,7 @@ void
 benchmark(std::shared_ptr<EigenPointCloud> cloud)
 {
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::Octree);
   epoch.octree.build_tree();
   std::vector<double> normal_radii{ 1.0 };
   std::vector<double> used_radii;
@@ -25,13 +26,8 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud)
   orientation << 0, 0, 1;
 
   auto start = std::chrono::high_resolution_clock::now();
-  compute_multiscale_directions(epoch,
-                                *cloud,
-                                normal_radii,
-                                orientation,
-                                directions,
-                                used_radii,
-                                SearchTree::Octree);
+  compute_multiscale_directions(
+    epoch, *cloud, normal_radii, orientation, directions, used_radii);
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double> duration = end - start;
   std::cout << "compute_multiscale_directions (Octree) executed in "

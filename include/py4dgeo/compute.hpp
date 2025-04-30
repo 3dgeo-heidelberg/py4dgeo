@@ -90,8 +90,7 @@ compute_multiscale_directions(const Epoch&,
                               const std::vector<double>&,
                               EigenNormalSetConstRef,
                               EigenNormalSetRef,
-                              std::vector<double>&,
-                              SearchTree = SearchTree::KDTree);
+                              std::vector<double>&);
 
 /** @brief Compute M3C2 distances */
 void

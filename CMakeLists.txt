@@ -31,7 +31,7 @@ set(BUILD_BENCHMARKS
     ON
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
-    OFF
+    ON
     CACHE BOOL "Enable OpenMP parallelization")
 
 # Check that the repository was clone recursively

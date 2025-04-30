@@ -13,6 +13,7 @@ multiscale_normal_benchmark_kdtree(benchmark::State& state)
 {
   auto [cloud, corepoints] = ahk_benchcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
   std::vector<double> normal_radii{ 0.1, 0.5, 1.0, 2.0, 5.0 };
   std::vector<double> used_radii;
@@ -22,13 +23,8 @@ multiscale_normal_benchmark_kdtree(benchmark::State& state)
 
   for (auto _ : state) {
     // Precompute the multiscale directions
-    compute_multiscale_directions(epoch,
-                                  *corepoints,
-                                  normal_radii,
-                                  orientation,
-                                  directions,
-                                  used_radii,
-                                  SearchTree::KDTree);
+    compute_multiscale_directions(
+      epoch, *corepoints, normal_radii, orientation, directions, used_radii);
   }
 }
 
@@ -37,6 +33,7 @@ multiscale_normal_benchmark_octree(benchmark::State& state)
 {
   auto [cloud, corepoints] = ahk_benchcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::Octree);
   epoch.octree.build_tree();
   std::vector<double> radii{ 0.1, 0.5, 1.0, 2.0, 5.0 };
   std::vector<double> used_radii;
@@ -45,13 +42,8 @@ multiscale_normal_benchmark_octree(benchmark::State& state)
   orientation << 0, 0, 1;
 
   for (auto _ : state) {
-    compute_multiscale_directions(epoch,
-                                  *corepoints,
-                                  radii,
-                                  orientation,
-                                  directions,
-                                  used_radii,
-                                  SearchTree::Octree);
+    compute_multiscale_directions(
+      epoch, *corepoints, radii, orientation, directions, used_radii);
   }
 }
 

@@ -20,6 +20,7 @@
 
 #include <algorithm>
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -78,18 +79,47 @@ PYBIND11_MODULE(_py4dgeo, m)
   epoch.def_readwrite("_kdtree", &Epoch::kdtree);
   epoch.def_readwrite("_octree", &Epoch::octree);
 
-  // Set and get default search trees
   epoch.def(
+    "radius_search",
+    [](Epoch& self, py::array_t<double> qp, double radius) {
+      // Ensure appropriate search tree has been built
+      if (Epoch::get_default_radius_search_tree() == SearchTree::KDTree) {
+        if (self.kdtree.get_leaf_parameter() == 0) {
+          self.kdtree.build_tree(10);
+        }
+      } else {
+        if (self.octree.get_number_of_points() == 0) {
+          self.octree.build_tree();
+        }
+      }
+
+      // Get a pointer for the query point
+      auto ptr = static_cast<const double*>(qp.request().ptr);
+
+      // Now perform the radius search
+      RadiusSearchResult result;
+      auto radius_search_func = get_radius_search_function(self, radius);
+      Eigen::Vector3d query_point(ptr[0], ptr[1], ptr[2]);
+      radius_search_func(query_point, result);
+
+      return as_pyarray(std::move(result));
+    },
+    py::arg("query_point"),
+    py::arg("radius"),
+    "Perform a radius search");
+
+  // Set and get default search trees
+  epoch.def_static(
     "set_default_radius_search_tree",
-    [](Epoch& self, const std::string& tree_name_input) {
+    [](const std::string& tree_name_input) {
       std::string tree_name = tree_name_input;
       std::transform(
         tree_name.begin(), tree_name.end(), tree_name.begin(), ::tolower);
 
       if (tree_name == "kdtree") {
-        self.set_default_radius_search_tree(SearchTree::KDTree);
+        Epoch::set_default_radius_search_tree(SearchTree::KDTree);
       } else if (tree_name == "octree") {
-        self.set_default_radius_search_tree(SearchTree::Octree);
+        Epoch::set_default_radius_search_tree(SearchTree::Octree);
       } else {
         throw std::invalid_argument("Unknown search tree type: " +
                                     tree_name_input);
@@ -98,17 +128,18 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("tree_name"),
     "Set the default search tree for radius searches (\"kdtree\" or "
     "\"octree\")");
-  epoch.def(
+
+  epoch.def_static(
     "set_default_nearest_neighbor_tree",
-    [](Epoch& self, const std::string& tree_name_input) {
+    [](const std::string& tree_name_input) {
       std::string tree_name = tree_name_input;
       std::transform(
         tree_name.begin(), tree_name.end(), tree_name.begin(), ::tolower);
 
       if (tree_name == "kdtree") {
-        self.set_default_nearest_neighbor_tree(SearchTree::KDTree);
+        Epoch::set_default_nearest_neighbor_tree(SearchTree::KDTree);
       } else if (tree_name == "octree") {
-        self.set_default_nearest_neighbor_tree(SearchTree::Octree);
+        Epoch::set_default_nearest_neighbor_tree(SearchTree::Octree);
       } else {
         throw std::invalid_argument("Unknown search tree type: " +
                                     tree_name_input);
@@ -117,10 +148,12 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("tree_name"),
     "Set the default search tree for nearest neighbor searches (\"kdtree\" or "
     "\"octree\")");
-  epoch.def("get_default_radius_search_tree",
-            &Epoch::get_default_radius_search_tree);
-  epoch.def("get_default_nearest_neighbor_tree",
-            &Epoch::get_default_nearest_neighbor_tree);
+
+  epoch.def_static("get_default_radius_search_tree",
+                   &Epoch::get_default_radius_search_tree);
+
+  epoch.def_static("get_default_nearest_neighbor_tree",
+                   &Epoch::get_default_nearest_neighbor_tree);
 
   // Pickling support for the Epoch class
   epoch.def(py::pickle(
@@ -138,14 +171,8 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Expose the KDTree class
   py::class_<KDTree> kdtree(m, "KDTree", py::buffer_protocol());
 
-  // Expose the Octree class
-  py::class_<Octree> octree(m, "Octree", py::buffer_protocol());
-
   // Map __init__ to constructor
   kdtree.def(py::init<>(&KDTree::create));
-
-  // Map __init__ to constructor
-  octree.def(py::init<>(&Octree::create));
 
   // Allow updating KDTree from a given file
   kdtree.def("load_index", [](KDTree& self, std::string filename) {
@@ -218,6 +245,24 @@ PYBIND11_MODULE(_py4dgeo, m)
       "Please pickle Epoch instead of KDTree. Otherwise unpickled KDTree does "
       "not know the point cloud."
     };
+  });
+
+  // Expose the Octree class
+  py::class_<Octree> octree(m, "Octree", py::buffer_protocol());
+
+  // Map __init__ to constructor
+  octree.def(py::init<>(&Octree::create));
+
+  // Allow updating Octree from a given file
+  octree.def("load_index", [](Octree& self, std::string filename) {
+    std::ifstream stream(filename, std::ios::binary | std::ios::in);
+    self.loadIndex(stream);
+  });
+
+  // Allow dumping Octree to a file
+  octree.def("save_index", [](const Octree& self, std::string filename) {
+    std::ofstream stream(filename, std::ios::binary | std::ios::out);
+    self.saveIndex(stream);
   });
 
   // Allow building the Octree structure
@@ -360,12 +405,11 @@ PYBIND11_MODULE(_py4dgeo, m)
         level.value_or(self.find_appropriate_level_for_radius_search(radius));
 
       RadiusSearchResult result;
-
       self.radius_search(query_point, radius, lvl, result);
 
       return as_pyarray(std::move(result));
     },
-    "Retrieve the spatial keys of cells intersected by a sphere.",
+    "Search point in given radius!",
     py::arg("query_point"),
     py::arg("radius"),
     py::arg("level") = std::nullopt);
@@ -485,13 +529,12 @@ PYBIND11_MODULE(_py4dgeo, m)
     [](const Epoch& epoch,
        EigenPointCloudConstRef corepoints,
        const std::vector<double>& normal_radii,
-       EigenNormalSetConstRef orientation,
-       SearchTree tree) {
+       EigenNormalSetConstRef orientation) {
       EigenNormalSet result(corepoints.rows(), 3);
       std::vector<double> used_radii;
 
       compute_multiscale_directions(
-        epoch, corepoints, normal_radii, orientation, result, used_radii, tree);
+        epoch, corepoints, normal_radii, orientation, result, used_radii);
 
       return std::make_tuple(std::move(result),
                              as_pyarray(std::move(used_radii)));
@@ -500,7 +543,6 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("corepoints"),
     py::arg("normal_radii"),
     py::arg("orientation"),
-    py::arg("tree"),
     "Compute M3C2 multiscale directions");
 
   // Corresponence distances computation
