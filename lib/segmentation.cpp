@@ -52,8 +52,9 @@ fixed_threshold_region_growing(
 
     // Add neighboring corepoints to list of candidates
     RadiusSearchResult neighbors;
-    data.corepoints.kdtree.radius_search(
-      &data.corepoints.cloud(candidate, 0), data.radius, neighbors);
+    auto radius_search =
+      get_radius_search_function(data.corepoints, data.radius);
+    radius_search(data.corepoints.cloud.row(candidate), neighbors);
     for (auto n : neighbors) {
       // Check whether the corepoint is already present among candidates,
       // the final result or the points added at this threshold level.

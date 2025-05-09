@@ -113,8 +113,8 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
 def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
     Epoch.set_default_radius_search_tree("kdtree")
     epoch1, epoch2 = epochs_m3c2ep
-    epoch1.ensure_searchtree_built()
-    epoch2.ensure_searchtree_built()
+    epoch1.validate_search_tree()
+    epoch2.validate_search_tree()
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
     with tempfile.TemporaryDirectory() as dir:
@@ -125,8 +125,8 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         epoch2.save(filename2)
         load1 = py4dgeo.load_epoch(filename1)
         load2 = py4dgeo.load_epoch(filename2)
-        load1.ensure_searchtree_built()
-        load2.ensure_searchtree_built()
+        load1.validate_search_tree()
+        load2.validate_search_tree()
         # Assert that the two object behave the same
         assert load1.cloud.shape[0] == epoch1.cloud.shape[0]
         assert load2.cloud.shape[0] == epoch2.cloud.shape[0]

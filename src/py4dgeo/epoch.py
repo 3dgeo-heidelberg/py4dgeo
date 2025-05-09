@@ -147,7 +147,7 @@ class Epoch(_py4dgeo.Epoch):
             A vector to determine orientation of the normals. It should point "up".
         """
 
-        self.ensure_searchtree_built()
+        self.validate_search_tree()
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
@@ -161,7 +161,9 @@ class Epoch(_py4dgeo.Epoch):
 
         return self.normals
 
-    def ensure_searchtree_built(self):
+    def validate_search_tree(self):
+        """ "Check if the default search tree is built"""
+
         tree_type = self.get_default_radius_search_tree()
 
         if tree_type == _py4dgeo.SearchTree.KDTreeSearch:
@@ -303,7 +305,7 @@ class Epoch(_py4dgeo.Epoch):
     def build_octree(self):
         """Build the search octree index"""
         if self.octree.get_number_of_points() == 0:
-            logger.info(f"Building Otcree structure")
+            logger.info(f"Building Octree structure")
             self.octree.build_tree()
 
     def transform(
@@ -531,9 +533,14 @@ class Epoch(_py4dgeo.Epoch):
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
                 epoch.kdtree.load_index(kdtreefile)
 
-                # Restore the Octree object
-                octreefile = zf.extract("octree", path=tmp_dir)
-                epoch.octree.load_index(octreefile)
+                # Restore the Octree object if present
+                try:
+                    octreefile = zf.extract("octree", path=tmp_dir)
+                    epoch.octree.load_index(octreefile)
+                except KeyError:
+                    logger.warning(
+                        "No octree found in the archive. Skipping octree loading."
+                    )
 
                 # Read the transformation if it exists
                 if version >= 3:

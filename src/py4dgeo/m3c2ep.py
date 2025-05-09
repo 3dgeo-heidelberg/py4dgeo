@@ -62,8 +62,8 @@ class M3C2EP(M3C2):
             )
 
         # Ensure appropriate trees are built
-        epoch1.ensure_searchtree_built()
-        epoch2.ensure_searchtree_built()
+        epoch1.validate_search_tree()
+        epoch2.validate_search_tree()
 
         p1_coords = epoch1.cloud
         p1_positions = epoch1.scanpos_id
