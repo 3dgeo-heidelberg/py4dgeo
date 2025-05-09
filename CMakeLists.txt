@@ -28,7 +28,7 @@ set(BUILD_DOCS
     ON
     CACHE BOOL "Enable building of documentation")
 set(BUILD_BENCHMARKS
-    ON
+    OFF
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
     ON
@@ -102,8 +102,6 @@ if(BUILD_PYTHON)
   # Install th Python module library target
   install(TARGETS _py4dgeo DESTINATION .)
 endif()
-
-add_subdirectory(minimal_benchmark)
 
 # This prints a summary of found dependencies
 include(FeatureSummary)
