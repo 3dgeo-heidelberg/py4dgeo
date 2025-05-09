@@ -9,7 +9,6 @@ from .helpers import complex_timeseries, simple_jump
 
 
 def test_segmentation(analysis):
-    print("test_segmentation")
     # Basic assertions about the analysis loaded in fixture
     assert len(analysis.distances.shape) == 2
     assert len(analysis.uncertainties.shape) == 2
@@ -18,7 +17,6 @@ def test_segmentation(analysis):
 
 
 def test_access_unassigned_properties(tmp_path, epochs):
-    print("test_access_unassigned_properties")
     analysis = SpatiotemporalAnalysis(os.path.join(tmp_path, "unassigned.zip"))
 
     with pytest.raises(Py4DGeoError):
@@ -41,7 +39,6 @@ def test_access_unassigned_properties(tmp_path, epochs):
 
 
 def test_construct_from_epochs(epochs, tmp_path):
-    print("test_construct_from_epochs")
     ref_epoch, epoch1 = epochs
 
     ref_epoch.timestamp = "March 9th 2022, 16:32"
@@ -68,7 +65,6 @@ def test_construct_from_epochs(epochs, tmp_path):
 
 
 def test_construct_from_scratch(tmp_path, epochs):
-    print("test_construct_from_scratch")
     ref_epoch, epoch = epochs
     ref_epoch.timestamp = "March 9th 2022, 16:32"
     epoch.timestamp = "March 9th 2022, 16:33"
@@ -93,7 +89,6 @@ def test_construct_from_scratch(tmp_path, epochs):
 
 
 def test_modification_raises(analysis):
-    print("test_modification_raises")
     # The property setters intended for construction from scratch cannot
     # be used on an existing analysis object
     with pytest.raises(Py4DGeoError):
@@ -104,7 +99,6 @@ def test_modification_raises(analysis):
 
 
 def test_region_growing_algorithm(analysis, tmp_path):
-    print("test_region_growing_algorithm")
     algo = RegionGrowingAlgorithm(neighborhood_radius=2.0, seed_subsampling=20)
 
     # We need better testing data for this
@@ -120,7 +114,6 @@ def test_region_growing_algorithm(analysis, tmp_path):
 
 
 def test_region_growing_seed():
-    print("test_region_growing_seed")
     # Construct a seed
     seed = RegionGrowingSeed(0, 0, 1)
 
@@ -138,7 +131,6 @@ def test_region_growing_seed():
 
 
 def test_regular_corepoint_grid():
-    print("test_regular_corepoint_grid")
     grid = regular_corepoint_grid((0, 0), (1, 1), (4, 4))
     assert grid.shape == (16, 3)
 
@@ -179,7 +171,6 @@ def test_change_point_detection_against_ruptures(
 
 
 def test_custom_distance_function(analysis):
-    print("test_custom_distance_function")
 
     def custom_distance(params):
         # NB: This is only a proof-of-concept how individual distance measures

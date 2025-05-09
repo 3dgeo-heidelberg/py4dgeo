@@ -86,12 +86,12 @@ def mean_stddev_distance(
             np.sqrt(
                 variance1 / params.workingset1.shape[0]
                 + variance2 / params.workingset2.shape[0]
-            )
+            ).item()
             + params.registration_error
         ),
-        spread1=np.sqrt(variance1),
+        spread1=np.sqrt(variance1).item(),
         num_samples1=params.workingset1.shape[0],
-        spread2=np.sqrt(variance2),
+        spread2=np.sqrt(variance2).item(),
         num_samples2=params.workingset2.shape[0],
     )
 
