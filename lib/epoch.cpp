@@ -26,7 +26,7 @@ Epoch::Epoch(std::shared_ptr<EigenPointCloud> cloud_)
 {
 }
 
-SearchTree Epoch::default_radius_search_tree = SearchTree::Octree;
+SearchTree Epoch::default_radius_search_tree = SearchTree::KDTree;
 SearchTree Epoch::default_nearest_neighbor_tree = SearchTree::KDTree;
 
 std::ostream&
