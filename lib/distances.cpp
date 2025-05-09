@@ -1,9 +1,11 @@
-#include <Eigen/Core>
-
 #include "py4dgeo/compute.hpp"
+
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
+
+#include <Eigen/Core>
 
 #include <algorithm>
 
@@ -68,10 +70,13 @@ compute_distances(
 EigenPointCloud
 radius_workingset_finder(const WorkingSetFinderParameters& params)
 {
+  // Get the proper radius search function
+  auto radius_search = get_radius_search_function(params.epoch, params.radius);
+
   // Find the working set in the other epoch
-  KDTree::RadiusSearchResult points;
-  params.epoch.kdtree.radius_search(
-    params.corepoint.data(), params.radius, points);
+  RadiusSearchResult points;
+  radius_search(params.corepoint.row(0), points);
+
   return params.epoch.cloud(points, Eigen::all);
 }
 
@@ -94,6 +99,9 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
   double r_cyl = std::sqrt(params.radius * params.radius +
                            cylinder_length * cylinder_length / (N * N));
 
+  // Get the proper radius search function
+  auto radius_search = get_radius_search_function(params.epoch, r_cyl);
+
   // Perform radius searches and merge results
   std::vector<IndexType> merged;
   for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i) {
@@ -101,8 +109,9 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
       (params.corepoint.row(0) +
        (static_cast<double>(2 * i + 1 - N) / static_cast<double>(N)) *
          cylinder_length * params.cylinder_axis.row(0));
-    KDTree::RadiusSearchResult ball_points;
-    params.epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
+    RadiusSearchResult ball_points;
+    radius_search(qp.transpose(), ball_points);
+
     merged.reserve(merged.capacity() + ball_points.size());
 
     // Extracting points

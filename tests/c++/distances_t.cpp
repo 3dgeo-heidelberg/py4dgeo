@@ -58,6 +58,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   // Get a test epoch
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
 
   // Single distance vector
@@ -93,6 +94,7 @@ TEST_CASE("Cylinder Search Correctness", "[compute]")
 {
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
 
   EigenPointCloud corepoint(1, 3);
