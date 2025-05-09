@@ -1,6 +1,6 @@
 #pragma once
 
-#include <Eigen/Eigen>
+#include <Eigen/Core>
 
 #include <istream>
 #include <memory>
