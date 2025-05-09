@@ -32,7 +32,11 @@ Octree::compute_bounding_box()
 
   // For each axis, round extent to next power of two
   for (int i = 0; i < 3; ++i) {
-    box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+    if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+      box_size[i] = 1.0;
+    } else {
+      box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+    }
   }
 
   inv_box_size = box_size.cwiseInverse();

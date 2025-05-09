@@ -426,12 +426,22 @@ public:
   /** @brief Return the size of cells at a level of depth */
   inline Eigen::Vector3d get_cell_size(unsigned int level) const
   {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
     return cell_size[level];
   };
 
   /** @brief Return the number of occupied cells per level of depth */
   inline unsigned int get_occupied_cells_per_level(unsigned int level) const
   {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
     return occupied_cells_per_level[level];
   };
 
@@ -439,12 +449,22 @@ public:
   inline unsigned int get_max_cell_population_per_level(
     unsigned int level) const
   {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
     return max_cell_population_per_level[level];
   };
 
   /** @brief Return the average number of points per level of depth */
   inline double get_average_cell_population_per_level(unsigned int level) const
   {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
     return average_cell_population_per_level[level];
   };
 
@@ -452,6 +472,11 @@ public:
    * depth */
   inline double get_std_cell_population_per_level(unsigned int level) const
   {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
     return std_cell_population_per_level[level];
   };
 
