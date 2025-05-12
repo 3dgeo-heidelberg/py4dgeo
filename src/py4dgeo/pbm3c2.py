@@ -1220,7 +1220,6 @@ class Segmentation(BaseTransformer):
                     cumulative_distance_for_std_deviation = 0
                     nr_points_for_std_deviation = 0
 
-                    # indx_kd_tree_list = _epoch[epoch_id].kdtree.radius_search(
                     indx_kd_tree_list = _epoch[epoch_id].radius_search(
                         X[indx_row, X_Y_Z_Columns], self.radius
                     )[: self.max_nr_points_neighborhood]
@@ -1978,7 +1977,6 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
 
         # this operation can be parallelized
         for epoch0_set_row in epoch0_set:
-            # list_candidates = self.epoch1_segments.kdtree.radius_search(
             list_candidates = self.epoch1_segments.radius_search(
                 epoch0_set_row, self.neighborhood_search_radius
             )

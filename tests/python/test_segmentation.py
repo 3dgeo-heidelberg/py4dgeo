@@ -171,7 +171,6 @@ def test_change_point_detection_against_ruptures(
 
 
 def test_custom_distance_function(analysis):
-
     def custom_distance(params):
         # NB: This is only a proof-of-concept how individual distance measures
         #    can be included into 4D-OBC. Reimplementing DTW distance calculation

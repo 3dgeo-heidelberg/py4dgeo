@@ -5,6 +5,7 @@
 
 #include <Eigen/Core>
 
+#include <cstdint>
 #include <istream>
 #include <optional>
 #include <ostream>

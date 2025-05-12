@@ -35,7 +35,6 @@ def cylinder_workingset_finder(
             params.corepoint[0, :]
             + (2 * i - N + 1) / N * max_cylinder_length * params.cylinder_axis[0, :]
         )
-        # indices = params.epoch._kdtree.radius_search(qp, r_cyl)
         indices = params.epoch.radius_search(qp, r_cyl)
 
         # Gather the points from the point cloud
