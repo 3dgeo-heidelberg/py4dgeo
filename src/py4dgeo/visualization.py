@@ -334,6 +334,15 @@ class PCloudProjection:
         return output_image
 
 
+    def add_polygons(self, lst_polygon):
+        image = cv2.imread(self.filename)
+
+        for polygon in lst_polygon:
+            pts = np.array(polygon, dtype=np.int32).reshape((-1, 1, 2))
+            cv2.polylines(image, [pts], isClosed=True, color=(0, 255, 0), thickness=2)
+        
+        cv2.imwrite(self.filename, image)
+        return image
 
 class Vis_Object:
     def __init__(self, filename):

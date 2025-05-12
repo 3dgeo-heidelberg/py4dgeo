@@ -21,6 +21,7 @@ import os
 import tempfile
 import typing
 import zipfile
+from matplotlib import pyplot as plt
 
 import _py4dgeo
 
@@ -541,22 +542,24 @@ class Epoch(_py4dgeo.Epoch):
         self.image = PCloudProjection(self, **args)
         
 
-    def visualize(self, filename=None, polygon=None):
+    def visualize(self, filename=None, lst_polygon=None, from_notebook=False):
         """visualize the point cloud in an image porjection
         """
         if self.image.filename is None:
             self.image.filename = filename
             self.image.save_image()
-            
+
+        if lst_polygon is not None:
+            image = self.image.add_polygons(lst_polygon)
+        
+        if from_notebook:
             display = Vis_Object(self.image.filename)
-            
-            from matplotlib import pyplot as plt
-            import rasterio
-            src = rasterio.open(self.image.filename)
-            print(self.image.filename)
-            plt.imshow(src)
-            plt.show(block=True)
-            #Vis_Object(self.image.filename)
+            return display
+        else:
+            import cv2
+            cv2.imshow("Polygons", image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 
 def save_epoch(epoch, filename):
