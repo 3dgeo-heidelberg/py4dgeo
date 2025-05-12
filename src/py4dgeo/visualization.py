@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import rasterio
-import fiona
+#import fiona
 import json
 from PIL import Image
 import io
@@ -12,8 +12,6 @@ from scipy.spatial import ConvexHull
 from shapely.geometry import mapping, Polygon
 from xml.etree.ElementTree import Element, SubElement, tostring
 import xml.dom.minidom
-
-from pyproj import Transformer
 
 from py4dgeo.util import xyz_2_spherical, Py4DGeoError
 

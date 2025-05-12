@@ -546,10 +546,17 @@ class Epoch(_py4dgeo.Epoch):
         """
         if self.image.filename is None:
             self.image.filename = filename
+            self.image.save_image()
             
             display = Vis_Object(self.image.filename)
-            if display is not None:
-                return display
+            
+            from matplotlib import pyplot as plt
+            import rasterio
+            src = rasterio.open(self.image.filename)
+            print(self.image.filename)
+            plt.imshow(src)
+            plt.show(block=True)
+            #Vis_Object(self.image.filename)
 
 
 def save_epoch(epoch, filename):
