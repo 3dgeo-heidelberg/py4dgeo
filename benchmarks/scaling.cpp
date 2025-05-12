@@ -16,6 +16,7 @@ scalability_benchmark(benchmark::State& state)
 {
   auto [cloud, corepoints] = ahk_benchcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
 
   for (auto _ : state) {

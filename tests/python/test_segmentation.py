@@ -27,7 +27,7 @@ def test_access_unassigned_properties(tmp_path, epochs):
 
     assert len(analysis.timedeltas) == 0
 
-    # Set reference_epocha and corepoints to check unassigned distances
+    # Set reference_epoch and corepoints to check unassigned distances
     # and uncertainties
     epoch, _ = epochs
     epoch.timestamp = "March 9th 2022, 16:33"
