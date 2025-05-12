@@ -5,6 +5,8 @@ import cv2
 import rasterio
 import fiona
 import json
+from PIL import Image
+import io
 
 from scipy.spatial import ConvexHull
 from shapely.geometry import mapping, Polygon
@@ -24,8 +26,7 @@ class PCloudProjection:
 
     Parameters:
         epoch (object): An object containing the point cloud and scan position information.
-        projected_image_folder (str, optional): Path to the folder where projected images will be saved. Defaults to None.
-        project_name (str, optional): Name of the project. Defaults to "Untitled".
+        filename (str, optional): Path to the where projected images will be saved. Defaults to None.
         cloud_path (str, optional): Path to the point cloud file. Defaults to "Unknown".
         make_range_image (bool, optional): Whether to generate a range image. Defaults to True.
         make_color_image (bool, optional): Whether to generate a color image. Defaults to False.
@@ -39,21 +40,18 @@ class PCloudProjection:
     def __init__(
         self,
         epoch,
-        projected_image_folder = None,
-        project_name = "Untitled",
+        filename = None,
         cloud_path = "Unknown",
         make_range_image = True,
         make_color_image = False,
         resolution_cm = 8,
         rgb_light_intensity = 100,
         range_light_intensity = 100,
-        apply_shading = True,
-        save_image = False
+        apply_shading = True
     ):
         self.xyz = epoch.cloud
         self.camera_position = epoch.scanpos_info
-        self.projected_image_folder = projected_image_folder
-        self.project_name = project_name
+        self.filename = filename
         self.cloud_path = cloud_path
         self.make_range_image = make_range_image
         self.make_color_image = make_color_image
@@ -61,7 +59,6 @@ class PCloudProjection:
         self.rgb_light_intensity = rgb_light_intensity
         self.range_light_intensity = range_light_intensity
         self.apply_shading = apply_shading
-        self.save_im = save_image
 
         if epoch.scanpos_info is None or len(epoch.scanpos_info) != 3:
             raise Py4DGeoError("Scan position needed. Please provide with epoch.scanpos_info")
@@ -75,11 +72,11 @@ class PCloudProjection:
         self.create_shading()
         if self.make_color_image:
             self.apply_shading_to_color_img()
-            if self.save_im:
+            if self.filename is not None:
                 self.save_image()
         if self.make_range_image:
             self.apply_shading_to_range_img()
-            if self.save_im:
+            if self.filename is not None:
                 self.save_image()
         
         return self.shaded_image
@@ -123,11 +120,6 @@ class PCloudProjection:
 
 
     def save_image(self):
-        # Save image with the current time
-        if not os.path.exists(self.projected_image_folder):
-            os.makedirs(self.projected_image_folder)
-        filename = os.path.join(self.projected_image_folder,f"{self.project_name}_{self.image_type}Image.tif")
-
         raster = np.moveaxis(self.shaded_image, [0, 1, 2], [2, 1, 0])
         raster = np.rot90(raster, k=-1, axes=(1, 2))
         raster = np.flip(raster, axis=2)
@@ -145,7 +137,7 @@ class PCloudProjection:
         
         custom_tags = {
                 "pc_path": self.cloud_path,
-                "image_path": filename,
+                "image_path": self.filename,
                 "make_range_image": self.make_range_image,
                 "make_color_image": self.make_color_image,
                 "resolution_cm": self.resolution_cm,
@@ -167,7 +159,7 @@ class PCloudProjection:
             }
 
         # Write the raster
-        with rasterio.open(filename, "w", **meta) as dest:
+        with rasterio.open(self.filename, "w", **meta) as dest:
             dest.write(raster, [1,2,3])
             dest.update_tags(**custom_tags)
 
@@ -304,7 +296,6 @@ class PCloudProjection:
 
         self.shaded_image = self.apply_smoothing(shaded_color_image)
 
-        # Call save_image function
         self.image_type = "Color"
 
 
@@ -334,7 +325,6 @@ class PCloudProjection:
 
         self.shaded_image = self.apply_smoothing(shaded_range_image)
 
-        # Call save_image function
         self.image_type = "Range"
 
         
@@ -345,3 +335,17 @@ class PCloudProjection:
 
         return output_image
 
+
+
+class Vis_Object:
+    def __init__(self, filename):
+        if filename is None:
+            raise Py4DGeoError("Cannot visualize without the filename of the image!")
+        self.image = Image.open(filename)
+
+
+    def _repr_png_(self):
+        """Display the image in a Jupyter notebook"""
+        buffer = io.BytesIO()
+        self.image.save(buffer, format='PNG')
+        return buffer.getvalue()

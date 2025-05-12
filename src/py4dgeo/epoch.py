@@ -1,5 +1,5 @@
 from py4dgeo.logger import logger_context
-from py4dgeo.visualization import PCloudProjection
+from py4dgeo.visualization import PCloudProjection, Vis_Object
 from py4dgeo.registration import Transformation
 from py4dgeo.util import (
     Py4DGeoError,
@@ -539,6 +539,17 @@ class Epoch(_py4dgeo.Epoch):
             raise Py4DGeoError("Cannot project without scan position information!")
 
         self.image = PCloudProjection(self, **args)
+        
+
+    def visualize(self, filename=None, polygon=None):
+        """visualize the point cloud in an image porjection
+        """
+        if self.image.filename is None:
+            self.image.filename = filename
+            
+            display = Vis_Object(self.image.filename)
+            if display is not None:
+                return display
 
 
 def save_epoch(epoch, filename):
