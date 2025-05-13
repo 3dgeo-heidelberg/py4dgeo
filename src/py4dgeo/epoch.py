@@ -551,12 +551,14 @@ class Epoch(_py4dgeo.Epoch):
 
         if lst_polygon is not None:
             image = self.image.add_polygons(lst_polygon)
-        
+
         if from_notebook:
             display = Vis_Object(self.image.filename)
             return display
         else:
-            cv2.imshow("Polygons", image)
+            image = cv2.imread(self.image.filename)
+            title = os.path.basename(self.image.filename)
+            cv2.imshow(title, image)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
 
