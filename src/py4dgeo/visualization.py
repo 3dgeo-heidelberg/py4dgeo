@@ -1,18 +1,8 @@
-import os
-import matplotlib.pyplot as plt
 import numpy as np
 import cv2
 import rasterio
-#import fiona
-import json
 from PIL import Image
 import io
-
-from scipy.spatial import ConvexHull
-from shapely.geometry import mapping, Polygon
-from xml.etree.ElementTree import Element, SubElement, tostring
-import xml.dom.minidom
-
 from py4dgeo.util import xyz_2_spherical, Py4DGeoError
 
 
@@ -32,7 +22,6 @@ class PCloudProjection:
         rgb_light_intensity (int, optional): Intensity of the light for the RGB image. Defaults to 100.
         range_light_intensity (int, optional): Intensity of the light for the range image. Defaults to 100.
         apply_shading (bool, optional): Whether to apply shading to the images. Defaults to True.
-        save_image (bool, optional): Whether to save the generated images. Defaults to True.
     """
 
     def __init__(
