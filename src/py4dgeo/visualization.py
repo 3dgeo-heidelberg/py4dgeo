@@ -250,6 +250,9 @@ class PCloudProjection:
             self.green = self.green[valid_indices]
             self.blue = self.blue[valid_indices]
 
+        # Shift the point cloud back to its original coordinates
+        self.xyz += self.camera_position
+        
 
     def create_shading(self):
         # Compute surface normals' components (gradient approximation)

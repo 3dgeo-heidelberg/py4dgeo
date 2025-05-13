@@ -21,7 +21,7 @@ import os
 import tempfile
 import typing
 import zipfile
-from matplotlib import pyplot as plt
+import cv2
 
 import _py4dgeo
 
@@ -556,7 +556,6 @@ class Epoch(_py4dgeo.Epoch):
             display = Vis_Object(self.image.filename)
             return display
         else:
-            import cv2
             cv2.imshow("Polygons", image)
             cv2.waitKey(0)
             cv2.destroyAllWindows()
