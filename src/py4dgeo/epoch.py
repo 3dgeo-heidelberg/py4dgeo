@@ -147,7 +147,7 @@ class Epoch(_py4dgeo.Epoch):
             A vector to determine orientation of the normals. It should point "up".
         """
 
-        self.validate_search_tree()
+        self._validate_search_tree()
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
@@ -161,7 +161,7 @@ class Epoch(_py4dgeo.Epoch):
 
         return self.normals
 
-    def validate_search_tree(self):
+    def _validate_search_tree(self):
         """ "Check if the default search tree is built"""
 
         tree_type = self.get_default_radius_search_tree()

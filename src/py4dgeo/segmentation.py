@@ -131,7 +131,7 @@ class SpatiotemporalAnalysis:
             epoch = check_epoch_timestamp(epoch)
 
             # Ensure that the tearch tree is built - no-op if triggered by the user
-            epoch.validate_search_tree()
+            epoch._validate_search_tree()
 
             # Write the reference epoch into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -175,7 +175,7 @@ class SpatiotemporalAnalysis:
 
             # Ensure that the corepoints are stored as an epoch and its search trees are built
             self._corepoints = as_epoch(_corepoints)
-            self._corepoints.validate_search_tree()
+            self._corepoints._validate_search_tree()
 
             # Write the corepoints into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -718,7 +718,7 @@ class RegionGrowingAlgorithmBase:
 
         # Get corepoints from M3C2 class and build a search tree on them
         corepoints = as_epoch(analysis.corepoints)
-        corepoints.validate_search_tree()
+        corepoints._validate_search_tree()
 
         # Calculate the list of seed points and sort them
         seeds = analysis.seeds
@@ -1045,8 +1045,8 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # The 4D-OBC algorithm sorts by similarity in the neighborhood
         # of the seed.
         def neighborhood_similarity(seed):
-            self.analysis.corepoints.validate_search_tree()
-            neighbors = self.analysis.corepoints.radius_search(
+            self.analysis.corepoints._validate_search_tree()
+            neighbors = self.analysis.corepoints._radius_search(
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
             # if no neighbors are found make sure the algorithm continues its search but with a large dissimilarity

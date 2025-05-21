@@ -7,7 +7,7 @@ import _py4dgeo
 
 
 def radius_workingset_finder(params: _py4dgeo.WorkingSetFinderParameters) -> np.ndarray:
-    indices = params.epoch.radius_search(params.corepoint, params.radius)
+    indices = params.epoch._radius_search(params.corepoint, params.radius)
     return params.epoch._cloud[indices, :]
 
 
@@ -35,7 +35,7 @@ def cylinder_workingset_finder(
             params.corepoint[0, :]
             + (2 * i - N + 1) / N * max_cylinder_length * params.cylinder_axis[0, :]
         )
-        indices = params.epoch.radius_search(qp, r_cyl)
+        indices = params.epoch._radius_search(qp, r_cyl)
 
         # Gather the points from the point cloud
         superset = params.epoch._cloud[indices, :]

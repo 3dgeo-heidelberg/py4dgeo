@@ -80,7 +80,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   epoch.def_readwrite("_octree", &Epoch::octree);
 
   epoch.def(
-    "radius_search",
+    "_radius_search",
     [](Epoch& self, py::array_t<double> qp, double radius) {
       // Ensure appropriate search tree has been built
       if (Epoch::get_default_radius_search_tree() == SearchTree::KDTree) {

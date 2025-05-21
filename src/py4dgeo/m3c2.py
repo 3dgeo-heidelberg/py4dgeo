@@ -95,8 +95,8 @@ class M3C2LikeAlgorithm(abc.ABC):
             )
 
         # Ensure appropriate trees are built
-        epoch1.validate_search_tree()
-        epoch2.validate_search_tree()
+        epoch1._validate_search_tree()
+        epoch2._validate_search_tree()
 
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
@@ -178,7 +178,7 @@ class M3C2(M3C2LikeAlgorithm):
         normals_epoch = as_epoch(normals_epoch)
 
         # Ensure appropriate tree structures have been built
-        normals_epoch.validate_search_tree()
+        normals_epoch._validate_search_tree()
 
         # Trigger the precomputation
         self.corepoint_normals, self._directions_radii = (

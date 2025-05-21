@@ -112,8 +112,8 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
 
 def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
     epoch1, epoch2 = epochs_m3c2ep
-    epoch1.validate_search_tree()
-    epoch2.validate_search_tree()
+    epoch1._validate_search_tree()
+    epoch2._validate_search_tree()
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
     with tempfile.TemporaryDirectory() as dir:
@@ -124,8 +124,8 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         epoch2.save(filename2)
         load1 = py4dgeo.load_epoch(filename1)
         load2 = py4dgeo.load_epoch(filename2)
-        load1.validate_search_tree()
-        load2.validate_search_tree()
+        load1._validate_search_tree()
+        load2._validate_search_tree()
         # Assert that the two object behave the same
         assert load1.cloud.shape[0] == epoch1.cloud.shape[0]
         assert load2.cloud.shape[0] == epoch2.cloud.shape[0]
@@ -139,8 +139,8 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         )  # Quarter of the extent of the smallest dimension
         query_point_epoch1 = 0.5 * (epoch1.cloud.min(axis=0) + epoch1.cloud.max(axis=0))
         assert np.allclose(
-            load1.radius_search(query_point_epoch1, radius1),
-            epoch1.radius_search(query_point_epoch1, radius1),
+            load1._radius_search(query_point_epoch1, radius1),
+            epoch1._radius_search(query_point_epoch1, radius1),
         )
 
         bbox_extent_epoch2 = epoch2.cloud.max(axis=0) - epoch2.cloud.min(axis=0)
@@ -149,8 +149,8 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         )  # Quarter of the extent of the smallest dimension
         query_point_epoch2 = 0.5 * (epoch2.cloud.min(axis=0) + epoch2.cloud.max(axis=0))
         assert np.allclose(
-            load2.radius_search(query_point_epoch2, radius2),
-            epoch2.radius_search(query_point_epoch2, radius2),
+            load2._radius_search(query_point_epoch2, radius2),
+            epoch2._radius_search(query_point_epoch2, radius2),
         )
 
 
