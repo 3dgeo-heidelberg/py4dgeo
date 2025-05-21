@@ -35,6 +35,7 @@ def test_epoch_pickle(epochs):
 def test_epoch_saveload(epochs):
     epoch1, _ = epochs
     epoch1.build_kdtree()
+    epoch1.build_octree()
 
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
@@ -48,6 +49,10 @@ def test_epoch_saveload(epochs):
         assert np.allclose(
             loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+        )
+        assert np.allclose(
+            loaded.octree.radius_search(np.array([0, 0, 0]), 10),
+            epoch1.octree.radius_search(np.array([0, 0, 0]), 10),
         )
 
 

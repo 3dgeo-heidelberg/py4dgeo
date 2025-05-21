@@ -11,12 +11,16 @@
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/kdtree.hpp"
+#include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/pybind11_numpy_interop.hpp"
 #include "py4dgeo/registration.hpp"
+#include "py4dgeo/searchtree.hpp"
 #include "py4dgeo/segmentation.hpp"
 
+#include <algorithm>
 #include <fstream>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <tuple>
@@ -35,6 +39,12 @@ PYBIND11_MODULE(_py4dgeo, m)
     .value("MINIMAL", MemoryPolicy::MINIMAL)
     .value("COREPOINTS", MemoryPolicy::COREPOINTS)
     .value("RELAXED", MemoryPolicy::RELAXED)
+    .export_values();
+
+  // The enum class for the type of search tree
+  py::enum_<SearchTree>(m, "SearchTree")
+    .value("KDTreeSearch", SearchTree::KDTree)
+    .value("OctreeSearch", SearchTree::Octree)
     .export_values();
 
   // Register a numpy structured type for uncertainty calculation. This allows
@@ -64,9 +74,86 @@ PYBIND11_MODULE(_py4dgeo, m)
   // garbage collected as long as the Epoch object is alive
   epoch.def(py::init<EigenPointCloudRef>(), py::keep_alive<1, 2>());
 
-  // We can directly access the point cloud and the kdtree
+  // We can directly access the point cloud, the kdtree and the octree
   epoch.def_readwrite("_cloud", &Epoch::cloud);
   epoch.def_readwrite("_kdtree", &Epoch::kdtree);
+  epoch.def_readwrite("_octree", &Epoch::octree);
+
+  epoch.def(
+    "_radius_search",
+    [](Epoch& self, py::array_t<double> qp, double radius) {
+      // Ensure appropriate search tree has been built
+      if (Epoch::get_default_radius_search_tree() == SearchTree::KDTree) {
+        if (self.kdtree.get_leaf_parameter() == 0) {
+          self.kdtree.build_tree(10);
+        }
+      } else {
+        if (self.octree.get_number_of_points() == 0) {
+          self.octree.build_tree();
+        }
+      }
+
+      // Get a pointer for the query point
+      auto ptr = static_cast<const double*>(qp.request().ptr);
+
+      // Now perform the radius search
+      RadiusSearchResult result;
+      auto radius_search_func = get_radius_search_function(self, radius);
+      Eigen::Vector3d query_point(ptr[0], ptr[1], ptr[2]);
+      radius_search_func(query_point, result);
+
+      return as_pyarray(std::move(result));
+    },
+    py::arg("query_point"),
+    py::arg("radius"),
+    "Perform a radius search");
+
+  // Set and get default search trees
+  epoch.def_static(
+    "set_default_radius_search_tree",
+    [](const std::string& tree_name_input) {
+      std::string tree_name = tree_name_input;
+      std::transform(
+        tree_name.begin(), tree_name.end(), tree_name.begin(), ::tolower);
+
+      if (tree_name == "kdtree") {
+        Epoch::set_default_radius_search_tree(SearchTree::KDTree);
+      } else if (tree_name == "octree") {
+        Epoch::set_default_radius_search_tree(SearchTree::Octree);
+      } else {
+        throw std::invalid_argument("Unknown search tree type: " +
+                                    tree_name_input);
+      }
+    },
+    py::arg("tree_name"),
+    "Set the default search tree for radius searches (\"kdtree\" or "
+    "\"octree\")");
+
+  epoch.def_static(
+    "set_default_nearest_neighbor_tree",
+    [](const std::string& tree_name_input) {
+      std::string tree_name = tree_name_input;
+      std::transform(
+        tree_name.begin(), tree_name.end(), tree_name.begin(), ::tolower);
+
+      if (tree_name == "kdtree") {
+        Epoch::set_default_nearest_neighbor_tree(SearchTree::KDTree);
+      } else if (tree_name == "octree") {
+        Epoch::set_default_nearest_neighbor_tree(SearchTree::Octree);
+      } else {
+        throw std::invalid_argument("Unknown search tree type: " +
+                                    tree_name_input);
+      }
+    },
+    py::arg("tree_name"),
+    "Set the default search tree for nearest neighbor searches (\"kdtree\" or "
+    "\"octree\")");
+
+  epoch.def_static("get_default_radius_search_tree",
+                   &Epoch::get_default_radius_search_tree);
+
+  epoch.def_static("get_default_nearest_neighbor_tree",
+                   &Epoch::get_default_nearest_neighbor_tree);
 
   // Pickling support for the Epoch class
   epoch.def(py::pickle(
@@ -101,15 +188,17 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   // Allow building the KDTree structure
   kdtree.def(
-    "build_tree", &KDTree::build_tree, "Trigger building the search tree");
+    "build_tree", &KDTree::build_tree, "Trigger building the search k-d tree");
 
   // Allow invalidating the KDTree structure
-  kdtree.def("invalidate", &KDTree::invalidate, "Invalidate the search tree");
+  kdtree.def(
+    "invalidate", &KDTree::invalidate, "Invalidate the search k-d tree");
 
-  // Give access to the leaf parameter that the tree has been built with
-  kdtree.def("leaf_parameter",
-             &KDTree::get_leaf_parameter,
-             "Retrieve the leaf parameter that the tree has been built with.");
+  // Give access to the leaf parameter that the k-d tree has been built with
+  kdtree.def(
+    "leaf_parameter",
+    &KDTree::get_leaf_parameter,
+    "Retrieve the leaf parameter that the k-d tree has been built with.");
 
   // Add all the radius search methods
   kdtree.def(
@@ -118,7 +207,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       // Get a pointer for the query point
       auto ptr = static_cast<const double*>(qp.request().ptr);
 
-      KDTree::RadiusSearchResult result;
+      RadiusSearchResult result;
       self.radius_search(ptr, radius, result);
 
       return as_pyarray(std::move(result));
@@ -128,7 +217,7 @@ PYBIND11_MODULE(_py4dgeo, m)
   kdtree.def(
     "nearest_neighbors",
     [](const KDTree& self, EigenPointCloudConstRef cloud, int k) {
-      KDTree::NearestNeighborsDistanceResult result;
+      NearestNeighborsDistanceResult result;
       self.nearest_neighbors_with_distances(cloud, result, k);
 
       py::array_t<long int> indices_array(result.size());
@@ -154,6 +243,185 @@ PYBIND11_MODULE(_py4dgeo, m)
     // users to pickle Epoch instead, which is the much cleaner solution.
     throw std::runtime_error{
       "Please pickle Epoch instead of KDTree. Otherwise unpickled KDTree does "
+      "not know the point cloud."
+    };
+  });
+
+  // Expose the Octree class
+  py::class_<Octree> octree(m, "Octree", py::buffer_protocol());
+
+  // Map __init__ to constructor
+  octree.def(py::init<>(&Octree::create));
+
+  // Allow updating Octree from a given file
+  octree.def("load_index", [](Octree& self, std::string filename) {
+    std::ifstream stream(filename, std::ios::binary | std::ios::in);
+    self.loadIndex(stream);
+  });
+
+  // Allow dumping Octree to a file
+  octree.def("save_index", [](const Octree& self, std::string filename) {
+    std::ofstream stream(filename, std::ios::binary | std::ios::out);
+    self.saveIndex(stream);
+  });
+
+  // Allow building the Octree structure
+  octree.def(
+    "build_tree", &Octree::build_tree, "Trigger building the search octree");
+
+  // Allow invalidating the Octree structure
+  octree.def("invalidate", &Octree::invalidate, "Invalidate the search octree");
+
+  // Allow extraction of number of points
+  octree.def("get_number_of_points",
+             &Octree::get_number_of_points,
+             "Return the number of points in the associated cloud");
+
+  // Allow extraction of bounding box size
+  octree.def("get_box_size",
+             &Octree::get_box_size,
+             "Return the side length of the bounding box");
+
+  // Allow extraction of min point
+  octree.def("get_min_point",
+             &Octree::get_min_point,
+             "Return the minimum point of the bounding box");
+
+  // Allow extraction of max point
+  octree.def(
+    "get_max_point", &Octree::get_max_point, "Return 8-bit dilated integer");
+
+  // Allow extraction of cell sizes
+  octree.def("get_cell_size",
+             &Octree::get_cell_size,
+             "Return the size of cells at a level of depth");
+
+  // Allow extraction of number of occupied cells per level
+  octree.def("get_occupied_cells_per_level",
+             &Octree::get_occupied_cells_per_level,
+             "Return the number of occupied cells per level of depth");
+
+  // Allow extraction of maximum amount of points
+  octree.def("get_max_cell_population_per_level",
+             &Octree::get_max_cell_population_per_level,
+             "Return the maximum number of points per cell per level of depth");
+
+  // Allow extraction of average amount of points
+  octree.def("get_average_cell_population_per_level",
+             &Octree::get_average_cell_population_per_level,
+             "Return the average number of points per cell per level of depth");
+
+  // Allow extraction of std of amount of points
+  octree.def("get_std_cell_population_per_level",
+             &Octree::get_std_cell_population_per_level,
+             "Return the standard deviation of number of points per cell per "
+             "level of depth");
+
+  // Allow extraction of spatial keys
+  octree.def("get_spatial_keys",
+             &Octree::get_spatial_keys,
+             "Return the computed spatial keys");
+
+  // Allow extraction of point indices
+  octree.def("get_point_indices",
+             &Octree::get_point_indices,
+             "Return the sorted point indices");
+
+  // Allow cell index computation
+  octree.def(
+    "get_cell_index_start",
+    &Octree::get_cell_index_start,
+    "Return first the index of a cell in the sorted array of point indices "
+    "and point spatial keys");
+
+  // Allow cell index computation
+  octree.def(
+    "get_cell_index_end",
+    &Octree::get_cell_index_end,
+    "Return the last index of a cell in the sorted array of point indices "
+    "and point spatial keys");
+
+  // Allow extraction from points in cell
+  octree.def(
+    "get_points_indices_from_cells",
+    [](const Octree& self,
+       const Octree::KeyContainer& keys,
+       unsigned int level) {
+      RadiusSearchResult result;
+      size_t num_points =
+        self.get_points_indices_from_cells(keys, level, result);
+
+      // Create NumPy arrays for indices and keys
+      py::array_t<Octree::SpatialKey> indices_array(num_points);
+
+      auto indices_ptr = indices_array.mutable_data();
+
+      // Fill the arrays
+      for (size_t i = 0; i < num_points; ++i) {
+        indices_ptr[i] = result[i];
+      }
+
+      return indices_array;
+    },
+    "Retrieve point indices and spatial keys for a given cell",
+    py::arg("spatial_key"),
+    py::arg("level"));
+
+  // Allow extraction from points in cell
+  octree.def(
+    "get_cells_intersected_by_sphere",
+    [](const Octree& self,
+       const Eigen::Vector3d& query_point,
+       double radius,
+       unsigned int level) {
+      Octree::KeyContainer cells_inside;
+      Octree::KeyContainer cells_intersecting;
+      self.get_cells_intersected_by_sphere(
+        query_point, radius, level, cells_inside, cells_intersecting);
+
+      return py::make_tuple(as_pyarray(std::move(cells_inside)),
+                            as_pyarray(std::move(cells_intersecting)));
+    },
+    "Retrieve the spatial keys of cells intersected by a sphere.",
+    py::arg("query_point"),
+    py::arg("radius"),
+    py::arg("level"));
+
+  // Allow computation of level of depth at which a radius search will be most
+  // efficient
+  octree.def("find_appropriate_level_for_radius_search",
+             &Octree::find_appropriate_level_for_radius_search,
+             "Return the level of depth at which a radius search will be most "
+             "efficient");
+
+  // Allow radius search with optional depth level specification
+  octree.def(
+    "radius_search",
+    [](const Octree& self,
+       Eigen::Ref<const Eigen::Vector3d> query_point,
+       double radius,
+       std::optional<unsigned int> level) {
+      unsigned int lvl =
+        level.value_or(self.find_appropriate_level_for_radius_search(radius));
+
+      RadiusSearchResult result;
+      self.radius_search(query_point, radius, lvl, result);
+
+      return as_pyarray(std::move(result));
+    },
+    "Search point in given radius!",
+    py::arg("query_point"),
+    py::arg("radius"),
+    py::arg("level") = std::nullopt);
+
+  // Pickling support for the Octree data structure
+  octree.def("__getstate__", [](const Octree&) {
+    // If a user pickles Octree itself, we end up redundantly storing
+    // the point cloud itself, because the Octree is only usable with the
+    // cloud (scipy does exactly the same). We solve the problem by asking
+    // users to pickle Epoch instead, which is the much cleaner solution.
+    throw std::runtime_error{
+      "Please pickle Epoch instead of Octree. Otherwise unpickled Octree does "
       "not know the point cloud."
     };
   });
@@ -271,6 +539,10 @@ PYBIND11_MODULE(_py4dgeo, m)
       return std::make_tuple(std::move(result),
                              as_pyarray(std::move(used_radii)));
     },
+    py::arg("epoch"),
+    py::arg("corepoints"),
+    py::arg("normal_radii"),
+    py::arg("orientation"),
     "Compute M3C2 multiscale directions");
 
   // Corresponence distances computation

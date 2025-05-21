@@ -14,6 +14,7 @@ TEST_CASE("M3C2 Multiscale direction calculation", "[compute]")
   // Get a test epoch
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
 
   std::vector<double> normal_radii{ 1.0, 2.0, 3.0 };

@@ -3,8 +3,10 @@
 
 #include "py4dgeo/compute.hpp"
 #include "py4dgeo/kdtree.hpp"
+#include "py4dgeo/octree.hpp"
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
 
 #include <algorithm>
 #include <complex>
@@ -25,6 +27,8 @@ compute_multiscale_directions(const Epoch& epoch,
   used_radii.resize(corepoints.rows());
   const Eigen::Vector3d orientation_vector = orientation.row(0).transpose();
 
+  auto radius_search = get_radius_search_function(epoch, normal_radii);
+
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
   CallbackExceptionVault vault;
@@ -34,12 +38,13 @@ compute_multiscale_directions(const Epoch& epoch,
   for (IndexType i = 0; i < corepoints.rows(); ++i) {
     vault.run([&]() {
       double highest_planarity = 0.0;
-      KDTree::RadiusSearchResult points;
       Eigen::Matrix3d cov;
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
-      for (const auto radius : normal_radii) {
-        // Find the working set on this scale
-        epoch.kdtree.radius_search(corepoints.row(i).data(), radius, points);
+      RadiusSearchResult points;
+      for (size_t r = 0; r < normal_radii.size(); ++r) {
+
+        radius_search(corepoints.row(i), r, points);
+
         EigenPointCloud subset = epoch.cloud(points, Eigen::all);
 
         // Calculate covariance matrix
@@ -52,19 +57,19 @@ compute_multiscale_directions(const Epoch& epoch,
         cov(2, 1) = subset.col(1).dot(subset.col(2));
         cov /= double(subset.rows() - 1);
 
-        // Calculate eigenvectors using direct 3x3 solver
+        // Calculate Eigen vectors
         solver.computeDirect(cov);
         const Eigen::Vector3d& evalues = solver.eigenvalues();
+        const Eigen::Vector3d evec = solver.eigenvectors().col(0);
 
         // Calculate planarity
         double planarity = (evalues[1] - evalues[0]) / evalues[2];
         if (planarity > highest_planarity) {
           highest_planarity = planarity;
 
-          double prod = (solver.eigenvectors().col(0).dot(orientation_vector));
-          double sign = (prod < 0.0) ? -1.0 : 1.0;
-          result.row(i) = sign * solver.eigenvectors().col(0);
-          used_radii[i] = radius;
+          double sign = (evec.dot(orientation_vector) < 0.0) ? -1.0 : 1.0;
+          result.row(i) = sign * evec;
+          used_radii[i] = normal_radii[r];
         }
       }
     });
@@ -81,7 +86,7 @@ compute_correspondence_distances(const Epoch& epoch,
                                  unsigned int check_size)
 {
 
-  KDTree::NearestNeighborsDistanceResult result;
+  NearestNeighborsDistanceResult result;
   epoch.kdtree.nearest_neighbors_with_distances(transformated_pc, result, 1);
   std::vector<double> p2pdist(transformated_pc.rows());
 

@@ -12,6 +12,7 @@ distances_benchmark(benchmark::State& state)
 {
   auto [cloud, corepoints] = ahk_benchcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
   std::vector<double> normal_radii{ 1.0 };
   std::vector<double> used_radii;

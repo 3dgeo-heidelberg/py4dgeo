@@ -61,8 +61,9 @@ class M3C2EP(M3C2):
                 f"{self.name} requires exactly one cylinder radius to be given"
             )
 
-        epoch1.build_kdtree()
-        epoch2.build_kdtree()
+        # Ensure appropriate trees are built
+        epoch1._validate_search_tree()
+        epoch2._validate_search_tree()
 
         p1_coords = epoch1.cloud
         p1_positions = epoch1.scanpos_id
@@ -837,13 +838,13 @@ def radius_search(epoch: Epoch, query: np.ndarray, radius: float):
     :type radius: float
     """
     if len(query.shape) == 1 and query.shape[0] == 3:
-        return [epoch.kdtree.radius_search(query, radius)]
+        return [epoch._radius_search(query, radius)]
 
     if len(query.shape) == 2 and query.shape[1] == 3:
         neighbors = []
         for i in range(query.shape[0]):
             q = query[i]
-            result = epoch.kdtree.radius_search(q, radius)
+            result = epoch._radius_search(q, radius)
             neighbors.append(result)
         return neighbors
 

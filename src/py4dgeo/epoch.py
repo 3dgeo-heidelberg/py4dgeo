@@ -116,6 +116,16 @@ class Epoch(_py4dgeo.Epoch):
         )
 
     @property
+    def octree(self):
+        return self._octree
+
+    @octree.setter
+    def octree(self, octree):
+        raise Py4DGeoError(
+            "The Octree of an Epoch cannot be changed after initialization."
+        )
+
+    @property
     def normals(self):
         # Maybe calculate normals
         if self._normals is None:
@@ -137,9 +147,7 @@ class Epoch(_py4dgeo.Epoch):
             A vector to determine orientation of the normals. It should point "up".
         """
 
-        # Ensure that the KDTree is built
-        if self.kdtree.leaf_parameter() == 0:
-            self.build_kdtree()
+        self._validate_search_tree()
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
@@ -152,6 +160,18 @@ class Epoch(_py4dgeo.Epoch):
             )
 
         return self.normals
+
+    def _validate_search_tree(self):
+        """ "Check if the default search tree is built"""
+
+        tree_type = self.get_default_radius_search_tree()
+
+        if tree_type == _py4dgeo.SearchTree.KDTreeSearch:
+            if self.kdtree.leaf_parameter() == 0:
+                self.build_kdtree()
+        else:
+            if self.octree.get_number_of_points() == 0:
+                self.build_octree()
 
     def normals_attachment(self, normals_array):
         """Attach normals to the epoch object
@@ -282,6 +302,12 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def build_octree(self):
+        """Build the search octree index"""
+        if self.octree.get_number_of_points() == 0:
+            logger.info(f"Building Octree structure")
+            self.octree.build_tree()
+
     def transform(
         self,
         transformation: typing.Optional[Transformation] = None,
@@ -342,6 +368,9 @@ class Epoch(_py4dgeo.Epoch):
 
         # Invalidate the KDTree
         self.kdtree.invalidate()
+
+        # Invalidate the Octree
+        self.octree.invalidate()
 
         if self._normals is None:
             self._normals = np.empty((1, 3))  # dummy array to avoid error in C++ code
@@ -453,6 +482,11 @@ class Epoch(_py4dgeo.Epoch):
                     self.kdtree.save_index(kdtreefile)
                 zf.write(kdtreefile, arcname="kdtree")
 
+                octreefile = os.path.join(tmp_dir, "octree")
+                with open(octreefile, "w") as f:
+                    self.octree.save_index(octreefile)
+                zf.write(octreefile, arcname="octree")
+
     @staticmethod
     def load(filename):
         """Construct an Epoch instance by loading it from a file
@@ -498,6 +532,15 @@ class Epoch(_py4dgeo.Epoch):
                 # Restore the KDTree object
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
                 epoch.kdtree.load_index(kdtreefile)
+
+                # Restore the Octree object if present
+                try:
+                    octreefile = zf.extract("octree", path=tmp_dir)
+                    epoch.octree.load_index(octreefile)
+                except KeyError:
+                    logger.warning(
+                        "No octree found in the archive. Skipping octree loading."
+                    )
 
                 # Read the transformation if it exists
                 if version >= 3:
