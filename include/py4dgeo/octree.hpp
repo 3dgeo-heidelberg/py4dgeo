@@ -212,6 +212,10 @@ private:
       key |= dilate2_table[(ix >> 8) & 0x03] << 24;
       key |= dilate2_table[(iy >> 8) & 0x03] << 25;
       key |= dilate2_table[(iz >> 8) & 0x03] << 26;
+    } else {
+      static_assert(
+        sizeof(SpatialKey) == 4 || sizeof(SpatialKey) == 8,
+        "SpatialKey must be either 32-bit (uint32_t) or 64-bit (uint64_t)");
     }
 
     return key;
