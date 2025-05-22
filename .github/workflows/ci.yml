@@ -203,4 +203,4 @@ jobs:
         echo "#include <stdio.h>" > dlclose.c
         echo "int dlclose(void *handle) { return 0; }" >> dlclose.c
         clang -shared dlclose.c -o libdlclose.so
-        LSAN_OPTIONS=suppressions="$(pwd)/supp.txt" PYTHONPATH=src LD_PRELOAD="$(gcc -print-file-name=libasan.so) /usr/lib/x86_64-linux-gnu/libstdc++.so.6 $(pwd)/libdlclose.so" PYTHONMALLOC=malloc pytest -s
+        LSAN_OPTIONS=suppressions="$(pwd)/supp.txt" PYTHONPATH=src LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so) $(pwd)/libdlclose.so" PYTHONMALLOC=malloc pytest -s
