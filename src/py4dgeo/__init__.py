@@ -7,6 +7,7 @@ from py4dgeo.epoch import (
     save_epoch,
     load_epoch,
 )
+from _py4dgeo import SearchTree
 from py4dgeo.m3c2 import M3C2, write_m3c2_results_to_las
 from py4dgeo.m3c2ep import M3C2EP
 from py4dgeo.registration import (
@@ -27,6 +28,9 @@ from py4dgeo.util import (
     set_memory_policy,
     get_num_threads,
     set_num_threads,
+    initialize_openmp_defaults,
 )
+
+initialize_openmp_defaults()
 
 from py4dgeo.pbm3c2 import *

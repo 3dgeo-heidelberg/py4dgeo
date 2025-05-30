@@ -572,19 +572,19 @@ def generate_extended_y_from_prior_knowledge(
 
     # generate kd-tree for each of the 2 sets
     epoch0 = Epoch(epoch0_set.T)
-    epoch0.build_kdtree()
+    epoch0._validate_search_tree()
     epoch1 = Epoch(epoch1_set.T)
-    epoch1.build_kdtree()
+    epoch1._validate_search_tree()
 
     # search for the near segments and build the 'extended y'
     for row in pairs_of_points:
         seg_epoch0, seg_epoch1, label = np.split(ary=row, indices_or_sections=[3, 6])
         label = label[0]
 
-        candidates_seg_epoch0 = epoch0.kdtree.radius_search(
+        candidates_seg_epoch0 = epoch0._radius_search(
             seg_epoch0, threshold_max_distance
         )
-        candidates_seg_epoch1 = epoch1.kdtree.radius_search(
+        candidates_seg_epoch1 = epoch1._radius_search(
             seg_epoch1, threshold_max_distance
         )
 
@@ -675,16 +675,16 @@ def add_no_corresponding_seg(
     epoch1_set = segments[epoch1_mask][X_Y_Z_Columns]
 
     epoch0_set = epoch0_set.T
-    # generate kd-tree
+    # generate search tree
     epoch1 = Epoch(epoch1_set.T)
-    epoch1.build_kdtree()
+    epoch1._validate_search_tree()
 
     # search for the near segments and build the 'extended y'
     # for row in pairs_of_points:
     for index, row in enumerate(epoch0_set):
         index_seg_epoch0 = epoch0_index[index]
 
-        candidates_seg_epoch1 = epoch1.kdtree.radius_search(row, threshold_max_distance)
+        candidates_seg_epoch1 = epoch1._radius_search(row, threshold_max_distance)
 
         indexes_seg_epoch1 = epoch1_index[candidates_seg_epoch1]
 
@@ -925,7 +925,7 @@ class PerPointComputation(BaseTransformer):
         ]
 
         for current_epoch in _epoch:
-            current_epoch.build_kdtree()
+            current_epoch._validate_search_tree()
 
         # add extra columns
         # Eigenvalues( 3 columns ) |
@@ -940,7 +940,7 @@ class PerPointComputation(BaseTransformer):
             lambda x: self._llsv_and_pca(
                 x,
                 _epoch[int(x[self.columns.EPOCH_ID_COLUMN])].cloud[
-                    _epoch[int(x[self.columns.EPOCH_ID_COLUMN])].kdtree.radius_search(
+                    _epoch[int(x[self.columns.EPOCH_ID_COLUMN])]._radius_search(
                         x[X_Y_Z_Columns], self.radius
                     )
                 ],
@@ -1201,7 +1201,7 @@ class Segmentation(BaseTransformer):
         ]
 
         for current_epoch in _epoch:
-            current_epoch.build_kdtree()
+            current_epoch._validate_search_tree()
 
         # sort by the "Lowest local surface variation"
         sort_indx_epoch0 = X[mask_epoch0, self.columns.LLSV_COLUMN].argsort()
@@ -1224,7 +1224,7 @@ class Segmentation(BaseTransformer):
                     cumulative_distance_for_std_deviation = 0
                     nr_points_for_std_deviation = 0
 
-                    indx_kd_tree_list = _epoch[epoch_id].kdtree.radius_search(
+                    indx_kd_tree_list = _epoch[epoch_id]._radius_search(
                         X[indx_row, X_Y_Z_Columns], self.radius
                     )[: self.max_nr_points_neighborhood]
                     for indx_kd_tree in indx_kd_tree_list:
@@ -1975,13 +1975,13 @@ class ClassifierWrapper(ClassifierMixin, BaseEstimator):
                 :, [self.columns.X_COLUMN, self.columns.Y_COLUMN, self.columns.Z_COLUMN]
             ]
         )
-        self.epoch1_segments.build_kdtree()
+        self.epoch1_segments._validate_search_tree()
 
         list_segments_pair = np.empty((0, epoch0_set.shape[1] + epoch1_set.shape[1]))
 
         # this operation can be parallelized
         for epoch0_set_row in epoch0_set:
-            list_candidates = self.epoch1_segments.kdtree.radius_search(
+            list_candidates = self.epoch1_segments._radius_search(
                 epoch0_set_row, self.neighborhood_search_radius
             )
 

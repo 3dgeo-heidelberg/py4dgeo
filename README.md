@@ -94,6 +94,28 @@ its additional Python dependencies for testing and documentation building:
 python -m pip install -r requirements-dev.txt
 ```
 
+### 🪟 Windows-specific Notes
+
+When building py4dgeo on Windows, the build system automatically detects and enables LLVM-style OpenMP support (/openmp:llvm) if available. This provides better multi-threaded performance and thread affinity than the default MSVC OpenMP 2.0.
+
+#### 🧠 Thread Affinity (for LLVM OpenMP)
+
+When py4dgeo detects it's running on Windows, it sets the following OpenMP environment variables at runtime (unless they were already set):
+
+```bash
+set OMP_NUM_THREADS=<number of physical CPU cores>
+set OMP_PROC_BIND=close
+set OMP_PLACES=threads
+```
+
+- `OMP_NUM_THREADS`: Use **at most the number of physical cores** (e.g., 12 on a 12-core CPU) — avoid using hyperthreading.
+- `OMP_PROC_BIND=close`: Ensures that threads remain bound to their processing units, reducing thread migration between cores and improving cache locality.
+- `OMP_PLACES=threads`: Binds threads to individual hardware threads (instead of full cores).
+
+These settings lead to **significantly improved performance** on Windows, when using `openmp:llvm`.
+
+💡 Advanced users can still override these defaults by explicitly setting the environment variables before launching their script.
+
 ### Setting up py4dgeo using Docker
 
 Additionally, `py4dgeo` provides a Docker image that allows to explore

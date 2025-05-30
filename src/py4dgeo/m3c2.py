@@ -72,7 +72,9 @@ class M3C2LikeAlgorithm(abc.ABC):
         """The normal direction(s) to use for this algorithm."""
         raise NotImplementedError
 
-    def calculate_distances(self, epoch1, epoch2):
+    def calculate_distances(
+        self, epoch1, epoch2, searchtree: typing.Optional[str] = None
+    ):
         """Calculate the distances between two epochs"""
 
         if isinstance(self.cyl_radii, typing.Iterable):
@@ -80,7 +82,9 @@ class M3C2LikeAlgorithm(abc.ABC):
                 "DEPRECATION: use cyl_radius instead of cyl_radii. In a future version, cyl_radii will be removed!"
             )
             if len(self.cyl_radii) != 1:
-                Py4DGeoError("cyl_radii must be a list containing a single float!")
+                raise Py4DGeoError(
+                    "cyl_radii must be a list containing a single float!"
+                )
             elif self.cyl_radius is None:
                 self.cyl_radius = self.cyl_radii[0]
             self.cyl_radii = None
@@ -90,11 +94,9 @@ class M3C2LikeAlgorithm(abc.ABC):
                 f"{self.name} requires exactly one cylinder radius to be given as a float."
             )
 
-        # Ensure that the KDTree data structures have been built. This is no-op
-        # if it has already been triggered before - e.g. by a user with a custom
-        # leaf cutoff parameter.
-        epoch1.build_kdtree()
-        epoch2.build_kdtree()
+        # Ensure appropriate trees are built
+        epoch1._validate_search_tree()
+        epoch2._validate_search_tree()
 
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
@@ -174,8 +176,9 @@ class M3C2(M3C2LikeAlgorithm):
         if normals_epoch is None:
             normals_epoch = self.epochs[0]
         normals_epoch = as_epoch(normals_epoch)
-        # Ensure that the KDTree data structures have been built.
-        normals_epoch.build_kdtree()
+
+        # Ensure appropriate tree structures have been built
+        normals_epoch._validate_search_tree()
 
         # Trigger the precomputation
         self.corepoint_normals, self._directions_radii = (

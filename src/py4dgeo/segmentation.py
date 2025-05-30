@@ -130,8 +130,8 @@ class SpatiotemporalAnalysis:
             # Ensure that we do have a timestamp on the epoch
             epoch = check_epoch_timestamp(epoch)
 
-            # Ensure that the KDTree is built - no-op if triggered by the user
-            epoch.build_kdtree()
+            # Ensure that the tearch tree is built - no-op if triggered by the user
+            epoch._validate_search_tree()
 
             # Write the reference epoch into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -173,9 +173,9 @@ class SpatiotemporalAnalysis:
                     "Corepoints cannot be changed - please start a new analysis"
                 )
 
-            # Ensure that the corepoints are stored as an epoch and build its KDTree
+            # Ensure that the corepoints are stored as an epoch and its search trees are built
             self._corepoints = as_epoch(_corepoints)
-            self._corepoints.build_kdtree()
+            self._corepoints._validate_search_tree()
 
             # Write the corepoints into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -678,6 +678,7 @@ class RegionGrowingAlgorithmBase:
         return self._analysis
 
     def run(self, analysis, force=False):
+        _py4dgeo.Epoch.set_default_radius_search_tree("octree")
         """Calculate the _segmentation
 
         :param analysis:
@@ -715,9 +716,9 @@ class RegionGrowingAlgorithmBase:
                 []
             )  # TODO: test initializing this in the analysis class, see if it crashes instantly
 
-        # Get corepoints from M3C2 class and build a KDTree on them
+        # Get corepoints from M3C2 class and build a search tree on them
         corepoints = as_epoch(analysis.corepoints)
-        corepoints.build_kdtree()
+        corepoints._validate_search_tree()
 
         # Calculate the list of seed points and sort them
         seeds = analysis.seeds
@@ -1044,7 +1045,8 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # The 4D-OBC algorithm sorts by similarity in the neighborhood
         # of the seed.
         def neighborhood_similarity(seed):
-            neighbors = self.analysis.corepoints.kdtree.radius_search(
+            self.analysis.corepoints._validate_search_tree()
+            neighbors = self.analysis.corepoints._radius_search(
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
             # if no neighbors are found make sure the algorithm continues its search but with a large dissimilarity

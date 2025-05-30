@@ -112,8 +112,8 @@ def test_m3c2ep_external_normals(epochs_m3c2ep, Cxx, tfM, redPoint, scanpos_info
 
 def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
     epoch1, epoch2 = epochs_m3c2ep
-    epoch1.build_kdtree()
-    epoch2.build_kdtree()
+    epoch1._validate_search_tree()
+    epoch2._validate_search_tree()
     epoch1.scanpos_info = scanpos_info
     epoch2.scanpos_info = scanpos_info
     with tempfile.TemporaryDirectory() as dir:
@@ -124,7 +124,8 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         epoch2.save(filename2)
         load1 = py4dgeo.load_epoch(filename1)
         load2 = py4dgeo.load_epoch(filename2)
-
+        load1._validate_search_tree()
+        load2._validate_search_tree()
         # Assert that the two object behave the same
         assert load1.cloud.shape[0] == epoch1.cloud.shape[0]
         assert load2.cloud.shape[0] == epoch2.cloud.shape[0]
@@ -132,13 +133,24 @@ def test_m3c2ep_epoch_saveload(epochs_m3c2ep, scanpos_info):
         assert np.allclose(load1.cloud - epoch1.cloud, 0)
         assert np.allclose(load2.cloud - epoch2.cloud, 0)
 
+        bbox_extent_epoch1 = epoch1.cloud.max(axis=0) - epoch1.cloud.min(axis=0)
+        radius1 = 0.25 * np.min(
+            bbox_extent_epoch1
+        )  # Quarter of the extent of the smallest dimension
+        query_point_epoch1 = 0.5 * (epoch1.cloud.min(axis=0) + epoch1.cloud.max(axis=0))
         assert np.allclose(
-            load1.kdtree.radius_search(np.array([0, 0, 0]), 10),
-            epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+            load1._radius_search(query_point_epoch1, radius1),
+            epoch1._radius_search(query_point_epoch1, radius1),
         )
+
+        bbox_extent_epoch2 = epoch2.cloud.max(axis=0) - epoch2.cloud.min(axis=0)
+        radius2 = 0.25 * np.min(
+            bbox_extent_epoch2
+        )  # Quarter of the extent of the smallest dimension
+        query_point_epoch2 = 0.5 * (epoch2.cloud.min(axis=0) + epoch2.cloud.max(axis=0))
         assert np.allclose(
-            load2.kdtree.radius_search(np.array([0, 0, 0]), 10),
-            epoch2.kdtree.radius_search(np.array([0, 0, 0]), 10),
+            load2._radius_search(query_point_epoch2, radius2),
+            epoch2._radius_search(query_point_epoch2, radius2),
         )
 
 

@@ -3,6 +3,7 @@
 # introduce pyproject.toml
 [build-system]
 requires = [
+    "pybind11",
     "scikit-build-core >=0.6.1",
 ]
 build-backend = "scikit_build_core.build"
@@ -39,6 +40,7 @@ dependencies = [
     "scikit-learn",
     "vedo",
     "xdg",
+    "psutil"
 ]
 
 # Command line scripts installed as part of the installation
@@ -46,7 +48,7 @@ dependencies = [
 copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 
 [tool.scikit-build.cmake]
-minimum-version = "3.17"
+minimum-version = "3.30"
 
 [tool.scikit-build.cmake.define]
 BUILD_DOCS = "OFF"

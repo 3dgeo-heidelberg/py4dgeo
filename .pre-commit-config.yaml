@@ -47,10 +47,14 @@ repos:
     hooks:
       - id: cmake-format
       - id: cmake-lint
+        args:
+          # We *need* to set a variable with mixed casing - relax the linter to allow that.
+          - --public-var-pattern
+          - "[a-zA-Z][a-zA-Z0-9_]+"
 
   # Check Configuration as Code files for integrations
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.31.2
+    rev: 0.33.0
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs

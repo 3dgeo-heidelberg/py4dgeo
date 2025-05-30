@@ -7,7 +7,7 @@ import _py4dgeo
 
 
 def radius_workingset_finder(params: _py4dgeo.WorkingSetFinderParameters) -> np.ndarray:
-    indices = params.epoch._kdtree.radius_search(params.corepoint, params.radius)
+    indices = params.epoch._radius_search(params.corepoint, params.radius)
     return params.epoch._cloud[indices, :]
 
 
@@ -35,7 +35,7 @@ def cylinder_workingset_finder(
             params.corepoint[0, :]
             + (2 * i - N + 1) / N * max_cylinder_length * params.cylinder_axis[0, :]
         )
-        indices = params.epoch._kdtree.radius_search(qp, r_cyl)
+        indices = params.epoch._radius_search(qp, r_cyl)
 
         # Gather the points from the point cloud
         superset = params.epoch._cloud[indices, :]
@@ -85,12 +85,12 @@ def mean_stddev_distance(
             np.sqrt(
                 variance1 / params.workingset1.shape[0]
                 + variance2 / params.workingset2.shape[0]
-            )
+            ).item()
             + params.registration_error
         ),
-        spread1=np.sqrt(variance1),
+        spread1=np.sqrt(variance1).item(),
         num_samples1=params.workingset1.shape[0],
-        spread2=np.sqrt(variance2),
+        spread2=np.sqrt(variance2).item(),
         num_samples2=params.workingset2.shape[0],
     )
 
