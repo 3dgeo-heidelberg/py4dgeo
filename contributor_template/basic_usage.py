@@ -21,6 +21,7 @@ Method description: (e.g. This method detects changes in point clouds using a no
 # Imports
 from py4dgeo import your_module  # Replace with actual
 
+
 # ============================================
 # Load Example Data
 # ============================================
@@ -29,11 +30,12 @@ def load_test_data():
     Load or generate minimal working data for testing the method.
 
     [TODO] Replace this with actual input. Acceptable formats:
-    
+
 
     If using public datasets, provide citation and access instructions.
     """
     return None  # replace
+
 
 # ============================================
 # Apply the Method
@@ -47,6 +49,7 @@ def apply_method(data):
     """
     result = "your_result"
     return result
+
 
 # ============================================
 # Run (not mandatory)
