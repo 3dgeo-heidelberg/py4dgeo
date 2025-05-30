@@ -158,6 +158,19 @@ You think you have found a bug or have specific request for a new feature? Pleas
 
 Scientific requests can be directed to the [3DGeo Research Group Heidelberg](https://uni-heidelberg.de/3dgeo) and its respective members.
 
+## 📄 How to contribute
+
+We welcome contributions of new method  and demonstrations to help users better understand and apply `py4dgeo` functionality.
+
+If you want to contribute a new example or method, please follow the steps below:
+
+1. **Create a new branch** for your contribution.
+2. **Prepare your demo** using the two templates provided:
+   - [`application_demo.ipynb`](contributor_template/application_demo.ipynb): focuses on use cases of the method.
+   - [`basic_usage.py`](contributor_template/basic_usage.py): focuses on implementation of the method.
+
+📁 You can find demo templates in the [`contributor_template/`](contributor_template/) directory.
+
 ## 📜 License
 
 See [LICENSE.md](LICENSE.md).
