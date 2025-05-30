@@ -1,3 +1,4 @@
+from ast import List
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
     as_double_precision,
@@ -22,9 +23,10 @@ logger = logging.getLogger("py4dgeo")
 class M3C2LikeAlgorithm(abc.ABC):
     def __init__(
         self,
-        epochs: typing.Tuple[Epoch, ...] = None,
-        corepoints: np.ndarray = None,
-        cyl_radii: typing.List[float] = None,
+        epochs: typing.Optional[typing.Tuple[Epoch, ...]] = None,
+        corepoints: typing.Optional[np.ndarray] = None,
+        cyl_radii: typing.Optional[List] = None,
+        cyl_radius: typing.Optional[float] = None,
         max_distance: float = 0.0,
         registration_error: float = 0.0,
         robust_aggr: bool = False,
@@ -32,6 +34,7 @@ class M3C2LikeAlgorithm(abc.ABC):
         self.epochs = epochs
         self.corepoints = corepoints
         self.cyl_radii = cyl_radii
+        self.cyl_radius = cyl_radius
         self.max_distance = max_distance
         self.registration_error = registration_error
         self.robust_aggr = robust_aggr
@@ -69,23 +72,35 @@ class M3C2LikeAlgorithm(abc.ABC):
         """The normal direction(s) to use for this algorithm."""
         raise NotImplementedError
 
-    def calculate_distances(self, epoch1, epoch2):
+    def calculate_distances(
+        self, epoch1, epoch2, searchtree: typing.Optional[str] = None
+    ):
         """Calculate the distances between two epochs"""
 
-        if self.cyl_radii is None or len(self.cyl_radii) != 1:
+        if isinstance(self.cyl_radii, typing.Iterable):
+            logger.warning(
+                "DEPRECATION: use cyl_radius instead of cyl_radii. In a future version, cyl_radii will be removed!"
+            )
+            if len(self.cyl_radii) != 1:
+                raise Py4DGeoError(
+                    "cyl_radii must be a list containing a single float!"
+                )
+            elif self.cyl_radius is None:
+                self.cyl_radius = self.cyl_radii[0]
+            self.cyl_radii = None
+
+        if self.cyl_radius is None:
             raise Py4DGeoError(
-                f"{self.name} requires exactly one cylinder radius to be given"
+                f"{self.name} requires exactly one cylinder radius to be given as a float."
             )
 
-        # Ensure that the KDTree data structures have been built. This is no-op
-        # if it has already been triggered before - e.g. by a user with a custom
-        # leaf cutoff parameter.
-        epoch1.build_kdtree()
-        epoch2.build_kdtree()
+        # Ensure appropriate trees are built
+        epoch1._validate_search_tree()
+        epoch2._validate_search_tree()
 
         distances, uncertainties = _py4dgeo.compute_distances(
             self.corepoints,
-            self.cyl_radii[0],
+            self.cyl_radius,
             epoch1,
             epoch2,
             self.directions(),
@@ -128,6 +143,7 @@ class M3C2(M3C2LikeAlgorithm):
         )
         self.cloud_for_normals = cloud_for_normals
         self.corepoint_normals = corepoint_normals
+        self._directions_radii = None
         super().__init__(**kwargs)
 
     def directions(self):
@@ -155,27 +171,34 @@ class M3C2(M3C2LikeAlgorithm):
                 "M3C2 requires at least the MINIMUM memory policy level to compute multiscale normals"
             )
 
-        # Allocate the storage for the computed normals
-        self.corepoint_normals = np.empty(self.corepoints.shape, dtype=np.float64)
-
         # Find the correct epoch to use for normal calculation
         normals_epoch = self.cloud_for_normals
         if normals_epoch is None:
             normals_epoch = self.epochs[0]
         normals_epoch = as_epoch(normals_epoch)
-        # Ensure that the KDTree data structures have been built.
-        normals_epoch.build_kdtree()
+
+        # Ensure appropriate tree structures have been built
+        normals_epoch._validate_search_tree()
 
         # Trigger the precomputation
-        _py4dgeo.compute_multiscale_directions(
-            normals_epoch,
-            self.corepoints,
-            self.normal_radii,
-            self.orientation_vector,
-            self.corepoint_normals,
+        self.corepoint_normals, self._directions_radii = (
+            _py4dgeo.compute_multiscale_directions(
+                normals_epoch,
+                self.corepoints,
+                self.normal_radii,
+                self.orientation_vector,
+            )
         )
 
         return self.corepoint_normals
+
+    def directions_radii(self):
+        if self._directions_radii is None:
+            raise ValueError(
+                "Radii are only available after calculating directions with py4dgeo."
+            )
+
+        return self._directions_radii
 
     @property
     def name(self):

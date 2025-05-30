@@ -13,49 +13,34 @@ using namespace py4dgeo;
 std::shared_ptr<EigenPointCloud>
 benchcloud_from_file(const std::string& filename)
 {
-
-  std::ifstream stream;
-
-  stream.open(filename);
-  if (stream.fail()) {
-    std::cerr << filename
-              << " Was not successfully opened. Please check that the file "
-                 "currently exists. "
-              << std::endl;
-    exit(1);
+  std::ifstream stream(filename);
+  if (!stream) {
+    std::cerr << "Was not successfully opened. Please check that the file "
+                 "currently exists: "
+              << filename << std::endl;
+    std::exit(1);
   }
+
+  std::vector<Eigen::Vector3d> points;
+  Eigen::Vector3d mincoord =
+    Eigen::Vector3d::Constant(std::numeric_limits<double>::infinity());
+
   std::string line;
-
-  // Read the file once to determine size and lower left corner
-  // Definitely not the best way to read this, but good enough.
-  std::array<double, 3> mincoord{ std::numeric_limits<double>::infinity(),
-                                  std::numeric_limits<double>::infinity(),
-                                  std::numeric_limits<double>::infinity() };
-  std::size_t points{ 0 };
   while (std::getline(stream, line)) {
     std::istringstream s(line);
-    double x;
-    for (int i = 0; i < 3; ++i) {
-      s >> x;
-      if (x < mincoord[i])
-        mincoord[i] = x;
-    }
-    ++points;
+    Eigen::Vector3d point;
+    s >> point[0] >> point[1] >> point[2];
+
+    if (!s)
+      continue;
+
+    mincoord = mincoord.cwiseMin(point);
+    points.push_back(point);
   }
-  stream.close();
 
-  // Now read and shift the actual data
-  auto cloud = std::make_shared<EigenPointCloud>(points, 3);
-  stream.open(filename);
-  points = 0;
-  while (std::getline(stream, line)) {
-    std::istringstream s(line);
-    double x;
-    for (int i = 0; i < 3; ++i) {
-      s >> x;
-      (*cloud)(points, i) = x - mincoord[i];
-    }
-    ++points;
+  auto cloud = std::make_shared<EigenPointCloud>(points.size(), 3);
+  for (std::size_t i = 0; i < points.size(); ++i) {
+    (*cloud).row(i) = points[i] - mincoord;
   }
 
   return cloud;

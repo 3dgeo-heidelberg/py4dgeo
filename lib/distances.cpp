@@ -1,9 +1,11 @@
-#include <Eigen/Eigen>
-
 #include "py4dgeo/compute.hpp"
+
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/openmp.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
+
+#include <Eigen/Core>
 
 #include <algorithm>
 
@@ -37,16 +39,17 @@ compute_distances(
     vault.run([&]() {
       // Either choose the ith row or the first (if there is no per-corepoint
       // direction)
-      auto dir = directions.row(directions.rows() > 1 ? i : 0);
+      IndexType dir_idx = directions.rows() > 1 ? i : 0;
+      Eigen::RowVector3d dir = directions.row(dir_idx);
 
       WorkingSetFinderParameters params1{
         epoch1, scale, corepoints.row(i), dir, max_distance
       };
-      auto subset1 = workingsetfinder(params1);
+      EigenPointCloud subset1 = workingsetfinder(params1);
       WorkingSetFinderParameters params2{
         epoch2, scale, corepoints.row(i), dir, max_distance
       };
-      auto subset2 = workingsetfinder(params2);
+      EigenPointCloud subset2 = workingsetfinder(params2);
 
       // Distance calculation
       DistanceUncertaintyCalculationParameters d_params{
@@ -67,10 +70,13 @@ compute_distances(
 EigenPointCloud
 radius_workingset_finder(const WorkingSetFinderParameters& params)
 {
+  // Get the proper radius search function
+  auto radius_search = get_radius_search_function(params.epoch, params.radius);
+
   // Find the working set in the other epoch
-  KDTree::RadiusSearchResult points;
-  params.epoch.kdtree.radius_search(
-    params.corepoint.data(), params.radius, points);
+  RadiusSearchResult points;
+  radius_search(params.corepoint.row(0), points);
+
   return params.epoch.cloud(points, Eigen::all);
 }
 
@@ -93,29 +99,33 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
   double r_cyl = std::sqrt(params.radius * params.radius +
                            cylinder_length * cylinder_length / (N * N));
 
+  // Get the proper radius search function
+  auto radius_search = get_radius_search_function(params.epoch, r_cyl);
+
   // Perform radius searches and merge results
   std::vector<IndexType> merged;
   for (std::size_t i = 0; i < static_cast<std::size_t>(N); ++i) {
-    auto qp = (params.corepoint.row(0) +
-               (static_cast<double>(2 * i + 1 - N) / static_cast<double>(N)) *
-                 cylinder_length * params.cylinder_axis.row(0))
-                .eval();
-    KDTree::RadiusSearchResult ball_points;
-    params.epoch.kdtree.radius_search(&(qp(0, 0)), r_cyl, ball_points);
+    Eigen::RowVector3d qp =
+      (params.corepoint.row(0) +
+       (static_cast<double>(2 * i + 1 - N) / static_cast<double>(N)) *
+         cylinder_length * params.cylinder_axis.row(0));
+    RadiusSearchResult ball_points;
+    radius_search(qp.transpose(), ball_points);
+
     merged.reserve(merged.capacity() + ball_points.size());
 
     // Extracting points
-    auto superset = params.epoch.cloud(ball_points, Eigen::all);
+    EigenPointCloud superset = params.epoch.cloud(ball_points, Eigen::all);
 
     // Calculate the squared distances to the cylinder axis and to the plane
     // perpendicular to the axis that contains the corepoint
-    auto to_midpoint = (superset.rowwise() - qp.row(0)).eval();
-    auto to_midpoint_plane =
-      (to_midpoint * params.cylinder_axis.transpose()).eval();
-    auto to_axis2 = (to_midpoint - to_midpoint_plane * params.cylinder_axis)
-                      .rowwise()
-                      .squaredNorm()
-                      .eval();
+    EigenPointCloud to_midpoint = (superset.rowwise() - qp.row(0));
+    Eigen::VectorXd to_midpoint_plane =
+      (to_midpoint * params.cylinder_axis.transpose());
+    Eigen::VectorXd to_axis2 =
+      (to_midpoint - to_midpoint_plane * params.cylinder_axis)
+        .rowwise()
+        .squaredNorm();
 
     // Non-performance oriented version of index extraction. There should
     // be a version using Eigen masks, but I could not find it.
@@ -134,10 +144,11 @@ variance(EigenPointCloudConstRef subset,
          const Eigen::Matrix<double, 1, 3>& mean,
          EigenNormalSetConstRef direction)
 {
-  auto centered = subset.rowwise() - mean;
-  auto cov = (centered.adjoint() * centered) / double(subset.rows() - 1);
-  auto multiplied = direction.row(0) * cov * direction.row(0).transpose();
-  return multiplied.eval()(0, 0);
+  EigenPointCloud centered = subset.rowwise() - mean;
+  Eigen::Matrix3d cov =
+    (centered.adjoint() * centered) / double(subset.rows() - 1);
+
+  return (direction.row(0) * cov * direction.row(0).transpose()).value();
 }
 
 std::tuple<double, DistanceUncertainty>
@@ -145,8 +156,8 @@ mean_stddev_distance(const DistanceUncertaintyCalculationParameters& params)
 {
   std::tuple<double, DistanceUncertainty> ret;
 
-  auto mean1 = params.workingset1.colwise().mean().eval();
-  auto mean2 = params.workingset2.colwise().mean().eval();
+  Eigen::RowVector3d mean1 = params.workingset1.colwise().mean();
+  Eigen::RowVector3d mean2 = params.workingset2.colwise().mean();
   std::get<0>(ret) = params.normal.row(0).dot(mean2 - mean1);
 
   double variance1 = variance(params.workingset1, mean1, params.normal);
@@ -201,7 +212,7 @@ median(Eigen::Matrix<double, Eigen::Dynamic, 1>& v)
     return { std::numeric_limits<double>::quiet_NaN(),
              std::numeric_limits<double>::quiet_NaN() };
 
-  // General implementation idea taken from the followins posts
+  // General implementation idea taken from the following posts
   // * https://stackoverflow.com/a/34077478
   // * https://stackoverflow.com/a/11965377
   auto q1 = find_element_with_averaging(v, 0, v.size() / 4, v.size() % 4 == 0);

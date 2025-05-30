@@ -4,9 +4,13 @@
 #include <py4dgeo/epoch.hpp>
 #include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
 #include <py4dgeo/segmentation.hpp>
 
+#include <Eigen/Core>
 #include <Eigen/Geometry>
+
+#include <vector>
 
 namespace py4dgeo {
 

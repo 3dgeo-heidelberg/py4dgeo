@@ -3,7 +3,7 @@ message: "If you use this software, please cite it as below."
 authors:
   - family-names: py4dgeo Development Core Team
 title: "py4dgeo: library for change analysis in 4D point clouds."
-version: 0.6.0
-date-released: 2023-12-22
+version: 0.7.0
+date-released: 2025-02-18
 license: ["MIT"]
 repository-code: "https://github.com/3dgeo-heidelberg/py4dgeo"

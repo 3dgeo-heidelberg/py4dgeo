@@ -22,28 +22,27 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 ## 🔨 Methods provided by py4dgeo
 
-* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation. The concept and algorithm is explained [in this tutorial by James Dietrich](https://youtu.be/xJql7h8M2_o), including usage in the graphical software [CloudCompare](www.cloudcompare.org).
+* **M3C2 algorithm** ([Lague et al., 2013](#-literature)) for bitemporal point cloud distance computation.
 
-* **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation. The concept and method are explained in full detail in the related paper.
+* **M3C2-EP** (M3C2-EP; [Winiwarter et al., 2021](#-literature)) for statistical signal-noise separation in change analysis through error propagation.
 
-* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities *[under active development]*. The concept and method are explained in this scientific talk:
-<a href="https://youtu.be/JxX3veMbMAI" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_anders_isprs2021.png?raw=true" alt="" width="400" /></a>
+* **4D objects-by-change** (4D-OBC; [Anders et al., 2021](#-literature)) for time series-based extraction of surface activities.
 
-* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification. The concept and method are explained in this scientific talk:
-<a href="https://youtu.be/5pjkpajsRNU" target="_blank"><img src="https://github.com/3dgeo-heidelberg/py4dgeo/blob/main/doc/img/thumb_youtube_zahs_isprs2022.png?raw=true" alt="" width="400" /></a>
+* **Correspondence-driven plane-based M3C2** ([Zahs et al., 2022](#-literature)) for lower uncertainty in 3D topographic change quantification  *[under active development]*.
 
-* **Point cloud registration**: Py4dgeo supports to calculate and apply affine transformations to point clouds using a standard ICP implementations. More ICP methods are currently being implemented - stay tuned!
+* **Point cloud registration using standard ICP** by calculating and applying affine transformations to point clouds using a standard ICP implementations.
 
+* **Point cloud registration with automatic determination of stable areas** ([Yang et al., 2022](https://doi.org/10.1515/jag-2022-0031)) for multitemporal change detection.
 
 ## 🎮 Examples
 
 ### Demo notebooks using methods provided by py4dgeo
-|                                                                                                                                                      |   |
-|------------------------------------------------------------------------------------------------------------------------------------------------------|---|
-| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2-change_analysis.ipynb)  | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2ep_change_analysis.ipynb)  |
-| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/4dobc-change_analysis.ipynb)  | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/kmeans_clustering_of_time_series.ipynb)  |
-| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/principal_component_analysis_of_time_series.ipynb)  |  [![Example 6](img/cd-pb-m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/pbm3c2.ipynb) |
-[![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/registration_standard_ICP.ipynb) |
+|                                                                                                                                                              |                                                                                                                                                                 |
+|--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2-change_analysis.ipynb)       | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2ep_change_analysis.ipynb)      |
+| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/4dobc-change_analysis.ipynb)          | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/kmeans_clustering_of_time_series.ipynb) |
+| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/principal_component_analysis_of_time_series.ipynb) | [![Example 6](img/pbm3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/pbm3c2.ipynb)                                   |
+ [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/registration_standard_ICP.ipynb)          |
 
 ## 💻 Installation
 
@@ -51,7 +50,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 Using py4dgeo requires the following software installed:
 
-* 64-bit Python `>= 3.8` (32-bit installations might cause trouble during installation of dependencies)
+* 64-bit Python `>= 3.9` (32-bit installations might cause trouble during installation of dependencies)
 
 In order to build the package from source, the following tools are also needed.
 
@@ -94,6 +93,28 @@ its additional Python dependencies for testing and documentation building:
 ```
 python -m pip install -r requirements-dev.txt
 ```
+
+### 🪟 Windows-specific Notes
+
+When building py4dgeo on Windows, the build system automatically detects and enables LLVM-style OpenMP support (/openmp:llvm) if available. This provides better multi-threaded performance and thread affinity than the default MSVC OpenMP 2.0.
+
+#### 🧠 Thread Affinity (for LLVM OpenMP)
+
+When py4dgeo detects it's running on Windows, it sets the following OpenMP environment variables at runtime (unless they were already set):
+
+```bash
+set OMP_NUM_THREADS=<number of physical CPU cores>
+set OMP_PROC_BIND=close
+set OMP_PLACES=threads
+```
+
+- `OMP_NUM_THREADS`: Use **at most the number of physical cores** (e.g., 12 on a 12-core CPU) — avoid using hyperthreading.
+- `OMP_PROC_BIND=close`: Ensures that threads remain bound to their processing units, reducing thread migration between cores and improving cache locality.
+- `OMP_PLACES=threads`: Binds threads to individual hardware threads (instead of full cores).
+
+These settings lead to **significantly improved performance** on Windows, when using `openmp:llvm`.
+
+💡 Advanced users can still override these defaults by explicitly setting the environment variables before launching their script.
 
 ### Setting up py4dgeo using Docker
 
@@ -158,6 +179,19 @@ The initial software development was supported by the [**Scientific Software Cen
 You think you have found a bug or have specific request for a new feature? Please open a new issue in the online code repository on Github. Also for general questions please use the issue system.
 
 Scientific requests can be directed to the [3DGeo Research Group Heidelberg](https://uni-heidelberg.de/3dgeo) and its respective members.
+
+## 📄 How to contribute
+
+We welcome contributions of new method  and demonstrations to help users better understand and apply `py4dgeo` functionality.
+
+If you want to contribute a new example or method, please follow the steps below:
+
+1. **Create a new branch** for your contribution.
+2. **Prepare your demo** using the two templates provided:
+   - [`application_demo.ipynb`](contributor_template/application_demo.ipynb): focuses on use cases of the method.
+   - [`basic_usage.py`](contributor_template/basic_usage.py): focuses on implementation of the method.
+
+📁 You can find demo templates in the [`contributor_template/`](contributor_template/) directory.
 
 ## 📜 License
 

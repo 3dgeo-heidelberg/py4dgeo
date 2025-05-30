@@ -3,6 +3,8 @@
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
+#include <Eigen/Core>
+
 #include <functional>
 #include <unordered_map>
 #include <vector>

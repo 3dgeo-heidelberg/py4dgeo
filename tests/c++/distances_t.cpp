@@ -16,13 +16,14 @@ TEST_CASE("M3C2 distance calculation", "[compute]")
   epoch.kdtree.build_tree(10);
 
   std::vector<double> normal_radii{ 3.0 };
+  std::vector<double> used_radii;
   EigenNormalSet directions(epoch.cloud.rows(), 3);
   EigenNormalSet orientation(1, 3);
   orientation << 0, 0, 1;
 
   // Precompute the multiscale directions
   compute_multiscale_directions(
-    epoch, *corepoints, normal_radii, orientation, directions);
+    epoch, *corepoints, normal_radii, orientation, directions, used_radii);
 
   // Calculate the distances
   DistanceVector distances;
@@ -57,6 +58,7 @@ TEST_CASE("Single-direction M3C2 distance calculation", "[compute]")
   // Get a test epoch
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
 
   // Single distance vector
@@ -92,6 +94,7 @@ TEST_CASE("Cylinder Search Correctness", "[compute]")
 {
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
+  Epoch::set_default_radius_search_tree(SearchTree::KDTree);
   epoch.kdtree.build_tree(10);
 
   EigenPointCloud corepoint(1, 3);

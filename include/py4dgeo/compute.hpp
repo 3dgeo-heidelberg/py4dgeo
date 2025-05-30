@@ -89,7 +89,8 @@ compute_multiscale_directions(const Epoch&,
                               EigenPointCloudConstRef,
                               const std::vector<double>&,
                               EigenNormalSetConstRef,
-                              EigenNormalSetRef);
+                              EigenNormalSetRef,
+                              std::vector<double>&);
 
 /** @brief Compute M3C2 distances */
 void
