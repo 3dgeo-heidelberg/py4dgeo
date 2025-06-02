@@ -351,20 +351,10 @@ PYBIND11_MODULE(_py4dgeo, m)
       size_t num_points =
         self.get_points_indices_from_cells(keys, level, result);
 
-      // Create NumPy arrays for indices and keys
-      py::array_t<Octree::SpatialKey> indices_array(num_points);
-
-      auto indices_ptr = indices_array.mutable_data();
-
-      // Fill the arrays
-      for (size_t i = 0; i < num_points; ++i) {
-        indices_ptr[i] = result[i];
-      }
-
-      return indices_array;
+      return as_pyarray(std::move(result));
     },
     "Retrieve point indices and spatial keys for a given cell",
-    py::arg("spatial_key"),
+    py::arg("spatial_keys"),
     py::arg("level"));
 
   // Allow extraction from points in cell
