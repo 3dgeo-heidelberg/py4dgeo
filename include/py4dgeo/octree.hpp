@@ -235,8 +235,22 @@ private:
    *
    * The computed bounding box is stored in `min_point`, `max_point`, and
    * `box_size`.
+   *
+   * @param force_cubic If true, the bounding box will be forced to have equal
+   * side lengths, resulting in a cubic shape.
+   *
+   * @param min_corner Optional minimum point (lower corner of the bounding
+   * box). If not provided, the minimum point is computed automatically from the
+   * input data.
+   *
+   * @param max_corner Optional maximum point (upper corner of the bounding
+   * box). If not provided, the maximum point is computed automatically from the
+   * input data.
    */
-  void compute_bounding_box();
+  void compute_bounding_box(
+    bool force_cubic = false,
+    std::optional<Eigen::Vector3d> min_corner = std::nullopt,
+    std::optional<Eigen::Vector3d> max_corner = std::nullopt);
 
   /** @brief Computes the average cell properties at all depth levels. */
   void compute_statistics();
@@ -347,8 +361,22 @@ public:
    *
    * This initializes the Octree search index. Calling this method is required
    * before performing any nearest neighbors or radius searches.
+   *
+   * @param force_cubic If true, the bounding box will be forced to have equal
+   * side lengths, resulting in a cubic shape.
+   *
+   * @param min_corner Optional minimum point (lower corner of the bounding
+   * box). If not provided, the minimum point is computed automatically from the
+   * input data.
+   *
+   * @param max_corner Optional maximum point (upper corner of the bounding
+   * box). If not provided, the maximum point is computed automatically from the
+   * input data.
+   *
    */
-  void build_tree();
+  void build_tree(bool force_cubic = false,
+                  std::optional<Eigen::Vector3d> min_corner = std::nullopt,
+                  std::optional<Eigen::Vector3d> max_corner = std::nullopt);
 
   /**
    * @brief Clears the Octree structure, effectively resetting it

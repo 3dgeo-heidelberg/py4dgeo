@@ -266,8 +266,12 @@ PYBIND11_MODULE(_py4dgeo, m)
   });
 
   // Allow building the Octree structure
-  octree.def(
-    "build_tree", &Octree::build_tree, "Trigger building the search octree");
+  octree.def("build_tree",
+             &Octree::build_tree,
+             py::arg("force_cubic") = false,
+             py::arg("min_corner") = std::nullopt,
+             py::arg("max_corner") = std::nullopt,
+             "Trigger building the search octree");
 
   // Allow invalidating the Octree structure
   octree.def("invalidate", &Octree::invalidate, "Invalidate the search octree");

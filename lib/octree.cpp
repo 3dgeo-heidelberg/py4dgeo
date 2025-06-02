@@ -18,24 +18,69 @@ Octree::Octree(const EigenPointCloudRef& cloud)
 }
 
 void
-Octree::compute_bounding_box()
+Octree::compute_bounding_box(bool force_cubic,
+                             std::optional<Eigen::Vector3d> min_corner,
+                             std::optional<Eigen::Vector3d> max_corner)
 {
-  // Find the smallest value in each column (x,y,z)
-  min_point = cloud.colwise().minCoeff();
 
-  // Find the biggest value in each column (x,y,z)
-  max_point = cloud.colwise().maxCoeff();
+  // Point cloud's bounding box
+  Eigen::Vector3d auto_min = cloud.colwise().minCoeff();
+  Eigen::Vector3d auto_max = cloud.colwise().maxCoeff();
+
+  // Set actual min_point
+  if (min_corner) {
+    if ((*min_corner).x() > auto_min.x() || (*min_corner).y() > auto_min.y() ||
+        (*min_corner).z() > auto_min.z()) {
+
+      std::ostringstream oss;
+      oss << "Provided min_corner lies inside the point cloud bounds.\n"
+          << "Provided min_corner: " << (*min_corner).transpose() << "\n"
+          << "Auto-detected min:  " << auto_min.transpose();
+      throw std::invalid_argument(oss.str());
+    }
+    min_point = *min_corner;
+  } else {
+    min_point = auto_min;
+  }
+
+  // Set actual max_point
+  if (max_corner) {
+    if ((*max_corner).x() < auto_max.x() || (*max_corner).y() < auto_max.y() ||
+        (*max_corner).z() < auto_max.z()) {
+
+      std::ostringstream oss;
+      oss << "Provided max_corner lies inside the point cloud bounds.\n"
+          << "Provided max_corner: " << (*max_corner).transpose() << "\n"
+          << "Auto-detected max:  " << auto_max.transpose();
+      throw std::invalid_argument(oss.str());
+    }
+    max_point = *max_corner;
+  } else {
+    max_point = auto_max;
+  }
+
+  // Compute center
   Eigen::Vector3d center = (min_point + max_point) * 0.5;
 
   // (max_point - min_point) gives width, height and depth of the bounding box
   Eigen::Vector3d extent = max_point - min_point;
 
-  // For each axis, round extent to next power of two
-  for (int i = 0; i < 3; ++i) {
-    if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
-      box_size[i] = 1.0;
-    } else {
-      box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+  if (force_cubic) {
+    // Use the largest extent across all axes
+    double max_extent = extent.maxCoeff();
+
+    // Round it up to the next power of two
+    double cube_size = std::pow(2.0, std::ceil(std::log2(max_extent)));
+
+    box_size = Eigen::Vector3d::Constant(cube_size);
+  } else {
+    // For each axis, round extent to next power of two
+    for (int i = 0; i < 3; ++i) {
+      if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+        box_size[i] = 1.0;
+      } else {
+        box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+      }
     }
   }
 
@@ -119,9 +164,11 @@ Octree::create(const EigenPointCloudRef& cloud)
 }
 
 void
-Octree::build_tree()
+Octree::build_tree(bool force_cubic,
+                   std::optional<Eigen::Vector3d> min_corner,
+                   std::optional<Eigen::Vector3d> max_corner)
 {
-  compute_bounding_box();
+  compute_bounding_box(force_cubic, min_corner, max_corner);
 
   number_of_points = cloud.rows();
   indexed_keys.keys.resize(number_of_points);
