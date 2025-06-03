@@ -189,7 +189,7 @@ If you want to contribute a new example or method, please follow the steps below
 1. **Create a new branch** for your contribution.
 2. **Prepare your demo** using the two templates provided:
    - [`application_demo.ipynb`](contributor_template/application_demo.ipynb): focuses on use cases of the method.
-   - [`basic_usage.py`](contributor_template/basic_usage.py): focuses on implementation of the method.
+   - [`basic_usage.ipynb`](contributor_template/basic_usage.ipynb): focuses on basic usage of the method, shown on [readthedocs](https://py4dgeo.readthedocs.io/en/latest/basic.html).
 
 📁 You can find demo templates in the [`contributor_template/`](contributor_template/) directory.
 
