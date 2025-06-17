@@ -50,7 +50,7 @@ class Epoch(_py4dgeo.Epoch):
         additional_dimensions: np.ndarray = None,
         timestamp=None,
         scanpos_info: dict = None,
-        image = None,
+        image=None,
     ):
         """
 
@@ -531,20 +531,16 @@ class Epoch(_py4dgeo.Epoch):
         # Set the base class object
         _py4dgeo.Epoch.__setstate__(self, base)
 
-
     def project_pc(self, **args):
-        """Project the point cloud
-        """
+        """Project the point cloud"""
         # Ensure that we have a valid epoch
         if self.scanpos_info is None:
             raise Py4DGeoError("Cannot project without scan position information!")
 
         self.image = PCloudProjection(self, **args)
-        
 
     def visualize(self, filename=None, lst_polygon=None, from_notebook=False):
-        """visualize the point cloud in an image porjection
-        """
+        """visualize the point cloud in an image porjection"""
         if self.image.filename is None:
             self.image.filename = filename
             self.image.save_image()

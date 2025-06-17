@@ -294,10 +294,10 @@ def copy_test_data_entrypoint():
 
 
 def xyz_2_spherical(xyz):
-    dxy = np.sqrt(xyz[:, 0]**2 + xyz[:, 1]**2)
-    r = np.sqrt(dxy**2 + xyz[:, 2]**2)          # radius r
-    theta = np.arctan2(dxy, xyz[:, 2])          # theta θ   # for elevation angle defined from Z-axis down
-    phi = np.arctan2(xyz[:, 1], xyz[:, 0])      # phi ϕ
-    return r, theta, phi                        # [m, rad, rad]
-
-
+    dxy = np.sqrt(xyz[:, 0] ** 2 + xyz[:, 1] ** 2)
+    r = np.sqrt(dxy**2 + xyz[:, 2] ** 2)  # radius r
+    theta = np.arctan2(
+        dxy, xyz[:, 2]
+    )  # theta θ   # for elevation angle defined from Z-axis down
+    phi = np.arctan2(xyz[:, 1], xyz[:, 0])  # phi ϕ
+    return r, theta, phi  # [m, rad, rad]
