@@ -1,4 +1,5 @@
 from py4dgeo.logger import logger_context
+from py4dgeo.visualization import PCloudProjection, Vis_Object
 from py4dgeo.registration import Transformation
 from py4dgeo.util import (
     Py4DGeoError,
@@ -20,6 +21,7 @@ import os
 import tempfile
 import typing
 import zipfile
+import cv2
 
 import _py4dgeo
 
@@ -48,6 +50,7 @@ class Epoch(_py4dgeo.Epoch):
         additional_dimensions: np.ndarray = None,
         timestamp=None,
         scanpos_info: dict = None,
+        image=None,
     ):
         """
 
@@ -570,6 +573,33 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set the base class object
         _py4dgeo.Epoch.__setstate__(self, base)
+
+    def project_pc(self, **args):
+        """Project the point cloud"""
+        # Ensure that we have a valid epoch
+        if self.scanpos_info is None:
+            raise Py4DGeoError("Cannot project without scan position information!")
+
+        self.image = PCloudProjection(self, **args)
+
+    def visualize(self, filename=None, lst_polygon=None, from_notebook=False):
+        """visualize the point cloud in an image porjection"""
+        if self.image.filename is None:
+            self.image.filename = filename
+            self.image.save_image()
+
+        if lst_polygon is not None:
+            image = self.image.add_polygons(lst_polygon)
+
+        if from_notebook:
+            display = Vis_Object(self.image.filename)
+            return display
+        else:
+            image = cv2.imread(self.image.filename)
+            title = os.path.basename(self.image.filename)
+            cv2.imshow(title, image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 
 def save_epoch(epoch, filename):
