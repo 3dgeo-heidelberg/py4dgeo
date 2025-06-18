@@ -3,10 +3,12 @@
 
 #include <Eigen/Core>
 
+#include <cmath>
 #include <istream>
 #include <numeric>
 #include <optional>
 #include <ostream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -22,6 +24,15 @@ Octree::compute_bounding_box(bool force_cubic,
                              std::optional<Eigen::Vector3d> min_corner,
                              std::optional<Eigen::Vector3d> max_corner)
 {
+
+  if (min_corner && max_corner) {
+    Eigen::Vector3d extent = *max_corner - *min_corner;
+
+    if (extent.x() <= 0 || extent.y() <= 0 || extent.z() <= 0) {
+      throw std::invalid_argument("Provided min_corner and max_corner do not "
+                                  "define a valid bounding box.");
+    }
+  }
 
   // Point cloud's bounding box
   Eigen::Vector3d auto_min = cloud.colwise().minCoeff();
@@ -59,38 +70,97 @@ Octree::compute_bounding_box(bool force_cubic,
     max_point = auto_max;
   }
 
-  // Compute center
-  Eigen::Vector3d center = (min_point + max_point) * 0.5;
-
-  // (max_point - min_point) gives width, height and depth of the bounding box
+  // Compute extent of the bounding box
   Eigen::Vector3d extent = max_point - min_point;
 
   if (force_cubic) {
     // Use the largest extent across all axes
     double max_extent = extent.maxCoeff();
 
-    // Round it up to the next power of two
-    double cube_size = std::pow(2.0, std::ceil(std::log2(max_extent)));
+    // Handle case: Neither min_corner nor max_corner are given and force_cubic
+    // = True
+    if (!min_corner && !max_corner) {
+      Eigen::Vector3d center = (min_point + max_point) * 0.5;
 
-    box_size = Eigen::Vector3d::Constant(cube_size);
-  } else {
-    // For each axis, round extent to next power of two
-    for (int i = 0; i < 3; ++i) {
-      if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
-        box_size[i] = 1.0;
+      // Round it up to the next power of two
+      double cube_size = std::pow(2.0, std::ceil(std::log2(max_extent)));
+
+      // Assign to box_size
+      box_size = Eigen::Vector3d::Constant(cube_size);
+
+      // Gives the corner of the min point
+      min_point = center - box_size * 0.5;
+
+      // Gives the corner of the max point
+      max_point = center + box_size * 0.5;
+    } else {
+      // Handle case: Either min_corner or max_corner or both are given and
+      // force_cubic = True
+
+      // Assign to box_size
+      box_size = Eigen::Vector3d::Constant(max_extent);
+
+      // Set the missing corner points (min_point and/or max_point)
+      if (max_corner && !min_corner) {
+        min_point = *max_corner - box_size;
+      } else if (min_corner && !max_corner) {
+        max_point = *min_corner + box_size;
       } else {
-        box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+        max_point = *min_corner + box_size; // Special case
+      }
+    }
+  } else {
+    // Handle case: Neither min_corner nor max_corner are given and force_cubic
+    // = False
+    if (!min_corner && !max_corner) {
+      Eigen::Vector3d center = (min_point + max_point) * 0.5;
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+          box_size[i] = 1.0;
+        } else {
+          box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+        }
+      }
+
+      // Gives the corner of the min point
+      min_point = center - box_size * 0.5;
+
+      // Gives the corner of the max point
+      max_point = center + box_size * 0.5;
+    }
+    // Handle case: Both min_corner and max_corner are given and force_cubic =
+    // False
+    else if (min_corner && max_corner) {
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        box_size[i] = extent[i];
+      }
+    } else {
+      // Handle case: Either min_corner or max_corner is given, not both,
+      // force_cubic = False
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+          box_size[i] = 1.0;
+        } else {
+          box_size[i] = extent[i];
+        }
+      }
+
+      // Set the missing corner point (min_point or max_point)
+      if (max_corner) {
+        min_point = *max_corner - box_size;
+      } else {
+        max_point = *min_corner + box_size;
       }
     }
   }
 
   inv_box_size = box_size.cwiseInverse();
-
-  // Gives the corner of the min point
-  min_point = center - box_size * 0.5;
-
-  // Gives the corner of the max point
-  max_point = center + box_size * 0.5;
 
   // Compute cell sizes
   cell_size[0] = box_size;

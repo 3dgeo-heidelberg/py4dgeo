@@ -5,9 +5,13 @@
 #include "py4dgeo/searchtree.hpp"
 #include "testsetup.hpp"
 
+#include <Eigen/Core>
+
 #include <algorithm>
+#include <cmath>
 #include <fstream>
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string>
 
@@ -18,6 +22,43 @@ TEST_CASE("Octree is correctly build", "[octree]")
   // Get a test epoch
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
+
+  SECTION("Build cubic, no corner")
+  {
+    // Construct the Octree
+    auto tree = Octree::create(epoch.cloud);
+    tree.build_tree(true);
+
+    Eigen::Vector3d extent = tree.get_max_point() - tree.get_min_point();
+    double tol = 1.e-6;
+    REQUIRE(std::abs(extent.x() - extent.y()) < tol);
+    REQUIRE(std::abs(extent.x() - extent.z()) < tol);
+    REQUIRE(std::abs(extent.y() - extent.z()) < tol);
+  }
+  SECTION("Build cubic, min corner")
+  {
+    // Construct the Octree
+    auto tree = Octree::create(epoch.cloud);
+    tree.build_tree(true, cloud->colwise().minCoeff());
+
+    Eigen::Vector3d extent = tree.get_max_point() - tree.get_min_point();
+    double tol = 1.e-6;
+    REQUIRE(std::abs(extent.x() - extent.y()) < tol);
+    REQUIRE(std::abs(extent.x() - extent.z()) < tol);
+    REQUIRE(std::abs(extent.y() - extent.z()) < tol);
+  }
+  SECTION("Build cubic, max corner")
+  {
+    // Construct the Octree
+    auto tree = Octree::create(epoch.cloud);
+    tree.build_tree(true, std::nullopt, cloud->colwise().maxCoeff());
+
+    Eigen::Vector3d extent = tree.get_max_point() - tree.get_min_point();
+    double tol = 1.e-6;
+    REQUIRE(std::abs(extent.x() - extent.y()) < tol);
+    REQUIRE(std::abs(extent.x() - extent.z()) < tol);
+    REQUIRE(std::abs(extent.y() - extent.z()) < tol);
+  }
 
   // Construct the Octree
   auto tree = Octree::create(epoch.cloud);
