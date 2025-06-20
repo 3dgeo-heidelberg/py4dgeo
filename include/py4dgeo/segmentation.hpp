@@ -5,6 +5,7 @@
 
 #include <Eigen/Core>
 
+#include <cstddef>
 #include <functional>
 #include <unordered_map>
 #include <vector>

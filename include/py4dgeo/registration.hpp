@@ -10,6 +10,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <cstddef>
 #include <vector>
 
 namespace py4dgeo {

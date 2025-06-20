@@ -1,10 +1,12 @@
 #pragma once
 
-#include <functional>
-
 #include <py4dgeo/epoch.hpp>
 #include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
+
+#include <functional>
+#include <tuple>
+#include <vector>
 
 namespace py4dgeo {
 

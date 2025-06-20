@@ -1,9 +1,13 @@
 #include "catch2/catch.hpp"
 #include "py4dgeo/compute.hpp"
+#include "py4dgeo/epoch.hpp"
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
+#include "py4dgeo/searchtree.hpp"
 #include "testsetup.hpp"
 
+#include <cmath>
+#include <cstddef>
 #include <vector>
 
 using namespace py4dgeo;

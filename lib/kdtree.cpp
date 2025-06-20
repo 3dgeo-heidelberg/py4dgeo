@@ -5,6 +5,11 @@
 #include "py4dgeo/kdtree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
+#include <cstddef>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <utility>
 #include <vector>
 
 namespace py4dgeo {

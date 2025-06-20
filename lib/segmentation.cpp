@@ -7,11 +7,14 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <map>
 #include <numeric>
 #include <set>
+#include <stdexcept>
 #include <unordered_set>
 #include <vector>
 

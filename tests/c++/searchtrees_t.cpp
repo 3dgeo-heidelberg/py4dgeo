@@ -9,9 +9,6 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
-#include <fstream>
-#include <iostream>
-#include <sstream>
 #include <string>
 
 using namespace py4dgeo;

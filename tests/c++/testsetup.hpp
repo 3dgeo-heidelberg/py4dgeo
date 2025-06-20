@@ -3,6 +3,7 @@
 #include <memory>
 #include <string>
 #include <tuple>
+#include <utility>
 
 #ifndef PY4DGEO_TEST_DATA_DIRECTORY
 #error Test data directory needs to be set from CMake

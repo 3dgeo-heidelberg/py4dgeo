@@ -8,6 +8,13 @@
 #include <Eigen/Core>
 
 #include <algorithm>
+#include <array>
+#include <cmath>
+#include <cstddef>
+#include <limits>
+#include <tuple>
+#include <utility>
+#include <vector>
 
 namespace py4dgeo {
 

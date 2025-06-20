@@ -2,12 +2,13 @@
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/registration.hpp"
 #include "testsetup.hpp"
-#include <iostream>
 
 #include "py4dgeo/compute.hpp"
-#include <vector>
 
+#include <cmath>
 #include <fstream>
+#include <iostream>
+#include <vector>
 
 using namespace py4dgeo;
 

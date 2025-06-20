@@ -6,6 +6,7 @@
 #include <py4dgeo/searchtree.hpp>
 
 #include <iostream>
+#include <memory>
 
 namespace py4dgeo {
 

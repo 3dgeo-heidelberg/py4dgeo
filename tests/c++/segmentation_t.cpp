@@ -2,7 +2,9 @@
 #include "py4dgeo/segmentation.hpp"
 #include "testsetup.hpp"
 
+#include <cmath>
 #include <limits>
+#include <vector>
 
 using namespace py4dgeo;
 

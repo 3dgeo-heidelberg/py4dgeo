@@ -1,16 +1,16 @@
 #pragma once
 
-#include <Eigen/Core>
-
-#include <istream>
-#include <memory>
-#include <ostream>
-#include <utility>
-#include <vector>
-
 #include "nanoflann.hpp"
 #include "py4dgeo.hpp"
 #include "py4dgeo/searchtree.hpp"
+
+#include <Eigen/Core>
+
+#include <cstddef>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <vector>
 
 namespace py4dgeo {
 

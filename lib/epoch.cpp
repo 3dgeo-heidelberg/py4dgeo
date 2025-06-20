@@ -3,9 +3,8 @@
 #include "py4dgeo/octree.hpp"
 #include "py4dgeo/py4dgeo.hpp"
 
-#include <memory>
-
 #include <iostream>
+#include <memory>
 
 namespace py4dgeo {
 

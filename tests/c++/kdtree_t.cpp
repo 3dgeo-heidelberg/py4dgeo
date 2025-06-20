@@ -6,10 +6,7 @@
 #include "testsetup.hpp"
 
 #include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
+#include <array>
 
 using namespace py4dgeo;
 
