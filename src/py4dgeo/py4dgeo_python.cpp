@@ -19,11 +19,16 @@
 #include "py4dgeo/segmentation.hpp"
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <ios>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -226,7 +231,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       auto indices_array_ptr = indices_array.mutable_data();
       auto distances_array_ptr = distances_array.mutable_data();
 
-      for (size_t i = 0; i < result.size(); ++i) {
+      for (std::size_t i = 0; i < result.size(); ++i) {
         *indices_array_ptr++ = result[i].first[result[i].first.size() - 1];
         *distances_array_ptr++ = result[i].second[result[i].second.size() - 1];
       }
@@ -352,7 +357,7 @@ PYBIND11_MODULE(_py4dgeo, m)
        const Octree::KeyContainer& keys,
        unsigned int level) {
       RadiusSearchResult result;
-      size_t num_points =
+      std::size_t num_points =
         self.get_points_indices_from_cells(keys, level, result);
 
       return as_pyarray(std::move(result));

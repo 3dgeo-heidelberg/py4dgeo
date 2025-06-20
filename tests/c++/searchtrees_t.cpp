@@ -7,6 +7,8 @@
 #include "testsetup.hpp"
 
 #include <algorithm>
+#include <array>
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <sstream>

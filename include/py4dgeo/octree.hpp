@@ -5,10 +5,13 @@
 
 #include <Eigen/Core>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
-#include <istream>
+#include <iostream>
 #include <optional>
-#include <ostream>
+#include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -54,8 +57,8 @@ public:
   // ==========================================================
 
   //! Alias for the spatial key type used for Z-order value encoding
-  using SpatialKey = uint32_t; // 16-bit allows 5 depth levels, 32-bit allows 10
-                               // levels, 64-bit allows 21 levels
+  using SpatialKey = std::uint32_t; // 16-bit allows 5 depth levels, 32-bit
+                                    // allows 10 levels, 64-bit allows 21 levels
 
   //! Return type used for points
   using PointContainer = std::vector<IndexType>;

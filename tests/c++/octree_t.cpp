@@ -1,7 +1,6 @@
 #include "catch2/catch.hpp"
 #include "py4dgeo/epoch.hpp"
 #include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
 #include "py4dgeo/searchtree.hpp"
 #include "testsetup.hpp"
 
@@ -9,10 +8,7 @@
 
 #include <algorithm>
 #include <cmath>
-#include <fstream>
-#include <iostream>
 #include <optional>
-#include <sstream>
 #include <string>
 
 using namespace py4dgeo;

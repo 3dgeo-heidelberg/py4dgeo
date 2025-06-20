@@ -3,7 +3,9 @@
 
 #include <Eigen/Core>
 
+#include <algorithm>
 #include <cmath>
+#include <cstddef>
 #include <istream>
 #include <numeric>
 #include <optional>
@@ -165,7 +167,7 @@ Octree::compute_bounding_box(bool force_cubic,
   // Compute cell sizes
   cell_size[0] = box_size;
 
-  for (size_t i = 1; i <= max_depth; ++i) {
+  for (std::size_t i = 1; i <= max_depth; ++i) {
     cell_size[i] = cell_size[i - 1] * 0.5;
   }
 }
@@ -178,7 +180,7 @@ Octree::compute_statistics()
   average_cell_population_per_level[0] = static_cast<double>(number_of_points);
   std_cell_population_per_level[0] = 0.0;
 
-  for (size_t level = 1; level <= max_depth; ++level) {
+  for (std::size_t level = 1; level <= max_depth; ++level) {
 
     unsigned int unique_cells = 0;
     unsigned int max_population = 0;
@@ -580,11 +582,11 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     // Next: check if all 8 corners are inside the sphere
     bool any_outside = false;
 
-    for (size_t cx = 0; cx <= 1; ++cx) {
+    for (std::size_t cx = 0; cx <= 1; ++cx) {
       const double x = cx ? cell_max.x() : cell_min.x();
-      for (size_t cy = 0; cy <= 1; ++cy) {
+      for (std::size_t cy = 0; cy <= 1; ++cy) {
         const double y = cy ? cell_max.y() : cell_min.y();
-        for (size_t cz = 0; cz <= 1; ++cz) {
+        for (std::size_t cz = 0; cz <= 1; ++cz) {
           const double z = cz ? cell_max.z() : cell_min.z();
 
           const double dx = x - qx;
@@ -604,9 +606,9 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
 
   // Iterate over all cells in the AABB
   Eigen::Vector3d cell_center;
-  for (size_t i = imin; i <= imax; ++i) {
-    for (size_t j = jmin; j <= jmax; ++j) {
-      for (size_t k = kmin; k <= kmax; ++k) {
+  for (std::size_t i = imin; i <= imax; ++i) {
+    for (std::size_t j = jmin; j <= jmax; ++j) {
+      for (std::size_t k = kmin; k <= kmax; ++k) {
         auto relation = classify_cell_relation_to_sphere(i, j, k);
         if (relation == cell_relation_to_sphere::Outside)
           continue;
