@@ -19,6 +19,8 @@ TEST_CASE("Octree is correctly build", "[octree]")
   auto [cloud, corepoints] = testcloud();
   Epoch epoch(*cloud);
 
+  constexpr double tol = 1.e-6;
+
   SECTION("Build cubic, no corner")
   {
     // Construct the Octree
@@ -26,7 +28,7 @@ TEST_CASE("Octree is correctly build", "[octree]")
     tree.build_tree(true);
 
     Eigen::Vector3d extent = tree.get_max_point() - tree.get_min_point();
-    double tol = 1.e-6;
+
     REQUIRE(std::abs(extent.x() - extent.y()) < tol);
     REQUIRE(std::abs(extent.x() - extent.z()) < tol);
     REQUIRE(std::abs(extent.y() - extent.z()) < tol);
@@ -38,7 +40,7 @@ TEST_CASE("Octree is correctly build", "[octree]")
     tree.build_tree(true, cloud->colwise().minCoeff());
 
     Eigen::Vector3d extent = tree.get_max_point() - tree.get_min_point();
-    double tol = 1.e-6;
+
     REQUIRE(std::abs(extent.x() - extent.y()) < tol);
     REQUIRE(std::abs(extent.x() - extent.z()) < tol);
     REQUIRE(std::abs(extent.y() - extent.z()) < tol);
@@ -50,7 +52,7 @@ TEST_CASE("Octree is correctly build", "[octree]")
     tree.build_tree(true, std::nullopt, cloud->colwise().maxCoeff());
 
     Eigen::Vector3d extent = tree.get_max_point() - tree.get_min_point();
-    double tol = 1.e-6;
+
     REQUIRE(std::abs(extent.x() - extent.y()) < tol);
     REQUIRE(std::abs(extent.x() - extent.z()) < tol);
     REQUIRE(std::abs(extent.y() - extent.z()) < tol);
@@ -60,14 +62,14 @@ TEST_CASE("Octree is correctly build", "[octree]")
   auto tree = Octree::create(epoch.cloud);
   tree.build_tree();
 
+  // Do radius search with radius wide enough to cover the entire cloud
+  constexpr double radius = 100.;
+
   SECTION("Perform radius search")
   {
     // Find all nodes with a radius search
     Eigen::Vector3d query_point{ 0.0, 0.0, 0.0 };
     RadiusSearchResult result;
-
-    // Do radius search with radius wide enough to cover the entire cloud
-    double radius = 100.;
 
     for (unsigned int level = 0; level < 7; ++level) {
       auto num = tree.radius_search(query_point, radius, level, result);
@@ -82,8 +84,6 @@ TEST_CASE("Octree is correctly build", "[octree]")
     Eigen::Vector3d query_point{ 0.0, 0.0, 0.0 };
     RadiusSearchDistanceResult result;
 
-    // Do radius search with radius wide enough to cover the entire cloud
-    double radius = 100.;
     unsigned int level =
       epoch.octree.find_appropriate_level_for_radius_search(radius);
     auto num =
