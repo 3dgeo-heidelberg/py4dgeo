@@ -1,7 +1,7 @@
 #pragma once
 
-#include "py4dgeo.hpp"
-#include "py4dgeo/searchtree.hpp"
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
 

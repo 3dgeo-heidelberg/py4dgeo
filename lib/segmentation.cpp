@@ -1,7 +1,7 @@
-#include "py4dgeo/segmentation.hpp"
+#include <py4dgeo/segmentation.hpp>
 
-#include "py4dgeo/openmp.hpp"
-#include "py4dgeo/searchtree.hpp"
+#include <py4dgeo/openmp.hpp>
+#include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
 

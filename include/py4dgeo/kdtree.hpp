@@ -1,9 +1,9 @@
 #pragma once
 
-#include "nanoflann.hpp"
-#include "py4dgeo.hpp"
-#include "py4dgeo/searchtree.hpp"
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
 
+#include "nanoflann.hpp"
 #include <Eigen/Core>
 
 #include <cstddef>

@@ -1,6 +1,7 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/segmentation.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/segmentation.hpp>
+
+#include <catch2/catch.hpp>
 
 #include <cmath>
 #include <limits>

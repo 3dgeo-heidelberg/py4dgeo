@@ -1,9 +1,9 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/registration.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/compute.hpp>
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/registration.hpp>
 
-#include "py4dgeo/compute.hpp"
+#include <catch2/catch.hpp>
 
 #include <cmath>
 #include <fstream>

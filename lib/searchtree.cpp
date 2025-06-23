@@ -1,4 +1,4 @@
-#include "py4dgeo/searchtree.hpp"
+#include <py4dgeo/searchtree.hpp>
 
 #include <py4dgeo/epoch.hpp>
 

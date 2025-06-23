@@ -1,10 +1,10 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/searchtree.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
+#include <catch2/catch.hpp>
 
 #include <algorithm>
 #include <cmath>

@@ -8,15 +8,15 @@
 #include <omp.h>
 #endif
 
-#include "py4dgeo/compute.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
-#include "py4dgeo/pybind11_numpy_interop.hpp"
-#include "py4dgeo/registration.hpp"
-#include "py4dgeo/searchtree.hpp"
-#include "py4dgeo/segmentation.hpp"
+#include <py4dgeo/compute.hpp>
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/pybind11_numpy_interop.hpp>
+#include <py4dgeo/registration.hpp>
+#include <py4dgeo/searchtree.hpp>
+#include <py4dgeo/segmentation.hpp>
 
 #include <algorithm>
 #include <cstddef>

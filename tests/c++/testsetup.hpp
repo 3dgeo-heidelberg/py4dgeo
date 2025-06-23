@@ -1,4 +1,4 @@
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/py4dgeo.hpp>
 
 #include <memory>
 #include <string>

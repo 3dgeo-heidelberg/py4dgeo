@@ -1,12 +1,13 @@
+#include <py4dgeo/compute.hpp>
+
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/openmp.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
+
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
-
-#include "py4dgeo/compute.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/openmp.hpp"
-#include "py4dgeo/py4dgeo.hpp"
-#include "py4dgeo/searchtree.hpp"
 
 #include <algorithm>
 #include <cmath>

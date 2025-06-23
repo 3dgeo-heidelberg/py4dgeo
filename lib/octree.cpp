@@ -1,5 +1,5 @@
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 #include <Eigen/Core>
 

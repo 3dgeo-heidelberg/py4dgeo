@@ -1,4 +1,5 @@
 #include <py4dgeo/registration.hpp>
+
 #include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
