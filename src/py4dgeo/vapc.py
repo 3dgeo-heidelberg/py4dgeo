@@ -196,8 +196,6 @@ class Vapc:
             "linearity":      self._compute_linearity,
             "planarity":      self._compute_planarity,
             "sphericity":     self._compute_sphericity,
-            "closest_to_voxel_centers": self.compute_closest_to_voxel_centers,
-            "closest_to_centroids": self.compute_closest_to_centroids,
 
             "sum_of_eigenvalues":        self._compute_sum_of_eigenvalues,
             "omnivariance":              self._compute_omnivariance,
