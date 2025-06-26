@@ -1,16 +1,17 @@
 #pragma once
 
-#include <Eigen/Core>
-
-#include <istream>
-#include <memory>
-#include <ostream>
-#include <utility>
-#include <vector>
-
 #include "nanoflann.hpp"
 #include "py4dgeo.hpp"
 #include "py4dgeo/searchtree.hpp"
+
+#include <Eigen/Core>
+
+#include <algorithm>
+#include <cstddef>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <vector>
 
 namespace py4dgeo {
 
@@ -53,6 +54,8 @@ private:
    */
   struct NoDistancesReturnSet
   {
+    using DistanceType = double;
+
     double radius;
     RadiusSearchResult& indices;
 
@@ -68,6 +71,56 @@ private:
     }
 
     inline double worstDist() const { return radius; }
+
+    inline void sort() {}
+  };
+
+  /**
+   * @brief A custom result set structure for collecting radius search results
+   *        with squared distances using nanoflann.
+   *
+   * This structure is used with nanoflann's radiusSearchCustomCallback()
+   * to collect search results in a user-defined format. It stores pairs of
+   * point indices and their corresponding squared distances to the query point
+   * in a std::vector<std::pair<IndexType, double>>
+   * (RadiusSearchDistanceResult).
+   *
+   * By using this structure instead of nanoflann::ResultItem, we avoid copying
+   * between incompatible result types and maintain compatibility with Octree
+   * which uses the same result type.
+   *
+   * This class satisfies the interface expected by nanoflann's custom result
+   * set:
+   * - addPoint(distance, index): stores the result if within radius
+   * - size(), full(), worstDist(): for compatibility
+   * - sort(): optional post-processing
+   *
+   */
+  struct WithDistancesReturnSet
+  {
+    using DistanceType = double;
+
+    double radius;
+    RadiusSearchDistanceResult& result;
+
+    inline std::size_t size() const { return result.size(); }
+    inline bool full() const { return true; }
+
+    inline bool addPoint(double dist_sq, IndexType idx)
+    {
+      if (dist_sq < radius)
+        result.emplace_back(idx, dist_sq);
+      return true;
+    }
+
+    inline double worstDist() const { return radius; }
+
+    inline void sort()
+    {
+      std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
+        return a.second < b.second;
+      });
+    }
   };
 
   //! The NanoFLANN index implementation that we use
