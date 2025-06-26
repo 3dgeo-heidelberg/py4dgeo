@@ -1,15 +1,15 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
-#include "py4dgeo/searchtree.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
+
+#include <catch2/catch.hpp>
 
 #include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <sstream>
+#include <array>
+#include <cstddef>
 #include <string>
 
 using namespace py4dgeo;

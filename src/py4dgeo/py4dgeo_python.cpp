@@ -8,22 +8,27 @@
 #include <omp.h>
 #endif
 
-#include "py4dgeo/compute.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
-#include "py4dgeo/pybind11_numpy_interop.hpp"
-#include "py4dgeo/registration.hpp"
-#include "py4dgeo/searchtree.hpp"
-#include "py4dgeo/segmentation.hpp"
+#include <py4dgeo/compute.hpp>
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/pybind11_numpy_interop.hpp>
+#include <py4dgeo/registration.hpp>
+#include <py4dgeo/searchtree.hpp>
+#include <py4dgeo/segmentation.hpp>
 
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
+#include <ios>
 #include <optional>
 #include <sstream>
+#include <stdexcept>
 #include <string>
 #include <tuple>
+#include <utility>
+#include <vector>
 
 namespace py = pybind11;
 
@@ -226,7 +231,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       auto indices_array_ptr = indices_array.mutable_data();
       auto distances_array_ptr = distances_array.mutable_data();
 
-      for (size_t i = 0; i < result.size(); ++i) {
+      for (std::size_t i = 0; i < result.size(); ++i) {
         *indices_array_ptr++ = result[i].first[result[i].first.size() - 1];
         *distances_array_ptr++ = result[i].second[result[i].second.size() - 1];
       }
@@ -266,8 +271,12 @@ PYBIND11_MODULE(_py4dgeo, m)
   });
 
   // Allow building the Octree structure
-  octree.def(
-    "build_tree", &Octree::build_tree, "Trigger building the search octree");
+  octree.def("build_tree",
+             &Octree::build_tree,
+             py::arg("force_cubic") = false,
+             py::arg("min_corner") = std::nullopt,
+             py::arg("max_corner") = std::nullopt,
+             "Trigger building the search octree");
 
   // Allow invalidating the Octree structure
   octree.def("invalidate", &Octree::invalidate, "Invalidate the search octree");
@@ -348,23 +357,13 @@ PYBIND11_MODULE(_py4dgeo, m)
        const Octree::KeyContainer& keys,
        unsigned int level) {
       RadiusSearchResult result;
-      size_t num_points =
+      std::size_t num_points =
         self.get_points_indices_from_cells(keys, level, result);
 
-      // Create NumPy arrays for indices and keys
-      py::array_t<Octree::SpatialKey> indices_array(num_points);
-
-      auto indices_ptr = indices_array.mutable_data();
-
-      // Fill the arrays
-      for (size_t i = 0; i < num_points; ++i) {
-        indices_ptr[i] = result[i];
-      }
-
-      return indices_array;
+      return as_pyarray(std::move(result));
     },
     "Retrieve point indices and spatial keys for a given cell",
-    py::arg("spatial_key"),
+    py::arg("spatial_keys"),
     py::arg("level"));
 
   // Allow extraction from points in cell

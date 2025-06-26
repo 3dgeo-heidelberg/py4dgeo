@@ -2,8 +2,8 @@
 #include <omp.h>
 #endif
 
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 #include <cstddef>
 #include <istream>

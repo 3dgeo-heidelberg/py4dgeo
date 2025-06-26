@@ -2,6 +2,8 @@
 
 #include <Eigen/Core>
 
+#include <vector>
+
 namespace py4dgeo {
 
 /* Declare the most important types used in py4dgeo */

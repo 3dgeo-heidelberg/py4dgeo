@@ -1,6 +1,7 @@
 #pragma once
 
 #include <py4dgeo/compute.hpp>
+
 #include <py4dgeo/epoch.hpp>
 #include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
@@ -10,6 +11,7 @@
 #include <Eigen/Core>
 #include <Eigen/Geometry>
 
+#include <cstddef>
 #include <vector>
 
 namespace py4dgeo {

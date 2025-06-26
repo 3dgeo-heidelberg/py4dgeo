@@ -5,6 +5,7 @@
 #endif
 
 #include <exception>
+#include <utility>
 
 /** @brief A container to handle exceptions in parallel regions
  *

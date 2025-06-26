@@ -1,12 +1,16 @@
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 #include <Eigen/Core>
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <istream>
 #include <numeric>
 #include <optional>
 #include <ostream>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -18,39 +22,152 @@ Octree::Octree(const EigenPointCloudRef& cloud)
 }
 
 void
-Octree::compute_bounding_box()
+Octree::compute_bounding_box(bool force_cubic,
+                             std::optional<Eigen::Vector3d> min_corner,
+                             std::optional<Eigen::Vector3d> max_corner)
 {
-  // Find the smallest value in each column (x,y,z)
-  min_point = cloud.colwise().minCoeff();
 
-  // Find the biggest value in each column (x,y,z)
-  max_point = cloud.colwise().maxCoeff();
-  Eigen::Vector3d center = (min_point + max_point) * 0.5;
+  if (min_corner && max_corner) {
+    Eigen::Vector3d extent = *max_corner - *min_corner;
 
-  // (max_point - min_point) gives width, height and depth of the bounding box
+    if (extent.x() <= 0 || extent.y() <= 0 || extent.z() <= 0) {
+      throw std::invalid_argument("Provided min_corner and max_corner do not "
+                                  "define a valid bounding box.");
+    }
+  }
+
+  // Point cloud's bounding box
+  Eigen::Vector3d auto_min = cloud.colwise().minCoeff();
+  Eigen::Vector3d auto_max = cloud.colwise().maxCoeff();
+
+  // Set actual min_point
+  if (min_corner) {
+    if ((*min_corner).x() > auto_min.x() || (*min_corner).y() > auto_min.y() ||
+        (*min_corner).z() > auto_min.z()) {
+
+      std::ostringstream oss;
+      oss << "Provided min_corner lies inside the point cloud bounds.\n"
+          << "Provided min_corner: " << (*min_corner).transpose() << "\n"
+          << "Auto-detected min:  " << auto_min.transpose();
+      throw std::invalid_argument(oss.str());
+    }
+    min_point = *min_corner;
+  } else {
+    min_point = auto_min;
+  }
+
+  // Set actual max_point
+  if (max_corner) {
+    if ((*max_corner).x() < auto_max.x() || (*max_corner).y() < auto_max.y() ||
+        (*max_corner).z() < auto_max.z()) {
+
+      std::ostringstream oss;
+      oss << "Provided max_corner lies inside the point cloud bounds.\n"
+          << "Provided max_corner: " << (*max_corner).transpose() << "\n"
+          << "Auto-detected max:  " << auto_max.transpose();
+      throw std::invalid_argument(oss.str());
+    }
+    max_point = *max_corner;
+  } else {
+    max_point = auto_max;
+  }
+
+  // Compute extent of the bounding box
   Eigen::Vector3d extent = max_point - min_point;
 
-  // For each axis, round extent to next power of two
-  for (int i = 0; i < 3; ++i) {
-    if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
-      box_size[i] = 1.0;
+  if (force_cubic) {
+    // Use the largest extent across all axes
+    double max_extent = extent.maxCoeff();
+
+    // Handle case: Neither min_corner nor max_corner are given and force_cubic
+    // = True
+    if (!min_corner && !max_corner) {
+      Eigen::Vector3d center = (min_point + max_point) * 0.5;
+
+      // Round it up to the next power of two
+      double cube_size = std::pow(2.0, std::ceil(std::log2(max_extent)));
+
+      // Assign to box_size
+      box_size = Eigen::Vector3d::Constant(cube_size);
+
+      // Gives the corner of the min point
+      min_point = center - box_size * 0.5;
+
+      // Gives the corner of the max point
+      max_point = center + box_size * 0.5;
     } else {
-      box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+      // Handle case: Either min_corner or max_corner or both are given and
+      // force_cubic = True
+
+      // Assign to box_size
+      box_size = Eigen::Vector3d::Constant(max_extent);
+
+      // Set the missing corner points (min_point and/or max_point)
+      if (max_corner && !min_corner) {
+        min_point = *max_corner - box_size;
+      } else if (min_corner && !max_corner) {
+        max_point = *min_corner + box_size;
+      } else {
+        max_point = *min_corner + box_size; // Special case
+      }
+    }
+  } else {
+    // Handle case: Neither min_corner nor max_corner are given and force_cubic
+    // = False
+    if (!min_corner && !max_corner) {
+      Eigen::Vector3d center = (min_point + max_point) * 0.5;
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+          box_size[i] = 1.0;
+        } else {
+          box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+        }
+      }
+
+      // Gives the corner of the min point
+      min_point = center - box_size * 0.5;
+
+      // Gives the corner of the max point
+      max_point = center + box_size * 0.5;
+    }
+    // Handle case: Both min_corner and max_corner are given and force_cubic =
+    // False
+    else if (min_corner && max_corner) {
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        box_size[i] = extent[i];
+      }
+    } else {
+      // Handle case: Either min_corner or max_corner is given, not both,
+      // force_cubic = False
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+          box_size[i] = 1.0;
+        } else {
+          box_size[i] = extent[i];
+        }
+      }
+
+      // Set the missing corner point (min_point or max_point)
+      if (max_corner) {
+        min_point = *max_corner - box_size;
+      } else {
+        max_point = *min_corner + box_size;
+      }
     }
   }
 
   inv_box_size = box_size.cwiseInverse();
 
-  // Gives the corner of the min point
-  min_point = center - box_size * 0.5;
-
-  // Gives the corner of the max point
-  max_point = center + box_size * 0.5;
-
   // Compute cell sizes
   cell_size[0] = box_size;
 
-  for (size_t i = 1; i <= max_depth; ++i) {
+  for (std::size_t i = 1; i <= max_depth; ++i) {
     cell_size[i] = cell_size[i - 1] * 0.5;
   }
 }
@@ -63,7 +180,7 @@ Octree::compute_statistics()
   average_cell_population_per_level[0] = static_cast<double>(number_of_points);
   std_cell_population_per_level[0] = 0.0;
 
-  for (size_t level = 1; level <= max_depth; ++level) {
+  for (std::size_t level = 1; level <= max_depth; ++level) {
 
     unsigned int unique_cells = 0;
     unsigned int max_population = 0;
@@ -119,9 +236,11 @@ Octree::create(const EigenPointCloudRef& cloud)
 }
 
 void
-Octree::build_tree()
+Octree::build_tree(bool force_cubic,
+                   std::optional<Eigen::Vector3d> min_corner,
+                   std::optional<Eigen::Vector3d> max_corner)
 {
-  compute_bounding_box();
+  compute_bounding_box(force_cubic, min_corner, max_corner);
 
   number_of_points = cloud.rows();
   indexed_keys.keys.resize(number_of_points);
@@ -463,11 +582,11 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
     // Next: check if all 8 corners are inside the sphere
     bool any_outside = false;
 
-    for (size_t cx = 0; cx <= 1; ++cx) {
+    for (std::size_t cx = 0; cx <= 1; ++cx) {
       const double x = cx ? cell_max.x() : cell_min.x();
-      for (size_t cy = 0; cy <= 1; ++cy) {
+      for (std::size_t cy = 0; cy <= 1; ++cy) {
         const double y = cy ? cell_max.y() : cell_min.y();
-        for (size_t cz = 0; cz <= 1; ++cz) {
+        for (std::size_t cz = 0; cz <= 1; ++cz) {
           const double z = cz ? cell_max.z() : cell_min.z();
 
           const double dx = x - qx;
@@ -487,9 +606,9 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
 
   // Iterate over all cells in the AABB
   Eigen::Vector3d cell_center;
-  for (size_t i = imin; i <= imax; ++i) {
-    for (size_t j = jmin; j <= jmax; ++j) {
-      for (size_t k = kmin; k <= kmax; ++k) {
+  for (std::size_t i = imin; i <= imax; ++i) {
+    for (std::size_t j = jmin; j <= jmax; ++j) {
+      for (std::size_t k = kmin; k <= kmax; ++k) {
         auto relation = classify_cell_relation_to_sphere(i, j, k);
         if (relation == cell_relation_to_sphere::Outside)
           continue;

@@ -1,11 +1,11 @@
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/epoch.hpp>
 
-#include <memory>
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 #include <iostream>
+#include <memory>
 
 namespace py4dgeo {
 

@@ -1,10 +1,11 @@
 #pragma once
 
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
 #include <Eigen/Core>
 
+#include <cstddef>
 #include <functional>
 #include <unordered_map>
 #include <vector>

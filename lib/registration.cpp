@@ -1,12 +1,19 @@
 #include <py4dgeo/registration.hpp>
+
 #include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
 
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <limits>
 #include <numeric>
 #include <queue>
+#include <stdexcept>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #define LMBD_MAX 1e20
@@ -154,7 +161,7 @@ supervoxel_segmentation(Epoch& epoch,
 
   // calculate lambda for segmentation
   DistanceVector lambda_distances(epoch.cloud.rows());
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     int current = result[i].first[1];
     lambda_distances.push_back(
       point_2_point_VCCS_distance(epoch.cloud.row(i),
@@ -177,9 +184,9 @@ supervoxel_segmentation(Epoch& epoch,
   std::vector<int> queue_DEL(epoch.cloud.rows());
   std::vector<bool> isVisited(epoch.cloud.rows(), false);
 
-  for (size_t i = 0; i < result.size(); ++i) {
+  for (std::size_t i = 0; i < result.size(); ++i) {
 
-    for (size_t j = 1; j < result[i].first.size(); ++j) {
+    for (std::size_t j = 1; j < result[i].first.size(); ++j) {
       neighborIndexes[i].push_back(result[i].first[j]);
     }
   }
@@ -265,7 +272,7 @@ supervoxel_segmentation(Epoch& epoch,
   std::queue<int> boundaries_queue;
   std::vector<bool> is_in_boundaries_queue(epoch.cloud.rows(), false);
 
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = set.Find(i);
     distances.push_back(point_2_point_VCCS_distance(epoch.cloud.row(i),
                                                     epoch.cloud.row(labels[i]),
@@ -274,7 +281,7 @@ supervoxel_segmentation(Epoch& epoch,
                                                     resolution));
   }
 
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     for (auto j : result[i].first) {
       if (labels[i] != labels[j]) {
         if (!is_in_boundaries_queue[i]) {
@@ -327,10 +334,10 @@ supervoxel_segmentation(Epoch& epoch,
 
   // Relabel the supervoxels points
   std::vector<int> map(epoch.cloud.rows());
-  for (size_t i = 0; i < temporary_supervoxels.size(); ++i) {
+  for (std::size_t i = 0; i < temporary_supervoxels.size(); ++i) {
     map[temporary_supervoxels[i]] = i;
   }
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = map[labels[i]];
   }
 

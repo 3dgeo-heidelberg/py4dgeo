@@ -1,18 +1,19 @@
+#include <py4dgeo/compute.hpp>
+
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/openmp.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
+
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 
-#include "py4dgeo/compute.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/octree.hpp"
-#include "py4dgeo/openmp.hpp"
-#include "py4dgeo/py4dgeo.hpp"
-#include "py4dgeo/searchtree.hpp"
-
 #include <algorithm>
-#include <complex>
-#include <vector>
-
+#include <cmath>
+#include <cstddef>
 #include <iostream>
+#include <vector>
 
 namespace py4dgeo {
 
@@ -41,7 +42,7 @@ compute_multiscale_directions(const Epoch& epoch,
       Eigen::Matrix3d cov;
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
       RadiusSearchResult points;
-      for (size_t r = 0; r < normal_radii.size(); ++r) {
+      for (std::size_t r = 0; r < normal_radii.size(); ++r) {
 
         radius_search(corepoints.row(i), r, points);
 

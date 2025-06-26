@@ -1,12 +1,17 @@
 #include "testsetup.hpp"
 
-#include <fstream>
-#include <limits>
-#include <sstream>
-#include <vector>
+#include <Eigen/Core>
 
-#include <iomanip>
+#include <cstddef>
+#include <cstdlib>
+#include <fstream>
 #include <iostream>
+#include <limits>
+#include <memory>
+#include <sstream>
+#include <string>
+#include <utility>
+#include <vector>
 
 using namespace py4dgeo;
 

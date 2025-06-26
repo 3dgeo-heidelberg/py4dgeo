@@ -4,7 +4,9 @@
 
 #include <Eigen/Core>
 
+#include <cstddef>
 #include <functional>
+#include <utility>
 #include <vector>
 
 namespace py4dgeo {
