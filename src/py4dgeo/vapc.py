@@ -1192,7 +1192,12 @@ class Vapc:
         optional choice of cube‐centers and extra per‐vertex features.
         This version uses explicit corner‐ordering so faces always connect correctly.
         """
-        from plyfile import PlyData, PlyElement
+        try:
+            from plyfile import PlyData, PlyElement
+        except ImportError:
+            print("plyfile is not installed. Installing now.")
+            require("plyfile")
+            from plyfile import PlyData, PlyElement
         # 1) Ensure voxels are grouped & features are computed
         if self.unique_voxels is None:
             self.group()
