@@ -491,8 +491,7 @@ class Vapc:
         covs[:, 0, 2] = covs[:, 2, 0] = sum_xz / counts - mean_x * mean_z
         covs[:, 1, 2] = covs[:, 2, 1] = sum_yz / counts - mean_y * mean_z
 
-        
-        # clamp any negative variances to exactly zero
+        # 5) clamp any negative variances to exactly zero
         diag = np.diagonal(covs, axis1=1, axis2=2)
         diag_clamped = np.clip(diag, 0.0, None)
         for d in range(3):
@@ -1126,7 +1125,7 @@ class Vapc:
         header = laspy.LasHeader(point_format=las_point_format, version=las_version)
         header.scales = las_scales
         header.offsets = las_offset
-        print(self.epoch.cloud.shape)
+        
         if self.mapped:
             las = laspy.LasData(header)
             las.xyz = self.epoch.cloud
@@ -1157,7 +1156,6 @@ class Vapc:
 
         # then write any computed/mapped features
         for name, arr in self.out.items():
-            print(f"Feature {name} has shape {arr.shape} and dtype {arr.dtype}")
             if name not in ("X","Y","Z","x","y","z"):
                 # Check if self.extra_dims.dtype.names AttributeError: 'NoneType' object has no attribute 'dtype'
                 if self.extra_dims is not None:
@@ -1333,3 +1331,21 @@ class Vapc:
                 PlyElement.describe(vertex_array, 'vertex'),
                 PlyElement.describe(face_array,   'face'),
             ], text=False).write(f)
+
+    @timeit
+    @trace
+    def filter(self,filter, overwrite=False):
+        new_epoch = Epoch(self.epoch.cloud[filter])
+        new_vapc = Vapc(new_epoch, voxel_size=self.voxel_size, origin=list(self.origin))
+        new_vapc.use_octree = self.use_octree
+        new_vapc.out = {k: v[filter] for k, v in self.out.items()}
+        new_vapc.unique_voxels = self.unique_voxels[filter]
+
+        if overwrite:
+            self.epoch = new_epoch
+            self.out = new_vapc.out
+            self.mapped = True
+            self.unique_voxels = new_vapc.unique_voxels
+            return self
+        
+        return new_vapc
