@@ -49,10 +49,11 @@ copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 
 [tool.scikit-build.cmake]
 minimum-version = "3.30"
+build-type = "RelWithDebInfo"
 
 [tool.scikit-build.cmake.define]
 BUILD_DOCS = "OFF"
-BUILD_TESTING = "OFF"
+BUILD_TESTING = "ON"
 
 # The next section configures building wheels in Continuous Integration
 # The cibuildwheel documentation covers the available options in detail:

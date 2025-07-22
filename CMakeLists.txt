@@ -28,7 +28,7 @@ set(BUILD_DOCS
     ON
     CACHE BOOL "Enable building of documentation")
 set(BUILD_BENCHMARKS
-    OFF
+    ON
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
     ON

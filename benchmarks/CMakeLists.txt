@@ -23,3 +23,7 @@ add_executable(multiscale_normal multiscale_normal.cpp)
 target_link_libraries(multiscale_normal PUBLIC benchmark::benchmark
                                                py4dgeo_test)
 add_test(NAME multiscale_normal COMMAND multiscale_normal)
+
+add_executable(multiscale_normal_debug multiscale_normal_debug.cpp)
+
+target_link_libraries(multiscale_normal_debug PUBLIC py4dgeo py4dgeo_test)
