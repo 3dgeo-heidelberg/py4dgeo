@@ -4,7 +4,8 @@ target_link_libraries(py4dgeo_test PUBLIC py4dgeo)
 target_compile_definitions(
   py4dgeo_test
   PUBLIC PY4DGEO_TEST_DATA_DIRECTORY="${CMAKE_SOURCE_DIR}/tests/data")
-target_include_directories(py4dgeo_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(py4dgeo_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
+                                               Threads::Threads)
 
 # The Catch test executable
 add_executable(
@@ -18,7 +19,8 @@ add_executable(
   registration_t.cpp
   segmentation_t.cpp
   searchtrees_t.cpp)
-target_link_libraries(tests PUBLIC py4dgeo py4dgeo_test Catch2::Catch2)
+target_link_libraries(tests PUBLIC py4dgeo py4dgeo_test Catch2::Catch2
+                                   Threads::Threads)
 
 # allow user to run tests with `make test` or `ctest`
 catch_discover_tests(tests)
