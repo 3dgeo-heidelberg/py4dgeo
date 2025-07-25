@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import cv2
 import rasterio
 from PIL import Image
@@ -150,12 +151,6 @@ class PCloudProjection:
             dest.update_tags(**custom_tags)
 
     def data_prep(self):
-        # Load the .las/.laz file
-        # with laspy.open(self.pc_path) as las_file:
-        #     self.las_f = las_file.read()
-        # x = np.array(self.las_f.x)
-        # y = np.array(self.las_f.y)
-        # z = np.array(self.las_f.z)
         if self.make_color_image:
             self.red = np.array(self.las_f.red)
             self.green = np.array(self.las_f.green)
@@ -166,8 +161,6 @@ class PCloudProjection:
                 self.red = (self.red / 65535.0 * 255).astype(np.uint8)
                 self.green = (self.green / 65535.0 * 255).astype(np.uint8)
                 self.blue = (self.blue / 65535.0 * 255).astype(np.uint8)
-
-        # self.xyz = np.vstack((x, y, z)).T
 
         # Computing xyz coord means
         self.mean_x = np.mean(self.xyz[:, 0])
@@ -190,9 +183,7 @@ class PCloudProjection:
         self.v_res = self.h_res = np.rad2deg(alpha_rad)
 
         # Get spherical coordinates
-        r, theta, phi = xyz_2_spherical(
-            self.xyz
-        )  # Outputs r, theta (radians), phi (radians)
+        r, theta, phi = xyz_2_spherical(self.xyz)  # Outputs r, theta (radians), phi (radians)
         # Convert radians to degrees
         theta_deg, phi_deg = np.rad2deg(theta), np.rad2deg(phi)
 
@@ -224,14 +215,20 @@ class PCloudProjection:
         u = np.round((theta_deg - self.h_fov[0]) / self.h_res).astype(int)
         v = np.round((phi_deg - self.v_fov[0]) / self.v_res).astype(int)
 
-        # Filter points within range
-        valid_indices = (
-            (u >= 0) & (u < self.h_img_res) & (v >= 0) & (v < self.v_img_res)
-        )
+        # At each pixel (u, v), we keep the point with the smallest radius (r)
+        df = pd.DataFrame({'u': u, 'v': v, 'r': r})
+        df['idx'] = np.arange(len(u))
+        min_idx = df.loc[df.groupby(['u', 'v'])['r'].idxmin(), 'idx'].values
+
+        # valid_indices = np.zeros(len(df), dtype=bool)
+        valid_indices = np.zeros(len(df), dtype=bool)
+        # valid_indices[min_idx] = False
+        valid_indices[min_idx] = True
+
         self.u = u[valid_indices]
         self.v = v[valid_indices]
         self.r = r[valid_indices]
-        self.r = (self.r - np.min(self.r)) * 255 / np.max(self.r - np.min(self.r))
+        self.r = (self.r-np.min(self.r))*255/np.max(self.r-np.min(self.r))
         if self.make_color_image:
             self.red = self.red[valid_indices]
             self.green = self.green[valid_indices]
@@ -256,20 +253,19 @@ class PCloudProjection:
         self.color_image[self.u, self.v, 0] = self.red
         self.color_image[self.u, self.v, 1] = self.green
         self.color_image[self.u, self.v, 2] = self.blue
-        # Compute shading (Lambertian model)
-        # Light direction for the image to have the right shading
-        light_dir_x = abs(self.camera_position[0] - self.mean_x)
-        light_dir_y = abs(self.camera_position[1] - self.mean_y)
-        light_dir_z = abs(self.camera_position[2] - self.mean_z)
-        light_direction = np.array(
-            [light_dir_x, light_dir_y, light_dir_z]
-        )  # Direction of the light source
-        light_direction = light_direction / np.linalg.norm(light_direction)  # Normalize
-
-        dot_product = np.sum(self.norms * light_direction, axis=2)
-        shading = np.clip(dot_product * self.rgb_light_intensity, 0, 1)
-
         if self.apply_shading:
+            # Compute shading (Lambertian model)
+            # Light direction for the image to have the right shading
+            light_dir_x = abs(self.camera_position[0] - self.mean_x)
+            light_dir_y = abs(self.camera_position[1] - self.mean_y)
+            light_dir_z = abs(self.camera_position[2] - self.mean_z)
+            light_direction = np.array(
+                [light_dir_x, light_dir_y, light_dir_z]
+            )  # Direction of the light source
+            light_direction = light_direction / np.linalg.norm(light_direction)  # Normalize
+
+            dot_product = np.sum(self.norms * light_direction, axis=2)
+            shading = np.clip(dot_product * self.rgb_light_intensity, 0, 1)
             # Apply smoothed shading to the color image
             shaded_color_image = (
                 self.color_image.astype(np.float32) * shading[..., np.newaxis]
@@ -281,16 +277,15 @@ class PCloudProjection:
 
         # Apply median filter to selectively remove isolated black pixels
         shaded_color_image = self.remove_isolated_black_pixels(shaded_color_image)
-
         self.shaded_image = self.apply_smoothing(shaded_color_image)
-
         self.image_type = "Color"
 
     def apply_shading_to_range_img(self):
         # Populate the range image with the radius (scanner to point distance)
-        self.range_image[self.u, self.v, 0] = self.range_image[self.u, self.v, 1] = (
-            self.range_image[self.u, self.v, 2]
-        ) = (self.r + self.range_light_intensity)
+        self.range_image[self.u, self.v, 0] = \
+            self.range_image[self.u, self.v, 1] = \
+            self.range_image[self.u, self.v, 2] = \
+            self.r + self.range_light_intensity
 
         if self.apply_shading:
             # Shade the range image with the normals
