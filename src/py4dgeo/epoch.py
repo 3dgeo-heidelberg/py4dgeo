@@ -532,7 +532,7 @@ class Epoch(_py4dgeo.Epoch):
         _py4dgeo.Epoch.__setstate__(self, base)
 
     def project_pc(self, **args):
-        """ Create a PCloudProjection object for this epoch.
+        """Create a PCloudProjection object for this epoch.
         This class is responsible for projecting a 3D point cloud into 2D images, such as range and color images,
         with optional shading and smoothing. It supports saving the generated images with metadata.
 
@@ -546,7 +546,7 @@ class Epoch(_py4dgeo.Epoch):
             rgb_light_intensity (int, optional): Intensity of the light for the RGB image. Defaults to 100.
             range_light_intensity (int, optional): Intensity of the light for the range image. Defaults to 100.
             apply_shading (bool, optional): Whether to apply shading to the images. Defaults to True.
-            """
+        """
         # Ensure that we have a valid epoch
         if self.scanpos_info is None:
             raise Py4DGeoError("Cannot project without scan position information!")
