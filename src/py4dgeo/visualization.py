@@ -178,6 +178,7 @@ class PCloudProjection:
                 + (self.camera_position[2] - self.mean_z) ** 2
             )
         )
+
         # Getting vertical and horizontal resolutions in degrees. Both calculated with the range and the pixel dimension
         alpha_rad = np.arctan2(self.resolution_cm / 100, range)
         self.v_res = self.h_res = np.rad2deg(alpha_rad)
@@ -214,8 +215,8 @@ class PCloudProjection:
         )
 
         # Map angles to pixel indices
-        u = np.round((theta_deg - self.h_fov[0]) / self.h_res).astype(int)
-        v = np.round((phi_deg - self.v_fov[0]) / self.v_res).astype(int)
+        u = np.floor((theta_deg - self.h_fov[0]) / self.h_res).astype(int)
+        v = np.floor((phi_deg - self.v_fov[0]) / self.v_res).astype(int)
 
         # At each pixel (u, v), we keep the point with the smallest radius (r)
         df = pd.DataFrame({"u": u, "v": v, "r": r})

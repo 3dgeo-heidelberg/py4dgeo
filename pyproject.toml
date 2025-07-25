@@ -42,7 +42,8 @@ dependencies = [
     "psutil",
     "rasterio",
     "opencv-python",
-    "shapely"
+    "shapely",
+    "cv2"
 ]
 
 # Command line scripts installed as part of the installation
