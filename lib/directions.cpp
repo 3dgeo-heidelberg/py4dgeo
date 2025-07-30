@@ -31,46 +31,61 @@ compute_multiscale_directions(const Epoch& epoch,
   auto radius_search = get_radius_search_function(epoch, normal_radii);
 
   // Instantiate a container for the first thrown exception in
-  // the following parallel region.
+  // the following parallel region. This is required because OpenMP
+  // does not have a built-in mechanism to propagate exceptions
+  // from parallel regions to the main thread.
   CallbackExceptionVault vault;
+
 #ifdef PY4DGEO_WITH_OPENMP
-#pragma omp parallel for schedule(dynamic, 1)
+#pragma omp parallel
 #endif
-  for (IndexType i = 0; i < corepoints.rows(); ++i) {
+  {
     vault.run([&]() {
-      double highest_planarity = 0.0;
-      Eigen::Matrix3d cov;
-      Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
+      // Get the thread index
+      int ti = omp_get_thread_num();
+      int num_threads = omp_get_num_threads();
+
+      // We allocate some data structures outside below loop to avoid
+      // repeated allocations in the parallel region. For std::vector,
+      // we are relying on it not being shrinked, even when we clear it.
       RadiusSearchResult points;
-      for (std::size_t r = 0; r < normal_radii.size(); ++r) {
 
-        radius_search(corepoints.row(i), r, points);
+      for (IndexType bi = 0; bi < corepoints.rows() / num_threads; ++bi) {
+        std::size_t i = ti * (corepoints.rows() / num_threads) + bi;
 
-        EigenPointCloud subset = epoch.cloud(points, Eigen::all);
+        double highest_planarity = 0.0;
+        Eigen::Matrix3d cov;
+        Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
+        for (std::size_t r = 0; r < normal_radii.size(); ++r) {
+          points.clear();
+          radius_search(corepoints.row(i), r, points);
 
-        // Calculate covariance matrix
-        const Eigen::Vector3d mean = subset.colwise().mean();
-        subset.rowwise() -= mean.transpose();
-        // only need the lower-triangular elements of the covariance matrix
-        cov.diagonal() = subset.colwise().squaredNorm();
-        cov(1, 0) = subset.col(0).dot(subset.col(1));
-        cov(2, 0) = subset.col(0).dot(subset.col(2));
-        cov(2, 1) = subset.col(1).dot(subset.col(2));
-        cov /= double(subset.rows() - 1);
+          EigenPointCloud subset = epoch.cloud(points, Eigen::all);
 
-        // Calculate Eigen vectors
-        solver.computeDirect(cov);
-        const Eigen::Vector3d& evalues = solver.eigenvalues();
-        const Eigen::Vector3d evec = solver.eigenvectors().col(0);
+          // Calculate covariance matrix
+          const Eigen::Vector3d mean = subset.colwise().mean();
+          subset.rowwise() -= mean.transpose();
+          // only need the lower-triangular elements of the covariance matrix
+          cov.diagonal() = subset.colwise().squaredNorm();
+          cov(1, 0) = subset.col(0).dot(subset.col(1));
+          cov(2, 0) = subset.col(0).dot(subset.col(2));
+          cov(2, 1) = subset.col(1).dot(subset.col(2));
+          cov /= double(subset.rows() - 1);
 
-        // Calculate planarity
-        double planarity = (evalues[1] - evalues[0]) / evalues[2];
-        if (planarity > highest_planarity) {
-          highest_planarity = planarity;
+          // Calculate Eigen vectors
+          solver.computeDirect(cov);
+          const Eigen::Vector3d& evalues = solver.eigenvalues();
+          const Eigen::Vector3d evec = solver.eigenvectors().col(0);
 
-          double sign = (evec.dot(orientation_vector) < 0.0) ? -1.0 : 1.0;
-          result.row(i) = sign * evec;
-          used_radii[i] = normal_radii[r];
+          // Calculate planarity
+          double planarity = (evalues[1] - evalues[0]) / evalues[2];
+          if (planarity > highest_planarity) {
+            highest_planarity = planarity;
+
+            double sign = (evec.dot(orientation_vector) < 0.0) ? -1.0 : 1.0;
+            result.row(i) = sign * evec;
+            used_radii[i] = normal_radii[r];
+          }
         }
       }
     });
