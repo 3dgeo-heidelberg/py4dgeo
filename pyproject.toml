@@ -40,7 +40,11 @@ dependencies = [
     "scikit-learn",
     "vedo",
     "xdg",
-    "psutil"
+    "psutil",
+    "rasterio",
+    "opencv-python",
+    "shapely",
+    "cv2"
 ]
 
 # Command line scripts installed as part of the installation

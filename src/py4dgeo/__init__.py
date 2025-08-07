@@ -34,3 +34,5 @@ from py4dgeo.util import (
 initialize_openmp_defaults()
 
 from py4dgeo.pbm3c2 import *
+
+from py4dgeo import visualization
