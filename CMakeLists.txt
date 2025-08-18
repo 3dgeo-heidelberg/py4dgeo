@@ -15,7 +15,7 @@ include(GNUInstallDirs)
 
 # Define the minimum C++ standard that is required
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_COMPILER C:/llvm-18.1.8/bin/clang-cl.exe)
 
 # Enable PIC for Python bindings
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -56,16 +56,25 @@ add_library(
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
-if(PY4DGEO_WITH_OPENMP)
-  if(MSVC)
-    include(CheckCXXCompilerFlag)
-    check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
-    if(MSVC_SUPPORTS_OPENMP_LLVM)
-      set(OpenMP_RUNTIME_MSVC "llvm")
-    endif()
-  endif()
 
+
+message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
+message(STATUS "C++ compiler ID: ${CMAKE_CXX_COMPILER_ID}")
+message(STATUS "C++ compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
+if(MSVC)
+  #include(CheckCXXCompilerFlag)
+  #check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
+  #if(MSVC_SUPPORTS_OPENMP_LLVM)
+  #  set(OpenMP_RUNTIME_MSVC "llvm")
+  #endif()
+  add_compile_options(/GL /fp:fast)
+  #add_link_options(/LTCG)
+endif()
+
+if(PY4DGEO_WITH_OPENMP)
   find_package(OpenMP)
+  message(STATUS "OpenMP_CXX_FLAGS: ${OpenMP_CXX_FLAGS}")
+  message(STATUS "OpenMP_CXX_LIBRARIES: ${OpenMP_CXX_LIBRARIES}")
   if(OpenMP_FOUND)
     target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP
