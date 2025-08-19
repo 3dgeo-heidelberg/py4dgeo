@@ -36,13 +36,19 @@ jobs:
       if: runner.os == 'Windows'
       run: clang-cl --version
 
-    - name: Build wheels
+    - name: Build wheels on Windows
       uses: pypa/cibuildwheel@v2.23
+      if: runner.os == 'Windows'
       env:
-        CC: ${{ runner.os == 'Windows' && 'clang-cl' || '' }}
-        CXX: ${{ runner.os == 'Windows' && 'clang-cl' || '' }}
-        CMAKE_ARGS: ${{ runner.os == 'Windows' && '-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl' || '' }}
-        MACOSX_DEPLOYMENT_TARGET: ${{ runner.os == 'macOS' && matrix.target || '' }}
+        CC: clang-cl
+        CXX: clang-cl
+        CMAKE_ARGS: "-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl"
+
+    - name: Build wheels on non-Windows
+      uses: pypa/cibuildwheel@v2.23
+      if: runner.os != 'Windows'
+      env:
+        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     - uses: actions/upload-artifact@v4
       with:
