@@ -37,7 +37,7 @@ jobs:
       run: clang-cl --version
 
     - name: Build wheels on Windows
-      uses: pypa/cibuildwheel@v2.23
+      uses: pypa/cibuildwheel@v3.1
       if: runner.os == 'Windows'
       env:
         CC: clang-cl
@@ -45,7 +45,7 @@ jobs:
         CMAKE_ARGS: "-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl"
 
     - name: Build wheels on non-Windows
-      uses: pypa/cibuildwheel@v2.23
+      uses: pypa/cibuildwheel@v3.1
       if: runner.os != 'Windows'
       env:
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
