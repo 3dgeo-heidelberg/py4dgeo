@@ -32,15 +32,19 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: Build wheels
-      uses: pypa/cibuildwheel@v2.23
-      env:
-        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
+    - name: Clang version
+      if: runner.os == 'Windows'
+      run: clang-cl --version
 
-    - uses: actions/upload-artifact@v4
-      with:
-        name: wheels-${{ matrix.os }}
-        path: ./wheelhouse/*.whl
+    #- name: Build wheels
+    #  uses: pypa/cibuildwheel@v2.23
+    #  env:
+    #    MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
+
+    #- uses: actions/upload-artifact@v4
+    #  with:
+    #    name: wheels-${{ matrix.os }}
+    #    path: ./wheelhouse/*.whl
 
   build-sdist:
     name: Build source distribution
