@@ -15,9 +15,7 @@ include(GNUInstallDirs)
 
 # Define the minimum C++ standard that is required
 set(CMAKE_CXX_STANDARD 17)
-if(MSVC)
-  set(CMAKE_CXX_COMPILER C:/llvm-20.1.8/bin/clang-cl.exe)
-endif()
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Enable PIC for Python bindings
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
