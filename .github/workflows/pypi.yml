@@ -88,6 +88,9 @@ jobs:
         with:
           submodules: 'recursive'
 
+      - name: Show runner arch
+        run: uname -a
+
       - uses: actions/setup-python@v5
         name: Install Python
         with:
