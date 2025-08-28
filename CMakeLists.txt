@@ -31,8 +31,17 @@ set(BUILD_BENCHMARKS
     ON
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
-    ON
+    OFF
     CACHE BOOL "Enable OpenMP parallelization")
+set(PY4DGEO_WITH_TBB
+    ON
+    CACHE BOOL "Enable TBB parallelization")
+
+# Ensure only one (or none) is enabled
+if(PY4DGEO_WITH_OPENMP AND PY4DGEO_WITH_TBB)
+  message(
+    FATAL_ERROR "Both OpenMP and TBB are enabled! Choose only one (or none).")
+endif()
 
 # Check that the repository was clone recursively
 if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
@@ -77,6 +86,15 @@ if(PY4DGEO_WITH_OPENMP)
   if(OpenMP_FOUND)
     target_link_libraries(py4dgeo PUBLIC OpenMP::OpenMP_CXX)
     target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_OPENMP
+                                              EIGEN_DONT_PARALLELIZE)
+  endif()
+endif()
+
+if(PY4DGEO_WITH_TBB)
+  find_package(TBB)
+  if(TBB_FOUND)
+    target_link_libraries(py4dgeo PUBLIC TBB::tbb)
+    target_compile_definitions(py4dgeo PUBLIC PY4DGEO_WITH_TBB
                                               EIGEN_DONT_PARALLELIZE)
   endif()
 endif()
