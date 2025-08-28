@@ -196,8 +196,8 @@ If you want to (a) implement your method or (b) provide a new example using py4d
    - what changed (code, tests, docs)
    - how to run the demo/tests
    - any open questions or follow-ups
-4. **Address reviews through follow-up commits** (if applicaple)
-   
+4. **Address reviews through follow-up comments** (if applicaple)
+
    When checks are green and reviews are satisfied, a maintainer will merge.
 5. **Verify your docs/examples** on the next docs build.
 
@@ -208,7 +208,7 @@ For any issues or questions during any of the steps, do not hesitate to open an 
 See [LICENSE.md](LICENSE.md).
 
 
-## 📚 Related literature
+## 📚 Literature
 
 * Anders, K., Winiwarter, L., Mara, H., Lindenbergh, R., Vos, S.E. & Höfle, B. (2021): Fully automatic spatiotemporal segmentation of 3D LiDAR time series for the extraction of natural surface changes. ISPRS Journal of Photogrammetry and Remote Sensing, 173, pp. 297-308. DOI: [10.1016/j.isprsjprs.2021.01.015](https://doi.org/10.1016/j.isprsjprs.2021.01.015).
 * Lague, D., Brodu, N., & Leroux, J. (2013). Accurate 3D comparison of complex topography with terrestrial laser scanner: Application to the Rangitikei canyon (N-Z). ISPRS Journal of Photogrammetry and Remote Sensing, 82, pp. 10-26. DOI: [10.1016/j.isprsjprs.2013.04.009](https://doi.org/10.1016/j.isprsjprs.2013.04.009).
