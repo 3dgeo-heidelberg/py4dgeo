@@ -16,6 +16,9 @@ include(GNUInstallDirs)
 # Define the minimum C++ standard that is required
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(MSVC)
+  set(CMAKE_CXX_COMPILER C:/llvm-21.1.0/bin/clang-cl.exe)
+endif()
 
 # Enable PIC for Python bindings
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
@@ -31,10 +34,10 @@ set(BUILD_BENCHMARKS
     ON
     CACHE BOOL "Enable building of benchmark applications")
 set(PY4DGEO_WITH_OPENMP
-    OFF
+    ON
     CACHE BOOL "Enable OpenMP parallelization")
 set(PY4DGEO_WITH_TBB
-    ON
+    OFF
     CACHE BOOL "Enable TBB parallelization")
 
 # Ensure only one (or none) is enabled
@@ -61,7 +64,8 @@ add_library(
   lib/octree.cpp
   lib/registration.cpp
   lib/segmentation.cpp
-  lib/searchtree.cpp)
+  lib/searchtree.cpp
+  lib/mimalloc_init.cpp)
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
@@ -70,13 +74,29 @@ message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
 message(STATUS "C++ compiler ID: ${CMAKE_CXX_COMPILER_ID}")
 message(STATUS "C++ compiler version: ${CMAKE_CXX_COMPILER_VERSION}")
 if(MSVC)
-  include(CheckCXXCompilerFlag)
-  check_cxx_compiler_flag("/openmp:llvm" MSVC_SUPPORTS_OPENMP_LLVM)
-  if(MSVC_SUPPORTS_OPENMP_LLVM)
-    set(OpenMP_RUNTIME_MSVC "llvm")
+
+  # include(CheckCXXCompilerFlag) check_cxx_compiler_flag("/openmp:llvm"
+  # MSVC_SUPPORTS_OPENMP_LLVM) if(MSVC_SUPPORTS_OPENMP_LLVM)
+  # set(OpenMP_RUNTIME_MSVC "llvm") endif() add_compile_options(/GL /fp:fast)
+  # add_link_options(/LTCG)
+  set(MIMALLOC_DIR "C:/Users/Thomas/Projects/mimalloc/out/release/Release")
+  set(MIMALLOC_INCLUDE_DIR "C:/Users/Thomas/Projects/mimalloc/include")
+
+  if(NOT EXISTS "${MIMALLOC_DIR}/mimalloc.lib")
+    message(FATAL_ERROR "mimalloc.lib not found in ${MIMALLOC_DIR}")
   endif()
-  add_compile_options(/GL /fp:fast)
-  add_link_options(/LTCG)
+
+  target_include_directories(py4dgeo PRIVATE "${MIMALLOC_INCLUDE_DIR}")
+
+  # Link against mimalloc dynamically
+  target_link_libraries(py4dgeo PRIVATE "${MIMALLOC_DIR}/mimalloc.lib")
+
+  # Optional: ensure the linker keeps it
+  target_compile_definitions(py4dgeo PRIVATE "MIMALLOC_DYNAMIC_LINK=1")
+
+  # target_sources(py4dgeo PRIVATE lib/mimalloc_init.cpp)
+
+  target_compile_options(py4dgeo PRIVATE /MD)
 endif()
 
 if(PY4DGEO_WITH_OPENMP)

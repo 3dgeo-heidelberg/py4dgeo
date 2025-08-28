@@ -28,6 +28,16 @@ target_link_libraries(multiscale_normal PUBLIC benchmark::benchmark
 add_test(NAME multiscale_normal COMMAND multiscale_normal)
 
 add_executable(multiscale_normal_debug multiscale_normal_debug.cpp)
-
+set(MIMALLOC_DIR "C:/Users/Thomas/Projects/mimalloc/out/release/Release")
+set(MIMALLOC_INCLUDE_DIR "C:/Users/Thomas/Projects/mimalloc/include")
+target_include_directories(multiscale_normal_debug
+                           PRIVATE ${CMAKE_SOURCE_DIR}/../mimalloc/include)
 target_link_libraries(multiscale_normal_debug PUBLIC py4dgeo py4dgeo_test
                                                      Threads::Threads)
+if(MSVC)
+  set(MIMALLOC_DIR "C:/Users/Thomas/Projects/mimalloc/out/release/Release")
+  target_link_libraries(multiscale_normal_debug
+                        PRIVATE "${MIMALLOC_DIR}/mimalloc.lib")
+  target_compile_definitions(multiscale_normal_debug
+                             PRIVATE MIMALLOC_DYNAMIC_LINK=1)
+endif()

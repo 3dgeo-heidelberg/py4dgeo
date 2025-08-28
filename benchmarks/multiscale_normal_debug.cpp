@@ -6,6 +6,7 @@
 #include <py4dgeo/searchtree.hpp>
 
 #include <Eigen/Core>
+#include <mimalloc.h>
 
 #include <chrono>
 #include <iostream>
@@ -46,6 +47,10 @@ main(int argc, char** argv)
     std::cerr << "Usage: " << argv[0] << " <path-to-pointcloud.xyz>\n";
     return 1;
   }
+
+  std::cout << "mi_version: " << mi_version() << std::endl;
+  void* p = mi_malloc(100);
+  mi_free(p);
 
   // Load point cloud
   std::string filename = argv[1];
