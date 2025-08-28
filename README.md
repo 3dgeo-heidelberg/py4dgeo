@@ -197,7 +197,7 @@ If you want to (a) implement your method or (b) provide a new example using py4d
    - how to run the demo/tests
    - any open questions or follow-ups
 4. **Address reviews through follow-up comments** (if applicaple)
-   
+
    When checks are green and reviews are satisfied, a maintainer will merge.
 5. **Verify your docs/examples** on the next docs build.
 
