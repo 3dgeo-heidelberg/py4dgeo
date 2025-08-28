@@ -182,16 +182,26 @@ Scientific requests can be directed to the [3DGeo Research Group Heidelberg](htt
 
 ## 📄 How to contribute
 
-We welcome contributions of new method  and demonstrations to help users better understand and apply `py4dgeo` functionality.
+We welcome contributions of new methods and usage demonstrations to help users better understand and apply `py4dgeo` functionality.
 
-If you want to contribute a new example or method, please follow the steps below:
+If you want to (a) implement your method or (b) provide a new example using py4dgeo functionality, please follow the steps below:
 
-1. **Create a new branch** for your contribution.
-2. **Prepare your demo** using the two templates provided:
-   - [`application_demo.ipynb`](contributor_template/application_demo.ipynb): focuses on use cases of the method.
-   - [`basic_usage.ipynb`](contributor_template/basic_usage.ipynb): focuses on basic usage of the method, shown on [readthedocs](https://py4dgeo.readthedocs.io/en/latest/basic.html).
+1. **Fork the repository and create a branch** for your contribution.
+2. **Prepare your demo** using the templates provided in the [`contributor_template/`](contributor_template/) directory:
+   - (a) [`basic_usage.ipynb`](contributor_template/basic_usage.ipynb): is the basis to document your newly implemented method and will be shown on [readthedocs](https://py4dgeo.readthedocs.io/en/latest/basic.html).
+   - (b) [`application_demo.ipynb`](contributor_template/application_demo.ipynb): focuses on use cases of the method.
 
-📁 You can find demo templates in the [`contributor_template/`](contributor_template/) directory.
+3. **Push your branch and open a pull request** to the py4dgeo repository with:
+   - a one-paragraph summary
+   - what changed (code, tests, docs)
+   - how to run the demo/tests
+   - any open questions or follow-ups
+4. **Address reviews through follow-up comments** (if applicaple)
+   
+   When checks are green and reviews are satisfied, a maintainer will merge.
+5. **Verify your docs/examples** on the next docs build.
+
+For any issues or questions during any of the steps, do not hesitate to open an issue on the [issue tracker](https://github.com/3dgeo-heidelberg/py4dgeo/issues).
 
 ## 📜 License
 
