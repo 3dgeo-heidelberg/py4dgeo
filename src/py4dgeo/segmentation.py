@@ -696,8 +696,9 @@ class SpatiotemporalAnalysis:
             eps = smoothing_window // 2
             timedelta_max = 5
             time_day = np.array([(t - self.reference_epoch.timestamp).total_seconds() / (3600 * 24) for t in timestamps])
-            self.distances[:, np.isnan(self.distances).all(axis=0)] = 0
-            self.distances[np.isnan(self.distances).all(axis=1), :] = 0
+
+            if np.isnan(self.distances[0]).all():
+                self.distances[0] = 0
 
             for i in range(self.distances.shape[1]):
                 day_act = time_day[i]
@@ -749,8 +750,8 @@ class SpatiotemporalAnalysis:
             median_lod = np.nanmean(lod)
             smoothed = np.empty_like(self.distances)
             eps = smoothing_window // 2
-            # self.distances[:, np.isnan(self.distances).all(axis=0)] = 0
-            # self.distances[np.isnan(self.distances).all(axis=1), :] = 0
+            if np.isnan(self.distances[0]).all():
+                self.distances[0] = 0
 
             timedelta_max = 5
             time_day = np.array([(t - self.reference_epoch.timestamp).total_seconds() / (3600 * 24) for t in timestamps])
@@ -1358,8 +1359,7 @@ class ObjectByChange:
             plot in a Jupyter notebook session.
         :type filename: str
         """
-        print("Indices:", self.indices)
-        print("Distances shape:", self._analysis.distances_for_compute.shape)
+
         # Extract DTW distances from this object
         indexarray = np.fromiter(self.indices, np.int32)
         distarray = np.fromiter((self.distance(i) for i in indexarray), np.float64)
@@ -1773,7 +1773,6 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
         self.seed_subsampling = kwargs.pop("seed_subsampling")
         self.max_change_period = max_change_period
         self.data_gap = data_gap
-        print(self.seed_subsampling)
 
     def find_seedpoints(self, seed_candidates = None):
         from sklearn.tree import DecisionTreeRegressor
@@ -1782,10 +1781,9 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
 
         # list of core point indices to check as seeds
         if self.seed_candidates is None:
-            print(self.seed_subsampling)
             # use all corepoints if no selection is specified, considering subsampling
             seed_candidates_curr = range(0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling)
-            print(len(seed_candidates_curr))
+            print(f'Number of seed_candidates:{len(seed_candidates_curr)}')
         else:
             # use the specified corepoint indices
             seed_candidates_curr = self.seed_candidates
@@ -1801,7 +1799,6 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
             # delete nan values and calculate the gradient of each epoch
 
             idx_nan = np.isnan(timeseries)
-            print(len(timeseries[~idx_nan]), len(timeseries[~idx_nan]))
             dys = np.gradient(timeseries[~idx_nan], time_day[~idx_nan])
 
 
@@ -1854,13 +1851,9 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
             return magn * (-1) # achieve descending order
         return magnitude_sort
 #%%
-
 import numpy as np
 import pickle
-
-#analysis = SpatiotemporalAnalysis('C:/Users/schar/OneDrive/Desktop/Working Student/Tasks/py4dgeo/riverbank_4dobc_test.zip', force = False)
 analysis = SpatiotemporalAnalysis('C:/Users/schar/OneDrive/Desktop/Working Student/Tasks/py4dgeo/Results/DTR_new/riverbank_4dobc_test.zip', force = False)
-# analysis = SpatiotemporalAnalysis('C:/Users/schar/OneDrive/Desktop/Working Student/Tasks/Code Implementation into py4geo/Final/riverbank_4dobc_5cm_cylrad5cm_normalrad20cm50cm.zip', force = False)
 
 timestamps = [t+analysis.reference_epoch.timestamp for t in analysis.timedeltas]
 corepoints = analysis.corepoints.cloud
@@ -1871,14 +1864,15 @@ objects = analysis.objects
 merged = analysis.merge(time_threshold=0.7, spatial_threshold=0.1)
 merged[0].plot()
 
-#%%
-analysis.distances[:,62] = 0
-analysis.distances[:,81] = 0
-analysis.distances[:4,:] = 0
+# #%%
+# analysis.distances[:,62] = 0
+# analysis.distances[:,81] = 0
+# analysis.distances[:4,:] = 0
+# #%%
+# analysis.distances[0,:] = 0
 
-
 #%%
-analysis.extract('RDP', 5, 1000, 200, 828)
+analysis.extract('DTR', 5, 1000, 200, 828)
 
 #%%
 analysis.invalidate_results(True, True, True)
