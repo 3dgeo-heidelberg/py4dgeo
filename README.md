@@ -55,7 +55,6 @@ Using py4dgeo requires the following software installed:
 In order to build the package from source, the following tools are also needed.
 
 * A C++17-compliant compiler
-* CMake `>= 3.9`
 * Doxygen (optional, documentation building is skipped if missing)
 
 ### Installing py4dgeo
