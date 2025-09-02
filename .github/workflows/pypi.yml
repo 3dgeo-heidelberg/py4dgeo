@@ -43,6 +43,7 @@ jobs:
         CIBW_ENVIRONMENT: >
           CXX=clang-cl
           CMAKE_CXX_COMPILER=clang-cl
+          CMAKE_ARGS="-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl"
 
     - name: Build wheels on non-Windows
       uses: pypa/cibuildwheel@v3.1
