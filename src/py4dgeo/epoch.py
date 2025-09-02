@@ -776,7 +776,7 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
     )
     for column_id, column_name in additional_dimensions.items():
         additional_columns[column_name] = np.array(
-            lasfile.points[column_id], dtype=np.int32
+            lasfile.points[column_id], dtype=np.float32
         ).reshape(-1, 1)
 
     # Construct Epoch and go into recursion
