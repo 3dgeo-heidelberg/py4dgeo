@@ -40,9 +40,9 @@ jobs:
       uses: pypa/cibuildwheel@v3.1
       if: runner.os == 'Windows'
       env:
-        CC: clang-cl
-        CXX: clang-cl
-        CMAKE_ARGS: "-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl"
+        CIBW_ENVIRONMENT: >
+          CXX=clang-cl
+          CMAKE_CXX_COMPILER=clang-cl
 
     - name: Build wheels on non-Windows
       uses: pypa/cibuildwheel@v3.1
