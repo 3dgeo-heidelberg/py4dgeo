@@ -932,6 +932,12 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # window_jump = 1
         # window_penalty = 1.0
 
+        # Before starting the process, we check if the user has set a reasonable window width parameter
+        if self.window_width >= self.analysis.distances_for_compute.shape[1]:
+            raise Py4DGeoError(
+                "Window width cannot be larger than the length of the time series - please adapt parameter"
+            )
+
         # The list of generated seeds
         seeds = []
 
