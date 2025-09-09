@@ -34,7 +34,9 @@ set(PY4DGEO_WITH_OPENMP
     ON
     CACHE BOOL "Enable OpenMP parallelization")
 
-# Compile the library
+# -------------------------------
+# Compile the core py4dgeo library
+# -------------------------------
 add_library(
   py4dgeo
   lib/directions.cpp
@@ -48,6 +50,10 @@ add_library(
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
+
+# -----------------------------------------
+# Enable OpenMP (if supported and requested)
+# -----------------------------------------
 if(PY4DGEO_WITH_OPENMP)
   if(MSVC)
     include(CheckCXXCompilerFlag)
@@ -65,7 +71,9 @@ if(PY4DGEO_WITH_OPENMP)
   endif()
 endif()
 
-# Compile the tests and benchmarks
+# ----------------------------------------
+# Optionally build tests and benchmarks
+# ----------------------------------------
 include(CTest)
 if(BUILD_TESTING)
   add_subdirectory(tests)
@@ -78,14 +86,21 @@ if(BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
 
-# Add the documentation
+# ----------------------
+# Optionally build docs
+# ----------------------
 if(BUILD_DOCS)
   add_subdirectory(doc)
 endif()
 
+# -----------------------------
+# Optionally build Python module
+# -----------------------------
 if(BUILD_PYTHON)
   # Add Python bindings
   find_package(pybind11 CONFIG REQUIRED)
+
+  # Define Python extension module
   pybind11_add_module(_py4dgeo MODULE src/py4dgeo/py4dgeo_python.cpp)
   target_link_libraries(_py4dgeo PUBLIC py4dgeo)
 
@@ -93,6 +108,8 @@ if(BUILD_PYTHON)
   install(TARGETS _py4dgeo DESTINATION .)
 endif()
 
-# This prints a summary of found dependencies
+# ----------------------
+# Show dependency summary
+# ----------------------
 include(FeatureSummary)
 feature_summary(WHAT ALL)
