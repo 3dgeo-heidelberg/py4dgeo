@@ -34,14 +34,6 @@ set(PY4DGEO_WITH_OPENMP
     ON
     CACHE BOOL "Enable OpenMP parallelization")
 
-# Check that the repository was clone recursively
-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
-  message(
-    FATAL_ERROR
-      "Submodules not found. py4dgeo needs to be either cloned with the"
-      "'--recursive' flag or 'git submodule update --init' needs to be called")
-endif()
-
 # Compile the library
 add_library(
   py4dgeo
@@ -76,8 +68,6 @@ endif()
 # Compile the tests and benchmarks
 include(CTest)
 if(BUILD_TESTING)
-  find_package(Catch2 3 REQUIRED)
-  include(Catch)
   add_subdirectory(tests)
 endif()
 
