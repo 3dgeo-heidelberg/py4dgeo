@@ -76,8 +76,8 @@ endif()
 # Compile the tests and benchmarks
 include(CTest)
 if(BUILD_TESTING)
-  add_subdirectory(ext/Catch2)
-  include(./ext/Catch2/contrib/Catch.cmake)
+  find_package(Catch2 3 REQUIRED)
+  include(Catch)
   add_subdirectory(tests)
 endif()
 
