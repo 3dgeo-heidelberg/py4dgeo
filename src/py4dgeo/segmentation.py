@@ -1855,10 +1855,10 @@ import numpy as np
 import pickle
 analysis = SpatiotemporalAnalysis('C:/Users/schar/OneDrive/Desktop/Working Student/Tasks/py4dgeo/Results/DTR_new/riverbank_4dobc_test.zip', force = False)
 
-timestamps = [t+analysis.reference_epoch.timestamp for t in analysis.timedeltas]
-corepoints = analysis.corepoints.cloud
-smoothed_distances = analysis.smoothed_distances
-objects = analysis.objects
+# timestamps = [t+analysis.reference_epoch.timestamp for t in analysis.timedeltas]
+# corepoints = analysis.corepoints.cloud
+# smoothed_distances = analysis.smoothed_distances
+# objects = analysis.objects
 
 #%%
 merged = analysis.merge(time_threshold=0.7, spatial_threshold=0.1)
