@@ -25,6 +25,40 @@ using NearestNeighborsDistanceResult =
 //! Return type used for nearest neighbor searches
 using NearestNeighborsResult = std::vector<std::vector<IndexType>>;
 
+struct WithDistancesReturnSet2
+{
+  using DistanceType = double;
+
+  double radius;
+  RadiusSearchDistanceResult& result;
+  std::vector<IndexType> indices;
+
+  inline std::size_t size() const { return result.size(); }
+  inline bool full() const { return true; }
+
+  inline bool addPoint(double dist_sq, IndexType idx)
+  {
+    if (dist_sq < radius)
+      result.emplace_back(idx, dist_sq);
+    return true;
+  }
+
+  inline double worstDist() const { return radius; }
+
+  inline void sort()
+  {
+    std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
+      return a.second < b.second;
+    });
+
+    // Now rebuild indices to match the new order
+    indices.clear();
+    indices.reserve(result.size());
+    for (const auto& [idx, dist] : result)
+      indices.push_back(idx);
+  }
+};
+
 enum class SearchTree
 {
   KDTree,
@@ -48,7 +82,7 @@ using RadiusSearchFuncSingle =
   std::function<void(const Eigen::Vector3d&, RadiusSearchResult&)>;
 
 using RadiusSearchDistanceFuncSingle =
-  std::function<void(const Eigen::Vector3d&, RadiusSearchDistanceResult&)>;
+  std::function<void(const Eigen::Vector3d&, WithDistancesReturnSet2&)>;
 
 /**
  * @brief Function type for performing a multi-radius search.

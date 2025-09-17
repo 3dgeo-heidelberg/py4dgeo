@@ -124,6 +124,7 @@ private:
     }
   };
 
+private:
   //! The NanoFLANN index implementation that we use
   using KDTreeImpl = nanoflann::KDTreeSingleIndexAdaptor<
     nanoflann::L2_Simple_Adaptor<double, Adaptor, double>,
@@ -204,6 +205,9 @@ public:
     const double* querypoint,
     double radius,
     RadiusSearchDistanceResult& result) const;
+
+  std::size_t radius_search_with_distances2(const double* querypoint,
+                                            WithDistancesReturnSet2& set) const;
 
   /** @brief Calculate the nearest neighbors with Euclidian distance for an
    * entire point cloud

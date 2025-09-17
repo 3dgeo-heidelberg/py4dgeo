@@ -88,6 +88,14 @@ KDTree::radius_search_with_distances(const double* query,
   return search->radiusSearchCustomCallback(query, set, params);
 }
 
+std::size_t
+KDTree::radius_search_with_distances2(const double* query,
+                                      WithDistancesReturnSet2& set) const
+{
+  nanoflann::SearchParameters params;
+  return search->radiusSearchCustomCallback(query, set, params);
+}
+
 void
 KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
                                          NearestNeighborsDistanceResult& result,

@@ -13,8 +13,6 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
-#include <ranges>
-#include <span>
 #include <vector>
 
 namespace py4dgeo {
@@ -49,34 +47,31 @@ compute_multiscale_directions(const Epoch& epoch,
       Eigen::Matrix3d cov;
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
       RadiusSearchDistanceResult points_with_distances;
+      WithDistancesReturnSet2 set{ sorted_radii.back() * sorted_radii.back(),
+                                   points_with_distances };
+      ;
 
-      radius_search(corepoints.row(i),
-                    points_with_distances); // ascending or descending?
-
-      // define a reusable view over just the indices
-      auto index_view =
-        points_with_distances |
-        std::views::transform([](const auto& p) { return p.first; });
-
-      auto dist_view =
-        points_with_distances |
-        std::views::transform([](const auto& p) { return p.second; });
-
-      auto it = dist_view.begin(); // iterator into distances
+      radius_search(corepoints.row(i), set);
 
       for (double radius : sorted_radii) {
         double r2 = radius * radius;
 
-        // how many entries are within the current radius?
-        std::size_t cutoff = std::distance(
-          dist_view.begin(), std::ranges::upper_bound(dist_view, r2));
+        auto it =
+          std::upper_bound(set.result.begin(),
+                           set.result.end(),
+                           r2,
+                           [](double value, const auto& p) {
+                             return value < p.second; // compare to distance²
+                           });
+
+        std::size_t cutoff = std::distance(set.result.begin(), it);
 
         if (cutoff < 3)
           continue;
 
-        // take the first 'cutoff' indices
-        std::vector<IndexType> indices(index_view.begin(),
-                                       index_view.begin() + cutoff);
+        // Directly slice from sorted set.indices
+        std::vector<IndexType> indices(set.indices.begin(),
+                                       set.indices.begin() + cutoff);
 
         EigenPointCloud subset = epoch.cloud(indices, Eigen::indexing::all);
 
