@@ -23,7 +23,7 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud,
   epoch.kdtree.build_tree(10);
   epoch.octree.build_tree();
 
-  const std::vector<double> normal_radii{ 1.0 };
+  const std::vector<double> normal_radii{ 0.25, 0.5, 1.0 };
   std::vector<double> used_radii;
   EigenNormalSet directions(cloud->rows(), 3);
   EigenNormalSet orientation(1, 3);
@@ -37,6 +37,14 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud,
   std::cout << "compute_multiscale_directions executed in " << duration.count()
             << " seconds.\n";
   std::cout << directions.rows() << " normals computed.\n";
+
+/*  
+  std::cout << "Used radii: ";
+  for (const auto& r : used_radii) {
+    std::cout << r << " ";
+  }
+  std::cout << "\n";
+*/
 }
 
 int

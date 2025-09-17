@@ -14,6 +14,7 @@
 #include <cstddef>
 #include <iostream>
 #include <vector>
+#include <span>
 
 namespace py4dgeo {
 
@@ -28,7 +29,11 @@ compute_multiscale_directions(const Epoch& epoch,
   used_radii.resize(corepoints.rows());
   const Eigen::Vector3d orientation_vector = orientation.row(0).transpose();
 
-  auto radius_search = get_radius_search_function(epoch, normal_radii);
+  // Make sure radii are sorted ascending
+  std::vector<double> sorted_radii = normal_radii;
+  std::sort(sorted_radii.begin(), sorted_radii.end());
+
+  auto radius_search = get_radius_search_with_distances_function(epoch,sorted_radii.back());
 
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
@@ -41,12 +46,28 @@ compute_multiscale_directions(const Epoch& epoch,
       double highest_planarity = 0.0;
       Eigen::Matrix3d cov;
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
-      RadiusSearchResult points;
-      for (std::size_t r = 0; r < normal_radii.size(); ++r) {
+      RadiusSearchDistanceResult points_with_distances;
 
-        radius_search(corepoints.row(i), r, points);
+      radius_search(corepoints.row(i), points_with_distances); // ascending or descending?
 
-        EigenPointCloud subset = epoch.cloud(points, Eigen::indexing::all);
+      std::vector<IndexType> indices;
+      indices.reserve(points_with_distances.size());
+      auto it = points_with_distances.begin();
+      for (double radius : sorted_radii) {
+        double r2 = radius * radius;
+
+        // advance iterator and append new indices
+        while (it != points_with_distances.end() && it->second <= r2) {
+          indices.push_back(it->first);
+          ++it;
+        }
+
+
+        if (indices.size() < 3)
+          continue;
+  
+
+        EigenPointCloud subset = epoch.cloud(indices, Eigen::indexing::all);
 
         // Calculate covariance matrix
         const Eigen::Vector3d mean = subset.colwise().mean();
@@ -70,7 +91,7 @@ compute_multiscale_directions(const Epoch& epoch,
 
           double sign = (evec.dot(orientation_vector) < 0.0) ? -1.0 : 1.0;
           result.row(i) = sign * evec;
-          used_radii[i] = normal_radii[r];
+          used_radii[i] = radius;
         }
       }
     });

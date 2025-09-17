@@ -47,6 +47,9 @@ class Epoch;
 using RadiusSearchFuncSingle =
   std::function<void(const Eigen::Vector3d&, RadiusSearchResult&)>;
 
+using RadiusSearchDistanceFuncSingle =
+  std::function<void(const Eigen::Vector3d&, RadiusSearchDistanceResult&)>;
+
 /**
  * @brief Function type for performing a multi-radius search.
  *
@@ -97,5 +100,8 @@ get_radius_search_function(const Epoch& epoch, double radius);
 RadiusSearchFunc
 get_radius_search_function(const Epoch& epoch,
                            const std::vector<double>& radii);
+
+RadiusSearchDistanceFuncSingle
+get_radius_search_with_distances_function(const Epoch& epoch, double radius);
 
 } // namespace py4dgeo
