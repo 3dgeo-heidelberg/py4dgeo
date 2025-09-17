@@ -773,12 +773,15 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
     # build additional_dimensions dtype structure
     additional_columns = np.empty(
         shape=(cloud.shape[0], 1),
-        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+        dtype=np.dtype(
+            [
+                (column_name, lasfile.points[column_id].dtype)
+                for column_id, column_name in additional_dimensions.items()
+            ]
+        ),
     )
     for column_id, column_name in additional_dimensions.items():
-        additional_columns[column_name] = np.array(
-            lasfile.points[column_id], dtype=np.float32
-        ).reshape(-1, 1)
+        additional_columns[column_name] = lasfile.points[column_id].reshape(-1, 1)
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
