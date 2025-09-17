@@ -10,9 +10,11 @@
 #include <Eigen/Eigenvalues>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <cstddef>
 #include <iostream>
+#include <limits>
 #include <vector>
 
 namespace py4dgeo {
@@ -30,6 +32,14 @@ compute_multiscale_directions(const Epoch& epoch,
 
   auto radius_search = get_radius_search_function(epoch, normal_radii);
 
+  std::atomic<std::size_t> total_points{ 0 };
+  std::atomic<std::size_t> max_points{ 0 };
+  std::atomic<std::size_t> min_points{
+    std::numeric_limits<std::size_t>::max()
+  };
+  std::mutex count_mutex;
+  std::vector<std::size_t> all_counts;
+
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
   CallbackExceptionVault vault;
@@ -45,6 +55,22 @@ compute_multiscale_directions(const Epoch& epoch,
       for (std::size_t r = 0; r < normal_radii.size(); ++r) {
 
         radius_search(corepoints.row(i), r, points);
+        std::size_t count = points.size();
+        total_points += count;
+        std::size_t prev_max = max_points.load();
+
+        while (count > prev_max &&
+               !max_points.compare_exchange_weak(prev_max, count))
+          ;
+
+        std::size_t prev_min = min_points.load();
+        while (count < prev_min &&
+               !min_points.compare_exchange_weak(prev_min, count))
+          ;
+        {
+          std::scoped_lock lock(count_mutex);
+          all_counts.push_back(count);
+        }
 
         EigenPointCloud subset = epoch.cloud(points, Eigen::indexing::all);
 
@@ -78,6 +104,21 @@ compute_multiscale_directions(const Epoch& epoch,
 
   // Potentially rethrow an exception that occurred in above parallel region
   vault.rethrow();
+
+  // === NEW: Print stats ===
+  std::size_t num = all_counts.size();
+  double mean = static_cast<double>(total_points.load()) / num;
+  double sq_sum = 0.0;
+  for (std::size_t c : all_counts)
+    sq_sum += (c - mean) * (c - mean);
+  double stddev = std::sqrt(sq_sum / num);
+
+  std::cout << "Stats for radius search:\n"
+            << "  Mean:   " << mean << "\n"
+            << "  Min:    " << min_points.load() << "\n"
+            << "  Max:    " << max_points.load() << "\n"
+            << "  Stddev: " << stddev << "\n";
+  // ==========================
 }
 
 std::vector<double>
