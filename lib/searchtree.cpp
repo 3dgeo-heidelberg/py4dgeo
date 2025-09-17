@@ -67,7 +67,8 @@ get_radius_search_with_distances_function(const Epoch& epoch, double radius)
       epoch.octree.radius_search_with_distances(point, radius, level, out);
     };
   } else {
-    return [&, radius](const Eigen::Vector3d& point, RadiusSearchDistanceResult& out) {
+    return [&, radius](const Eigen::Vector3d& point,
+                       RadiusSearchDistanceResult& out) {
       epoch.kdtree.radius_search_with_distances(point.data(), radius, out);
     };
   }

@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <istream>
 #include <memory>
+#include <numeric>
 #include <ostream>
 #include <vector>
 

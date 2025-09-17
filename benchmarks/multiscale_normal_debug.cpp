@@ -38,13 +38,13 @@ benchmark(std::shared_ptr<EigenPointCloud> cloud,
             << " seconds.\n";
   std::cout << directions.rows() << " normals computed.\n";
 
-/*  
-  std::cout << "Used radii: ";
-  for (const auto& r : used_radii) {
-    std::cout << r << " ";
-  }
-  std::cout << "\n";
-*/
+  /*
+    std::cout << "Used radii: ";
+    for (const auto& r : used_radii) {
+      std::cout << r << " ";
+    }
+    std::cout << "\n";
+  */
 }
 
 int

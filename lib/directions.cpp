@@ -13,8 +13,9 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
-#include <vector>
+#include <ranges>
 #include <span>
+#include <vector>
 
 namespace py4dgeo {
 
@@ -33,7 +34,8 @@ compute_multiscale_directions(const Epoch& epoch,
   std::vector<double> sorted_radii = normal_radii;
   std::sort(sorted_radii.begin(), sorted_radii.end());
 
-  auto radius_search = get_radius_search_with_distances_function(epoch,sorted_radii.back());
+  auto radius_search =
+    get_radius_search_with_distances_function(epoch, sorted_radii.back());
 
   // Instantiate a container for the first thrown exception in
   // the following parallel region.
@@ -48,24 +50,33 @@ compute_multiscale_directions(const Epoch& epoch,
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
       RadiusSearchDistanceResult points_with_distances;
 
-      radius_search(corepoints.row(i), points_with_distances); // ascending or descending?
+      radius_search(corepoints.row(i),
+                    points_with_distances); // ascending or descending?
 
-      std::vector<IndexType> indices;
-      indices.reserve(points_with_distances.size());
-      auto it = points_with_distances.begin();
+      // define a reusable view over just the indices
+      auto index_view =
+        points_with_distances |
+        std::views::transform([](const auto& p) { return p.first; });
+
+      auto dist_view =
+        points_with_distances |
+        std::views::transform([](const auto& p) { return p.second; });
+
+      auto it = dist_view.begin(); // iterator into distances
+
       for (double radius : sorted_radii) {
         double r2 = radius * radius;
 
-        // advance iterator and append new indices
-        while (it != points_with_distances.end() && it->second <= r2) {
-          indices.push_back(it->first);
-          ++it;
-        }
+        // how many entries are within the current radius?
+        std::size_t cutoff = std::distance(
+          dist_view.begin(), std::ranges::upper_bound(dist_view, r2));
 
-
-        if (indices.size() < 3)
+        if (cutoff < 3)
           continue;
-  
+
+        // take the first 'cutoff' indices
+        std::vector<IndexType> indices(index_view.begin(),
+                                       index_view.begin() + cutoff);
 
         EigenPointCloud subset = epoch.cloud(indices, Eigen::indexing::all);
 
