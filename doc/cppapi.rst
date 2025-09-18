@@ -9,12 +9,18 @@ C++ core of :code:`py4dgeo`.
 
 .. doxygenfile:: py4dgeo/epoch.hpp
 
+.. doxygenfile:: py4dgeo/searchtree.hpp
+
 .. doxygenfile:: py4dgeo/kdtree.hpp
+
+.. doxygenfile:: py4dgeo/octree.hpp
 
 .. doxygenfunction:: py4dgeo::compute_distances
 
 .. doxygenfunction:: py4dgeo::compute_multiscale_directions
 
 .. doxygenfile:: py4dgeo/segmentation.hpp
+
+.. doxygenfile:: py4dgeo/registration.hpp
 
 .. doxygenfile:: py4dgeo/openmp.hpp

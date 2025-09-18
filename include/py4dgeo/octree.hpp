@@ -102,15 +102,22 @@ private:
       return arr;
     }();
 
-  //! Generic 8-bit dilation table already built:
+  // Precomputed dilation tables for fast spatial key encoding.
+  // These tables map compact N-bit indices to interleaved bit patterns.
+  // Used in compute_spatial_key(), avoiding runtime bit-manipulation.
+
+  //! Lookup table for dilating 8-bit spatial keys (256 entries), computed at
+  //! compile time.
   inline static constexpr auto dilate8_table =
     make_dilate_table<SpatialKey, 8>(); // 256 entries
 
-  //! Generic 5-bit dilation table already built:
+  //! Lookup table for dilating 5-bit spatial keys (32 entries), computed at
+  //! compile time
   inline static constexpr auto dilate5_table =
     make_dilate_table<SpatialKey, 5>(); // 32 entries
 
-  //! Generic 2-bit dilation table already built:
+  //! Lookup table for dilating 2-bit spatial keys (4 entries), computed at
+  //! compile time
   inline static constexpr auto dilate2_table =
     make_dilate_table<SpatialKey, 2>(); // 4 entries
 
@@ -536,7 +543,7 @@ public:
   // ======================================================================
 
   /**
-   * @brief Returns the first occurrence of theindex of a cell in the sorted
+   * @brief Returns the first occurrence of the index of a cell in the sorted
    * array of point indices and point spatial keys
    *
    * @param key The spatial key of the query cell
@@ -554,7 +561,7 @@ public:
                                                 IndexType end_index) const;
 
   /**
-   * @brief Returns the last occurrence of theindex of a cell in the sorted
+   * @brief Returns the last occurrence of the index of a cell in the sorted
    * array of point indices and point spatial keys
    *
    * @param truncated_key The spatial key of the query cell
