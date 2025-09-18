@@ -694,7 +694,8 @@ def read_from_xyz(
         )
         # Ensure that the parsed array is two-dimensional, even if only
         # one additional dimension was given (avoids an edge case)
-        parsed_additionals = parsed_additionals.reshape(-1, 1)
+        if parsed_additionals.ndim == 1:
+            parsed_additionals = parsed_additionals.reshape(-1, 1)
     except ValueError:
         raise Py4DGeoError("Malformed XYZ file")
 
