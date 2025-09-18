@@ -206,9 +206,6 @@ public:
     double radius,
     RadiusSearchDistanceResult& result) const;
 
-  std::size_t radius_search_with_distances2(const double* querypoint,
-                                            WithDistancesReturnSet2& set) const;
-
   /** @brief Calculate the nearest neighbors with Euclidian distance for an
    * entire point cloud
    *

@@ -3,6 +3,7 @@
 #include <py4dgeo/epoch.hpp>
 #include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
 
 #include <functional>
 #include <tuple>
@@ -114,5 +115,9 @@ compute_correspondence_distances(const Epoch&,
                                  EigenPointCloudConstRef,
                                  std::vector<EigenPointCloud>,
                                  unsigned int);
+
+std::vector<std::pair<size_t, size_t>>
+partition_by_radii_inplace(RadiusSearchDistanceResult& data,
+                           const std::vector<double>& radii);
 
 }

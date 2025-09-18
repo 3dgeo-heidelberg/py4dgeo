@@ -85,14 +85,7 @@ KDTree::radius_search_with_distances(const double* query,
 {
   WithDistancesReturnSet set{ radius * radius, result };
   nanoflann::SearchParameters params;
-  return search->radiusSearchCustomCallback(query, set, params);
-}
-
-std::size_t
-KDTree::radius_search_with_distances2(const double* query,
-                                      WithDistancesReturnSet2& set) const
-{
-  nanoflann::SearchParameters params;
+  params.sorted = false;
   return search->radiusSearchCustomCallback(query, set, params);
 }
 

@@ -13,9 +13,35 @@
 #include <cmath>
 #include <cstddef>
 #include <iostream>
+#include <ranges>
 #include <vector>
 
 namespace py4dgeo {
+
+std::vector<std::pair<size_t, size_t>>
+partition_by_radii_inplace(RadiusSearchDistanceResult& data,
+                           const std::vector<double>& radii)
+{
+  std::vector<std::pair<size_t, size_t>> group_ranges;
+
+  auto begin = data.begin();
+  auto end = data.end();
+
+  for (double r : radii) {
+    auto partitioned = std::ranges::partition(
+      begin, end, [r](const auto& p) { return p.second < r; });
+
+    auto mid = partitioned.begin();
+
+    group_ranges.emplace_back(begin - data.begin(), mid - data.begin());
+    begin = mid;
+  }
+
+  // Final group: [begin, end)
+  group_ranges.emplace_back(begin - data.begin(), end - data.begin());
+
+  return group_ranges;
+}
 
 void
 compute_multiscale_directions(const Epoch& epoch,
@@ -47,31 +73,30 @@ compute_multiscale_directions(const Epoch& epoch,
       Eigen::Matrix3d cov;
       Eigen::SelfAdjointEigenSolver<Eigen::Matrix3d> solver{};
       RadiusSearchDistanceResult points_with_distances;
-      WithDistancesReturnSet2 set{ sorted_radii.back() * sorted_radii.back(),
-                                   points_with_distances };
-      ;
 
-      radius_search(corepoints.row(i), set);
+      radius_search(corepoints.row(i), points_with_distances);
 
-      for (double radius : sorted_radii) {
-        double r2 = radius * radius;
+      // partition the points by the given radii
+      auto groups =
+        partition_by_radii_inplace(points_with_distances, sorted_radii);
 
-        auto it =
-          std::upper_bound(set.result.begin(),
-                           set.result.end(),
-                           r2,
-                           [](double value, const auto& p) {
-                             return value < p.second; // compare to distance²
-                           });
+      std::vector<IndexType> indices;
+      indices.reserve(points_with_distances.size()); // max size needed
+      std::size_t previous_end = 0;
 
-        std::size_t cutoff = std::distance(set.result.begin(), it);
-
-        if (cutoff < 3)
+      for (std::size_t g = 0; g < groups.size(); ++g) {
+        auto [start, end] = groups[g];
+        if ((end - start) < 3)
           continue;
 
-        // Directly slice from sorted set.indices
-        std::vector<IndexType> indices(set.indices.begin(),
-                                       set.indices.begin() + cutoff);
+        // Append only the new indices
+        for (std::size_t j = previous_end; j < end; ++j)
+          indices.push_back(points_with_distances[j].first);
+        previous_end = end;
+
+        double radius = (g < sorted_radii.size())
+                          ? sorted_radii[g]
+                          : sorted_radii.back(); // final group
 
         EigenPointCloud subset = epoch.cloud(indices, Eigen::indexing::all);
 

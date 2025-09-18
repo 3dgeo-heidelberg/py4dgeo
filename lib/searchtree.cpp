@@ -55,14 +55,25 @@ get_radius_search_function(const Epoch& epoch, const std::vector<double>& radii)
   }
 }
 
-// For a single radius
 RadiusSearchDistanceFuncSingle
+
 get_radius_search_with_distances_function(const Epoch& epoch, double radius)
 {
-  return
-    [&, radius](const Eigen::Vector3d& point, WithDistancesReturnSet2& set) {
-      epoch.kdtree.radius_search_with_distances2(point.data(), set);
+  if (Epoch::get_default_radius_search_tree() == SearchTree::Octree) {
+
+    unsigned int level =
+      epoch.octree.find_appropriate_level_for_radius_search(radius);
+
+    return [&, radius, level](const Eigen::Vector3d& point,
+                              RadiusSearchDistanceResult& out) {
+      epoch.octree.radius_search_with_distances(point, radius, level, out);
     };
+  } else {
+    return [&, radius](const Eigen::Vector3d& point,
+                       RadiusSearchDistanceResult& out) {
+      epoch.kdtree.radius_search_with_distances(point.data(), radius, out);
+    };
+  }
 }
 
 } // namespace py4dgeo
