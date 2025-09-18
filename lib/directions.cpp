@@ -90,8 +90,10 @@ compute_multiscale_directions(const Epoch& epoch,
           continue;
 
         // Append only the new indices
-        for (std::size_t j = previous_end; j < end; ++j)
-          indices.push_back(points_with_distances[j].first);
+        std::ranges::transform(points_with_distances.begin() + previous_end,
+                               points_with_distances.begin() + end,
+                               std::back_inserter(indices),
+                               &std::pair<IndexType, double>::first);
         previous_end = end;
 
         double radius = (g < sorted_radii.size())
