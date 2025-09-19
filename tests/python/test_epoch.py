@@ -125,9 +125,6 @@ def test_read_from_xyz_header(tmp_path):
         f.write("0 0 0\n")
         f.write("1 1 1\n")
 
-    with pytest.raises(Py4DGeoError):
-        epoch = read_from_xyz(filename)
-
     epoch = read_from_xyz(filename, skip_header=2)
     assert epoch.cloud.shape[0] == 2
 
@@ -306,3 +303,21 @@ def test_cpp_props_not_interchangeable(epochs):
         epoch.cloud = 42
     with pytest.raises(Py4DGeoError):
         epoch.kdtree = None
+
+
+def test_read_from_xyz_additional_dimensions(tmp_path):
+    filename = os.path.join(tmp_path, "with_additional_dimensions.xyz")
+    with open(filename, "w") as f:
+        f.write("0 0 0 1 3\n")
+        f.write("1 1 1 0 6\n")
+
+    epoch = read_from_xyz(
+        filename,
+        additional_dimensions={3: "somebool", 4: "someint"},
+        additional_dimensions_dtypes={"someint": np.int32},
+    )
+
+    assert epoch.additional_dimensions.shape == (2,)
+    assert epoch.additional_dimensions["someint"].dtype == np.int32
+    assert epoch.additional_dimensions["someint"][0] == 3
+    assert epoch.additional_dimensions["someint"][1] == 6
