@@ -35,6 +35,10 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v3.1
       env:
+        CIBW_ENVIRONMENT_WINDOWS: >
+          CC=clang-cl
+          CXX=clang-cl
+          SKBUILD_CMAKE_ARGS="-G Ninja"
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     - uses: actions/upload-artifact@v4
