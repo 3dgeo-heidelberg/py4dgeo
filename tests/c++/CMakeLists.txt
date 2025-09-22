@@ -54,7 +54,6 @@ add_executable(
   registration_t.cpp
   segmentation_t.cpp
   searchtrees_t.cpp)
-target_link_libraries(tests PUBLIC py4dgeo py4dgeo_test Catch2::Catch2)
 
 # Link the test binary against: - the main library under test (py4dgeo) - the
 # test helper library (py4dgeo_test) - the Catch2 main entry point
