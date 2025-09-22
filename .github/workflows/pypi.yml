@@ -38,7 +38,7 @@ jobs:
         CIBW_ENVIRONMENT_WINDOWS: >
           CC=clang-cl
           CXX=clang-cl
-          SKBUILD_CMAKE_ARGS="-G Ninja"
+          SKBUILD_CMAKE_ARGS="-G Ninja;-DOpenMP_ROOT=C:/Program Files/LLVM"
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     - uses: actions/upload-artifact@v4
