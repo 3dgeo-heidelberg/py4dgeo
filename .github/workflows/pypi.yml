@@ -32,22 +32,13 @@ jobs:
       with:
         submodules: 'recursive'
 
-    - name: Clang version
-      if: runner.os == 'Windows'
-      run: clang-cl --version
-
-    - name: Build wheels on Windows
+    - name: Build wheels
       uses: pypa/cibuildwheel@v3.1
-      if: runner.os == 'Windows'
       env:
-        CC: clang-cl
-        CXX: clang-cl
-        CMAKE_ARGS: "-DCMAKE_C_COMPILER=clang-cl -DCMAKE_CXX_COMPILER=clang-cl"
-
-    - name: Build wheels on non-Windows
-      uses: pypa/cibuildwheel@v3.1
-      if: runner.os != 'Windows'
-      env:
+        CIBW_ENVIRONMENT_WINDOWS: >
+          CC=clang-cl
+          CXX=clang-cl
+          SKBUILD_CMAKE_ARGS="-G Ninja"
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     - uses: actions/upload-artifact@v4

@@ -106,7 +106,7 @@ jobs:
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       run: |
-        lcov --directory ./build --capture --output-file coverage.info --ignore-errors mismatch
+        lcov --directory ./build --capture --output-file coverage.info --ignore-errors mismatch --exclude '*/catch2/*'
         lcov_cobertura coverage.info -o coverage2.xml
 
     - name: Run coverage tests
