@@ -80,9 +80,6 @@ endif()
 # ----------------------------------------
 include(CTest)
 if(BUILD_TESTING)
-  find_package(Threads REQUIRED)
-  add_subdirectory(ext/Catch2)
-  include(./ext/Catch2/contrib/Catch.cmake)
   add_subdirectory(tests)
 endif()
 
