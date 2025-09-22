@@ -60,8 +60,6 @@ if(MSVC)
   if(MSVC_SUPPORTS_OPENMP_LLVM)
     set(OpenMP_RUNTIME_MSVC "llvm")
   endif()
-  #add_compile_options(/GL /fp:fast)
-  #add_link_options(/LTCG)
 endif()
 
 if(PY4DGEO_WITH_OPENMP)
