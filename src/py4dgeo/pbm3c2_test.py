@@ -63,18 +63,13 @@ class PBM3C2:
         segment_id_array = add_dims["segment_id"]
         unique_segment_ids = np.unique(segment_id_array)
 
-        normals_array = np.stack(
-            [add_dims["N_x"], add_dims["N_y"], add_dims["N_z"]], axis=1
-        )
-
         segments_dict = {}
         for seg_id in unique_segment_ids:
             indices = np.where(segment_id_array == seg_id)[0]
 
             if len(indices) > 0:
                 segments_dict[seg_id] = {
-                    "points": epoch.cloud[indices],
-                    "normals": normals_array[indices],
+                    'points': epoch.cloud[indices]
                 }
 
         return segments_dict
