@@ -68,9 +68,7 @@ class PBM3C2:
             indices = np.where(segment_id_array == seg_id)[0]
 
             if len(indices) > 0:
-                segments_dict[seg_id] = {
-                    'points': epoch.cloud[indices]
-                }
+                segments_dict[seg_id] = {"points": epoch.cloud[indices]}
 
         return segments_dict
 
