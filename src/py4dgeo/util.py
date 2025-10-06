@@ -278,9 +278,6 @@ def initialize_openmp_defaults():
         num_cores = psutil.cpu_count(logical=False)
         os.environ["OMP_NUM_THREADS"] = str(num_cores)
 
-    os.environ.setdefault("OMP_PROC_BIND", "close")
-    os.environ.setdefault("OMP_PLACES", "threads")
-
 
 def copy_test_data_entrypoint():
     # Define the target directory
