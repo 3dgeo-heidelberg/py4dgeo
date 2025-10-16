@@ -5,6 +5,7 @@ from sklearn.neighbors import KDTree
 from tqdm import tqdm
 from py4dgeo.util import Py4DGeoError, find_file
 
+
 class PBM3C2:
     """
     Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification.
@@ -21,7 +22,6 @@ class PBM3C2:
         self.epoch1_segments = None
         self.correspondences = None
 
-
     @staticmethod
     def preprocess_epochs(epoch0, epoch1, correspondences_file):
         """
@@ -34,16 +34,19 @@ class PBM3C2:
 
         # Read CSV file
         correspondences_df = pd.read_csv(correspondences_file, header=None)
-        
+
         # Check if CSV has header (column names)
         # If first row contains non-numeric values, it's likely a header
         first_row = correspondences_df.iloc[0]
-        if not all(pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float)) for val in first_row):
+        if not all(
+            pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float))
+            for val in first_row
+        ):
             raise Py4DGeoError(
                 f"The correspondence file '{correspondences_file}' appears to contain column headers. "
                 "Please provide a CSV file without headers (header=False when saving)."
             )
-        
+
         # Additional check: if any value in first 2 columns is not numeric
         try:
             pd.to_numeric(correspondences_df.iloc[:, 0])
@@ -75,7 +78,6 @@ class PBM3C2:
 
         return epoch0, epoch1, correspondences_df
 
-
     def _get_segments(self, epoch):
         """
         Extracts individual segments from an epoch, correctly handling the data
@@ -90,9 +92,7 @@ class PBM3C2:
             indices = np.where(segment_id_array == seg_id)[0]
 
             if len(indices) > 0:
-                segments_dict[seg_id] = {
-                    'points': epoch.cloud[indices]
-                }
+                segments_dict[seg_id] = {"points": epoch.cloud[indices]}
 
         return segments_dict
 
