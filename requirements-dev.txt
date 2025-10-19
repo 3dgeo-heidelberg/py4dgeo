@@ -6,6 +6,7 @@ nbsphinx
 nbsphinx-link
 nbval
 pandas
+pandoc
 pre-commit
 pytest
 pytest-cov

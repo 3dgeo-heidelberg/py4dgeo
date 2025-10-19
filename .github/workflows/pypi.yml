@@ -35,6 +35,12 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v3.1
       env:
+        CIBW_ENVIRONMENT_WINDOWS: >
+          CC=clang-cl
+          CXX=clang-cl
+          SKBUILD_CMAKE_ARGS="-G Ninja;-DOpenMP_ROOT=C:/Program Files/LLVM"
+        CIBW_BEFORE_BUILD_WINDOWS: pip install delvewheel
+        CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -v -w {dest_dir} {wheel}
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
     - uses: actions/upload-artifact@v4

@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 # Set a name and a version number for your project:
 project(
   py4dgeo
-  VERSION 0.0.1
+  VERSION 0.8.0
   LANGUAGES CXX)
 
 # Take into account <Package>_ROOT environment variable (used in packaging
@@ -34,15 +34,9 @@ set(PY4DGEO_WITH_OPENMP
     ON
     CACHE BOOL "Enable OpenMP parallelization")
 
-# Check that the repository was clone recursively
-if(NOT EXISTS ${PROJECT_SOURCE_DIR}/ext/Catch2/CMakeLists.txt)
-  message(
-    FATAL_ERROR
-      "Submodules not found. py4dgeo needs to be either cloned with the"
-      "'--recursive' flag or 'git submodule update --init' needs to be called")
-endif()
-
-# Compile the library
+# -------------------------------
+# Compile the core py4dgeo library
+# -------------------------------
 add_library(
   py4dgeo
   lib/directions.cpp
@@ -56,6 +50,10 @@ add_library(
 target_include_directories(
   py4dgeo PUBLIC ${CMAKE_SOURCE_DIR}/include ${CMAKE_SOURCE_DIR}/ext/eigen
                  ${CMAKE_SOURCE_DIR}/ext/nanoflann/include)
+
+# -----------------------------------------
+# Enable OpenMP (if supported and requested)
+# -----------------------------------------
 if(PY4DGEO_WITH_OPENMP)
   if(MSVC)
     include(CheckCXXCompilerFlag)
@@ -73,11 +71,11 @@ if(PY4DGEO_WITH_OPENMP)
   endif()
 endif()
 
-# Compile the tests and benchmarks
+# ----------------------------------------
+# Optionally build tests and benchmarks
+# ----------------------------------------
 include(CTest)
 if(BUILD_TESTING)
-  add_subdirectory(ext/Catch2)
-  include(./ext/Catch2/contrib/Catch.cmake)
   add_subdirectory(tests)
 endif()
 
@@ -88,14 +86,21 @@ if(BUILD_BENCHMARKS)
   add_subdirectory(benchmarks)
 endif()
 
-# Add the documentation
+# ----------------------
+# Optionally build docs
+# ----------------------
 if(BUILD_DOCS)
   add_subdirectory(doc)
 endif()
 
+# -----------------------------
+# Optionally build Python module
+# -----------------------------
 if(BUILD_PYTHON)
   # Add Python bindings
   find_package(pybind11 CONFIG REQUIRED)
+
+  # Define Python extension module
   pybind11_add_module(_py4dgeo MODULE src/py4dgeo/py4dgeo_python.cpp)
   target_link_libraries(_py4dgeo PUBLIC py4dgeo)
 
@@ -103,6 +108,8 @@ if(BUILD_PYTHON)
   install(TARGETS _py4dgeo DESTINATION .)
 endif()
 
-# This prints a summary of found dependencies
+# ----------------------
+# Show dependency summary
+# ----------------------
 include(FeatureSummary)
 feature_summary(WHAT ALL)
