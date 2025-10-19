@@ -1,3 +1,4 @@
+#%%
 from nbclient.client import timestamp
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
@@ -686,8 +687,16 @@ class SpatiotemporalAnalysis:
                                       distance))
         return merged_4dobcs
 
-    def extract(self, method: str, smoothing_window=5, seed_subsampling=1, max_change_period = 200, data_gap: int | None = None):
+    def extract(self, method: str, smoothing_window=5, seed_subsampling=1, max_change_period = 200,  neighborhood_radius = 1, min_segments=10, max_segments=10000, height_threshold = 0.05,data_gap: int | None = None):
         print(f"Method received: {method}")
+        distance = self.distances_for_compute
+        def _row_idx(a: np.ndarray) -> int | None:
+            """Return index of first row that is not all-NaN, or None if none exist."""
+            valid_mask = ~np.isnan(a).all(axis=1)
+            if not valid_mask.any():
+                return None
+            return int(np.flatnonzero(valid_mask)[0])
+
         if method == 'RDP':
             timestamps = [t + self.reference_epoch.timestamp for t in self.timedeltas]
             lod = self.uncertainties['lodetection']
@@ -697,10 +706,16 @@ class SpatiotemporalAnalysis:
             timedelta_max = 5
             time_day = np.array([(t - self.reference_epoch.timestamp).total_seconds() / (3600 * 24) for t in timestamps])
 
-            if np.isnan(self.distances[0]).all():
-                self.distances[0] = 0
+            start_row = _row_idx(self.distances)
+            if start_row is None:
+                raise ValueError("All rows in distances are NaN")
 
-            for i in range(self.distances.shape[1]):
+            dist_valid_row = self.distances[start_row:, :]
+            smoothed = np.full_like(self.distances, np.nan)
+
+            smoothed_slice = np.empty_like(dist_valid_row)
+
+            for i in range(dist_valid_row.shape[1]):
                 day_act = time_day[i]
                 day_limit = [day_act - timedelta_max, day_act + timedelta_max]
                 idx_limit = [np.where(time_day <= day_limit[0])[0], np.where(time_day >= day_limit[1])[0]]
@@ -715,33 +730,22 @@ class SpatiotemporalAnalysis:
                 else:
                     idx_limit[1] = self.distances.shape[1]
 
-                # if idx_limit[0].size > 0:
-                #     idx_limit[0] = idx_limit[0][-1]
-                # else:
-                #     idx_limit[0] = 0  # or another default value
-                #
-                # if idx_limit[1].size > 0:
-                #     idx_limit[1] = idx_limit[1][0]
-                # else:
-                #     idx_limit[1] = self.distances.shape[1]
-                smoothed[:, i] = np.nanmedian(
-                    self.distances[:,
-                    max(0, i - eps, idx_limit[0]): min(self.distances.shape[1] - 1, i + eps, idx_limit[1])], axis=1,)
+                smoothed_slice[:, i] = np.nanmedian(dist_valid_row[:, max(0, i - eps, idx_limit[0]): min(dist_valid_row.shape[1] - 1, i + eps, idx_limit[1])], axis=1,)
 
+            smoothed[start_row:, :] = smoothed_slice
             self.smoothed_distances = smoothed
-            algo = LinearChangeSeeds_rdp(neighborhood_radius=0.2,
-                                            min_segments=50,
-                                            max_segments=10000,
-                                            thresholds=[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+            algo = LinearChangeSeeds_rdp(neighborhood_radius = neighborhood_radius,
+                                            min_segments = neighborhood_radius,
+                                            max_segments = max_segments,
+                                            thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
                                             epsilon = mean_lod,
-                                            height_threshold = 0.20,
+                                            height_threshold = height_threshold,
                                          seed_subsampling=seed_subsampling,
                                          max_change_period = max_change_period,
                                          data_gap = data_gap)
 
             print('Algorithm started')
             algo.run(self)
-
 
         elif method == 'DTR':
             timestamps = [t + self.reference_epoch.timestamp for t in self.timedeltas]
@@ -750,13 +754,20 @@ class SpatiotemporalAnalysis:
             median_lod = np.nanmean(lod)
             smoothed = np.empty_like(self.distances)
             eps = smoothing_window // 2
-            if np.isnan(self.distances[0]).all():
-                self.distances[0] = 0
 
+
+            start_row = _row_idx(self.distances)
+            if start_row is None:
+                raise ValueError("All rows in distances are NaN")
+
+            dist_valid_row = self.distances[start_row:, :]
+            smoothed = np.full_like(self.distances, np.nan)
+
+            smoothed_slice = np.empty_like(dist_valid_row)
             timedelta_max = 5
             time_day = np.array([(t - self.reference_epoch.timestamp).total_seconds() / (3600 * 24) for t in timestamps])
 
-            for i in range(self.distances.shape[1]):
+            for i in range(dist_valid_row.shape[1]):
                 print(i)
                 day_act = time_day[i]
                 day_limit = [day_act - timedelta_max, day_act + timedelta_max]
@@ -773,31 +784,23 @@ class SpatiotemporalAnalysis:
                 else:
                     idx_limit[1] = self.distances.shape[1]
 
-                # if idx_limit[0].size > 0:
-                #     idx_limit[0] = idx_limit[0][-1]
-                # else:
-                #     idx_limit[0] = 0  # or another default value
-                #
-                # if idx_limit[1].size > 0:
-                #     idx_limit[1] = idx_limit[1][0]
-                # else:
-                #     idx_limit[1] = self.distances.shape[1]  # max index + 1 for slicing
-                smoothed[:, i] = np.nanmedian(
-                    self.distances[:, max(0, i - eps, idx_limit[0]): min(self.distances.shape[1] - 1, i + eps, idx_limit[1])],
+                smoothed_slice[:, i] = np.nanmedian(
+                    dist_valid_row[:, max(0, i - eps, idx_limit[0]): min(dist_valid_row.shape[1] - 1, i + eps, idx_limit[1])],
                     axis=1,
                 )
 
+            smoothed[start_row:, :] = smoothed_slice
             self.smoothed_distances = smoothed
 
-            algo = LinearChangeSeeds_dtr(neighborhood_radius=0.2,
-                                         min_segments=50,
-                                         max_segments=10000,
-                                         thresholds=[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-                                         epsilon=median_lod,
-                                         height_threshold=0.20,
-                                         seed_subsampling=seed_subsampling,
-                                         max_change_period=max_change_period,
-                                         data_gap=data_gap)
+            algo = LinearChangeSeeds_dtr(neighborhood_radius = neighborhood_radius,
+                                         min_segments = min_segments,
+                                         max_segments = max_segments,
+                                         thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                                         epsilon = median_lod,
+                                         height_threshold = height_threshold,
+                                         seed_subsampling = seed_subsampling,
+                                         max_change_period = max_change_period,
+                                         data_gap = data_gap)
 
             algo.run(self)
 
@@ -1497,105 +1500,6 @@ def temporal_averaging(distances, smoothing_window=24):
         # We use no-op smooting as the default implementation here
         return smoothed
 
-# class Merge:
-#     def __init__(self, objects, smoothed_distances):
-#         self.objects = objects
-#         self.smoothed_distances = smoothed_distances
-#         self.analysis = analysis
-#
-#     def change_direction(self):
-#         change = []
-#         for obj in self.objects:
-#             if self.smoothed_distances[obj.seed.index, obj.end_epoch] - self.smoothed_distances[
-#                 obj.seed.index, obj.start_epoch] < 0:
-#                 change.append('negative')
-#             else:
-#                 change.append('positive')
-#         return change
-#
-#     def overlap(self, change, time_threshold, spatial_threshold):
-#         merging = [[]] * len(self.objects)
-#         values = []
-#         for idx_act, obj_act in enumerate(self.objects):
-#             print(idx_act)
-#             for idx_it, obj_it in enumerate(self.objects):
-#
-#                 # identical 4D-OBC
-#                 if idx_it == idx_act:
-#                     continue
-#
-#                 # temporal overlap
-#                 IoAct_time = (min(obj_act.end_epoch, obj_it.end_epoch) - max(obj_act.start_epoch,
-#                                                                              obj_it.start_epoch)) / (
-#                                          obj_act.end_epoch - obj_act.start_epoch)
-#                 IoIt_time = (min(obj_act.end_epoch, obj_it.end_epoch) - max(obj_act.start_epoch,
-#                                                                             obj_it.start_epoch)) / (
-#                                         obj_it.end_epoch - obj_it.start_epoch)
-#
-#                 # spatial overlap
-#                 ident_cp = np.intersect1d(obj_act.indices, obj_it.indices)
-#                 IoAct = len(ident_cp) / len(obj_act.indices)
-#                 IoIt = len(ident_cp) / len(obj_it.indices)
-#
-#                 max_time = max(IoAct_time, IoIt_time)
-#                 max_spatial = max(IoAct, IoIt)
-#
-#                 # if calculated overlap exceeds defined thresholds and change direction is equal -> store link between objects
-#                 if max_time > time_threshold and max_spatial > spatial_threshold and change[idx_act] == change[idx_it]:
-#                     merging[idx_act] = merging[idx_act] + [idx_it]
-#                     values.append([max_time, max_spatial])
-#
-#         values = np.array(values)
-#         return merging
-#
-#
-#     def connecting_indexes(self, merging):
-#         import copy
-#         visited = [False] * len(self.objects)
-#         merged_idxs = []
-#
-#         for idx_act, lst in enumerate(merging):
-#
-#             if visited[idx_act] == True:
-#                 continue
-#             else:
-#                 visited[idx_act] = True
-#                 merged_idxs.append([idx_act])
-#
-#                 to_visit = copy.deepcopy(lst)
-#                 while to_visit:
-#                     idx_next = to_visit.pop(0)
-#                     if visited[idx_next] == True:
-#                         continue
-#                     else:
-#                         visited[idx_next] = True
-#                         merged_idxs[-1] = merged_idxs[-1] + [idx_next]
-#                         to_visit = to_visit + merging[idx_next]
-#
-#         return merged_idxs
-#
-#     def merging(self, merged_idxs):
-#         from functools import reduce
-#         merged_4dobcs = []
-#         for idx in merged_idxs:
-#             indices = [self.objects[i].indices for i in idx]
-#             start_epochs = [self.objects[i].start_epoch for i in idx]
-#             end_epochs = [self.objects[i].end_epoch for i in idx]
-#
-#             indices_merge = reduce(np.union1d, indices)
-#             start_epoch_merge = min(start_epochs)
-#             end_epoch_merge = max(end_epochs)
-#
-#             merged_4dobcs.append(MergedObjectsOfChange(indices_merge, start_epoch_merge, end_epoch_merge, [i for i in idx], analysis, smoothed_distances))
-#         return merged_4dobcs
-#
-#     def run(self, time_threshold=0.7, spatial_threshold=0.1):
-#         change = self.change_direction()
-#         overlap = self.overlap(change, time_threshold, spatial_threshold)
-#         merged_idxs = self.connecting_indexes(overlap)
-#         merged_4dobcs = self.merging(merged_idxs)
-#         return merged_4dobcs
-
 class MergedObjectsOfChange:
     def __init__(self, indices, start_epoch, end_epoch, obj_4dobc, analysis, smoothed_distances):
         self.analysis = analysis
@@ -1728,9 +1632,12 @@ class LinearChangeSeeds_rdp(py4dgeo.RegionGrowingAlgorithm):
                 time_day_fit = time_day_fit[~idx_nan]
                 timeseries_fit = timeseries_fit[~idx_nan]
 
-                # estimate a straight line by linear regression
+                if timeseries_fit.size < 2:
+                    continue
+
                 lin_reg = LinearRegression()
                 lin_reg.fit(time_day_fit.reshape(-1, 1), timeseries_fit.reshape(-1, 1))
+
                 y_lr = lin_reg.predict(time_day[idx[0]:idx[-1] + 1].reshape(-1, 1)).flatten()
 
                 startp = np.max([idx[0] - 1, 0])
@@ -1744,10 +1651,10 @@ class LinearChangeSeeds_rdp(py4dgeo.RegionGrowingAlgorithm):
                 elif stopp - startp > self.max_change_period:
                     continue
 
-                # cosider data gap of between 09.09.2021 and 30.09.2021
-                #elif stopp >= 828 and startp <= 827:
-                elif stopp >= self.data_gap and startp <= self.data_gap-1:
-                    continue
+                # cosider data gap 
+                elif self.data_gap is not None:
+                    if stopp >= self.data_gap and startp <= self.data_gap-1:
+                        continue
 
                 # add current seed to list of seed candidates
                 else:
@@ -1799,7 +1706,12 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
             # delete nan values and calculate the gradient of each epoch
 
             idx_nan = np.isnan(timeseries)
-            dys = np.gradient(timeseries[~idx_nan], time_day[~idx_nan])
+            valid = ~idx_nan
+
+            if valid.sum() < 2 or np.unique(time_day[valid]).size < 2:
+                continue
+
+            dys = np.gradient(timeseries[valid], time_day[valid])
 
 
             # Initialisation of the DTR
@@ -1814,15 +1726,21 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
 
                 # segment-wise linear regression for each interval
                 msk = dys_dt == dy
-                msk_nan = msk[~idx_nan]
+                msk_nan = msk[valid]
+
+                if msk_nan.sum() < 2 or np.unique(time_day[valid][msk_nan]).size < 2:
+                    continue
+
                 lin_reg = LinearRegression()
-                lin_reg.fit(time_day[~idx_nan][msk_nan].reshape(-1,1), timeseries[~idx_nan][msk_nan].reshape(-1,1))
+                lin_reg.fit(time_day[valid][msk_nan].reshape(-1,1), timeseries[valid][msk_nan].reshape(-1,1))
                 ys_sl[msk] = lin_reg.predict(time_day[msk].reshape(-1,1)).flatten()
 
                 idx = np.where(msk == True)[0]
+                if idx.size == 0:
+                    continue
 
-                startp = np.max([idx[0]-1, 0])
-                stopp = np.min([idx[-1]+1, len(timeseries)-1])
+                startp = np.max([idx[0] - 1, 0])
+                stopp = np.min([idx[-1] + 1, len(timeseries) - 1])
 
                 # consider minimal change amplitude
                 if abs(np.max(ys_sl[msk]) - np.min(ys_sl[msk])) < self.height_threshold:
@@ -1832,15 +1750,17 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
                 elif stopp - startp > self.max_change_period:
                     continue
 
+                elif self.data_gap is not None:
+                    if stopp >= self.data_gap and startp <= self.data_gap-1:
+                        continue
                 # cosider data gap of between 09.09.2021 and 30.09.2021
-                elif stopp >= self.data_gap and startp <= self.data_gap-1:
-                    continue
+                # elif stopp >= self.data_gap and startp <= self.data_gap-1:
+                #     continue
 
                 # add current seed to list of seed candidates
                 else:
                     curr_seed = RegionGrowingSeed(cp_idx, startp, stopp)
                     seeds.append(curr_seed)
-
         return seeds
 
 
@@ -1850,29 +1770,3 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
             magn = abs(self.analysis.distances_for_compute[seed.index, seed.start_epoch] - self.analysis.distances_for_compute[seed.index, seed.end_epoch])
             return magn * (-1) # achieve descending order
         return magnitude_sort
-#%%
-import numpy as np
-import pickle
-analysis = SpatiotemporalAnalysis('C:/Users/schar/OneDrive/Desktop/Working Student/Tasks/py4dgeo/Results/DTR_new/riverbank_4dobc_test.zip', force = False)
-
-# timestamps = [t+analysis.reference_epoch.timestamp for t in analysis.timedeltas]
-# corepoints = analysis.corepoints.cloud
-# smoothed_distances = analysis.smoothed_distances
-# objects = analysis.objects
-
-#%%
-merged = analysis.merge(time_threshold=0.7, spatial_threshold=0.1)
-merged[0].plot()
-
-# #%%
-# analysis.distances[:,62] = 0
-# analysis.distances[:,81] = 0
-# analysis.distances[:4,:] = 0
-# #%%
-# analysis.distances[0,:] = 0
-
-#%%
-analysis.extract('DTR', 5, 1000, 200, 828)
-
-#%%
-analysis.invalidate_results(True, True, True)
