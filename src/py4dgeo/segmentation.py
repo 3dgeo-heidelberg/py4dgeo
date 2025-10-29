@@ -16,15 +16,14 @@ import pickle
 import seaborn
 import tempfile
 import zipfile
-import py4dgeo
 import matplotlib.pyplot as plt
-
+import copy
 import rdp
 from sklearn.linear_model import LinearRegression
 
 import _py4dgeo
-
-
+from sklearn.tree import DecisionTreeRegressor
+from functools import reduce
 # Get the py4dgeo logger instance
 logger = logging.getLogger("py4dgeo")
 
@@ -543,12 +542,12 @@ class SpatiotemporalAnalysis:
 
     @objects.setter
     def objects(self, _objects):
-        # Assert that we received the correct type
-        # for seed in _objects:
-        #    if not isinstance(seed, ObjectByChange):
-        #       raise Py4DGeoError(
-        #          "Objects are expected to inherit from ObjectByChange"
-        #     )
+        #Assert that we received the correct type
+        for seed in _objects:
+           if not isinstance(seed, ObjectByChange):
+              raise Py4DGeoError(
+                 "Objects are expected to inherit from ObjectByChange"
+            )
 
         if not self.allow_pickle:
             return
@@ -628,7 +627,7 @@ class SpatiotemporalAnalysis:
         merging = [[]] * len(self.objects)
         values = []
         for idx_act, obj_act in enumerate(self.objects):
-            print(idx_act)
+            logger.debug(f'Seedpoint {idx_act}')
             for idx_it, obj_it in enumerate(self.objects):
 
                 # identical 4D-OBC
@@ -664,7 +663,7 @@ class SpatiotemporalAnalysis:
 
         values = np.array(values)
 
-        import copy
+       
 
         visited = [False] * len(self.objects)
         merged_idxs = []
@@ -687,7 +686,7 @@ class SpatiotemporalAnalysis:
                         merged_idxs[-1] = merged_idxs[-1] + [idx_next]
                         to_visit = to_visit + merging[idx_next]
 
-        from functools import reduce
+        
 
         merged_4dobcs = []
         for idx in merged_idxs:
@@ -723,82 +722,28 @@ class SpatiotemporalAnalysis:
         height_threshold=0.05,
         data_gap: int | None = None,
     ):
-        print(f"Method received: {method}")
+        logger.info(f"Method received: {method}")
         distance = self.distances_for_compute
-
-        def _row_idx(a: np.ndarray) -> int | None:
-            """Return index of first row that is not all-NaN, or None if none exist."""
-            valid_mask = ~np.isnan(a).all(axis=1)
-            if not valid_mask.any():
-                return None
-            return int(np.flatnonzero(valid_mask)[0])
 
         if method == "RDP":
             timestamps = [t + self.reference_epoch.timestamp for t in self.timedeltas]
             lod = self.uncertainties["lodetection"]
             mean_lod = np.nanmean(lod)
-            smoothed = np.empty_like(self.distances)
-            eps = smoothing_window // 2
-            timedelta_max = 5
-            time_day = np.array(
-                [
-                    (t - self.reference_epoch.timestamp).total_seconds() / (3600 * 24)
-                    for t in timestamps
-                ]
-            )
-
-            start_row = _row_idx(self.distances)
-            if start_row is None:
-                raise ValueError("All rows in distances are NaN")
-
-            dist_valid_row = self.distances[start_row:, :]
-            smoothed = np.full_like(self.distances, np.nan)
-
-            smoothed_slice = np.empty_like(dist_valid_row)
-
-            for i in range(dist_valid_row.shape[1]):
-                day_act = time_day[i]
-                day_limit = [day_act - timedelta_max, day_act + timedelta_max]
-                idx_limit = [
-                    np.where(time_day <= day_limit[0])[0],
-                    np.where(time_day >= day_limit[1])[0],
-                ]
-
-                if idx_limit[0].size != 0:
-                    idx_limit[0] = idx_limit[0][-1]
-                else:
-                    idx_limit[0] = 0
-
-                if idx_limit[1].size != 0:
-                    idx_limit[1] = idx_limit[1][0]
-                else:
-                    idx_limit[1] = self.distances.shape[1]
-
-                smoothed_slice[:, i] = np.nanmedian(
-                    dist_valid_row[
-                        :,
-                        max(0, i - eps, idx_limit[0]) : min(
-                            dist_valid_row.shape[1] - 1, i + eps, idx_limit[1]
-                        ),
-                    ],
-                    axis=1,
-                )
-
-            smoothed[start_row:, :] = smoothed_slice
-            self.smoothed_distances = smoothed
+            self.smoothed_distances = median_smoothing(distances=self.distances, timestamps=timestamps, ref_timestamp=self.reference_epoch.timestamp, smoothing_window=smoothing_window, timedelta_max = 5)
+            
             algo = LinearChangeSeeds_rdp(
-                neighborhood_radius=neighborhood_radius,
-                min_segments=neighborhood_radius,
-                max_segments=max_segments,
-                thresholds=[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-                epsilon=mean_lod,
-                height_threshold=height_threshold,
-                seed_subsampling=seed_subsampling,
-                max_change_period=max_change_period,
-                data_gap=data_gap,
+                neighborhood_radius = neighborhood_radius,
+                min_segments = neighborhood_radius,
+                max_segments = max_segments,
+                thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                epsilon = mean_lod,
+                height_threshold = height_threshold,
+                seed_subsampling = seed_subsampling,
+                max_change_period = max_change_period,
+                data_gap = data_gap,
             )
 
-            print("Algorithm started")
+            logger.info("Algorithm started (RDP)")
             algo.run(self)
 
         elif method == "DTR":
@@ -806,58 +751,8 @@ class SpatiotemporalAnalysis:
             corepoints = self.corepoints.cloud
             lod = self.uncertainties["lodetection"]
             median_lod = np.nanmean(lod)
-            smoothed = np.empty_like(self.distances)
-            eps = smoothing_window // 2
-
-            start_row = _row_idx(self.distances)
-            if start_row is None:
-                raise ValueError("All rows in distances are NaN")
-
-            dist_valid_row = self.distances[start_row:, :]
-            smoothed = np.full_like(self.distances, np.nan)
-
-            smoothed_slice = np.empty_like(dist_valid_row)
-            timedelta_max = 5
-            time_day = np.array(
-                [
-                    (t - self.reference_epoch.timestamp).total_seconds() / (3600 * 24)
-                    for t in timestamps
-                ]
-            )
-
-            for i in range(dist_valid_row.shape[1]):
-                print(i)
-                day_act = time_day[i]
-                day_limit = [day_act - timedelta_max, day_act + timedelta_max]
-
-                idx_limit = [
-                    np.where(time_day <= day_limit[0])[0],
-                    np.where(time_day >= day_limit[1])[0],
-                ]
-
-                if idx_limit[0].size != 0:
-                    idx_limit[0] = idx_limit[0][-1]
-                else:
-                    idx_limit[0] = 0
-
-                if idx_limit[1].size != 0:
-                    idx_limit[1] = idx_limit[1][0]
-                else:
-                    idx_limit[1] = self.distances.shape[1]
-
-                smoothed_slice[:, i] = np.nanmedian(
-                    dist_valid_row[
-                        :,
-                        max(0, i - eps, idx_limit[0]) : min(
-                            dist_valid_row.shape[1] - 1, i + eps, idx_limit[1]
-                        ),
-                    ],
-                    axis=1,
-                )
-
-            smoothed[start_row:, :] = smoothed_slice
-            self.smoothed_distances = smoothed
-
+            self.smoothed_distances = median_smoothing(distances=self.distances, timestamps=timestamps, ref_timestamp=self.reference_epoch.timestamp, smoothing_window=smoothing_window, timedelta_max = 5)
+           
             algo = LinearChangeSeeds_dtr(
                 neighborhood_radius=neighborhood_radius,
                 min_segments=min_segments,
@@ -870,6 +765,7 @@ class SpatiotemporalAnalysis:
                 data_gap=data_gap,
             )
 
+            logger.info('Algorithm started (DTR')
             algo.run(self)
 
         else:
@@ -979,10 +875,10 @@ class RegionGrowingAlgorithmBase:
             analysis.invalidate_results()
 
         # Return pre-calculated objects if they are available
-        # precalculated = analysis.objects
-        # if precalculated is not None:
-        #     logger.info("Reusing objects by change stored in analysis object")
-        #     return precalculated
+        precalculated = analysis.objects
+        if precalculated is not None:
+            logger.info("Reusing objects by change stored in analysis object")
+            return precalculated
 
         # Check if there are pre-calculated objects.
         # If so, create objects list from these and continue growing objects, taking into consideration objects that are already grown.
@@ -1495,7 +1391,7 @@ class ObjectByChange:
         # Maybe save to file
         if filename is not None:
             plt.savefig(filename)
-        plt.show()
+       
 
 
 def check_epoch_timestamp(epoch):
@@ -1570,6 +1466,68 @@ def temporal_averaging(distances, smoothing_window=24):
         # We use no-op smooting as the default implementation here
         return smoothed
 
+def median_smoothing(
+        distances: np.ndarray,
+        timestamps: list[datetime.datetime],
+        ref_timestamp: datetime.datetime,
+        smoothing_window: int,
+        timedelta_max: int =5
+)-> np.ndarray:
+        
+
+        def _row_idx(a: np.ndarray) -> int | None:
+            """Return index of first row that is not all-NaN, or None if none exist."""
+            valid_mask = ~np.isnan(a).all(axis=1)
+            if not valid_mask.any():
+                return None
+            return int(np.flatnonzero(valid_mask)[0])
+        eps = smoothing_window // 2
+        time_day = np.array(
+            [
+                (t - ref_timestamp).total_seconds() / (3600 * 24)
+                for t in timestamps
+            ]
+        )
+
+        start_row = _row_idx(distances)
+        if start_row is None:
+            raise ValueError("All rows in distances are NaN")
+
+        dist_valid_row = distances[start_row:, :]
+        smoothed = np.full_like(distances, np.nan)
+
+        smoothed_slice = np.empty_like(dist_valid_row)
+
+        for i in range(dist_valid_row.shape[1]):
+            day_act = time_day[i]
+            day_limit = [day_act - timedelta_max, day_act + timedelta_max]
+            idx_limit = [
+                np.where(time_day <= day_limit[0])[0],
+                np.where(time_day >= day_limit[1])[0],
+            ]
+
+            if idx_limit[0].size != 0:
+                idx_limit[0] = idx_limit[0][-1]
+            else:
+                idx_limit[0] = 0
+
+            if idx_limit[1].size != 0:
+                idx_limit[1] = idx_limit[1][0]
+            else:
+                idx_limit[1] = distances.shape[1]
+
+            smoothed_slice[:, i] = np.nanmedian(
+                dist_valid_row[
+                    :,
+                    max(0, i - eps, idx_limit[0]) : min(
+                        dist_valid_row.shape[1] - 1, i + eps, idx_limit[1]
+                    ),
+                ],
+                axis=1,
+            )
+
+        smoothed[start_row:, :] = smoothed_slice
+        return smoothed 
 
 class MergedObjectsOfChange:
     def __init__(
@@ -1659,11 +1617,9 @@ class MergedObjectsOfChange:
         # Maybe save to file
         if filename is not None:
             plt.savefig(filename)
-        else:
-            plt.show()
 
 
-class LinearChangeSeeds_rdp(py4dgeo.RegionGrowingAlgorithm):
+class LinearChangeSeeds_rdp(RegionGrowingAlgorithm):
     def __init__(
         self,
         epsilon,
@@ -1675,7 +1631,7 @@ class LinearChangeSeeds_rdp(py4dgeo.RegionGrowingAlgorithm):
         self.epsilon = epsilon
         self.max_change_period = max_change_period
         self.data_gap = data_gap
-        self.seed_subsampling = kwargs.pop("seed_subsampling")
+        #self.seed_subsampling = kwargs.pop("seed_subsampling")
 
     def find_seedpoints(self, seed_candidates=None):
         # list of generated seeds
@@ -1683,20 +1639,20 @@ class LinearChangeSeeds_rdp(py4dgeo.RegionGrowingAlgorithm):
 
         # list of core point indices to check as seeds
         if self.seed_candidates is None:
-            print("Seed Subsampling", self.seed_subsampling)
+            logger.info("Seed Subsampling", self.seed_subsampling)
             # use all corepoints if no selection is specified, considering subsampling
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
             )
-            print(len(seed_candidates_curr))
+            logger.info(f'Number of seed candidates after subsamppling: {len(seed_candidates_curr)}')
         else:
             # use the specified corepoint indices
             seed_candidates_curr = self.seed_candidates
 
         # iterate over all time series to identify linear changes
-        print("Iterating over seedpoints")
+        logger.info("Iterating over seedpoints")
         for cp_idx in seed_candidates_curr:
-            print(f"Seedpoint: {cp_idx}")
+            logger.debug(f"Seedpoint: {cp_idx}")
             timeseries = self.analysis.distances_for_compute[cp_idx, :]
             timestamps = [
                 t + self.analysis.reference_epoch.timestamp
@@ -1777,19 +1733,18 @@ class LinearChangeSeeds_rdp(py4dgeo.RegionGrowingAlgorithm):
         return magnitude_sort
 
 
-class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
+class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
     def __init__(
         self, epsilon, max_change_period, data_gap, **kwargs
     ):  # seed_subsampling,
         super().__init__(**kwargs)
         self.epsilon = epsilon
-        self.seed_subsampling = kwargs.pop("seed_subsampling")
+        #self.seed_subsampling = kwargs.pop("seed_subsampling")
         self.max_change_period = max_change_period
         self.data_gap = data_gap
 
     def find_seedpoints(self, seed_candidates=None):
-        from sklearn.tree import DecisionTreeRegressor
-
+    
         # list of generated seeds
         seeds = []
 
@@ -1799,14 +1754,15 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
             )
-            print(f"Number of seed_candidates:{len(seed_candidates_curr)}")
+            
         else:
             # use the specified corepoint indices
             seed_candidates_curr = self.seed_candidates
+        logger.info(f'Number of seed candidates after subsamppling: {len(seed_candidates_curr)}')
 
         # iterate over all time series to identify linear changes
         for cp_idx in seed_candidates_curr:
-            print(f"Seedpoint: {cp_idx}")
+            logger.debug(f"Seedpoint: {cp_idx}")
             timeseries = self.analysis.distances_for_compute[cp_idx, :]
             timestamps = [
                 t + self.analysis.reference_epoch.timestamp
@@ -1898,3 +1854,4 @@ class LinearChangeSeeds_dtr(py4dgeo.RegionGrowingAlgorithm):
             return magn * (-1)  # achieve descending order
 
         return magnitude_sort
+
