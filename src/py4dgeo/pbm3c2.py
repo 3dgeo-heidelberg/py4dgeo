@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+
 class PBM3C2:
     """
     Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification.
@@ -293,18 +294,24 @@ class PBM3C2:
             self.correspondences["uncertainty"] = uncertainties
 
         return self.correspondences
-    
 
-    def visualize_correspondences(self, epoch0_segment_id=None, show_all=False, num_samples=10, 
-                                figsize=(12, 10), elev=30, azim=45):
+    def visualize_correspondences(
+        self,
+        epoch0_segment_id=None,
+        show_all=False,
+        num_samples=10,
+        figsize=(12, 10),
+        elev=30,
+        azim=45,
+    ):
         """
         Visualize matched plane segments and their correspondences.
-        
+
         Priority logic:
         1. If 'epoch0_segment_id' is provided, plots only that specific correspondence (zoomed in).
         2. Else if 'show_all' is True, plots all correspondences (risk of poor performance).
         3. Else (default), plots 'num_samples' random correspondences.
-        
+
         Parameters
         ----------
         epoch0_segment_id : int, optional
@@ -320,47 +327,53 @@ class PBM3C2:
         azim : float, optional
             Azimuth angle for 3D view in degrees (default: 45).
         """
-        
+
         if self.correspondences is None or self.correspondences.empty:
             raise ValueError("No correspondences found. Run compute() first.")
-            
+
         n_corr = len(self.correspondences)
         zoom_in = False  # Flag to control axis scaling
 
         # --- Sample Selection Logic ---
         if epoch0_segment_id is not None:
             # Mode 1: Plot specific ID
-            corr_sample = self.correspondences[self.correspondences['epoch0_segment_id'] == epoch0_segment_id]
+            corr_sample = self.correspondences[
+                self.correspondences["epoch0_segment_id"] == epoch0_segment_id
+            ]
             if corr_sample.empty:
-                raise ValueError(f"Epoch 0 Segment ID {epoch0_segment_id} not found in correspondences.")
+                raise ValueError(
+                    f"Epoch 0 Segment ID {epoch0_segment_id} not found in correspondences."
+                )
             title_text = f"PBM3C2 Correspondence for Segment ID {epoch0_segment_id}"
-            zoom_in = True # Zoom in on the single segment
-                
+            zoom_in = True  # Zoom in on the single segment
+
         elif show_all:
             # Mode 2: Plot all (user accepts risk)
             corr_sample = self.correspondences
             title_text = f"PBM3C2 Correspondences (showing all {n_corr})"
-            
+
         else:
             # Mode 3: Plot random sample (default, safe)
             if n_corr > num_samples:
                 sample_indices = np.random.choice(n_corr, num_samples, replace=False)
                 corr_sample = self.correspondences.iloc[sample_indices]
-                title_text = f"PBM3C2 Correspondences (showing {num_samples} of {n_corr})"
+                title_text = (
+                    f"PBM3C2 Correspondences (showing {num_samples} of {n_corr})"
+                )
             else:
                 # Not enough data to sample, just show all
                 corr_sample = self.correspondences
                 title_text = f"PBM3C2 Correspondences (showing all {n_corr})"
-        
+
         fig = plt.figure(figsize=figsize)
-        ax = fig.add_subplot(111, projection='3d')
-        
+        ax = fig.add_subplot(111, projection="3d")
+
         # Helper class for 3D arrows
         class Arrow3D(FancyArrowPatch):
             def __init__(self, xs, ys, zs, *args, **kwargs):
                 super().__init__((0, 0), (0, 0), *args, **kwargs)
                 self._verts3d = xs, ys, zs
-            
+
             def do_3d_projection(self, renderer=None):
                 xs3d, ys3d, zs3d = self._verts3d
                 xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, self.axes.M)
@@ -371,66 +384,102 @@ class PBM3C2:
         epoch1_plotted = False
 
         for idx, row in corr_sample.iterrows():
-            id0 = row['epoch0_segment_id']
-            id1 = row['epoch1_segment_id']
-            
+            id0 = row["epoch0_segment_id"]
+            id1 = row["epoch1_segment_id"]
+
             if id0 not in self.epoch0_segments or id1 not in self.epoch1_segments:
                 continue
-                
-            points0 = self.epoch0_segments[id0]['points']
-            points1 = self.epoch1_segments[id1]['points']
-            
+
+            points0 = self.epoch0_segments[id0]["points"]
+            points1 = self.epoch1_segments[id1]["points"]
+
             # Plot epoch0 segment (blue)
-            label0 = 'Epoch 0' if not epoch0_plotted else ''
-            ax.scatter(points0[:, 0], points0[:, 1], points0[:, 2], 
-                        c='blue', s=5, alpha=0.3, label=label0)
-            if label0: epoch0_plotted = True
-            
+            label0 = "Epoch 0" if not epoch0_plotted else ""
+            ax.scatter(
+                points0[:, 0],
+                points0[:, 1],
+                points0[:, 2],
+                c="blue",
+                s=5,
+                alpha=0.3,
+                label=label0,
+            )
+            if label0:
+                epoch0_plotted = True
+
             # Plot epoch1 segment (red)
-            label1 = 'Epoch 1' if not epoch1_plotted else ''
-            ax.scatter(points1[:, 0], points1[:, 1], points1[:, 2], 
-                        c='red', s=5, alpha=0.3, label=label1)
-            if label1: epoch1_plotted = True
-                
-            cog0 = self.epoch0_segment_metrics.loc[id0][['cog_x', 'cog_y', 'cog_z']].values
-            cog1 = self.epoch1_segment_metrics.loc[id1][['cog_x', 'cog_y', 'cog_z']].values
-            
+            label1 = "Epoch 1" if not epoch1_plotted else ""
+            ax.scatter(
+                points1[:, 0],
+                points1[:, 1],
+                points1[:, 2],
+                c="red",
+                s=5,
+                alpha=0.3,
+                label=label1,
+            )
+            if label1:
+                epoch1_plotted = True
+
+            cog0 = self.epoch0_segment_metrics.loc[id0][
+                ["cog_x", "cog_y", "cog_z"]
+            ].values
+            cog1 = self.epoch1_segment_metrics.loc[id1][
+                ["cog_x", "cog_y", "cog_z"]
+            ].values
+
             # Plot CoGs
-            ax.scatter(*cog0, c='darkblue', s=100, marker='o', edgecolors='black', linewidths=2)
-            ax.scatter(*cog1, c='darkred', s=100, marker='o', edgecolors='black', linewidths=2)
-            
+            ax.scatter(
+                *cog0, c="darkblue", s=100, marker="o", edgecolors="black", linewidths=2
+            )
+            ax.scatter(
+                *cog1, c="darkred", s=100, marker="o", edgecolors="black", linewidths=2
+            )
+
             # Draw arrow
             arrow = Arrow3D(
-                [cog0[0], cog1[0]], [cog0[1], cog1[1]], [cog0[2], cog1[2]],
-                mutation_scale=20, lw=2, arrowstyle='-|>', color='green', alpha=0.8
+                [cog0[0], cog1[0]],
+                [cog0[1], cog1[1]],
+                [cog0[2], cog1[2]],
+                mutation_scale=20,
+                lw=2,
+                arrowstyle="-|>",
+                color="green",
+                alpha=0.8,
             )
             ax.add_artist(arrow)
-            
+
             # Add text label
-            if 'distance' in row:
+            if "distance" in row:
                 mid_point = (cog0 + cog1) / 2
-                ax.text(mid_point[0], mid_point[1], mid_point[2], 
-                        f'{row["distance"]:.3f}m', 
-                        fontsize=8, color='green', weight='bold')
-        
+                ax.text(
+                    mid_point[0],
+                    mid_point[1],
+                    mid_point[2],
+                    f'{row["distance"]:.3f}m',
+                    fontsize=8,
+                    color="green",
+                    weight="bold",
+                )
+
         # Setup plot labels and title
-        ax.set_xlabel('X [m]', fontsize=12)
-        ax.set_ylabel('Y [m]', fontsize=12)
-        ax.set_zlabel('Z [m]', fontsize=12)
-        ax.set_title(title_text, fontsize=14, weight='bold')
-        
+        ax.set_xlabel("X [m]", fontsize=12)
+        ax.set_ylabel("Y [m]", fontsize=12)
+        ax.set_zlabel("Z [m]", fontsize=12)
+        ax.set_title(title_text, fontsize=14, weight="bold")
+
         if epoch0_plotted or epoch1_plotted:
-            ax.legend(loc='upper right', fontsize=10)
-        
+            ax.legend(loc="upper right", fontsize=10)
+
         ax.view_init(elev=elev, azim=azim)
-        
+
         if not zoom_in:
             # For multi-segment views, enforce equal aspect ratio
             # This makes the scene spatially correct, but shrinks arrows
             ax.set_box_aspect([1, 1, 1])
         # If zoom_in is True, we let matplotlib auto-scale the axes
         # to zoom in on the single correspondence
-            
+
         plt.tight_layout()
-        
+
         return fig, ax
