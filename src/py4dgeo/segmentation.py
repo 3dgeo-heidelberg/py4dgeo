@@ -23,6 +23,7 @@ from sklearn.linear_model import LinearRegression
 import _py4dgeo
 from sklearn.tree import DecisionTreeRegressor
 from functools import reduce
+
 # Get the py4dgeo logger instance
 logger = logging.getLogger("py4dgeo")
 
@@ -541,12 +542,12 @@ class SpatiotemporalAnalysis:
 
     @objects.setter
     def objects(self, _objects):
-        #Assert that we received the correct type
+        # Assert that we received the correct type
         for seed in _objects:
-           if not isinstance(seed, ObjectByChange):
-              raise Py4DGeoError(
-                 "Objects are expected to inherit from ObjectByChange"
-            )
+            if not isinstance(seed, ObjectByChange):
+                raise Py4DGeoError(
+                    "Objects are expected to inherit from ObjectByChange"
+                )
 
         if not self.allow_pickle:
             return
@@ -626,7 +627,7 @@ class SpatiotemporalAnalysis:
         merging = [[]] * len(self.objects)
         values = []
         for idx_act, obj_act in enumerate(self.objects):
-            logger.debug(f'Seedpoint {idx_act}')
+            logger.debug(f"Seedpoint {idx_act}")
             for idx_it, obj_it in enumerate(self.objects):
 
                 # identical 4D-OBC
@@ -662,8 +663,6 @@ class SpatiotemporalAnalysis:
 
         values = np.array(values)
 
-       
-
         visited = [False] * len(self.objects)
         merged_idxs = []
 
@@ -684,8 +683,6 @@ class SpatiotemporalAnalysis:
                         visited[idx_next] = True
                         merged_idxs[-1] = merged_idxs[-1] + [idx_next]
                         to_visit = to_visit + merging[idx_next]
-
-        
 
         merged_4dobcs = []
         for idx in merged_idxs:
@@ -728,18 +725,24 @@ class SpatiotemporalAnalysis:
             timestamps = [t + self.reference_epoch.timestamp for t in self.timedeltas]
             lod = self.uncertainties["lodetection"]
             mean_lod = np.nanmean(lod)
-            self.smoothed_distances = median_smoothing(distances=self.distances, timestamps=timestamps, ref_timestamp=self.reference_epoch.timestamp, smoothing_window=smoothing_window, timedelta_max = 5)
-            
+            self.smoothed_distances = median_smoothing(
+                distances=self.distances,
+                timestamps=timestamps,
+                ref_timestamp=self.reference_epoch.timestamp,
+                smoothing_window=smoothing_window,
+                timedelta_max=5,
+            )
+
             algo = LinearChangeSeeds_rdp(
-                neighborhood_radius = neighborhood_radius,
-                min_segments = neighborhood_radius,
-                max_segments = max_segments,
-                thresholds = [0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
-                epsilon = mean_lod,
-                height_threshold = height_threshold,
-                seed_subsampling = seed_subsampling,
-                max_change_period = max_change_period,
-                data_gap = data_gap,
+                neighborhood_radius=neighborhood_radius,
+                min_segments=neighborhood_radius,
+                max_segments=max_segments,
+                thresholds=[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+                epsilon=mean_lod,
+                height_threshold=height_threshold,
+                seed_subsampling=seed_subsampling,
+                max_change_period=max_change_period,
+                data_gap=data_gap,
             )
 
             logger.info("Algorithm started (RDP)")
@@ -750,8 +753,14 @@ class SpatiotemporalAnalysis:
             corepoints = self.corepoints.cloud
             lod = self.uncertainties["lodetection"]
             median_lod = np.nanmean(lod)
-            self.smoothed_distances = median_smoothing(distances=self.distances, timestamps=timestamps, ref_timestamp=self.reference_epoch.timestamp, smoothing_window=smoothing_window, timedelta_max = 5)
-           
+            self.smoothed_distances = median_smoothing(
+                distances=self.distances,
+                timestamps=timestamps,
+                ref_timestamp=self.reference_epoch.timestamp,
+                smoothing_window=smoothing_window,
+                timedelta_max=5,
+            )
+
             algo = LinearChangeSeeds_dtr(
                 neighborhood_radius=neighborhood_radius,
                 min_segments=min_segments,
@@ -764,7 +773,7 @@ class SpatiotemporalAnalysis:
                 data_gap=data_gap,
             )
 
-            logger.info('Algorithm started (DTR')
+            logger.info("Algorithm started (DTR")
             algo.run(self)
 
         else:
@@ -1390,7 +1399,6 @@ class ObjectByChange:
         # Maybe save to file
         if filename is not None:
             plt.savefig(filename)
-       
 
 
 def check_epoch_timestamp(epoch):
@@ -1465,68 +1473,67 @@ def temporal_averaging(distances, smoothing_window=24):
         # We use no-op smooting as the default implementation here
         return smoothed
 
-def median_smoothing(
-        distances: np.ndarray,
-        timestamps: list[datetime.datetime],
-        ref_timestamp: datetime.datetime,
-        smoothing_window: int,
-        timedelta_max: int =5
-)-> np.ndarray:
-        
 
-        def _row_idx(a: np.ndarray) -> int | None:
-            """Return index of first row that is not all-NaN, or None if none exist."""
-            valid_mask = ~np.isnan(a).all(axis=1)
-            if not valid_mask.any():
-                return None
-            return int(np.flatnonzero(valid_mask)[0])
-        eps = smoothing_window // 2
-        time_day = np.array(
-            [
-                (t - ref_timestamp).total_seconds() / (3600 * 24)
-                for t in timestamps
-            ]
+def median_smoothing(
+    distances: np.ndarray,
+    timestamps: list[datetime.datetime],
+    ref_timestamp: datetime.datetime,
+    smoothing_window: int,
+    timedelta_max: int = 5,
+) -> np.ndarray:
+
+    def _row_idx(a: np.ndarray) -> int | None:
+        """Return index of first row that is not all-NaN, or None if none exist."""
+        valid_mask = ~np.isnan(a).all(axis=1)
+        if not valid_mask.any():
+            return None
+        return int(np.flatnonzero(valid_mask)[0])
+
+    eps = smoothing_window // 2
+    time_day = np.array(
+        [(t - ref_timestamp).total_seconds() / (3600 * 24) for t in timestamps]
+    )
+
+    start_row = _row_idx(distances)
+    if start_row is None:
+        raise ValueError("All rows in distances are NaN")
+
+    dist_valid_row = distances[start_row:, :]
+    smoothed = np.full_like(distances, np.nan)
+
+    smoothed_slice = np.empty_like(dist_valid_row)
+
+    for i in range(dist_valid_row.shape[1]):
+        day_act = time_day[i]
+        day_limit = [day_act - timedelta_max, day_act + timedelta_max]
+        idx_limit = [
+            np.where(time_day <= day_limit[0])[0],
+            np.where(time_day >= day_limit[1])[0],
+        ]
+
+        if idx_limit[0].size != 0:
+            idx_limit[0] = idx_limit[0][-1]
+        else:
+            idx_limit[0] = 0
+
+        if idx_limit[1].size != 0:
+            idx_limit[1] = idx_limit[1][0]
+        else:
+            idx_limit[1] = distances.shape[1]
+
+        smoothed_slice[:, i] = np.nanmedian(
+            dist_valid_row[
+                :,
+                max(0, i - eps, idx_limit[0]) : min(
+                    dist_valid_row.shape[1] - 1, i + eps, idx_limit[1]
+                ),
+            ],
+            axis=1,
         )
 
-        start_row = _row_idx(distances)
-        if start_row is None:
-            raise ValueError("All rows in distances are NaN")
+    smoothed[start_row:, :] = smoothed_slice
+    return smoothed
 
-        dist_valid_row = distances[start_row:, :]
-        smoothed = np.full_like(distances, np.nan)
-
-        smoothed_slice = np.empty_like(dist_valid_row)
-
-        for i in range(dist_valid_row.shape[1]):
-            day_act = time_day[i]
-            day_limit = [day_act - timedelta_max, day_act + timedelta_max]
-            idx_limit = [
-                np.where(time_day <= day_limit[0])[0],
-                np.where(time_day >= day_limit[1])[0],
-            ]
-
-            if idx_limit[0].size != 0:
-                idx_limit[0] = idx_limit[0][-1]
-            else:
-                idx_limit[0] = 0
-
-            if idx_limit[1].size != 0:
-                idx_limit[1] = idx_limit[1][0]
-            else:
-                idx_limit[1] = distances.shape[1]
-
-            smoothed_slice[:, i] = np.nanmedian(
-                dist_valid_row[
-                    :,
-                    max(0, i - eps, idx_limit[0]) : min(
-                        dist_valid_row.shape[1] - 1, i + eps, idx_limit[1]
-                    ),
-                ],
-                axis=1,
-            )
-
-        smoothed[start_row:, :] = smoothed_slice
-        return smoothed 
 
 class MergedObjectsOfChange:
     def __init__(
@@ -1643,7 +1650,9 @@ class LinearChangeSeeds_rdp(RegionGrowingAlgorithm):
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
             )
-            logger.info(f'Number of seed candidates after subsamppling: {len(seed_candidates_curr)}')
+            logger.info(
+                f"Number of seed candidates after subsamppling: {len(seed_candidates_curr)}"
+            )
         else:
             # use the specified corepoint indices
             seed_candidates_curr = self.seed_candidates
@@ -1742,7 +1751,7 @@ class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
         self.data_gap = data_gap
 
     def find_seedpoints(self, seed_candidates=None):
-    
+
         # list of generated seeds
         seeds = []
 
@@ -1752,11 +1761,13 @@ class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
             )
-            
+
         else:
             # use the specified corepoint indices
             seed_candidates_curr = self.seed_candidates
-        logger.info(f'Number of seed candidates after subsamppling: {len(seed_candidates_curr)}')
+        logger.info(
+            f"Number of seed candidates after subsamppling: {len(seed_candidates_curr)}"
+        )
 
         # iterate over all time series to identify linear changes
         for cp_idx in seed_candidates_curr:
