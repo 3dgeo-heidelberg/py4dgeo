@@ -252,13 +252,14 @@ class PBM3C2:
         if n1 == 0 or n2 == 0:
             lod = np.nan
         else:
-            lod = 1.96 * np.sqrt(sigma1_sq / n1 + sigma2_sq / n2) + self.registration_error
+            lod = (
+                1.96 * np.sqrt(sigma1_sq / n1 + sigma2_sq / n2)
+                + self.registration_error
+            )
 
         return dist, lod
 
-    def run(
-        self, epoch0, epoch1, correspondences_file, apply_ids, search_radius=1.0
-    ):
+    def run(self, epoch0, epoch1, correspondences_file, apply_ids, search_radius=1.0):
         # Preprocess Epochs and Training Data (incase of overlapping Segment IDs)
         print("Preprocessing epochs and correspondences...")
         epoch0, epoch1, correspondences_for_training = self.preprocess_epochs(
