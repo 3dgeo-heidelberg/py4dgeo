@@ -16,9 +16,9 @@ class PBM3C2:
     This class implements the PBM3C2 algorithm as described in the paper by Zahs et al. (2022).
     """
 
-    def __init__(self, reg_error=0.0):
+    def __init__(self, registration_error=0.0):
         self.clf = RandomForestClassifier(n_estimators=100, random_state=42)
-        self.reg_error = reg_error
+        self.registration_error = registration_error
         self.epoch0_segment_metrics = None
         self.epoch1_segment_metrics = None
         self.epoch0_segments = None
@@ -252,11 +252,11 @@ class PBM3C2:
         if n1 == 0 or n2 == 0:
             lod = np.nan
         else:
-            lod = 1.96 * np.sqrt(sigma1_sq / n1 + sigma2_sq / n2) + self.reg_error
+            lod = 1.96 * np.sqrt(sigma1_sq / n1 + sigma2_sq / n2) + self.registration_error
 
         return dist, lod
 
-    def compute(
+    def run(
         self, epoch0, epoch1, correspondences_file, apply_ids, search_radius=1.0
     ):
         # Preprocess Epochs and Training Data (incase of overlapping Segment IDs)
@@ -329,7 +329,7 @@ class PBM3C2:
         """
 
         if self.correspondences is None or self.correspondences.empty:
-            raise ValueError("No correspondences found. Run compute() first.")
+            raise ValueError("No correspondences found. Run run() first.")
 
         n_corr = len(self.correspondences)
         zoom_in = False  # Flag to control axis scaling
