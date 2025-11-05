@@ -1637,7 +1637,6 @@ class LinearChangeSeeds_rdp(RegionGrowingAlgorithm):
         self.epsilon = epsilon
         self.max_change_period = max_change_period
         self.data_gap = data_gap
-        
 
     def find_seedpoints(self, seed_candidates=None):
         # list of generated seeds
@@ -1839,12 +1838,12 @@ class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
                 # consider maximum change period
                 elif stopp - startp > self.max_change_period:
                     continue
-                
-                # consider possible data gap 
+
+                # consider possible data gap
                 elif self.data_gap is not None:
                     if stopp >= self.data_gap and startp <= self.data_gap - 1:
                         continue
-            
+
                 # add current seed to list of seed candidates
                 else:
                     curr_seed = RegionGrowingSeed(cp_idx, startp, stopp)
