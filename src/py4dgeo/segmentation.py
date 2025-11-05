@@ -4,7 +4,6 @@ from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
 from py4dgeo.util import Py4DGeoError, find_file
 from py4dgeo.UpdateableZipFile import UpdateableZipFile
-from py4dgeo.segmentation import RegionGrowingSeed
 
 import datetime
 import json
@@ -1631,7 +1630,7 @@ class LinearChangeSeeds_rdp(RegionGrowingAlgorithm):
         self.epsilon = epsilon
         self.max_change_period = max_change_period
         self.data_gap = data_gap
-        #self.seed_subsampling = kwargs.pop("seed_subsampling")
+        
 
     def find_seedpoints(self, seed_candidates=None):
         # list of generated seeds
@@ -1639,7 +1638,7 @@ class LinearChangeSeeds_rdp(RegionGrowingAlgorithm):
 
         # list of core point indices to check as seeds
         if self.seed_candidates is None:
-            logger.info("Seed Subsampling", self.seed_subsampling)
+            logger.info(f"Seed Subsampling: {self.seed_subsampling}")
             # use all corepoints if no selection is specified, considering subsampling
             seed_candidates_curr = range(
                 0, self.analysis.distances_for_compute.shape[0], self.seed_subsampling
@@ -1739,7 +1738,6 @@ class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
     ):  # seed_subsampling,
         super().__init__(**kwargs)
         self.epsilon = epsilon
-        #self.seed_subsampling = kwargs.pop("seed_subsampling")
         self.max_change_period = max_change_period
         self.data_gap = data_gap
 
@@ -1830,14 +1828,12 @@ class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
                 # consider maximum change period
                 elif stopp - startp > self.max_change_period:
                     continue
-
+                
+                # consider possible data gap 
                 elif self.data_gap is not None:
                     if stopp >= self.data_gap and startp <= self.data_gap - 1:
                         continue
-                # cosider data gap of between 09.09.2021 and 30.09.2021
-                # elif stopp >= self.data_gap and startp <= self.data_gap-1:
-                #     continue
-
+            
                 # add current seed to list of seed candidates
                 else:
                     curr_seed = RegionGrowingSeed(cp_idx, startp, stopp)
@@ -1854,4 +1850,3 @@ class LinearChangeSeeds_dtr(RegionGrowingAlgorithm):
             return magn * (-1)  # achieve descending order
 
         return magnitude_sort
-
