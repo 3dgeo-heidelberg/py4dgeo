@@ -84,7 +84,10 @@ def test_preprocess_offsets_overlapping_segment_ids(tmp_path):
 
     # correspondences_df second column should have been incremented by offset for relevant rows
     # corr_df's second column originally [0, 2] => now should be [0+offset, 2+offset]
-    assert list(corr_df.iloc[:, 1].astype(int)) == [int(0 + expected_offset), int(2 + expected_offset)]
+    assert list(corr_df.iloc[:, 1].astype(int)) == [
+        int(0 + expected_offset),
+        int(2 + expected_offset),
+    ]
 
 
 def test_run_end_to_end(tmp_path):
@@ -117,13 +120,21 @@ def test_run_end_to_end(tmp_path):
 
     pbm = PBM3C2(registration_error=0.05)
 
-    result = pbm.run(epoch0=epoch0, epoch1=epoch1, correspondences_file=str(corr_file), apply_ids=[0, 1], search_radius=5.0)
+    result = pbm.run(
+        epoch0=epoch0,
+        epoch1=epoch1,
+        correspondences_file=str(corr_file),
+        apply_ids=[0, 1],
+        search_radius=5.0,
+    )
 
     assert result is not None
     assert isinstance(result, pd.DataFrame)
 
     if result.empty:
-        pytest.skip("No correspondences were found by the classifier in this synthetic test (acceptable).")
+        pytest.skip(
+            "No correspondences were found by the classifier in this synthetic test (acceptable)."
+        )
 
     # Expect certain columns
     assert "epoch0_segment_id" in result.columns
@@ -136,5 +147,9 @@ def test_run_end_to_end(tmp_path):
         id0 = int(row["epoch0_segment_id"])
         id1 = int(row["epoch1_segment_id"])
         dist_expected, lod_expected = pbm._calculate_m3c2(id0, id1)
-        assert pytest.approx(dist_expected, rel=1e-6, abs=1e-8) == float(row["distance"])
-        assert pytest.approx(lod_expected, rel=1e-6, abs=1e-8) == float(row["uncertainty"])
+        assert pytest.approx(dist_expected, rel=1e-6, abs=1e-8) == float(
+            row["distance"]
+        )
+        assert pytest.approx(lod_expected, rel=1e-6, abs=1e-8) == float(
+            row["uncertainty"]
+        )
