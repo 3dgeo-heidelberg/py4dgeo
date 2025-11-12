@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import gc
+import weakref
 
 
 class PBM3C2:
@@ -26,21 +27,54 @@ class PBM3C2:
         self.epoch1_segments = None
         self.correspondences = None
 
+    def __del__(self):
+        """Explicit resource cleanup on object destruction."""
+        self._cleanup()
+
+    def _cleanup(self):
+        """Clean up all large data structures to prevent memory leaks."""
+        if hasattr(self, 'epoch0_segments') and self.epoch0_segments is not None:
+            self.epoch0_segments.clear()
+            self.epoch0_segments = None
+        
+        if hasattr(self, 'epoch1_segments') and self.epoch1_segments is not None:
+            self.epoch1_segments.clear()
+            self.epoch1_segments = None
+        
+        for attr in ['epoch0_segment_metrics', 'epoch1_segment_metrics', 'correspondences']:
+            if hasattr(self, attr):
+                obj = getattr(self, attr)
+                if obj is not None and hasattr(obj, 'memory_usage'):
+                    setattr(self, attr, None)
+        
+        gc.collect()
+
     @staticmethod
     def preprocess_epochs(epoch0, epoch1, correspondences_file):
         """
-        Check and process the Segment IDs of Epoch objects to ensure they are globally unique.
-        Simultaneously, adjust the correspondence files used for training based on the ID offsets.
+        Check and process Segment IDs to ensure global uniqueness.
+        Adjust correspondence file IDs based on any applied offsets.
+        
+        Parameters
+        ----------
+        epoch0 : Epoch
+            First epoch with segment_id in additional_dimensions
+        epoch1 : Epoch
+            Second epoch with segment_id in additional_dimensions
+        correspondences_file : str
+            Path to CSV file with correspondence labels (no header)
+            
+        Returns
+        -------
+        tuple
+            (epoch0, epoch1, correspondences_df) with adjusted IDs if needed
         """
         print("Checking if the Segment ID is unique...")
         ids0 = np.unique(epoch0.additional_dimensions["segment_id"])
         ids1 = np.unique(epoch1.additional_dimensions["segment_id"])
 
-        # Read CSV file
         correspondences_df = pd.read_csv(correspondences_file, header=None)
 
-        # Check if CSV has header (column names)
-        # If first row contains non-numeric values, it's likely a header
         first_row = correspondences_df.iloc[0]
         if not all(
             pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float))
@@ -51,7 +85,6 @@ class PBM3C2:
                 "Please provide a CSV file without headers (header=False when saving)."
             )
 
-        # Additional check: if any value in first 2 columns is not numeric
         try:
             pd.to_numeric(correspondences_df.iloc[:, 0])
             pd.to_numeric(correspondences_df.iloc[:, 1])
@@ -63,29 +96,32 @@ class PBM3C2:
 
         if not set(ids0).isdisjoint(set(ids1)):
             print("Detected overlapping Segment IDs, performing preprocessing...")
-
             max_id_epoch0 = ids0.max()
             offset = max_id_epoch0 + 1
 
-            # update epoch1 segment_id
             new_ids_epoch1 = epoch1.additional_dimensions["segment_id"] + offset
             epoch1.additional_dimensions["segment_id"] = new_ids_epoch1
 
-            # update correspondences_df (second column)
             correspondences_df.iloc[:, 1] = correspondences_df.iloc[:, 1] + offset
-
-            print(
-                f"Preprocessing complete. Epoch1 Segment IDs have been offset by {offset}."
-            )
+            print(f"Preprocessing complete. Epoch1 Segment IDs offset by {offset}.")
         else:
-            print("No overlapping Segment IDs detected, no preprocessing needed.")
+            print("No overlapping Segment IDs detected.")
 
         return epoch0, epoch1, correspondences_df
 
     def _get_segments(self, epoch):
         """
-        Extracts individual segments from an epoch, correctly handling the data
-        structure where additional_dimensions is a dictionary of NumPy arrays.
+        Extract individual segments from an epoch.
+        
+        Parameters
+        ----------
+        epoch : Epoch
+            Epoch object with segment_id in additional_dimensions
+            
+        Returns
+        -------
+        dict
+            Dictionary mapping segment_id to point arrays
         """
         add_dims = epoch.additional_dimensions
         segment_id_array = add_dims["segment_id"]
@@ -94,46 +130,56 @@ class PBM3C2:
         segments_dict = {}
         for seg_id in unique_segment_ids:
             indices = np.where(segment_id_array == seg_id)[0]
-
             if len(indices) > 0:
                 segments_dict[seg_id] = {"points": epoch.cloud[indices].copy()}
 
         return segments_dict
 
     def _create_segment_metrics(self, segments):
-        """Creates a DataFrame with metrics for each segment."""
+        """
+        Calculate geometric metrics for each segment.
+        
+        Parameters
+        ----------
+        segments : dict
+            Dictionary of segments from _get_segments()
+            
+        Returns
+        -------
+        DataFrame
+            Metrics indexed by segment_id
+        """
         metrics_list = []
-        for segment_id, data in tqdm(segments.items(), desc="Extracting Features"):
-            points = data["points"]
-            if points.shape[0] < 3:
-                continue
+        
+        try:
+            for segment_id, data in tqdm(segments.items(), desc="Extracting Features"):
+                points = data["points"]
+                if points.shape[0] < 3:
+                    continue
 
-            cog = np.mean(points, axis=0)
+                cog = np.mean(points, axis=0)
+                centered_points = points - cog
+                cov_matrix = np.cov(centered_points, rowvar=False)
+                eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
 
-            centered_points = points - cog
-            cov_matrix = np.cov(centered_points, rowvar=False)
-            eigenvalues, eigenvectors = np.linalg.eigh(cov_matrix)
+                sort_indices = np.argsort(eigenvalues)[::-1]
+                eigenvalues = eigenvalues[sort_indices]
+                eigenvectors = eigenvectors[:, sort_indices]
 
-            sort_indices = np.argsort(eigenvalues)[::-1]
-            eigenvalues = eigenvalues[sort_indices]
-            eigenvectors = eigenvectors[:, sort_indices]
+                normal = eigenvectors[:, 2]
+                distances_to_plane = np.dot(centered_points, normal)
+                roughness = np.std(distances_to_plane)
 
-            normal = eigenvectors[:, 2]
+                e1, e2, e3 = eigenvalues
+                sum_eigenvalues = e1 + e2 + e3
+                if sum_eigenvalues == 0:
+                    linearity = planarity = sphericity = 0
+                else:
+                    linearity = (e1 - e2) / sum_eigenvalues
+                    planarity = (e2 - e3) / sum_eigenvalues
+                    sphericity = e3 / sum_eigenvalues
 
-            distances_to_plane = np.dot(centered_points, normal)
-            roughness = np.std(distances_to_plane)
-
-            e1, e2, e3 = eigenvalues
-            sum_eigenvalues = e1 + e2 + e3
-            if sum_eigenvalues == 0:
-                linearity = planarity = sphericity = 0
-            else:
-                linearity = (e1 - e2) / sum_eigenvalues
-                planarity = (e2 - e3) / sum_eigenvalues
-                sphericity = e3 / sum_eigenvalues
-
-            metrics_list.append(
-                {
+                metrics_list.append({
                     "segment_id": segment_id,
                     "cog_x": cog[0],
                     "cog_y": cog[1],
@@ -146,13 +192,24 @@ class PBM3C2:
                     "sphericity": sphericity,
                     "roughness": roughness,
                     "num_points": points.shape[0],
-                }
-            )
+                })
+                
+                del cog, centered_points, cov_matrix, eigenvalues, eigenvectors
+                del normal, distances_to_plane
+                
+        finally:
+            gc.collect()
 
         return pd.DataFrame(metrics_list).set_index("segment_id")
 
     def _create_feature_array(self, df_t1, df_t2, correspondences):
+        """
+        Create feature vectors for segment pairs.
+        
+        Features: CoG distance, normal angle, roughness difference
+        """
         features = []
+        
         for _, row in correspondences.iterrows():
             id1, id2 = int(row.iloc[0]), int(row.iloc[1])
 
@@ -178,6 +235,14 @@ class PBM3C2:
         return np.array(features)
 
     def train(self, correspondences):
+        """
+        Train Random Forest classifier on labeled correspondences.
+        
+        Parameters
+        ----------
+        correspondences : DataFrame
+            Labeled correspondences with columns [id_epoch0, id_epoch1, label]
+        """
         positives = correspondences[correspondences[2] == 1]
         negatives = correspondences[correspondences[2] == 0]
 
@@ -195,14 +260,29 @@ class PBM3C2:
         y = np.array([1] * len(X_pos) + [0] * len(X_neg))
 
         self.clf.fit(X, y)
+        
+        del X, y, X_pos, X_neg, positives, negatives
+        gc.collect()
 
     def apply(self, apply_ids, search_radius=1.0):
+        """
+        Apply trained classifier to find correspondences for given segment IDs.
+        
+        Parameters
+        ----------
+        apply_ids : array-like
+            Segment IDs from epoch0 to find matches for
+        search_radius : float
+            Maximum spatial search radius in meters
+        """
         epoch1_cogs = self.epoch1_segment_metrics[["cog_x", "cog_y", "cog_z"]].values
-        kdtree = cKDTree(epoch1_cogs)
-
+        
+        kdtree = None
         found_correspondences = []
-
+        
         try:
+            kdtree = cKDTree(epoch1_cogs)
+            
             for apply_id in tqdm(apply_ids, desc="Applying Classifier"):
                 if apply_id not in self.epoch0_segment_metrics.index:
                     continue
@@ -211,7 +291,6 @@ class PBM3C2:
                     ["cog_x", "cog_y", "cog_z"]
                 ].values
 
-                # cKDTree 的 query_ball_point 方法
                 indices = kdtree.query_ball_point(cog0, r=search_radius)
 
                 if len(indices) == 0:
@@ -219,30 +298,57 @@ class PBM3C2:
 
                 candidate_ids = self.epoch1_segment_metrics.index[indices]
 
-                apply_df = pd.DataFrame(
-                    {"id1": [apply_id] * len(candidate_ids), "id2": candidate_ids}
-                )
+                apply_df = pd.DataFrame({
+                    "id1": [apply_id] * len(candidate_ids),
+                    "id2": candidate_ids
+                })
+                
                 X_apply = self._create_feature_array(
-                    self.epoch0_segment_metrics, self.epoch1_segment_metrics, apply_df
+                    self.epoch0_segment_metrics,
+                    self.epoch1_segment_metrics,
+                    apply_df
                 )
 
                 if len(X_apply) == 0:
+                    del apply_df, X_apply
                     continue
 
                 probabilities = self.clf.predict_proba(X_apply)[:, 1]
                 best_match_idx = np.argmax(probabilities)
 
-                found_correspondences.append([apply_id, candidate_ids[best_match_idx]])
+                found_correspondences.append([
+                    apply_id,
+                    candidate_ids[best_match_idx]
+                ])
+                
+                del apply_df, X_apply, probabilities, indices, candidate_ids
+                
+                if len(found_correspondences) % 100 == 0:
+                    gc.collect()
 
         finally:
-            del kdtree
+            if kdtree is not None:
+                del kdtree
+            del epoch1_cogs
             gc.collect()
 
         self.correspondences = pd.DataFrame(
-            found_correspondences, columns=["epoch0_segment_id", "epoch1_segment_id"]
+            found_correspondences,
+            columns=["epoch0_segment_id", "epoch1_segment_id"]
         )
+        
+        del found_correspondences
+        gc.collect()
 
     def _calculate_m3c2(self, segment1_id, segment2_id):
+        """
+        Calculate M3C2 distance and level of detection (LoD).
+        
+        Returns
+        -------
+        tuple
+            (distance, uncertainty) in meters
+        """
         metrics1 = self.epoch0_segment_metrics.loc[segment1_id]
         metrics2 = self.epoch1_segment_metrics.loc[segment2_id]
 
@@ -268,31 +374,58 @@ class PBM3C2:
         return dist, lod
 
     def run(self, epoch0, epoch1, correspondences_file, apply_ids, search_radius=1.0):
-        # Preprocess Epochs and Training Data (incase of overlapping Segment IDs)
-        print("Preprocessing epochs and correspondences...")
-        epoch0, epoch1, correspondences_for_training = self.preprocess_epochs(
-            epoch0, epoch1, correspondences_file
-        )
+        """
+        Execute complete PBM3C2 workflow.
+        
+        Parameters
+        ----------
+        epoch0, epoch1 : Epoch
+            Input point cloud epochs with segment_id
+        correspondences_file : str
+            Path to CSV with training correspondences
+        apply_ids : array-like
+            Segment IDs to find correspondences for
+        search_radius : float
+            Spatial search radius in meters
+            
+        Returns
+        -------
+        DataFrame
+            Correspondences with distances and uncertainties
+        """
+        try:
+            print("Preprocessing epochs and correspondences...")
+            epoch0, epoch1, correspondences_for_training = self.preprocess_epochs(
+                epoch0, epoch1, correspondences_file
+            )
 
-        print("Step 1: Loading and processing segments...")
-        self.epoch0_segments = self._get_segments(epoch0)
-        self.epoch1_segments = self._get_segments(epoch1)
+            print("Step 1: Loading and processing segments...")
+            self.epoch0_segments = self._get_segments(epoch0)
+            self.epoch1_segments = self._get_segments(epoch1)
 
-        print("Step 2: Extracting features...")
-        self.epoch0_segment_metrics = self._create_segment_metrics(self.epoch0_segments)
-        self.epoch1_segment_metrics = self._create_segment_metrics(self.epoch1_segments)
+            print("Step 2: Extracting features...")
+            self.epoch0_segment_metrics = self._create_segment_metrics(
+                self.epoch0_segments
+            )
+            self.epoch1_segment_metrics = self._create_segment_metrics(
+                self.epoch1_segments
+            )
 
-        print("Step 3: Training classifier...")
-        self.train(correspondences_for_training)
+            print("Step 3: Training classifier...")
+            self.train(correspondences_for_training)
+            
+            del correspondences_for_training
+            gc.collect()
 
-        print("Step 4: Finding correspondences...")
-        self.apply(apply_ids=apply_ids, search_radius=search_radius)
+            print("Step 4: Finding correspondences...")
+            self.apply(apply_ids=apply_ids, search_radius=search_radius)
 
-        print("Step 5: Calculating distances...")
-        distances, uncertainties = [], []
-        if self.correspondences is None or self.correspondences.empty:
-            print("Warning: No correspondences were found.")
-        else:
+            print("Step 5: Calculating distances...")
+            if self.correspondences is None or self.correspondences.empty:
+                print("Warning: No correspondences were found.")
+                return self.correspondences
+
+            distances, uncertainties = [], []
             for _, row in self.correspondences.iterrows():
                 id1, id2 = row["epoch0_segment_id"], row["epoch1_segment_id"]
                 dist, lod = self._calculate_m3c2(id1, id2)
@@ -301,8 +434,13 @@ class PBM3C2:
 
             self.correspondences["distance"] = distances
             self.correspondences["uncertainty"] = uncertainties
-        gc.collect()
-        return self.correspondences
+            
+            del distances, uncertainties
+            
+            return self.correspondences
+            
+        finally:
+            gc.collect()
 
     def visualize_correspondences(
         self,
@@ -317,35 +455,37 @@ class PBM3C2:
         Visualize matched plane segments and their correspondences.
 
         Priority logic:
-        1. If 'epoch0_segment_id' is provided, plots only that specific correspondence (zoomed in).
-        2. Else if 'show_all' is True, plots all correspondences (risk of poor performance).
-        3. Else (default), plots 'num_samples' random correspondences.
+        1. If epoch0_segment_id is provided, plot only that correspondence (zoomed)
+        2. Else if show_all=True, plot all correspondences (may be slow)
+        3. Else, plot num_samples random correspondences (default)
 
         Parameters
         ----------
         epoch0_segment_id : int, optional
-            The specific 'epoch0_segment_id' to visualize (default: None).
+            Specific segment ID to visualize
         show_all : bool, optional
-            Flag to force plotting all correspondences (default: False).
+            Plot all correspondences (default: False)
         num_samples : int, optional
-            Number of random correspondences to visualize if epoch0_segment_id is None and show_all is False (default: 10).
+            Number of random samples if show_all=False (default: 10)
         figsize : tuple, optional
-            Figure size (width, height) in inches (default: (12, 10)).
+            Figure size (width, height) in inches
         elev : float, optional
-            Elevation angle for 3D view in degrees (default: 30).
+            Elevation angle for 3D view in degrees
         azim : float, optional
-            Azimuth angle for 3D view in degrees (default: 45).
+            Azimuth angle for 3D view in degrees
+            
+        Returns
+        -------
+        tuple
+            (fig, ax) matplotlib figure and axis objects
         """
-
         if self.correspondences is None or self.correspondences.empty:
             raise ValueError("No correspondences found. Run run() first.")
 
         n_corr = len(self.correspondences)
-        zoom_in = False  # Flag to control axis scaling
+        zoom_in = False
 
-        # --- Sample Selection Logic ---
         if epoch0_segment_id is not None:
-            # Mode 1: Plot specific ID
             corr_sample = self.correspondences[
                 self.correspondences["epoch0_segment_id"] == epoch0_segment_id
             ]
@@ -354,15 +494,13 @@ class PBM3C2:
                     f"Epoch 0 Segment ID {epoch0_segment_id} not found in correspondences."
                 )
             title_text = f"PBM3C2 Correspondence for Segment ID {epoch0_segment_id}"
-            zoom_in = True  # Zoom in on the single segment
+            zoom_in = True
 
         elif show_all:
-            # Mode 2: Plot all (user accepts risk)
             corr_sample = self.correspondences
             title_text = f"PBM3C2 Correspondences (showing all {n_corr})"
 
         else:
-            # Mode 3: Plot random sample (default, safe)
             if n_corr > num_samples:
                 sample_indices = np.random.choice(n_corr, num_samples, replace=False)
                 corr_sample = self.correspondences.iloc[sample_indices]
@@ -370,14 +508,12 @@ class PBM3C2:
                     f"PBM3C2 Correspondences (showing {num_samples} of {n_corr})"
                 )
             else:
-                # Not enough data to sample, just show all
                 corr_sample = self.correspondences
                 title_text = f"PBM3C2 Correspondences (showing all {n_corr})"
 
         fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(111, projection="3d")
 
-        # Helper class for 3D arrows
         class Arrow3D(FancyArrowPatch):
             def __init__(self, xs, ys, zs, *args, **kwargs):
                 super().__init__((0, 0), (0, 0), *args, **kwargs)
@@ -402,7 +538,6 @@ class PBM3C2:
             points0 = self.epoch0_segments[id0]["points"]
             points1 = self.epoch1_segments[id1]["points"]
 
-            # Plot epoch0 segment (blue)
             label0 = "Epoch 0" if not epoch0_plotted else ""
             ax.scatter(
                 points0[:, 0],
@@ -416,7 +551,6 @@ class PBM3C2:
             if label0:
                 epoch0_plotted = True
 
-            # Plot epoch1 segment (red)
             label1 = "Epoch 1" if not epoch1_plotted else ""
             ax.scatter(
                 points1[:, 0],
@@ -437,7 +571,6 @@ class PBM3C2:
                 ["cog_x", "cog_y", "cog_z"]
             ].values
 
-            # Plot CoGs
             ax.scatter(
                 *cog0, c="darkblue", s=100, marker="o", edgecolors="black", linewidths=2
             )
@@ -445,7 +578,6 @@ class PBM3C2:
                 *cog1, c="darkred", s=100, marker="o", edgecolors="black", linewidths=2
             )
 
-            # Draw arrow
             arrow = Arrow3D(
                 [cog0[0], cog1[0]],
                 [cog0[1], cog1[1]],
@@ -458,7 +590,6 @@ class PBM3C2:
             )
             ax.add_artist(arrow)
 
-            # Add text label
             if "distance" in row:
                 mid_point = (cog0 + cog1) / 2
                 ax.text(
@@ -471,7 +602,6 @@ class PBM3C2:
                     weight="bold",
                 )
 
-        # Setup plot labels and title
         ax.set_xlabel("X [m]", fontsize=12)
         ax.set_ylabel("Y [m]", fontsize=12)
         ax.set_zlabel("Z [m]", fontsize=12)
@@ -483,11 +613,7 @@ class PBM3C2:
         ax.view_init(elev=elev, azim=azim)
 
         if not zoom_in:
-            # For multi-segment views, enforce equal aspect ratio
-            # This makes the scene spatially correct, but shrinks arrows
             ax.set_box_aspect([1, 1, 1])
-        # If zoom_in is True, we let matplotlib auto-scale the axes
-        # to zoom in on the single correspondence
 
         plt.tight_layout()
 
