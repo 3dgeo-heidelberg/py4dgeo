@@ -58,7 +58,19 @@ epochs_las = epoch_las_fixture("plane_horizontal_t1.laz", "plane_horizontal_t2.l
 epochs_las_w_normals = epoch_las_fixture(
     "plane_horizontal_t1_w_normals.laz", "plane_horizontal_t2_w_normals.laz"
 )
+epochs_segmented = epoch_fixture(
+    "plane_horizontal_t1_segmented.xyz", "plane_horizontal_t2_segmented.xyz",
+    additional_dimensions={3: "segment_id"},
+)
 
+@pytest.fixture()
+def pbm3c2_labels():
+    labels = np.loadtxt(
+        find_data_file("testdata-labelling2.csv"), 
+        dtype=np.float64, 
+        delimiter=","
+    )
+    return labels
 
 @pytest.fixture
 def analysis(tmp_path):
