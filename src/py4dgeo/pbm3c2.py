@@ -33,20 +33,24 @@ class PBM3C2:
 
     def _cleanup(self):
         """Clean up all large data structures to prevent memory leaks."""
-        if hasattr(self, 'epoch0_segments') and self.epoch0_segments is not None:
+        if hasattr(self, "epoch0_segments") and self.epoch0_segments is not None:
             self.epoch0_segments.clear()
             self.epoch0_segments = None
-        
-        if hasattr(self, 'epoch1_segments') and self.epoch1_segments is not None:
+
+        if hasattr(self, "epoch1_segments") and self.epoch1_segments is not None:
             self.epoch1_segments.clear()
             self.epoch1_segments = None
-        
-        for attr in ['epoch0_segment_metrics', 'epoch1_segment_metrics', 'correspondences']:
+
+        for attr in [
+            "epoch0_segment_metrics",
+            "epoch1_segment_metrics",
+            "correspondences",
+        ]:
             if hasattr(self, attr):
                 obj = getattr(self, attr)
-                if obj is not None and hasattr(obj, 'memory_usage'):
+                if obj is not None and hasattr(obj, "memory_usage"):
                     setattr(self, attr, None)
-        
+
         gc.collect()
 
     @staticmethod
@@ -54,7 +58,7 @@ class PBM3C2:
         """
         Check and process Segment IDs to ensure global uniqueness.
         Adjust correspondence file IDs based on any applied offsets.
-        
+
         Parameters
         ----------
         epoch0 : Epoch
@@ -63,7 +67,7 @@ class PBM3C2:
             Second epoch with segment_id in additional_dimensions
         correspondences_file : str
             Path to CSV file with correspondence labels (no header)
-            
+
         Returns
         -------
         tuple
@@ -112,12 +116,12 @@ class PBM3C2:
     def _get_segments(self, epoch):
         """
         Extract individual segments from an epoch.
-        
+
         Parameters
         ----------
         epoch : Epoch
             Epoch object with segment_id in additional_dimensions
-            
+
         Returns
         -------
         dict
@@ -138,19 +142,19 @@ class PBM3C2:
     def _create_segment_metrics(self, segments):
         """
         Calculate geometric metrics for each segment.
-        
+
         Parameters
         ----------
         segments : dict
             Dictionary of segments from _get_segments()
-            
+
         Returns
         -------
         DataFrame
             Metrics indexed by segment_id
         """
         metrics_list = []
-        
+
         try:
             for segment_id, data in tqdm(segments.items(), desc="Extracting Features"):
                 points = data["points"]
@@ -179,24 +183,26 @@ class PBM3C2:
                     planarity = (e2 - e3) / sum_eigenvalues
                     sphericity = e3 / sum_eigenvalues
 
-                metrics_list.append({
-                    "segment_id": segment_id,
-                    "cog_x": cog[0],
-                    "cog_y": cog[1],
-                    "cog_z": cog[2],
-                    "normal_x": normal[0],
-                    "normal_y": normal[1],
-                    "normal_z": normal[2],
-                    "linearity": linearity,
-                    "planarity": planarity,
-                    "sphericity": sphericity,
-                    "roughness": roughness,
-                    "num_points": points.shape[0],
-                })
-                
+                metrics_list.append(
+                    {
+                        "segment_id": segment_id,
+                        "cog_x": cog[0],
+                        "cog_y": cog[1],
+                        "cog_z": cog[2],
+                        "normal_x": normal[0],
+                        "normal_y": normal[1],
+                        "normal_z": normal[2],
+                        "linearity": linearity,
+                        "planarity": planarity,
+                        "sphericity": sphericity,
+                        "roughness": roughness,
+                        "num_points": points.shape[0],
+                    }
+                )
+
                 del cog, centered_points, cov_matrix, eigenvalues, eigenvectors
                 del normal, distances_to_plane
-                
+
         finally:
             gc.collect()
 
@@ -205,11 +211,11 @@ class PBM3C2:
     def _create_feature_array(self, df_t1, df_t2, correspondences):
         """
         Create feature vectors for segment pairs.
-        
+
         Features: CoG distance, normal angle, roughness difference
         """
         features = []
-        
+
         for _, row in correspondences.iterrows():
             id1, id2 = int(row.iloc[0]), int(row.iloc[1])
 
@@ -237,7 +243,7 @@ class PBM3C2:
     def train(self, correspondences):
         """
         Train Random Forest classifier on labeled correspondences.
-        
+
         Parameters
         ----------
         correspondences : DataFrame
@@ -260,14 +266,14 @@ class PBM3C2:
         y = np.array([1] * len(X_pos) + [0] * len(X_neg))
 
         self.clf.fit(X, y)
-        
+
         del X, y, X_pos, X_neg, positives, negatives
         gc.collect()
 
     def apply(self, apply_ids, search_radius=1.0):
         """
         Apply trained classifier to find correspondences for given segment IDs.
-        
+
         Parameters
         ----------
         apply_ids : array-like
@@ -276,13 +282,13 @@ class PBM3C2:
             Maximum spatial search radius in meters
         """
         epoch1_cogs = self.epoch1_segment_metrics[["cog_x", "cog_y", "cog_z"]].values
-        
+
         kdtree = None
         found_correspondences = []
-        
+
         try:
             kdtree = cKDTree(epoch1_cogs)
-            
+
             for apply_id in tqdm(apply_ids, desc="Applying Classifier"):
                 if apply_id not in self.epoch0_segment_metrics.index:
                     continue
@@ -298,15 +304,12 @@ class PBM3C2:
 
                 candidate_ids = self.epoch1_segment_metrics.index[indices]
 
-                apply_df = pd.DataFrame({
-                    "id1": [apply_id] * len(candidate_ids),
-                    "id2": candidate_ids
-                })
-                
+                apply_df = pd.DataFrame(
+                    {"id1": [apply_id] * len(candidate_ids), "id2": candidate_ids}
+                )
+
                 X_apply = self._create_feature_array(
-                    self.epoch0_segment_metrics,
-                    self.epoch1_segment_metrics,
-                    apply_df
+                    self.epoch0_segment_metrics, self.epoch1_segment_metrics, apply_df
                 )
 
                 if len(X_apply) == 0:
@@ -316,13 +319,10 @@ class PBM3C2:
                 probabilities = self.clf.predict_proba(X_apply)[:, 1]
                 best_match_idx = np.argmax(probabilities)
 
-                found_correspondences.append([
-                    apply_id,
-                    candidate_ids[best_match_idx]
-                ])
-                
+                found_correspondences.append([apply_id, candidate_ids[best_match_idx]])
+
                 del apply_df, X_apply, probabilities, indices, candidate_ids
-                
+
                 if len(found_correspondences) % 100 == 0:
                     gc.collect()
 
@@ -333,17 +333,16 @@ class PBM3C2:
             gc.collect()
 
         self.correspondences = pd.DataFrame(
-            found_correspondences,
-            columns=["epoch0_segment_id", "epoch1_segment_id"]
+            found_correspondences, columns=["epoch0_segment_id", "epoch1_segment_id"]
         )
-        
+
         del found_correspondences
         gc.collect()
 
     def _calculate_m3c2(self, segment1_id, segment2_id):
         """
         Calculate M3C2 distance and level of detection (LoD).
-        
+
         Returns
         -------
         tuple
@@ -376,7 +375,7 @@ class PBM3C2:
     def run(self, epoch0, epoch1, correspondences_file, apply_ids, search_radius=1.0):
         """
         Execute complete PBM3C2 workflow.
-        
+
         Parameters
         ----------
         epoch0, epoch1 : Epoch
@@ -387,7 +386,7 @@ class PBM3C2:
             Segment IDs to find correspondences for
         search_radius : float
             Spatial search radius in meters
-            
+
         Returns
         -------
         DataFrame
@@ -413,7 +412,7 @@ class PBM3C2:
 
             print("Step 3: Training classifier...")
             self.train(correspondences_for_training)
-            
+
             del correspondences_for_training
             gc.collect()
 
@@ -434,11 +433,11 @@ class PBM3C2:
 
             self.correspondences["distance"] = distances
             self.correspondences["uncertainty"] = uncertainties
-            
+
             del distances, uncertainties
-            
+
             return self.correspondences
-            
+
         finally:
             gc.collect()
 
@@ -473,7 +472,7 @@ class PBM3C2:
             Elevation angle for 3D view in degrees
         azim : float, optional
             Azimuth angle for 3D view in degrees
-            
+
         Returns
         -------
         tuple
