@@ -15,7 +15,9 @@ class DummyEpoch:
 
     def __init__(self, cloud: np.ndarray, segment_ids: np.ndarray):
         self.cloud = np.array(cloud, dtype=np.float64, copy=True)
-        self.additional_dimensions = {"segment_id": np.array(segment_ids, dtype=np.int32, copy=True)}
+        self.additional_dimensions = {
+            "segment_id": np.array(segment_ids, dtype=np.int32, copy=True)
+        }
 
 
 def _make_cluster(center, n=5, spread=0.01, rng=None):

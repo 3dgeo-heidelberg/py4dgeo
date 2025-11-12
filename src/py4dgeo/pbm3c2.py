@@ -9,6 +9,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import gc
 
+
 class PBM3C2:
     """
     Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification.
@@ -232,7 +233,7 @@ class PBM3C2:
                 best_match_idx = np.argmax(probabilities)
 
                 found_correspondences.append([apply_id, candidate_ids[best_match_idx]])
-        
+
         finally:
             del kdtree
             gc.collect()
