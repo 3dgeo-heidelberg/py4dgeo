@@ -1,13 +1,13 @@
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.neighbors import KDTree
+from scipy.spatial import cKDTree
 from tqdm import tqdm
 from py4dgeo.util import Py4DGeoError
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
-
+import gc
 
 class PBM3C2:
     """
@@ -95,7 +95,7 @@ class PBM3C2:
             indices = np.where(segment_id_array == seg_id)[0]
 
             if len(indices) > 0:
-                segments_dict[seg_id] = {"points": epoch.cloud[indices]}
+                segments_dict[seg_id] = {"points": epoch.cloud[indices].copy()}
 
         return segments_dict
 
@@ -197,38 +197,45 @@ class PBM3C2:
 
     def apply(self, apply_ids, search_radius=1.0):
         epoch1_cogs = self.epoch1_segment_metrics[["cog_x", "cog_y", "cog_z"]].values
-        kdtree = KDTree(epoch1_cogs)
+        kdtree = cKDTree(epoch1_cogs)
 
         found_correspondences = []
 
-        for apply_id in tqdm(apply_ids, desc="Applying Classifier"):
-            if apply_id not in self.epoch0_segment_metrics.index:
-                continue
+        try:
+            for apply_id in tqdm(apply_ids, desc="Applying Classifier"):
+                if apply_id not in self.epoch0_segment_metrics.index:
+                    continue
 
-            cog0 = self.epoch0_segment_metrics.loc[apply_id][
-                ["cog_x", "cog_y", "cog_z"]
-            ].values.reshape(1, -1)
-            indices = kdtree.query_radius(cog0, r=search_radius)[0]
+                cog0 = self.epoch0_segment_metrics.loc[apply_id][
+                    ["cog_x", "cog_y", "cog_z"]
+                ].values
 
-            if len(indices) == 0:
-                continue
+                # cKDTree 的 query_ball_point 方法
+                indices = kdtree.query_ball_point(cog0, r=search_radius)
 
-            candidate_ids = self.epoch1_segment_metrics.index[indices]
+                if len(indices) == 0:
+                    continue
 
-            apply_df = pd.DataFrame(
-                {"id1": [apply_id] * len(candidate_ids), "id2": candidate_ids}
-            )
-            X_apply = self._create_feature_array(
-                self.epoch0_segment_metrics, self.epoch1_segment_metrics, apply_df
-            )
+                candidate_ids = self.epoch1_segment_metrics.index[indices]
 
-            if len(X_apply) == 0:
-                continue
+                apply_df = pd.DataFrame(
+                    {"id1": [apply_id] * len(candidate_ids), "id2": candidate_ids}
+                )
+                X_apply = self._create_feature_array(
+                    self.epoch0_segment_metrics, self.epoch1_segment_metrics, apply_df
+                )
 
-            probabilities = self.clf.predict_proba(X_apply)[:, 1]
-            best_match_idx = np.argmax(probabilities)
+                if len(X_apply) == 0:
+                    continue
 
-            found_correspondences.append([apply_id, candidate_ids[best_match_idx]])
+                probabilities = self.clf.predict_proba(X_apply)[:, 1]
+                best_match_idx = np.argmax(probabilities)
+
+                found_correspondences.append([apply_id, candidate_ids[best_match_idx]])
+        
+        finally:
+            del kdtree
+            gc.collect()
 
         self.correspondences = pd.DataFrame(
             found_correspondences, columns=["epoch0_segment_id", "epoch1_segment_id"]
@@ -293,7 +300,7 @@ class PBM3C2:
 
             self.correspondences["distance"] = distances
             self.correspondences["uncertainty"] = uncertainties
-
+        gc.collect()
         return self.correspondences
 
     def visualize_correspondences(
