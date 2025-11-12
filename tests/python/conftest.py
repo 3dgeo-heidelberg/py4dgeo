@@ -51,6 +51,18 @@ def epoch_las_fixture(*filenames):
 
     return _epoch_fixture
 
+def epoch_pbm3c2_fixture(*filenames, additional_dimensions):
+    """Wrap a given data file in an Epoch and make it a pytest fixture"""
+
+    @pytest.fixture
+    def _epoch_pbm3c2_fixture():
+        return read_from_xyz(
+            *tuple(find_data_file(fn) for fn in filenames),
+            additional_dimensions=additional_dimensions,
+            delimiter=",",
+        )
+
+    return _epoch_pbm3c2_fixture
 
 # Instantiate one fixture per data dile
 epochs = epoch_fixture("plane_horizontal_t1.xyz", "plane_horizontal_t2.xyz")
@@ -58,19 +70,15 @@ epochs_las = epoch_las_fixture("plane_horizontal_t1.laz", "plane_horizontal_t2.l
 epochs_las_w_normals = epoch_las_fixture(
     "plane_horizontal_t1_w_normals.laz", "plane_horizontal_t2_w_normals.laz"
 )
-epochs_segmented = epoch_fixture(
+epochs_segmented = epoch_pbm3c2_fixture(
     "plane_horizontal_t1_segmented.xyz", "plane_horizontal_t2_segmented.xyz",
     additional_dimensions={3: "segment_id"},
 )
 
 @pytest.fixture()
-def pbm3c2_labels():
-    labels = np.loadtxt(
-        find_data_file("testdata-labelling2.csv"), 
-        dtype=np.float64, 
-        delimiter=","
-    )
-    return labels
+def pbm3c2_correspondences_file():
+    return find_data_file("testdata-labelling2.csv")
+
 
 @pytest.fixture
 def analysis(tmp_path):
