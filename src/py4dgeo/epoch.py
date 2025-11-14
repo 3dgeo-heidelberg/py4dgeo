@@ -775,9 +775,9 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
         dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
     )
     for column_id, column_name in additional_dimensions.items():
-        additional_columns[column_name] = np.array(
-            lasfile.points[column_id], dtype=np.int32
-        ).reshape(-1, 1)
+        arr = np.array(lasfile.points[column_id], dtype=lasfile.points[column_id].dtype)  # pick your dtype
+        arr = np.nan_to_num(arr, nan=0)  # replaces NaN, but keeps dtype
+        additional_columns[column_name] = arr.reshape(-1, 1)
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
