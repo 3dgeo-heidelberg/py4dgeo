@@ -785,7 +785,7 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
 
     # and fill it with the data from the lasfile
     for column_id, column_name in additional_dimensions.items():
-        additional_columns[column_name] = np.array(lasfile.points[column_id], dtype=lasfile.points[column_id].dtype)
+        additional_columns[column_name] = np.array(lasfile.points[column_id], dtype=lasfile.points[column_id].dtype).reshape(-1,1)
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
