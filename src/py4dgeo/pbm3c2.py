@@ -9,8 +9,6 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import gc
-import weakref
-
 
 class PBM3C2:
     """
@@ -59,65 +57,95 @@ class PBM3C2:
         """
         Check and process Segment IDs to ensure global uniqueness.
         Adjust correspondence file IDs based on any applied offsets.
-
-        Parameters
-        ----------
-        epoch0 : Epoch
-            First epoch with segment_id in additional_dimensions
-        epoch1 : Epoch
-            Second epoch with segment_id in additional_dimensions
-        correspondences_file : str
-            Path to CSV file with correspondence labels (no header)
-
-        Returns
-        -------
-        tuple
-            (epoch0, epoch1, correspondences_df) with adjusted IDs if needed
         """
         print("Checking if the Segment ID is unique...")
         ids0 = np.unique(epoch0.additional_dimensions["segment_id"])
         ids1 = np.unique(epoch1.additional_dimensions["segment_id"])
 
-        correspondences_df = pd.read_csv(correspondences_file, header=None)
-
-        first_row = correspondences_df.iloc[0]
-        if not all(
-            pd.api.types.is_numeric_dtype(type(val)) or isinstance(val, (int, float))
-            for val in first_row
-        ):
-            raise Py4DGeoError(
-                f"The correspondence file '{correspondences_file}' appears to contain column headers. "
-                "Please provide a CSV file without headers (header=False when saving)."
-            )
-
         try:
-            pd.to_numeric(correspondences_df.iloc[:, 0])
-            pd.to_numeric(correspondences_df.iloc[:, 1])
-        except (ValueError, TypeError):
+            correspondences_arr = np.genfromtxt(
+                correspondences_file, 
+                delimiter=",",
+                dtype=np.float64  
+            )
+            
+            if correspondences_arr.ndim == 1:
+                correspondences_arr = correspondences_arr.reshape(1, -1)
+                
+        except Exception as e:
             raise Py4DGeoError(
-                f"The correspondence file '{correspondences_file}' contains non-numeric values in the first two columns. "
-                "This file should not have column headers. Please save the file with header=False."
+                f"Failed to read correspondence file '{correspondences_file}': {e}"
             )
 
+        if correspondences_arr.shape[1] < 2:
+            raise Py4DGeoError(
+                f"The correspondence file '{correspondences_file}' must contain at least two columns."
+            )
+        
+        if not np.issubdtype(correspondences_arr.dtype, np.number):
+            raise Py4DGeoError(
+                f"The correspondence file '{correspondences_file}' appears to contain non-numeric data."
+            )
+
+        corr_ids0 = correspondences_arr[:, 0]
+        corr_ids1 = correspondences_arr[:, 1]
+        
+        invalid_ids0 = ~np.isin(corr_ids0, ids0)
+        invalid_ids1 = ~np.isin(corr_ids1, ids1)
+        
+        if invalid_ids0.any():
+            invalid_list = corr_ids0[invalid_ids0]
+            print(f"  Warning: {invalid_ids0.sum()} epoch0 IDs in correspondences don't exist in epoch0 data:")
+            print(f"   Invalid IDs: {invalid_list[:10]}...")
+            print(f"   Available epoch0 IDs: {ids0[:10]}...")
+            
+        if invalid_ids1.any():
+            invalid_list = corr_ids1[invalid_ids1]
+            print(f"  Warning: {invalid_ids1.sum()} epoch1 IDs in correspondences don't exist in epoch1 data:")
+            print(f"   Invalid IDs: {invalid_list[:10]}...")
+            print(f"   Available epoch1 IDs: {ids1[:10]}...")
+
+        valid_mask = ~invalid_ids0 & ~invalid_ids1
+        if not valid_mask.all():
+            print(f"  Filtering out {(~valid_mask).sum()} invalid correspondences...")
+            correspondences_arr = correspondences_arr[valid_mask]
+            
+        if len(correspondences_arr) == 0:
+            raise Py4DGeoError(
+                "No valid correspondences remain after filtering.  "
+                "Please check that segment IDs in the correspondence file match those in the epochs."
+            )
+
+        # check for overlapping IDs
         if not set(ids0).isdisjoint(set(ids1)):
             print("Detected overlapping Segment IDs, performing preprocessing...")
             max_id_epoch0 = ids0.max()
             offset = max_id_epoch0 + 1
 
-            # new_ids_epoch1 = epoch1.additional_dimensions["segment_id"] + offset
-            # epoch1.additional_dimensions["segment_id"] = new_ids_epoch1
-
+            # Copy and modify structured array
             new_add_dims = epoch1.additional_dimensions.copy()
             new_add_dims["segment_id"] = new_add_dims["segment_id"] + offset
 
-            epoch1 = Epoch(cloud=epoch1.cloud, additional_dimensions=new_add_dims)
-
-            correspondences_df.iloc[:, 1] = correspondences_df.iloc[:, 1] + offset
+            new_epoch1 = Epoch(
+                cloud=epoch1.cloud.copy(), 
+                additional_dimensions=new_add_dims
+            )
+            
+            # Adjust correspondences (keep float64 type)
+            correspondences_arr[:, 1] = correspondences_arr[:, 1] + offset
+            
             print(f"Preprocessing complete. Epoch1 Segment IDs offset by {offset}.")
+            
+            del new_add_dims, ids0, ids1
+            gc.collect()
+            
+            return epoch0, new_epoch1, correspondences_arr
         else:
             print("No overlapping Segment IDs detected.")
+            del ids0, ids1
+            gc. collect()
 
-        return epoch0, epoch1, correspondences_df
+        return epoch0, epoch1, correspondences_arr
 
     def _get_segments(self, epoch):
         """
@@ -218,31 +246,66 @@ class PBM3C2:
         """
         Create feature vectors for segment pairs.
 
-        Features: CoG distance, normal angle, roughness difference
+        Parameters
+        ----------
+        df_t1 : DataFrame
+            Segment metrics for epoch 0
+        df_t2 : DataFrame
+            Segment metrics for epoch 1
+        correspondences : np.ndarray or DataFrame  # ✅ 兼容两种格式
+            Correspondences array/dataframe with columns [id_epoch0, id_epoch1, ...]
+            
+        Returns
+        -------
+        np.ndarray
+            Feature array with shape (n_pairs, 3)
+            Features: CoG distance, normal angle, roughness difference
         """
         features = []
+        if isinstance(correspondences, np.ndarray):
+            for row in correspondences:
+                id1, id2 = int(row[0]), int(row[1])
 
-        for _, row in correspondences.iterrows():
-            id1, id2 = int(row.iloc[0]), int(row.iloc[1])
+                if id1 not in df_t1.index or id2 not in df_t2.index:
+                    continue
 
-            if id1 not in df_t1.index or id2 not in df_t2.index:
-                continue
+                metrics1 = df_t1.loc[id1]
+                metrics2 = df_t2.loc[id2]
 
-            metrics1 = df_t1.loc[id1]
-            metrics2 = df_t2.loc[id2]
+                cog1 = metrics1[["cog_x", "cog_y", "cog_z"]].values
+                cog2 = metrics2[["cog_x", "cog_y", "cog_z"]].values
+                cog_dist = np.linalg.norm(cog1 - cog2)
 
-            cog1 = metrics1[["cog_x", "cog_y", "cog_z"]].values
-            cog2 = metrics2[["cog_x", "cog_y", "cog_z"]].values
-            cog_dist = np.linalg.norm(cog1 - cog2)
+                normal1 = metrics1[["normal_x", "normal_y", "normal_z"]].values
+                normal2 = metrics2[["normal_x", "normal_y", "normal_z"]].values
+                dot_product = np.clip(np.dot(normal1, normal2), -1.0, 1.0)
+                normal_angle = np.arccos(dot_product)
 
-            normal1 = metrics1[["normal_x", "normal_y", "normal_z"]].values
-            normal2 = metrics2[["normal_x", "normal_y", "normal_z"]].values
-            dot_product = np.clip(np.dot(normal1, normal2), -1.0, 1.0)
-            normal_angle = np.arccos(dot_product)
+                roughness_diff = abs(metrics1["roughness"] - metrics2["roughness"])
 
-            roughness_diff = abs(metrics1["roughness"] - metrics2["roughness"])
+                features.append([cog_dist, normal_angle, roughness_diff])
+        else:
+            for _, row in correspondences.iterrows():
+                id1, id2 = int(row.iloc[0]), int(row.iloc[1])
 
-            features.append([cog_dist, normal_angle, roughness_diff])
+                if id1 not in df_t1.index or id2 not in df_t2.index:
+                    continue
+
+                metrics1 = df_t1.loc[id1]
+                metrics2 = df_t2.loc[id2]
+
+                cog1 = metrics1[["cog_x", "cog_y", "cog_z"]].values
+                cog2 = metrics2[["cog_x", "cog_y", "cog_z"]].values
+                cog_dist = np.linalg.norm(cog1 - cog2)
+
+                normal1 = metrics1[["normal_x", "normal_y", "normal_z"]].values
+                normal2 = metrics2[["normal_x", "normal_y", "normal_z"]].values
+                dot_product = np.clip(np.dot(normal1, normal2), -1.0, 1.0)
+                normal_angle = np.arccos(dot_product)
+
+                roughness_diff = abs(metrics1["roughness"] - metrics2["roughness"])
+
+                features.append([cog_dist, normal_angle, roughness_diff])
 
         return np.array(features)
 
@@ -252,11 +315,12 @@ class PBM3C2:
 
         Parameters
         ----------
-        correspondences : DataFrame
+        correspondences : np.ndarray  
             Labeled correspondences with columns [id_epoch0, id_epoch1, label]
+            Shape: (n_samples, 3)
         """
-        positives = correspondences[correspondences[2] == 1]
-        negatives = correspondences[correspondences[2] == 0]
+        positives = correspondences[correspondences[:, 2] == 1]
+        negatives = correspondences[correspondences[:, 2] == 0]
 
         X_pos = self._create_feature_array(
             self.epoch0_segment_metrics, self.epoch1_segment_metrics, positives
@@ -275,6 +339,7 @@ class PBM3C2:
 
         del X, y, X_pos, X_neg, positives, negatives
         gc.collect()
+
 
     def apply(self, apply_ids, search_radius=1.0):
         """
@@ -446,6 +511,7 @@ class PBM3C2:
 
         finally:
             gc.collect()
+
 
     def visualize_correspondences(
         self,
