@@ -4,6 +4,7 @@ from sklearn.ensemble import RandomForestClassifier
 from scipy.spatial import cKDTree
 from tqdm import tqdm
 from py4dgeo.util import Py4DGeoError
+from py4dgeo.epoch import Epoch
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
@@ -103,9 +104,14 @@ class PBM3C2:
             max_id_epoch0 = ids0.max()
             offset = max_id_epoch0 + 1
 
-            new_ids_epoch1 = epoch1.additional_dimensions["segment_id"] + offset
-            epoch1.additional_dimensions["segment_id"] = new_ids_epoch1
+            # new_ids_epoch1 = epoch1.additional_dimensions["segment_id"] + offset
+            # epoch1.additional_dimensions["segment_id"] = new_ids_epoch1
 
+            new_add_dims = epoch1.additional_dimensions.copy()
+            new_add_dims["segment_id"] = new_add_dims["segment_id"] + offset
+
+            epoch1 = Epoch(cloud=epoch1.cloud, additional_dimensions=new_add_dims)
+            
             correspondences_df.iloc[:, 1] = correspondences_df.iloc[:, 1] + offset
             print(f"Preprocessing complete. Epoch1 Segment IDs offset by {offset}.")
         else:
