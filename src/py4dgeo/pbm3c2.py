@@ -10,6 +10,7 @@ from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 import gc
 
+
 class PBM3C2:
     """
     Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification.
@@ -64,14 +65,12 @@ class PBM3C2:
 
         try:
             correspondences_arr = np.genfromtxt(
-                correspondences_file, 
-                delimiter=",",
-                dtype=np.float64  
+                correspondences_file, delimiter=",", dtype=np.float64
             )
-            
+
             if correspondences_arr.ndim == 1:
                 correspondences_arr = correspondences_arr.reshape(1, -1)
-                
+
         except Exception as e:
             raise Py4DGeoError(
                 f"Failed to read correspondence file '{correspondences_file}': {e}"
@@ -81,7 +80,7 @@ class PBM3C2:
             raise Py4DGeoError(
                 f"The correspondence file '{correspondences_file}' must contain at least two columns."
             )
-        
+
         if not np.issubdtype(correspondences_arr.dtype, np.number):
             raise Py4DGeoError(
                 f"The correspondence file '{correspondences_file}' appears to contain non-numeric data."
@@ -89,19 +88,23 @@ class PBM3C2:
 
         corr_ids0 = correspondences_arr[:, 0]
         corr_ids1 = correspondences_arr[:, 1]
-        
+
         invalid_ids0 = ~np.isin(corr_ids0, ids0)
         invalid_ids1 = ~np.isin(corr_ids1, ids1)
-        
+
         if invalid_ids0.any():
             invalid_list = corr_ids0[invalid_ids0]
-            print(f"  Warning: {invalid_ids0.sum()} epoch0 IDs in correspondences don't exist in epoch0 data:")
+            print(
+                f"  Warning: {invalid_ids0.sum()} epoch0 IDs in correspondences don't exist in epoch0 data:"
+            )
             print(f"   Invalid IDs: {invalid_list[:10]}...")
             print(f"   Available epoch0 IDs: {ids0[:10]}...")
-            
+
         if invalid_ids1.any():
             invalid_list = corr_ids1[invalid_ids1]
-            print(f"  Warning: {invalid_ids1.sum()} epoch1 IDs in correspondences don't exist in epoch1 data:")
+            print(
+                f"  Warning: {invalid_ids1.sum()} epoch1 IDs in correspondences don't exist in epoch1 data:"
+            )
             print(f"   Invalid IDs: {invalid_list[:10]}...")
             print(f"   Available epoch1 IDs: {ids1[:10]}...")
 
@@ -109,7 +112,7 @@ class PBM3C2:
         if not valid_mask.all():
             print(f"  Filtering out {(~valid_mask).sum()} invalid correspondences...")
             correspondences_arr = correspondences_arr[valid_mask]
-            
+
         if len(correspondences_arr) == 0:
             raise Py4DGeoError(
                 "No valid correspondences remain after filtering.  "
@@ -127,23 +130,22 @@ class PBM3C2:
             new_add_dims["segment_id"] = new_add_dims["segment_id"] + offset
 
             new_epoch1 = Epoch(
-                cloud=epoch1.cloud.copy(), 
-                additional_dimensions=new_add_dims
+                cloud=epoch1.cloud.copy(), additional_dimensions=new_add_dims
             )
-            
+
             # Adjust correspondences (keep float64 type)
             correspondences_arr[:, 1] = correspondences_arr[:, 1] + offset
-            
+
             print(f"Preprocessing complete. Epoch1 Segment IDs offset by {offset}.")
-            
+
             del new_add_dims, ids0, ids1
             gc.collect()
-            
+
             return epoch0, new_epoch1, correspondences_arr
         else:
             print("No overlapping Segment IDs detected.")
             del ids0, ids1
-            gc. collect()
+            gc.collect()
 
         return epoch0, epoch1, correspondences_arr
 
@@ -254,7 +256,7 @@ class PBM3C2:
             Segment metrics for epoch 1
         correspondences : np.ndarray or DataFrame  # ✅ 兼容两种格式
             Correspondences array/dataframe with columns [id_epoch0, id_epoch1, ...]
-            
+
         Returns
         -------
         np.ndarray
@@ -315,7 +317,7 @@ class PBM3C2:
 
         Parameters
         ----------
-        correspondences : np.ndarray  
+        correspondences : np.ndarray
             Labeled correspondences with columns [id_epoch0, id_epoch1, label]
             Shape: (n_samples, 3)
         """
@@ -339,7 +341,6 @@ class PBM3C2:
 
         del X, y, X_pos, X_neg, positives, negatives
         gc.collect()
-
 
     def apply(self, apply_ids, search_radius=1.0):
         """
@@ -511,7 +512,6 @@ class PBM3C2:
 
         finally:
             gc.collect()
-
 
     def visualize_correspondences(
         self,
