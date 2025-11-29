@@ -1198,7 +1198,7 @@ class Vapc:
         except ImportError:
             print("plyfile is not installed.")
             print(
-                "To enable the save_as_ply functionality in Vapc, use pip to install plyfile."
+                "Use `pip install plyfile` to install it to enable the save_as_ply functionality in Vapc."
             )
         self.mapped = False
         # Ensure voxels are grouped & features are computed
