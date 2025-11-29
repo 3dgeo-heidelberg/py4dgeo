@@ -1,11 +1,12 @@
 # This is a version of VAPC (https://github.com/3dgeo-heidelberg/vapc.git) that has been developed
-# specifically for Py4DGeo. Functions relevant # to change analysis, such as the hierarchical
-# analysis and subsampling of point clouds, have # been transferred. Other functions, such as
+# specifically for py4dgeo. Functions relevant to change analysis, such as the hierarchical
+# analysis and subsampling of point clouds, have been transferred. Other functions, such as
 # the calculation of geometric features, have been partially transferred, but are currently
-# not tested as they are not the focus of this implementation. Also, the Py4DGeo implementation
-# is more efficient than the original implementation. Further functionalities can be incorporated
-# if there is demand. The Octree implementation of Py4DGeo is only partially implemented here.
-# Due to the slower computation times observed in some initial tests not every function has been
+# not tested as they are not the focus of this implementation. 
+# The py4dgeo implementation is more efficient than the original implementation.
+# Further functionalities can be incorporated if there is demand.
+# The Octree implementation of py4dgeo is only partially implemented here.
+# Due to the slower computation times observed in some initial tests, not every function has been
 # adapted to use it yet (if implemented in a later stage, we may need to change the max possible
 # octree depth).
 
@@ -684,7 +685,6 @@ class Vapc:
                         "cov_zy",
                         "cov_zz",
                     ]
-                    M = out.shape[0]
                     for idx, key in enumerate(keys):
                         i, j = divmod(idx, 3)
                         self.out[key] = out[:, i, j]
