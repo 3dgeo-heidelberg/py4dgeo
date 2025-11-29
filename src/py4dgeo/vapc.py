@@ -2,7 +2,7 @@
 # specifically for py4dgeo. Functions relevant to change analysis, such as the hierarchical
 # analysis and subsampling of point clouds, have been transferred. Other functions, such as
 # the calculation of geometric features, have been partially transferred, but are currently
-# not tested as they are not the focus of this implementation. 
+# not tested as they are not the focus of this implementation.
 # The py4dgeo implementation is more efficient than the original implementation.
 # Further functionalities can be incorporated if there is demand.
 # The Octree implementation of py4dgeo is only partially implemented here.
