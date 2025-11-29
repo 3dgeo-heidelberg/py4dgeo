@@ -10,6 +10,7 @@
 # adapted to use it yet (if implemented in a later stage, we may need to change the max possible
 # octree depth).
 
+from __future__ import annotations
 import numpy as np
 import laspy
 from py4dgeo.epoch import Epoch
