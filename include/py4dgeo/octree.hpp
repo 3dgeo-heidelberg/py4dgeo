@@ -17,7 +17,23 @@
 
 namespace py4dgeo {
 
-// Expand BITS-bit value into (BITS x 3)-bit interleaved format
+/**
+ * @brief Dilate (bit-spread) a small integer so its bits occupy every third bit
+ * position.
+ *
+ * This function takes a BITS-bit integer x and returns a value in which
+ * each original bit has been moved to position (3*i). Two zero bits are
+ * inserted between every bit of the input. This operation is the core of
+ * Morton (Z-order) encoding, where the x, y, and z bits of a coordinate
+ * are interleaved to form a single integer key.
+ *
+ * Example (for BITS = 4):
+ *      input:      b3 b2 b1 b0
+ *      output:     0 0 b3  0 0 b2  0 0 b1  0 0 b0
+ *
+ * The result corresponds to the x-axis contribution of a Morton code
+ * before interleaving with y and z bits.
+ */
 template<typename T, unsigned int BITS>
 constexpr T
 dilate(T x)
@@ -29,7 +45,19 @@ dilate(T x)
   return result;
 }
 
-// Helper to build a lookup table of dilated integers
+/**
+ * @brief Generate a compile-time lookup table of dilated integers.
+ *
+ * This function builds a table of size (1 << BITS), where entry i
+ * contains dilate(i). The table allows Morton encoding to be done
+ * efficiently in large fixed-size chunks (e.g., 8 bits or 5 bits at a time),
+ * instead of looping over individual bits.
+ *
+ * These tables are computed at compile time (constexpr) and enable the
+ * encoder to construct full Morton keys using a handful of table lookups
+ * and bit shifts, which is significantly faster than iterative bit
+ * interleaving.
+ */
 template<typename T, unsigned int BITS, std::size_t TABLE_SIZE = (1ULL << BITS)>
 static constexpr std::array<T, TABLE_SIZE>
 make_dilate_table()
