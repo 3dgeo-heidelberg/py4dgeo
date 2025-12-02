@@ -286,6 +286,11 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_number_of_points,
              "Return the number of points in the associated cloud");
 
+  // Allow extraction of number of points
+  octree.def("get_max_depth",
+             &Octree::get_max_depth,
+             "Return the maximum octree depth level");
+
   // Allow extraction of bounding box size
   octree.def("get_box_size",
              &Octree::get_box_size,
@@ -325,6 +330,18 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_std_cell_population_per_level,
              "Return the standard deviation of number of points per cell per "
              "level of depth");
+
+  // Allow extraction of coordinates of all points
+  octree.def(
+    "get_coordinates",
+    [](const Octree& self, std::optional<unsigned int> level) {
+      unsigned int lvl = level.value_or(self.get_max_depth());
+      std::vector<Octree::Coordinate> coords = self.get_coordinates(lvl);
+
+      return as_pyarray(std::move(coords));
+    },
+    "Retrieve the coordinates of points in the octree.",
+    py::arg("level") = std::nullopt);
 
   // Allow extraction of spatial keys
   octree.def("get_spatial_keys",

@@ -94,6 +94,12 @@ public:
   //! Return type used for cell searches
   using KeyContainer = std::vector<SpatialKey>;
 
+  //! Coordinate within the octree
+  struct Coordinate
+  {
+    uint32_t x, y, z;
+  };
+
   //! Struct combining Z-order value and original point index
   struct IndexAndKey
   {
@@ -257,6 +263,122 @@ private:
     }
 
     return key;
+  }
+
+  /**
+   * @brief Extracts and compacts every third bit from a Morton-encoded word.
+   *
+   * Morton (Z-order) encoding interleaves the bits of three coordinates:
+   *    x0 y0 z0 x1 y1 z1 x2 y2 z2 ...
+   *
+   * Given a 64-bit integer `v` that represents one of these three shifted
+   * Morton streams (i.e., either `key >> 0`, `key >> 1`, or `key >> 2`), this
+   * function isolates the bits belonging to one coordinate and compacts them
+   * into contiguous low-order bits:
+   *
+   *    input bits:  v = _ _ x2 _ _ x1 _ _ x0  (spread every 3rd bit)
+   *    output:          x = 0 0 0 x2 x1 x0   (packed)
+   *
+   * The implementation applies a sequence of bit masks and shift-OR operations.
+   * Each step reduces the spacing between valid bits while preventing bits from
+   * moving across structural boundaries. This is the standard high-performance
+   * Morton decode algorithm used in libmorton, Embree, and OptiX.
+   *
+   * The routine works for both 32-bit and 64-bit Morton keys: if `v` originates
+   * from a 32-bit Morton code, all upper bits are zero and the additional
+   * compaction steps simply have no effect. No separate 32-bit implementation
+   * is required.
+   *
+   * @param v  The shifted Morton stream (x = key>>0, y = key>>1, z = key>>2).
+   * @return   The compacted coordinate (up to 22 bits for max depth 21).
+   */
+  static inline uint64_t compact3(uint64_t v)
+  {
+    v &= 0x9249249249249249ULL;
+    v = (v | (v >> 2)) & 0x30c30c30c30c30c3ULL;
+    v = (v | (v >> 4)) & 0xf00f00f00f00f00fULL;
+    v = (v | (v >> 8)) & 0x00ff0000ff0000ffULL;
+    v = (v | (v >> 16)) & 0x00ff00000000ffffULL;
+    v = (v | (v >> 32)) & 0x00000000003fffffULL;
+    return v;
+  }
+
+  /**
+   * @brief Decodes a spatial key into integer coordinates.
+   *
+   * A Morton (Z-order) key interleaves the bits of three coordinates x, y, z:
+   *
+   *     morton = z2 y2 x2  z1 y1 x1  z0 y0 x0 ...
+   *
+   * This function extracts each bit stream by shifting the Morton key:
+   *     x-bits: key >> 0
+   *     y-bits: key >> 1
+   *     z-bits: key >> 2
+   *
+   * and then compacts them using `compact3()`. The result is the integer
+   * octree-grid coordinate of the point at the *maximum* tree depth. If a
+   * coarser level is required, the caller can right-shift the results by
+   * (max_depth - level).
+   *
+   * Works for both 32-bit and 64-bit Morton keys. Larger word sizes simply
+   * provide more Morton layers; compact3() automatically ignores unused bits.
+   *
+   * @param key  The Morton-encoded spatial key.
+   * @param x    Output: decoded x coordinate.
+   * @param y    Output: decoded y coordinate.
+   * @param z    Output: decoded z coordinate.
+   */
+  static inline void decode_spatial_key(SpatialKey key,
+                                        uint32_t& x,
+                                        uint32_t& y,
+                                        uint32_t& z)
+  {
+    x = compact3(key >> 0);
+    y = compact3(key >> 1);
+    z = compact3(key >> 2);
+  }
+
+  /**
+   * @brief Decode a spatial key into (x, y, z) coordinates at a given octree
+   * level.
+   *
+   * The input @p SpatialKey is a Morton-encoded (Z-order) spatial key where the
+   * bits of x, y, and z are interleaved as:
+   *
+   *     ... z2 y2 x2  z1 y1 x1  z0 y0 x0
+   *
+   * At maximum depth (level == max_depth), decode_spatial_key() returns the
+   * full-resolution integer coordinates (max_depth bits per axis).
+   *
+   * For coarser octree levels, this function first discards the least
+   * significant Morton "triples" (x,y,z) by shifting the key to the right by
+   *
+   *     bit_shift[level] = 3 * (max_depth - level)
+   *
+   * which removes all detail below the requested level while preserving the
+   * x/y/z bit-lane alignment. The truncated code is then decoded via
+   * decode_spatial_key(), yielding the cell coordinates at the requested level.
+   *
+   * In other words:
+   *
+   *   - level == max_depth → full-resolution coordinates
+   *   - level  < max_depth → coordinates on a coarser 2^level grid
+   *
+   * @param key    Morton-encoded spatial key.
+   * @param[out] x Decoded x coordinate at the requested level.
+   * @param[out] y Decoded y coordinate at the requested level.
+   * @param[out] z Decoded z coordinate at the requested level.
+   * @param level Target octree level in [0, max_depth].
+   *
+   * @throws std::out_of_range if @p level is greater than max_depth.
+   */
+  inline void decode_spatial_key_at_level(SpatialKey key,
+                                          uint32_t& x,
+                                          uint32_t& y,
+                                          uint32_t& z,
+                                          unsigned int level) const
+  {
+    decode_spatial_key(key >> bit_shift[level], x, y, z);
   }
 
   // =============================================================
@@ -481,6 +603,9 @@ public:
   /** @brief Return the number of points in the associated cloud */
   inline unsigned int get_number_of_points() const { return number_of_points; };
 
+  /** @brief Return the maximum octree depth */
+  inline unsigned int get_max_depth() const { return max_depth; };
+
   /** @brief Return the side length of the bounding box */
   inline Eigen::Vector3d get_box_size() const { return box_size; };
 
@@ -550,6 +675,54 @@ public:
     }
     return std_cell_population_per_level[level];
   };
+
+  /**
+   * @brief Return the octree-grid coordinate (x,y,z) of a spatial key at a
+   * given level.
+   *
+   * If no level is provided, the coordinate at maximum depth is returned.
+   */
+  inline Coordinate get_coordinate(SpatialKey key,
+                                   unsigned int level = max_depth) const
+  {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
+
+    uint32_t x, y, z;
+    decode_spatial_key_at_level(key, x, y, z, level);
+
+    return { x, y, z };
+  }
+
+  /**
+   * @brief Return the octree-grid coordinates (x,y,z) of all points at a given
+   * level.
+   *
+   * If no level is provided, the coordinate at maximum depth is returned.
+   */
+  std::vector<Coordinate> get_coordinates(unsigned int level = max_depth) const
+  {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
+
+    std::vector<Coordinate> coords;
+    coords.reserve(number_of_points);
+
+    for (SpatialKey key : indexed_keys.keys) {
+      uint32_t x, y, z;
+      decode_spatial_key_at_level(key, x, y, z, level);
+
+      coords.push_back({ x, y, z });
+    }
+
+    return coords;
+  }
 
   // ======================================================================
   //                     Access raw keys and indices
