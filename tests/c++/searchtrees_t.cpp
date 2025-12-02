@@ -5,7 +5,8 @@
 #include <py4dgeo/py4dgeo.hpp>
 #include <py4dgeo/searchtree.hpp>
 
-#include <catch2/catch.hpp>
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
 
 #include <algorithm>
 #include <array>
@@ -72,8 +73,8 @@ TEST_CASE("KDTree and Octree are correctly built")
 
         for (std::size_t i = 0; i < kd_result.size(); ++i) {
           REQUIRE(kd_result[i].first == oct_result[i].first);
-          REQUIRE(kd_result[i].second ==
-                  Approx(oct_result[i].second).epsilon(1e-7));
+          REQUIRE_THAT(kd_result[i].second,
+                       Catch::Matchers::WithinAbs(oct_result[i].second, 1e-7));
         }
       }
     }

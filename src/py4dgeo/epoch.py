@@ -621,6 +621,7 @@ def read_from_xyz(
     xyz_columns=[0, 1, 2],
     normal_columns=[],
     additional_dimensions={},
+    additional_dimensions_dtypes={},
     **parse_opts,
 ):
     """Create an epoch from an xyz file
@@ -646,6 +647,11 @@ def read_from_xyz(
         They will be read from the file and are accessible under their names from the
         created Epoch objects.
         Additional column indexes start with 3.
+    :type additional_dimensions: dict
+    :param additional_dimensions_dtypes:
+        A dictionary, mapping column names to numpy dtypes which should be used
+        in parsing the data.
+    :type additional_dimensions_dtypes: dict
     :type parse_opts: dict
     """
 
@@ -676,32 +682,29 @@ def read_from_xyz(
 
         try:
             normals = np.genfromtxt(
-                filename, dtype=np.float64, usecols=normal_columns, **parse_opts
+                filename,
+                dtype=np.float64,
+                usecols=normal_columns,
+                **parse_opts,
             )
         except ValueError:
             raise Py4DGeoError("Malformed XYZ file")
 
     # Potentially read additional_dimensions passed by the user
-    additional_columns = np.empty(
-        shape=(cloud.shape[0], 1),
-        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
-    )
-
-    add_cols = list(sorted(additional_dimensions.keys()))
-    try:
-        parsed_additionals = np.genfromtxt(
-            filename, dtype=np.float64, usecols=add_cols, **parse_opts
+    if additional_dimensions:
+        additional_columns = np.genfromtxt(
+            filename,
+            dtype=np.dtype(
+                [
+                    (name, additional_dimensions_dtypes.get(name, np.float64))
+                    for name in additional_dimensions.values()
+                ]
+            ),
+            usecols=additional_dimensions.keys(),
+            **parse_opts,
         )
-        # Ensure that the parsed array is two-dimensional, even if only
-        # one additional dimension was given (avoids an edge case)
-        parsed_additionals = parsed_additionals.reshape(-1, 1)
-    except ValueError:
-        raise Py4DGeoError("Malformed XYZ file")
-
-    for i, col in enumerate(add_cols):
-        additional_columns[additional_dimensions[col]] = parsed_additionals[
-            :, i
-        ].reshape(-1, 1)
+    else:
+        additional_columns = np.empty(shape=(cloud.shape[0], 1), dtype=[])
 
     # Finalize the construction of the new epoch
     new_epoch = Epoch(cloud, normals=normals, additional_dimensions=additional_columns)
@@ -718,6 +721,7 @@ def read_from_xyz(
                 xyz_columns=xyz_columns,
                 normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
+                additional_dimensions_dtypes=additional_dimensions_dtypes,
                 **parse_opts,
             )
         )
@@ -768,16 +772,20 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
             ]
         ).transpose()
 
-    # set scan positions
     # build additional_dimensions dtype structure
     additional_columns = np.empty(
         shape=(cloud.shape[0], 1),
-        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+        dtype=np.dtype(
+            [
+                (column_name, lasfile.points[column_id].dtype)
+                for column_id, column_name in additional_dimensions.items()
+            ]
+        ),
     )
+
+    # and fill it with the data from the lasfile
     for column_id, column_name in additional_dimensions.items():
-        additional_columns[column_name] = np.array(
-            lasfile.points[column_id], dtype=np.int32
-        ).reshape(-1, 1)
+        additional_columns[column_name] = lasfile.points[column_id].reshape(-1, 1)
 
     # Construct Epoch and go into recursion
     new_epoch = Epoch(
