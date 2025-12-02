@@ -491,6 +491,34 @@ Octree::get_cell_index_end_exponential(SpatialKey truncated_key,
                             std::min(first_index + bound, global_end_index));
 }
 
+std::optional<std::pair<IndexType, IndexType>>
+Octree::get_cell_index_range(SpatialKey truncated_key,
+                             unsigned int level,
+                             IndexType search_start,
+                             IndexType search_end) const
+{
+  const SpatialKey bitShift = bit_shift[level];
+
+  auto opt_first =
+    get_cell_index_start(truncated_key, bitShift, search_start, search_end);
+
+  if (!opt_first)
+    return std::nullopt;
+
+  IndexType first = *opt_first;
+
+  auto opt_last = get_cell_index_end_exponential(
+    truncated_key,
+    level,
+    first,
+    std::min(first + max_cell_population_per_level[level], search_end));
+
+  if (!opt_last)
+    return std::nullopt;
+
+  return std::pair{ first, *opt_last };
+}
+
 std::size_t
 Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
                                         double radius,
@@ -634,49 +662,26 @@ Octree::get_cells_intersected_by_sphere(const Eigen::Vector3d& query_point,
   return intersecting.size() + inside.size();
 }
 
-std::size_t
-Octree::get_points_indices_from_cells(
-  const Octree::KeyContainer& truncated_keys,
-  unsigned int level,
-  RadiusSearchResult& result) const
+bool
+Octree::append_points_from_cell(SpatialKey truncated_key,
+                                unsigned int level,
+                                IndexType& current_start_index,
+                                IndexType search_limit_index,
+                                RadiusSearchResult& result) const
 {
-  assert(level <= max_depth);
-  assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
+  auto range = get_cell_index_range(
+    truncated_key, level, current_start_index, search_limit_index);
 
-  const SpatialKey bitShift = bit_shift[level];
-  const auto indices_begin = indexed_keys.indices.begin();
+  if (!range)
+    return false;
 
-  IndexType current_start_index = 0;
-  IndexType search_limit_index = indexed_keys.keys.size();
+  const auto& indices = indexed_keys.indices;
+  const auto [first, last] = *range;
 
-  // Process each truncated key and store corresponding point indices
-  for (const SpatialKey& key : truncated_keys) {
-    // Find the first occurrence of the cell
-    auto opt_first_index = get_cell_index_start(
-      key, bitShift, current_start_index, search_limit_index);
-    if (!opt_first_index)
-      continue;
-    IndexType first_index = *opt_first_index;
+  result.insert(result.end(), indices.begin() + first, indices.begin() + last);
 
-    // Find the last occurrence of the cell
-    auto opt_last_index = get_cell_index_end_exponential(
-      key,
-      level,
-      first_index,
-      std::min(first_index + max_cell_population_per_level[level],
-               search_limit_index));
-    if (!opt_last_index)
-      continue;
-    IndexType last_index = *opt_last_index;
-
-    result.insert(
-      result.end(), indices_begin + first_index, indices_begin + last_index);
-
-    // Update current_start: start after the current cell's block
-    current_start_index = last_index;
-  }
-
-  return result.size();
+  current_start_index = last;
+  return true;
 }
 
 unsigned int
@@ -703,6 +708,90 @@ Octree::find_appropriate_level_for_radius_search(double radius) const
   }
 
   return best_level;
+}
+
+std::size_t
+Octree::get_cell_population(SpatialKey truncated_key, unsigned int level) const
+{
+  IndexType start = 0;
+  IndexType end = indexed_keys.keys.size();
+
+  auto range = get_cell_index_range(truncated_key, level, start, end);
+  if (!range)
+    return 0;
+
+  return static_cast<std::size_t>(range->second - range->first);
+}
+
+std::size_t
+Octree::get_cell_population(const OctreeCoordinate& query_cell,
+                            unsigned int level) const
+{
+  assert(level <= max_depth);
+  assert(query_cell.x() < number_of_cells_per_axis[level]);
+  assert(query_cell.y() < number_of_cells_per_axis[level]);
+  assert(query_cell.z() < number_of_cells_per_axis[level]);
+
+  SpatialKey key = compute_spatial_key(query_cell, level);
+  const SpatialKey bitShift = bit_shift[level];
+
+  IndexType start = 0;
+  IndexType end = indexed_keys.keys.size();
+
+  auto range = get_cell_index_range(key >> bitShift, level, start, end);
+  if (!range)
+    return 0;
+
+  return static_cast<std::size_t>(range->second - range->first);
+}
+
+std::size_t
+Octree::get_point_indices_from_cell(SpatialKey truncated_key,
+                                    unsigned int level,
+                                    RadiusSearchResult& result) const
+{
+  IndexType start = 0;
+  IndexType end = indexed_keys.keys.size();
+
+  append_points_from_cell(truncated_key, level, start, end, result);
+  return result.size();
+}
+
+std::size_t
+Octree::get_point_indices_from_cell(const OctreeCoordinate& query_cell,
+                                    unsigned int level,
+                                    RadiusSearchResult& result) const
+{
+  assert(level <= max_depth);
+  assert(query_cell.x() < number_of_cells_per_axis[level]);
+  assert(query_cell.y() < number_of_cells_per_axis[level]);
+  assert(query_cell.z() < number_of_cells_per_axis[level]);
+
+  result.clear();
+
+  SpatialKey key = compute_spatial_key(query_cell, level);
+  const SpatialKey bitShift = bit_shift[level];
+
+  return get_point_indices_from_cell(key >> bitShift, level, result);
+}
+
+std::size_t
+Octree::get_point_indices_from_cells(const Octree::KeyContainer& truncated_keys,
+                                     unsigned int level,
+                                     RadiusSearchResult& result) const
+{
+  assert(level <= max_depth);
+  assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
+
+  IndexType current_start_index = 0;
+  const IndexType search_limit_index = indexed_keys.keys.size();
+
+  for (SpatialKey key : truncated_keys) {
+    append_points_from_cell(
+      key, level, current_start_index, search_limit_index, result);
+  }
+
+  return result.size();
 }
 
 } // namespace py4dgeo

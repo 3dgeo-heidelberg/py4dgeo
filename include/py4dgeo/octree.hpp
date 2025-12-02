@@ -12,6 +12,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -85,14 +86,24 @@ public:
   // ==========================================================
 
   //! Alias for the spatial key type used for Z-order value encoding
-  using SpatialKey = std::uint32_t; // 16-bit allows 5 depth levels, 32-bit
-                                    // allows 10 levels, 64-bit allows 21 levels
+  using SpatialKey =
+    std::uint32_t; // 32-bit allows 10 levels, 64-bit allows 21 levels
+  static_assert(std::is_same_v<SpatialKey, std::uint32_t> ||
+                  std::is_same_v<SpatialKey, std::uint64_t>,
+                "SpatialKey must be uint32_t or uint64_t");
 
   //! Return type used for points
   using PointContainer = std::vector<IndexType>;
 
   //! Return type used for cell searches
   using KeyContainer = std::vector<SpatialKey>;
+
+  //! Coordinate within the octree
+  using OctreeCoordinate = Eigen::Matrix<uint32_t, 1, 3>;
+
+  //! Coordinates within the octree
+  using OctreeCoordinates =
+    Eigen::Matrix<uint32_t, Eigen::Dynamic, 3, Eigen::RowMajor>;
 
   //! Struct combining Z-order value and original point index
   struct IndexAndKey
@@ -118,17 +129,16 @@ private:
   static constexpr unsigned int max_depth = (sizeof(SpatialKey) * 8) / 3;
 
   //! Number of cells per axis at the lowest level (2^max_depth)
-  inline static constexpr unsigned int grid_size = (1 << max_depth);
+  static constexpr unsigned int grid_size = (1 << max_depth);
 
   //! Bit shift per level
-  inline static constexpr std::array<SpatialKey, max_depth + 1> bit_shift =
-    []() {
-      std::array<SpatialKey, max_depth + 1> arr{};
-      for (std::size_t level = 0; level <= max_depth; ++level) {
-        arr[level] = 3 * (max_depth - level);
-      }
-      return arr;
-    }();
+  static constexpr std::array<SpatialKey, max_depth + 1> bit_shift = []() {
+    std::array<SpatialKey, max_depth + 1> arr{};
+    for (std::size_t level = 0; level <= max_depth; ++level) {
+      arr[level] = 3 * (max_depth - level);
+    }
+    return arr;
+  }();
 
   // Precomputed dilation tables for fast spatial key encoding.
   // These tables map compact N-bit indices to interleaved bit patterns.
@@ -136,17 +146,17 @@ private:
 
   //! Lookup table for dilating 8-bit spatial keys (256 entries), computed at
   //! compile time.
-  inline static constexpr auto dilate8_table =
+  static constexpr auto dilate8_table =
     make_dilate_table<SpatialKey, 8>(); // 256 entries
 
   //! Lookup table for dilating 5-bit spatial keys (32 entries), computed at
   //! compile time
-  inline static constexpr auto dilate5_table =
+  static constexpr auto dilate5_table =
     make_dilate_table<SpatialKey, 5>(); // 32 entries
 
   //! Lookup table for dilating 2-bit spatial keys (4 entries), computed at
   //! compile time
-  inline static constexpr auto dilate2_table =
+  static constexpr auto dilate2_table =
     make_dilate_table<SpatialKey, 2>(); // 4 entries
 
   // ==========================================================
@@ -177,6 +187,24 @@ private:
 
   //! Cell size as a function of depth level
   std::array<Eigen::Vector3d, max_depth + 1> cell_size;
+
+  //! Number of cells as a function of depth level
+  static constexpr std::array<unsigned int, max_depth + 1> number_of_cells =
+    []() constexpr {
+      std::array<unsigned int, max_depth + 1> a{};
+      for (unsigned int i = 0; i <= max_depth; ++i)
+        a[i] = 1u << 3 * i;
+      return a;
+    }();
+
+  //! Number of cells per axis as a function of depth level
+  static constexpr std::array<unsigned int, max_depth + 1>
+    number_of_cells_per_axis = []() constexpr {
+      std::array<unsigned int, max_depth + 1> a{};
+      for (unsigned int i = 0; i <= max_depth; ++i)
+        a[i] = 1u << i;
+      return a;
+    }();
 
   //! Number of occupied cells per depth level
   std::array<unsigned int, max_depth + 1> occupied_cells_per_level;
@@ -223,6 +251,48 @@ private:
     const SpatialKey iy = static_cast<SpatialKey>(normalized.y() * grid_size);
     const SpatialKey iz = static_cast<SpatialKey>(normalized.z() * grid_size);
 
+    return compute_spatial_key(ix, iy, iz);
+  }
+
+  /**
+   * @brief Computes a unique spatial key (Z-order value) for a given octree
+   * cell.
+   *
+   * @param query_cell The 3D octree coordinate for which to compute the spatial
+   * key.
+   *
+   * @return A SpatialKey (unsigned integer) representing the spatial key of the
+   * point.
+   */
+  inline SpatialKey compute_spatial_key(const OctreeCoordinate& query_cell,
+                                        unsigned int level) const
+  {
+    const unsigned int shift = max_depth - level;
+
+    const SpatialKey ix = SpatialKey(query_cell.x()) << shift;
+    const SpatialKey iy = SpatialKey(query_cell.y()) << shift;
+    const SpatialKey iz = SpatialKey(query_cell.z()) << shift;
+
+    return compute_spatial_key(ix, iy, iz);
+  }
+
+  /**
+   * @brief Computes a unique spatial key (Z-order value) for a given point.
+   *
+   * This function takes integer grid coordinates and interleaves their bits
+   * to generate a Z-order value key that represents the point's hierarchical
+   * position in the Octree.
+   *
+   * @param ix The integer x-coordinate in the grid.
+   * @param iy The integer y-coordinate in the grid.
+   * @param iz The integer z-coordinate in the grid.
+   * @return A SpatialKey (unsigned integer) representing the spatial key of the
+   * point.
+   */
+  inline SpatialKey compute_spatial_key(SpatialKey ix,
+                                        SpatialKey iy,
+                                        SpatialKey iz) const
+  {
     // Interleave bits of x,y,z coordinates
     SpatialKey key = 0;
 
@@ -259,6 +329,113 @@ private:
     return key;
   }
 
+  /**
+   * @brief Extracts and compacts every third bit from a Morton-encoded word.
+   *
+   * Morton (Z-order) encoding interleaves the bits of three coordinates:
+   *    x0 y0 z0 x1 y1 z1 x2 y2 z2 ...
+   *
+   * Given a 64-bit integer `v` that represents one of these three shifted
+   * Morton streams (i.e., either `key >> 0`, `key >> 1`, or `key >> 2`), this
+   * function isolates the bits belonging to one coordinate and compacts them
+   * into contiguous low-order bits:
+   *
+   *    input bits:  v = _ _ x2 _ _ x1 _ _ x0  (spread every 3rd bit)
+   *    output:          x = 0 0 0 x2 x1 x0   (packed)
+   *
+   * The implementation applies a sequence of bit masks and shift-OR operations.
+   * Each step reduces the spacing between valid bits while preventing bits from
+   * moving across structural boundaries. This is the standard high-performance
+   * Morton decode algorithm used in libmorton, Embree, and OptiX.
+   *
+   * The routine works for both 32-bit and 64-bit Morton keys: if `v` originates
+   * from a 32-bit Morton code, all upper bits are zero and the additional
+   * compaction steps simply have no effect. No separate 32-bit implementation
+   * is required.
+   *
+   * @param v  The shifted Morton stream (x = key>>0, y = key>>1, z = key>>2).
+   * @return   The compacted coordinate (up to 22 bits for max depth 21).
+   */
+  static inline uint64_t compact3(uint64_t v)
+  {
+    v &= 0x9249249249249249ULL;
+    v = (v | (v >> 2)) & 0x30c30c30c30c30c3ULL;
+    v = (v | (v >> 4)) & 0xf00f00f00f00f00fULL;
+    v = (v | (v >> 8)) & 0x00ff0000ff0000ffULL;
+    v = (v | (v >> 16)) & 0x00ff00000000ffffULL;
+    v = (v | (v >> 32)) & 0x00000000003fffffULL;
+    return v;
+  }
+
+  /**
+   * @brief Decodes a spatial key into integer coordinates.
+   *
+   * A Morton (Z-order) key interleaves the bits of three coordinates x, y, z:
+   *
+   *     morton = z2 y2 x2  z1 y1 x1  z0 y0 x0 ...
+   *
+   * This function extracts each bit stream by shifting the Morton key:
+   *     x-bits: key >> 0
+   *     y-bits: key >> 1
+   *     z-bits: key >> 2
+   *
+   * and then compacts them using `compact3()`. The result is the integer
+   * octree-grid coordinate of the point at the *maximum* tree depth. If a
+   * coarser level is required, the caller can right-shift the results by
+   * (max_depth - level).
+   *
+   * Works for both 32-bit and 64-bit Morton keys. Larger word sizes simply
+   * provide more Morton layers; compact3() automatically ignores unused bits.
+   *
+   * @param key  The Morton-encoded spatial key.
+   *
+   * @return The decoded (x, y, z) octree-grid coordinate at maximum depth.
+   */
+  static inline OctreeCoordinate decode_spatial_key(SpatialKey key)
+  {
+    uint32_t x = compact3(key >> 0);
+    uint32_t y = compact3(key >> 1);
+    uint32_t z = compact3(key >> 2);
+    return OctreeCoordinate(x, y, z);
+  }
+
+  /**
+   * @brief Decode a spatial key into (x, y, z) coordinates at a given octree
+   * level.
+   *
+   * The input @p SpatialKey is a Morton-encoded (Z-order) spatial key where the
+   * bits of x, y, and z are interleaved as:
+   *
+   *     ... z2 y2 x2  z1 y1 x1  z0 y0 x0
+   *
+   * At maximum depth (level == max_depth), decode_spatial_key() returns the
+   * full-resolution integer coordinates (max_depth bits per axis).
+   *
+   * For coarser octree levels, this function first discards the least
+   * significant Morton "triples" (x,y,z) by shifting the key to the right by
+   *
+   *     bit_shift[level] = 3 * (max_depth - level)
+   *
+   * which removes all detail below the requested level while preserving the
+   * x/y/z bit-lane alignment. The truncated code is then decoded via
+   * decode_spatial_key(), yielding the cell coordinates at the requested level.
+   *
+   * In other words:
+   *
+   *   - level == max_depth: full-resolution coordinates
+   *   - level  < max_depth: coordinates on a coarser 2^level grid
+   *
+   * @param key Morton-encoded spatial key.
+   * @param level Target octree level in [0, max_depth].
+   *
+   * @return (x, y, z) octree-grid coordinates at the specified level.
+   */
+  inline OctreeCoordinate decode_spatial_key_at_level(SpatialKey key,
+                                                      unsigned int level) const
+  {
+    return decode_spatial_key(key >> bit_shift[level]);
+  }
+
   // =============================================================
   //                         Tree building
   // =============================================================
@@ -290,7 +467,8 @@ private:
     std::optional<Eigen::Vector3d> min_corner = std::nullopt,
     std::optional<Eigen::Vector3d> max_corner = std::nullopt);
 
-  /** @brief Computes the average cell properties at all depth levels. */
+  /** @brief Computes the average cell properties of occupied cells at all depth
+   * levels. */
   void compute_statistics();
 
   // ================================================================
@@ -365,8 +543,8 @@ private:
                                  max_cell_population_per_level[level]);
     candidate_points.reserve(cells_intersecting.size() *
                              max_cell_population_per_level[level]);
-    get_points_indices_from_cells(cells_inside, level, points_inside_sphere);
-    get_points_indices_from_cells(cells_intersecting, level, candidate_points);
+    get_point_indices_from_cells(cells_inside, level, points_inside_sphere);
+    get_point_indices_from_cells(cells_intersecting, level, candidate_points);
 
     // Step 3: Reserve based on size of cells_inside and cells_intersecting
     reserve(points_inside_sphere.size() + candidate_points.size());
@@ -481,6 +659,9 @@ public:
   /** @brief Return the number of points in the associated cloud */
   inline unsigned int get_number_of_points() const { return number_of_points; };
 
+  /** @brief Return the maximum octree depth */
+  constexpr unsigned int get_max_depth() const { return max_depth; };
+
   /** @brief Return the side length of the bounding box */
   inline Eigen::Vector3d get_box_size() const { return box_size; };
 
@@ -503,6 +684,28 @@ public:
                               std::to_string(max_depth) + ".");
     }
     return cell_size[level];
+  };
+
+  /** @brief Return the number of cells at a level of depth */
+  constexpr unsigned int get_number_of_cells(unsigned int level) const
+  {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
+    return number_of_cells[level];
+  };
+
+  /** @brief Return the number of cells per axis at a level of depth */
+  constexpr unsigned int get_number_of_cells_per_axis(unsigned int level) const
+  {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
+    return number_of_cells_per_axis[level];
   };
 
   /** @brief Return the number of occupied cells per level of depth */
@@ -551,6 +754,47 @@ public:
     return std_cell_population_per_level[level];
   };
 
+  /**
+   * @brief Return the octree-grid coordinate (x,y,z) of a spatial key at a
+   * given level.
+   *
+   * If no level is provided, the coordinate at maximum depth is returned.
+   */
+  inline OctreeCoordinate get_coordinate(SpatialKey key,
+                                         unsigned int level = max_depth) const
+  {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
+
+    return decode_spatial_key_at_level(key, level);
+  }
+
+  /**
+   * @brief Return the octree-grid coordinates (x,y,z) of all points at a given
+   * level.
+   *
+   * If no level is provided, the coordinates at maximum depth is returned.
+   */
+  OctreeCoordinates get_coordinates(unsigned int level = max_depth) const
+  {
+    if (level > max_depth) {
+      throw std::out_of_range("Requested level " + std::to_string(level) +
+                              " exceeds the maximum depth of " +
+                              std::to_string(max_depth) + ".");
+    }
+
+    OctreeCoordinates coords(indexed_keys.keys.size(), 3);
+
+    for (std::size_t i = 0; i < indexed_keys.keys.size(); ++i) {
+      coords.row(i) = decode_spatial_key_at_level(indexed_keys.keys[i], level);
+    }
+
+    return coords;
+  }
+
   // ======================================================================
   //                     Access raw keys and indices
   // ======================================================================
@@ -567,7 +811,7 @@ public:
   }
 
   // ======================================================================
-  //                           Fine-grain helpers
+  //                           Other helpers
   // ======================================================================
 
   /**
@@ -637,6 +881,29 @@ public:
     IndexType global_end_index) const;
 
   /**
+   * @brief Compute the index range of points belonging to a single octree cell
+   *
+   * Given a truncated spatial key identifying an octree cell at a given depth
+   * level, this function locates the contiguous block of point indices
+   * belonging to that cell in the internally sorted index structure.
+   *
+   * The returned index range is half-open: [first, last).
+   *
+   * @param[in] truncated_key Truncated spatial key identifying the query cell
+   * @param[in] level Octree depth level of the query cell
+   * @param[in] search_start Lower bound index for the search window
+   * @param[in] search_end Upper bound index for the search window (exclusive)
+   *
+   * @return Optional pair (first, last) describing the index range of points in
+   *         the cell, or std::nullopt if the cell contains no points
+   */
+  std::optional<std::pair<IndexType, IndexType>> get_cell_index_range(
+    SpatialKey truncated_key,
+    unsigned int level,
+    IndexType search_start,
+    IndexType search_end) const;
+
+  /**
    * @brief Returns spatial keys of cells intersected by a sphere with specified
    * radius with it's center at the query point
    *
@@ -658,20 +925,29 @@ public:
     KeyContainer& intersecting) const;
 
   /**
-   * @brief Returns indices and spatial keys of points lying in
-   * multiple cells on a specified depth level
+   * @brief Append indices of points belonging to a single octree cell
    *
-   * @param[in] truncated_keys The spatial keys of the query cell, truncated to
-   * the level of depth
-   * @param[in] level The Octree depth level of the query cell
-   * @param[out] result A data structure to hold the result. It will be cleared
-   * during application.
+   * Finds all points contained in the specified octree cell and appends their
+   * point indices to the provided result container.
    *
-   * @return The amount of points in the return set
+   * The search window is advanced to start after the current cell's block,
+   * enabling efficient sequential processing of sorted cell queries.
+   *
+   * @param[in] truncated_key Truncated spatial key identifying the query cell,
+   * truncated to the specified depth level
+   * @param[in] level Octree depth level of the query cell
+   * @param[in,out] current_start_index Start index for the search window;
+   * updated to the end of the current cell's block
+   * @param[in] search_limit_index Upper bound of the search window (exclusive)
+   * @param[in,out] result Container to which point indices are appended
+   *
+   * @return True if the cell contains points, false otherwise
    */
-  std::size_t get_points_indices_from_cells(const KeyContainer& truncated_keys,
-                                            unsigned int level,
-                                            RadiusSearchResult& result) const;
+  bool append_points_from_cell(SpatialKey truncated_key,
+                               unsigned int level,
+                               IndexType& current_start_index,
+                               IndexType search_limit_index,
+                               RadiusSearchResult& result) const;
 
   /**
    * @brief Returns the level of depth at which a radius search will be most
@@ -682,6 +958,97 @@ public:
    * @return The depth level at which to perform a radius search
    */
   unsigned int find_appropriate_level_for_radius_search(double radius) const;
+
+  // ======================================================================
+  //                                Queries
+  // ======================================================================
+
+  /**
+   * @brief Returns the number of points lying in a single octree cell at a
+   * specified depth level
+   *
+   * @param[in] truncated_key Truncated spatial key identifying the query cell
+   * @param[in] level Octree depth level of the query cell
+   *
+   * @return The number of points in the specified cell
+   */
+  std::size_t get_cell_population(SpatialKey truncated_key,
+                                  unsigned int level) const;
+
+  /** @brief Returns the number of points lying in a single octree cell at a
+   * specified depth level
+   *
+   * @param[in] query_cell The 3D octree coordinates of the query cell
+   * @param[in] level The depth level at which at which to consider the
+   * coordinate
+   *
+   * @return The number of points in the specified cell
+   */
+  std::size_t get_cell_population(const OctreeCoordinate& query_cell,
+                                  unsigned int level) const;
+
+  /**
+   * @brief Return indices of points lying in a single octree cell at a
+   * specified depth level
+   *
+   * Given a spatial key identifying the octree cell (truncated to the same
+   * depth level), this function gathers all point indices belonging to this
+   * cell.
+   *
+   * The search exploits the sorted order of the input keys to avoid redundant
+   * scans and achieve efficient sequential access.
+   *
+   * @param[in] truncated_key Spatial keys of the query cell, truncated to the
+   * specified depth level
+   * @param[in] level Octree depth level of the query cells
+   * @param[out] result Container to hold the resulting point indices.
+   * Existing contents will be preserved and appended to.
+   *
+   * @return The total number of points appended to the result container
+   */
+  std::size_t get_point_indices_from_cell(SpatialKey truncated_key,
+                                          unsigned int level,
+                                          RadiusSearchResult& result) const;
+
+  /** @brief Get point indices from octree coordinates
+   *
+   * This method retrieves all point indices that fall within the octree cell
+   * specified by the given (x, y, z) coordinates at a particular depth level.
+   *
+   * @param[in] query_cell The 3D octree coordinates of the query cell
+   * @param[in] level The depth level at which at which to consider the
+   * coordinate
+   * @param[out] result A data structure to hold the point indices. It will be
+   * cleared during application.
+   *
+   * @return Number of points found
+   */
+  std::size_t get_point_indices_from_cell(const OctreeCoordinate& query_cell,
+                                          unsigned int level,
+                                          RadiusSearchResult& result) const;
+
+  /**
+   * @brief Return indices of points lying in multiple octree cells at a
+   * specified depth level
+   *
+   * Given a sorted list of spatial keys identifying octree cells (truncated
+   * to the same depth level), this function gathers all point indices
+   * belonging to those cells.
+   *
+   * The search exploits the sorted order of the input keys to avoid redundant
+   * scans and achieve efficient sequential access.
+   *
+   * @param[in] truncated_keys Sorted spatial keys of the query cells,
+   * truncated to the specified depth level
+   * @param[in] level Octree depth level of the query cells
+   * @param[out] result Container to hold the resulting point indices.
+   * Existing contents will be preserved and appended to.
+   *
+   * @return The total number of points appended to the result container
+   */
+  std::size_t get_point_indices_from_cells(const KeyContainer& truncated_keys,
+                                           unsigned int level,
+                                           RadiusSearchResult& result) const;
 };
 
 } // namespace py4dgeo

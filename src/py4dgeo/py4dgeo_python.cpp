@@ -286,6 +286,11 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_number_of_points,
              "Return the number of points in the associated cloud");
 
+  // Allow extraction of number of points
+  octree.def("get_max_depth",
+             &Octree::get_max_depth,
+             "Return the maximum octree depth level");
+
   // Allow extraction of bounding box size
   octree.def("get_box_size",
              &Octree::get_box_size,
@@ -304,6 +309,16 @@ PYBIND11_MODULE(_py4dgeo, m)
   octree.def("get_cell_size",
              &Octree::get_cell_size,
              "Return the size of cells at a level of depth");
+
+  // Allow extraction of number of cells
+  octree.def("get_number_of_cells",
+             &Octree::get_number_of_cells,
+             "Return the number of cells at a level of depth");
+
+  // Allow extraction of number of cells per axis
+  octree.def("get_number_of_cells_per_axis",
+             &Octree::get_number_of_cells_per_axis,
+             "Return the number of cells per axis at a level of depth");
 
   // Allow extraction of number of occupied cells per level
   octree.def("get_occupied_cells_per_level",
@@ -325,6 +340,18 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_std_cell_population_per_level,
              "Return the standard deviation of number of points per cell per "
              "level of depth");
+
+  // Allow extraction of coordinates of all points
+  octree.def(
+    "get_coordinates",
+    [](const Octree& self, std::optional<unsigned int> level) {
+      unsigned int lvl = level.value_or(self.get_max_depth());
+      Octree::OctreeCoordinates coords = self.get_coordinates(lvl);
+
+      return coords;
+    },
+    "Retrieve the coordinates of points in the octree.",
+    py::arg("level") = std::nullopt);
 
   // Allow extraction of spatial keys
   octree.def("get_spatial_keys",
@@ -352,13 +379,29 @@ PYBIND11_MODULE(_py4dgeo, m)
 
   // Allow extraction from points in cell
   octree.def(
+    "get_point_indices_from_cell",
+    [](const Octree& self,
+       const Octree::OctreeCoordinate& query_cell,
+       unsigned int level) {
+      RadiusSearchResult result;
+      std::size_t num_points =
+        self.get_point_indices_from_cell(query_cell, level, result);
+
+      return as_pyarray(std::move(result));
+    },
+    "Retrieve point indices and spatial keys for a given cell",
+    py::arg("query_cell"),
+    py::arg("level"));
+
+  // Allow extraction from points in cell
+  octree.def(
     "get_points_indices_from_cells",
     [](const Octree& self,
        const Octree::KeyContainer& keys,
        unsigned int level) {
       RadiusSearchResult result;
       std::size_t num_points =
-        self.get_points_indices_from_cells(keys, level, result);
+        self.get_point_indices_from_cells(keys, level, result);
 
       return as_pyarray(std::move(result));
     },
@@ -366,24 +409,16 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("spatial_keys"),
     py::arg("level"));
 
-  // Allow extraction from points in cell
+  // Allow extraction from cell population
   octree.def(
-    "get_cells_intersected_by_sphere",
+    "get_cell_population",
     [](const Octree& self,
-       const Eigen::Vector3d& query_point,
-       double radius,
+       const Octree::OctreeCoordinate& query_cell,
        unsigned int level) {
-      Octree::KeyContainer cells_inside;
-      Octree::KeyContainer cells_intersecting;
-      self.get_cells_intersected_by_sphere(
-        query_point, radius, level, cells_inside, cells_intersecting);
-
-      return py::make_tuple(as_pyarray(std::move(cells_inside)),
-                            as_pyarray(std::move(cells_intersecting)));
+      return self.get_cell_population(query_cell, level);
     },
-    "Retrieve the spatial keys of cells intersected by a sphere.",
-    py::arg("query_point"),
-    py::arg("radius"),
+    "Retrieve point indices and spatial keys for a given cell",
+    py::arg("query_cell"),
     py::arg("level"));
 
   // Allow computation of level of depth at which a radius search will be most
