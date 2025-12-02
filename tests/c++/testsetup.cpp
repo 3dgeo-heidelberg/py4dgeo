@@ -57,7 +57,8 @@ slice_cloud(EigenPointCloudConstRef cloud, int sampling_factor)
   auto sliced =
     std::make_shared<EigenPointCloud>(cloud.rows() / sampling_factor, 3);
   for (IndexType i = 0; i < cloud.rows() / sampling_factor; ++i)
-    (*sliced)(i, Eigen::all) = cloud(i * sampling_factor, Eigen::all);
+    (*sliced)(i, Eigen::indexing::all) =
+      cloud(i * sampling_factor, Eigen::indexing::all);
   return sliced;
 }
 

@@ -6,10 +6,11 @@ nbsphinx
 nbsphinx-link
 nbval
 pandas
+pandoc
 pre-commit
 pytest
 pytest-cov
-ruptures
+ruptures @ git+https://github.com/deepcharles/ruptures.git@master
 sphinx
 sphinx_mdinclude
 sphinx_rtd_theme

@@ -55,7 +55,6 @@ Using py4dgeo requires the following software installed:
 In order to build the package from source, the following tools are also needed.
 
 * A C++17-compliant compiler
-* CMake `>= 3.9`
 * Doxygen (optional, documentation building is skipped if missing)
 
 ### Installing py4dgeo
@@ -95,26 +94,11 @@ python -m pip install -r requirements-dev.txt
 ```
 
 ### 🪟 Windows-specific Notes
+py4dgeo works on Windows, but optimal performance is typically achieved on Linux.
 
-When building py4dgeo on Windows, the build system automatically detects and enables LLVM-style OpenMP support (/openmp:llvm) if available. This provides better multi-threaded performance and thread affinity than the default MSVC OpenMP 2.0.
+If you want to experiment with performance on your system, you can tune OpenMP using environment variables such as ```OMP_NUM_THREADS```, ```OMP_PROC_BIND```, and ```OMP_PLACES```.
 
-#### 🧠 Thread Affinity (for LLVM OpenMP)
-
-When py4dgeo detects it's running on Windows, it sets the following OpenMP environment variables at runtime (unless they were already set):
-
-```bash
-set OMP_NUM_THREADS=<number of physical CPU cores>
-set OMP_PROC_BIND=close
-set OMP_PLACES=threads
-```
-
-- `OMP_NUM_THREADS`: Use **at most the number of physical cores** (e.g., 12 on a 12-core CPU) — avoid using hyperthreading.
-- `OMP_PROC_BIND=close`: Ensures that threads remain bound to their processing units, reducing thread migration between cores and improving cache locality.
-- `OMP_PLACES=threads`: Binds threads to individual hardware threads (instead of full cores).
-
-These settings lead to **significantly improved performance** on Windows, when using `openmp:llvm`.
-
-💡 Advanced users can still override these defaults by explicitly setting the environment variables before launching their script.
+The best settings depend on your system, so there is no single recommended configuration.
 
 ### Setting up py4dgeo using Docker
 
