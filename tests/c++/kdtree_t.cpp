@@ -4,7 +4,7 @@
 #include <py4dgeo/py4dgeo.hpp>
 #include <py4dgeo/searchtree.hpp>
 
-#include <catch2/catch_test_macros.hpp>
+#include <catch2/catch.hpp>
 
 #include <algorithm>
 #include <array>

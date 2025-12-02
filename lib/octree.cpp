@@ -4,7 +4,6 @@
 #include <Eigen/Core>
 
 #include <algorithm>
-#include <cassert>
 #include <cmath>
 #include <cstddef>
 #include <istream>

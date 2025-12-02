@@ -83,7 +83,7 @@ radius_workingset_finder(const WorkingSetFinderParameters& params)
   RadiusSearchResult points;
   radius_search(params.corepoint.row(0), points);
 
-  return params.epoch.cloud(points, Eigen::indexing::all);
+  return params.epoch.cloud(points, Eigen::all);
 }
 
 EigenPointCloud
@@ -121,8 +121,7 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
     merged.reserve(merged.capacity() + ball_points.size());
 
     // Extracting points
-    EigenPointCloud superset =
-      params.epoch.cloud(ball_points, Eigen::indexing::all);
+    EigenPointCloud superset = params.epoch.cloud(ball_points, Eigen::all);
 
     // Calculate the squared distances to the cylinder axis and to the plane
     // perpendicular to the axis that contains the corepoint
@@ -143,7 +142,7 @@ cylinder_workingset_finder(const WorkingSetFinderParameters& params)
   }
 
   // Select only those indices that are within the cylinder
-  return params.epoch.cloud(merged, Eigen::indexing::all);
+  return params.epoch.cloud(merged, Eigen::all);
 }
 
 double

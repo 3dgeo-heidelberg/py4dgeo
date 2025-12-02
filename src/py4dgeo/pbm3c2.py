@@ -182,7 +182,7 @@ def _extract_from_additional_dimensions(
     for column in column_names:
         if column in epoch.additional_dimensions.dtype.names:
             result = np.concatenate(
-                (result, epoch.additional_dimensions[column].reshape(-1, 1)), axis=1
+                (result, epoch.additional_dimensions[column]), axis=1
             )
         else:
             logger.debug(

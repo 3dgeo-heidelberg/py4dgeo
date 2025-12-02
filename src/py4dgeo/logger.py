@@ -8,13 +8,8 @@ def create_default_logger(filename=None):
     # Create the logger instance
     logger = logging.getLogger("py4dgeo")
 
-    # Close and remove existing handlers to avoid duplication and leaks
-    for handler in logger.handlers[:]:
-        try:
-            handler.close()
-        except Exception:
-            pass
-        logger.removeHandler(handler)
+    # Reset the handlers to avoid handler duplication
+    logger.handlers.clear()
 
     # Apply default for logfile name
     if filename is None:
