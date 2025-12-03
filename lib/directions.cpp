@@ -46,7 +46,7 @@ compute_multiscale_directions(const Epoch& epoch,
 
         radius_search(corepoints.row(i), r, points);
 
-        EigenPointCloud subset = epoch.cloud(points, Eigen::all);
+        EigenPointCloud subset = epoch.cloud(points, Eigen::indexing::all);
 
         // Calculate covariance matrix
         const Eigen::Vector3d mean = subset.colwise().mean();
