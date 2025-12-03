@@ -35,5 +35,3 @@ initialize_openmp_defaults()
 
 from py4dgeo.pbm3c2 import *
 from py4dgeo.vapc import Vapc, enable_trace, enable_timeit
-from py4dgeo.scor import ScOR
-from py4dgeo.sor import SOR
