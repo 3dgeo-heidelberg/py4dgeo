@@ -717,8 +717,23 @@ class Vapc:
         self, vapc_mask: "Vapc", segment_in_or_out: str = "in", overwrite: bool = False
     ) -> "Vapc":
         """
-        Return a new Vapc containing only those points of self
-        whose voxel is (or is not) occupied in vapc_mask.
+        Select points from this Vapc based on overlap with another Vapc mask.
+
+        :param vapc_mask: Vapc
+            Vapc whose occupied voxels define the mask.
+        :param segment_in_or_out: str
+            "in"  → keep points in voxels that overlap with the mask
+            "out" → keep points in voxels that do NOT overlap with the mask
+        :param overwrite: bool
+            If True, overwrite this Vapc’s epoch with the selected points.
+            If False, return a new Vapc with the selected points.
+        
+        :returns:
+            new_vapc: Vapc
+                New Vapc containing only the selected points.
+            sel: ndarray(bool)
+                Boolean array of length N indicating which points were selected.
+
         """
 
         # sanity checks
@@ -763,8 +778,8 @@ class Vapc:
             self.epoch = new_epoch
             self.out = new.out
             self.mapped = True
-            return self
-        return new
+            return self, sel
+        return new, sel
 
     #################### Mapping methods ####################################
 
