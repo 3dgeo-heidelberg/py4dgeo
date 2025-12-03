@@ -192,7 +192,7 @@ class Vapc:
             "density": self._compute_density,
             "centroid": self.compute_centroids,
             "voxel_center": self.compute_voxel_centers,
-            "local_centroid":self.compute_local_centroids,
+            "local_centroid": self.compute_local_centroids,
             "covariance": self.compute_covariance,
             "closest_to_voxel_centers": self.compute_closest_to_voxel_centers,
             "closest_to_centroids": self.compute_closest_to_centroids,
