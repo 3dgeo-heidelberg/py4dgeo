@@ -394,6 +394,14 @@ class Vapc:
 
     @timeit
     @trace
+    def compute_local_centroids(self):
+        centroids = self.compute_centroids()
+        voxel_centers = self.compute_voxel_centers()
+        self.local_centroids = centroids - voxel_centers
+        return self.local_centroids
+
+    @timeit
+    @trace
     def compute_closest_to_voxel_centers(
         self,
     ):  # using numba turned out to be the fastest
