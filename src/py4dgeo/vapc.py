@@ -727,7 +727,7 @@ class Vapc:
         :param overwrite: bool
             If True, overwrite this Vapc’s epoch with the selected points.
             If False, return a new Vapc with the selected points.
-        
+
         :returns:
             new_vapc: Vapc
                 New Vapc containing only the selected points.
