@@ -980,7 +980,7 @@ class Vapc:
         M = self.unique_voxels.shape[0]  # voxel count
 
         new_extra = None
-
+        original_point_cloud_indices = None
         # select one point per voxel
         if feature_name == "closest_to_centroid":
             centroids = self.compute_centroids()
@@ -990,6 +990,7 @@ class Vapc:
             coords = coords_orig[idx]
             if self.extra_dims is not None:
                 new_extra = self.extra_dims[idx]
+            original_point_cloud_indices = idx
 
         elif feature_name == "closest_to_voxel_centers":
             ijk = self.unique_voxels
@@ -1000,7 +1001,8 @@ class Vapc:
             coords = coords_orig[idx]
             if self.extra_dims is not None:
                 new_extra = self.extra_dims[idx]
-
+            original_point_cloud_indices = idx
+            
         elif feature_name == "centroid":
             # synthetic centroid points
             centroids = self.compute_centroids()  # M×3
@@ -1039,6 +1041,7 @@ class Vapc:
         # new.use_octree = self.use_octree
 
         new.extra_dims = new_extra
+        new.original_point_cloud_indices = original_point_cloud_indices
 
         # carry over everything into new.out so save_as_las sees it
         new.out = {}
