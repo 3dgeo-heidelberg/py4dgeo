@@ -180,6 +180,7 @@ class Vapc:
         self.voxel_centers = None
         self.closest_to_voxel_centers = None
         self.closest_to_centroids = None
+        self.original_point_cloud_indices = None
 
         self.out = {}
         self.mapped = False
