@@ -1011,7 +1011,7 @@ class Vapc:
             if self.extra_dims is not None:
                 new_extra = self.extra_dims[idx]
             original_point_cloud_indices = idx
-            
+
         elif feature_name == "centroid":
             # synthetic centroid points
             centroids = self.compute_centroids()  # M×3
