@@ -174,6 +174,7 @@ class Vapc:
             "count":          self._compute_count,
             "density":        self._compute_density,
             "centroid":       self.compute_centroids,
+            "local_centroid": self.compute_local_centroids,
             "voxel_center":   self.compute_voxel_centers,
             "covariance":     self.compute_covariance,
             "closest_to_voxel_centers":  self.compute_closest_to_voxel_centers,
@@ -368,6 +369,14 @@ class Vapc:
 
         self.centroids = np.stack([sum_x, sum_y, sum_z], axis=1) / counts[:,None]
         return self.centroids
+    
+    @timeit
+    @trace
+    def compute_local_centroids(self):
+        centroids = self.compute_centroids()
+        voxel_centers = self.compute_voxel_centers()
+        self.local_centroids = centroids - voxel_centers
+        return self.local_centroids
         
     @timeit
     @trace
@@ -646,6 +655,10 @@ class Vapc:
                         self.out[key] = out[:, i]
                 elif name == "voxel_center":
                     keys = ["voxel_center_x", "voxel_center_y", "voxel_center_z"]
+                    for i, key in enumerate(keys):
+                        self.out[key] = out[:, i]
+                elif name == "local_centroid":
+                    keys = ["local_centroid_x", "local_centroid_y", "local_centroid_z"]
                     for i, key in enumerate(keys):
                         self.out[key] = out[:, i]
             elif out.ndim == 3:
