@@ -43,7 +43,9 @@ def test_preprocess(epochs_segmented, pbm3c2_correspondences_file):
     assert epoch0_preprocessed is not None
     assert epoch1_preprocessed is not None
     assert correspondences_arr is not None
-    assert correspondences_arr.shape[1] >= 2, "Correspondences should have at least 2 columns"
+    assert (
+        correspondences_arr.shape[1] >= 2
+    ), "Correspondences should have at least 2 columns"
 
     assert (
         epoch0_preprocessed.cloud.shape[0] > 0
