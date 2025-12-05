@@ -164,6 +164,11 @@ You think you have found a bug or have specific request for a new feature? Pleas
 
 Scientific requests can be directed to the [3DGeo Research Group Heidelberg](https://uni-heidelberg.de/3dgeo) and its respective members.
 
+## 📄 How to contribute
+
+We welcome contributions of new methods and usage demonstrations!  
+Please see the full guidelines in our [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to get started.
+
 ## 📜 License
 
 See [LICENSE.md](LICENSE.md).
