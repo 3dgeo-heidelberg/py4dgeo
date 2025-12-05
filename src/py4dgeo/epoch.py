@@ -1,4 +1,5 @@
 from py4dgeo.logger import logger_context
+from py4dgeo.visualization import PCloudProjection, Vis_Object
 from py4dgeo.registration import Transformation
 from py4dgeo.util import (
     Py4DGeoError,
@@ -20,6 +21,7 @@ import os
 import tempfile
 import typing
 import zipfile
+import cv2
 
 import _py4dgeo
 
@@ -48,6 +50,7 @@ class Epoch(_py4dgeo.Epoch):
         additional_dimensions: np.ndarray = None,
         timestamp=None,
         scanpos_info: dict = None,
+        image=None,
     ):
         """
 
@@ -570,6 +573,55 @@ class Epoch(_py4dgeo.Epoch):
 
         # Set the base class object
         _py4dgeo.Epoch.__setstate__(self, base)
+
+    def project_pc(self, **args):
+        """Create a PCloudProjection object for this epoch.
+        This class is responsible for projecting a 3D point cloud into 2D images, such as range and color images,
+        with optional shading and smoothing. It supports saving the generated images with metadata.
+
+        Parameters:
+            epoch (object): An object containing the point cloud and scan position information.
+            filename (str, optional): Path to the where projected images will be saved. Defaults to None.
+            cloud_path (str, optional): Path to the point cloud file. Defaults to "Unknown".
+            make_range_image (bool, optional): Whether to generate a range image. Defaults to True.
+            make_color_image (bool, optional): Whether to generate a color image. Defaults to False.
+            resolution_cm (int, optional): Resolution of the images in centimeters. Defaults to 8.
+            rgb_light_intensity (int, optional): Intensity of the light for the RGB image. Defaults to 100.
+            range_light_intensity (int, optional): Intensity of the light for the range image. Defaults to 100.
+            apply_shading (bool, optional): Whether to apply shading to the images. Defaults to True.
+        """
+        # Ensure that we have a valid epoch
+        if self.scanpos_info is None:
+            raise Py4DGeoError("Cannot project without scan position information!")
+
+        self.image = PCloudProjection(self, **args)
+
+    def visualize(self, outfile=None, lst_polygon=None, from_notebook=False):
+        """Visualize the point cloud.
+
+        :param outfile: The filename to save the visualization to.
+        :param lst_polygon: A list of polygons to visualize on top of the point cloud.
+        :param from_notebook: If True, the visualization will be displayed in the notebook.
+
+        :return: If from_notebook is True, a Vis_Object is returned, otherwise None.
+        """
+
+        if self.image.filename is None:
+            self.image.filename = outfile
+            self.image.save_image()
+
+        if lst_polygon is not None:
+            image = self.image.add_polygons(lst_polygon)
+
+        if from_notebook:
+            display = Vis_Object(self.image.filename)
+            return display
+        else:
+            image = cv2.imread(self.image.filename)
+            title = os.path.basename(self.image.filename)
+            cv2.imshow(title, image)
+            cv2.waitKey(0)
+            cv2.destroyAllWindows()
 
 
 def save_epoch(epoch, filename):
