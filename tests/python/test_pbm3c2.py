@@ -29,13 +29,21 @@ def test_preprocess(epochs_segmented, pbm3c2_correspondences_file):
     correspondences_file = pbm3c2_correspondences_file
 
     alg = py4dgeo.PBM3C2(registration_error=0.01)
-    epoch0_preprocessed, epoch1_preprocessed, correspondences_df = (
-        alg.preprocess_epochs(epoch0, epoch1, correspondences_file)
-    )
+
+    (
+        epoch0_preprocessed,
+        epoch1_preprocessed,
+        correspondences_arr,
+        epoch0_id_mapping,
+        epoch1_id_mapping,
+        epoch0_reverse_mapping,
+        epoch1_reverse_mapping,
+    ) = alg.preprocess_epochs(epoch0, epoch1, correspondences_file)
 
     assert epoch0_preprocessed is not None
     assert epoch1_preprocessed is not None
-    assert correspondences_df is not None
+    assert correspondences_arr is not None
+    assert correspondences_arr.shape[1] >= 2, "Correspondences should have at least 2 columns"
 
     assert (
         epoch0_preprocessed.cloud.shape[0] > 0
