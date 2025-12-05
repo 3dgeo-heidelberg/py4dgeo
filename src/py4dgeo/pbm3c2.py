@@ -108,9 +108,7 @@ class PBM3C2:
         # Filter invalid correspondences
         valid_mask = ~invalid_ids0 & ~invalid_ids1
         if not valid_mask.all():
-            print(
-                f"  Filtering out {(~valid_mask).sum()} invalid correspondence pairs"
-            )
+            print(f"  Filtering out {(~valid_mask).sum()} invalid correspondence pairs")
             correspondences_arr = correspondences_arr[valid_mask]
 
         if len(correspondences_arr) == 0:
@@ -399,12 +397,8 @@ class PBM3C2:
         )
 
         print("\n[3/6] Extracting geometric features...")
-        self.epoch0_segment_metrics = self._create_segment_metrics(
-            self.epoch0_segments
-        )
-        self.epoch1_segment_metrics = self._create_segment_metrics(
-            self.epoch1_segments
-        )
+        self.epoch0_segment_metrics = self._create_segment_metrics(self.epoch0_segments)
+        self.epoch1_segment_metrics = self._create_segment_metrics(self.epoch1_segments)
         print(
             f"  Computed metrics for {len(self.epoch0_segment_metrics)} + {len(self.epoch1_segment_metrics)} segments"
         )
@@ -522,9 +516,7 @@ class PBM3C2:
                 corr_sample = self.correspondences[
                     self.correspondences["epoch0_segment_id"] == epoch0_segment_id
                 ]
-                title_text = (
-                    f"PBM3C2 Correspondence for Segment ID {epoch0_segment_id}"
-                )
+                title_text = f"PBM3C2 Correspondence for Segment ID {epoch0_segment_id}"
 
             if corr_sample.empty:
                 raise ValueError(
