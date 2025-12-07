@@ -166,7 +166,7 @@ Scientific requests can be directed to the [3DGeo Research Group Heidelberg](htt
 
 ## 📄 How to contribute
 
-We welcome contributions of new methods and usage demonstrations!  
+We welcome contributions of new methods and usage demonstrations!
 Please see the full guidelines in our [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to get started.
 
 ## 📜 License
