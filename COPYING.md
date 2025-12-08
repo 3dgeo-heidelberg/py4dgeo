@@ -17,6 +17,7 @@ For information on the license, see LICENSE.md.
 * Lukas Winiwarter, 2020-2023
 * Petr Andriushchenko, 2022
 * Bernhard Höfle, 2020-
+* Yihui Yang, 2023
 
 The file `src/py4dgeo/zipfile.py` is licensed under Python Software Foundation License Version 2.
 Copyright (c) 2001-2022 Python Software Foundation; All Rights Reserved
