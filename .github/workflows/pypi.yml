@@ -22,8 +22,6 @@ jobs:
         include:
           - os: ubuntu-24.04
           - os: windows-2022
-          - os: macos-13
-            target: "13.0"
           - os: macos-14
             target: "14.0"
 
