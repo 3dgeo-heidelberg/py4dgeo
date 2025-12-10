@@ -166,6 +166,10 @@ Scientific requests can be directed to the [3DGeo Research Group Heidelberg](htt
 
 ## 📄 How to contribute
 
+<<<<<<< HEAD
+We welcome contributions of new methods and usage demonstrations!
+Please see the full guidelines in our [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to get started.
+=======
 We welcome contributions of new methods and usage demonstrations to help users better understand and apply `py4dgeo` functionality.
 
 If you want to (a) implement your method or (b) provide a new example using py4dgeo functionality, please follow the steps below:
@@ -186,6 +190,7 @@ If you want to (a) implement your method or (b) provide a new example using py4d
 5. **Verify your docs/examples** on the next docs build.
 
 For any issues or questions during any of the steps, do not hesitate to open an issue on the [issue tracker](https://github.com/3dgeo-heidelberg/py4dgeo/issues).
+>>>>>>> 5272c8c4da6b2f513aa13db4627b82e89711db2a
 
 ## 📜 License
 
