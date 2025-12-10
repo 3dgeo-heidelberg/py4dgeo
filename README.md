@@ -39,10 +39,11 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 ### Demo notebooks using methods provided by py4dgeo
 |                                                                                                                                                              |                                                                                                                                                                 |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2-change_analysis.ipynb)       | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2ep_change_analysis.ipynb)      |
-| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/4dobc-change_analysis.ipynb)          | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/kmeans_clustering_of_time_series.ipynb) |
-| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/principal_component_analysis_of_time_series.ipynb) | [![Example 6](img/pbm3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/pbm3c2.ipynb)                                   |
- [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/registration_standard_ICP.ipynb)          |
+| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/m3c2-change_analysis.ipynb)       | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/m3c2ep_change_analysis.ipynb)      |
+| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/4dobc-change_analysis.ipynb)          | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/kmeans_clustering_of_time_series.ipynb) |
+| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/principal_component_analysis_of_time_series.ipynb) | [![Example 6](img/pbm3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/jupyter/pbm3c2.ipynb)                                   |
+| [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/registration_standard_ICP.ipynb)          |
+
 
 ## 💻 Installation
 
@@ -166,31 +167,8 @@ Scientific requests can be directed to the [3DGeo Research Group Heidelberg](htt
 
 ## 📄 How to contribute
 
-<<<<<<< HEAD
 We welcome contributions of new methods and usage demonstrations!
 Please see the full guidelines in our [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to get started.
-=======
-We welcome contributions of new methods and usage demonstrations to help users better understand and apply `py4dgeo` functionality.
-
-If you want to (a) implement your method or (b) provide a new example using py4dgeo functionality, please follow the steps below:
-
-1. **Fork the repository and create a branch** for your contribution.
-2. **Prepare your demo** using the templates provided in the [`contributor_template/`](contributor_template/) directory:
-   - (a) [`basic_usage.ipynb`](contributor_template/basic_usage.ipynb): is the basis to document your newly implemented method and will be shown on [readthedocs](https://py4dgeo.readthedocs.io/en/latest/basic.html).
-   - (b) [`application_demo.ipynb`](contributor_template/application_demo.ipynb): focuses on use cases of the method.
-
-3. **Push your branch and open a pull request** to the py4dgeo repository with:
-   - a one-paragraph summary
-   - what changed (code, tests, docs)
-   - how to run the demo/tests
-   - any open questions or follow-ups
-4. **Address reviews through follow-up commits** (if applicaple)
-
-   When checks are green and reviews are satisfied, a maintainer will merge.
-5. **Verify your docs/examples** on the next docs build.
-
-For any issues or questions during any of the steps, do not hesitate to open an issue on the [issue tracker](https://github.com/3dgeo-heidelberg/py4dgeo/issues).
->>>>>>> 5272c8c4da6b2f513aa13db4627b82e89711db2a
 
 ## 📜 License
 
