@@ -72,6 +72,9 @@ PYBIND11_MODULE(_py4dgeo, m)
           py::arg("spread2") = 0.0,
           py::arg("num_samples2") = 0);
 
+  // Register a numpy structured type for Octree coordinates.
+  PYBIND11_NUMPY_DTYPE(Octree::Coordinate, x, y, z);
+
   // The epoch class
   py::class_<Epoch> epoch(m, "Epoch");
 
