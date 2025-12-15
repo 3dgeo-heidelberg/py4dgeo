@@ -11,8 +11,10 @@ from mpl_toolkits.mplot3d import proj3d
 try:
     from tqdm import tqdm
 except ImportError:
+
     def tqdm(iterable, *args, **kwargs):
         return iterable
+
 
 class PBM3C2:
     """
