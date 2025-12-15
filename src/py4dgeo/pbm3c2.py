@@ -2,13 +2,17 @@ import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
 from scipy.spatial import cKDTree
-from tqdm import tqdm
 from py4dgeo.util import Py4DGeoError
 from py4dgeo.epoch import Epoch
 import matplotlib.pyplot as plt
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
+try:
+    from tqdm import tqdm
+except ImportError:
+    def tqdm(iterable, *args, **kwargs):
+        return iterable
 
 class PBM3C2:
     """
