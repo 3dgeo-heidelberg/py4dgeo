@@ -19,7 +19,7 @@ readme = "README.md"
 maintainers = [
     { name = "Dominic Kempf", email = "ssc@iwr.uni-heidelberg.de" },
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file = "LICENSE.md" }
 classifiers = [
     "Programming Language :: Python :: 3",
