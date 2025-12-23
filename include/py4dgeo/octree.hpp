@@ -73,6 +73,9 @@ make_dilate_table()
 // Forward declaration of Epoch
 class Epoch;
 
+// Forward declaration of OctreeTestAccess
+struct OctreeTestAccess;
+
 /** @brief Efficient Octree data structure for nearest neighbor/radius searches
  *
  * This data structure allows efficient radius searches in 3D point cloud data.
@@ -80,6 +83,8 @@ class Epoch;
  */
 class Octree
 {
+  friend struct OctreeTestAccess;
+
 public:
   // ==========================================================
   //                            Types

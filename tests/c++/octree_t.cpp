@@ -17,6 +17,26 @@
 
 using namespace py4dgeo;
 
+namespace py4dgeo {
+struct OctreeTestAccess
+{
+  static Octree::SpatialKey compute_spatial_key(const Octree& t,
+                                                Octree::OctreeCoordinate c,
+                                                unsigned int level)
+  {
+    return t.compute_spatial_key(c, level);
+  }
+
+  static Octree::OctreeCoordinate decode_spatial_key_at_level(
+    const Octree& t,
+    Octree::SpatialKey k,
+    unsigned int level)
+  {
+    return t.decode_spatial_key_at_level(k, level);
+  }
+};
+} // namespace py4dgeo
+
 TEST_CASE("Octree is correctly build", "[octree]")
 {
   // Get a test epoch
@@ -174,5 +194,28 @@ TEST_CASE("Octree is correctly build", "[octree]")
     REQUIRE_THAT(stddev,
                  Catch::Matchers::WithinRel(
                    tree.get_std_cell_population_per_level(level), 1e-12));
+  }
+
+  SECTION("Spatial key encode/decode round-trip")
+  {
+    constexpr unsigned int level = 4;
+    constexpr unsigned int max_coord = 1u << level;
+
+    for (unsigned int x = 0; x < max_coord; ++x) {
+      for (unsigned int y = 0; y < max_coord; ++y) {
+        for (unsigned int z = 0; z < max_coord; ++z) {
+
+          Octree::OctreeCoordinate c(x, y, z);
+          Octree::SpatialKey key =
+            OctreeTestAccess::compute_spatial_key(tree, c, level);
+          Octree::OctreeCoordinate decoded =
+            OctreeTestAccess::decode_spatial_key_at_level(tree, key, level);
+
+          REQUIRE(decoded.x() == x);
+          REQUIRE(decoded.y() == y);
+          REQUIRE(decoded.z() == z);
+        }
+      }
+    }
   }
 }
