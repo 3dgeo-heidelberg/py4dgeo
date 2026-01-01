@@ -26,7 +26,7 @@ jobs:
             target: "14.0"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: 'recursive'
 
@@ -51,7 +51,7 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: 'recursive'
 
@@ -75,7 +75,7 @@ jobs:
           - macos-14
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           submodules: 'recursive'
 
