@@ -756,6 +756,25 @@ Octree::get_cell_population(const OctreeCoordinate& query_cell,
   return static_cast<std::size_t>(range->second - range->first);
 }
 
+Octree::KeyContainer
+Octree::get_unique_cells(unsigned int level) const
+{
+  assert(level <= max_depth);
+
+  auto same_cell_at_level = [&](SpatialKey a, SpatialKey b) {
+    return (a >> bit_shift[level]) == (b >> bit_shift[level]);
+  };
+
+  Octree::KeyContainer unique_keys;
+  unique_keys.reserve(indexed_keys.keys.size());
+  std::unique_copy(indexed_keys.keys.begin(),
+                   indexed_keys.keys.end(),
+                   std::back_inserter(unique_keys),
+                   same_cell_at_level);
+
+  return unique_keys;
+}
+
 std::size_t
 Octree::get_point_indices_from_cell(SpatialKey truncated_key,
                                     unsigned int level,

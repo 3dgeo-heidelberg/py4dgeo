@@ -443,6 +443,16 @@ PYBIND11_MODULE(_py4dgeo, m)
     py::arg("query_cell"),
     py::arg("level"));
 
+  // Allow extraction of unique occupied cells at a given level
+  octree.def(
+    "get_unique_cells",
+    [](const Octree& self, unsigned int level) {
+      Octree::KeyContainer unique_keys = self.get_unique_cells(level);
+      return as_pyarray(std::move(unique_keys));
+    },
+    "Retrieve unique occupied cells at a given level",
+    py::arg("level"));
+
   // Allow computation of level of depth at which a radius search will be most
   // efficient
   octree.def("find_appropriate_level_for_radius_search",

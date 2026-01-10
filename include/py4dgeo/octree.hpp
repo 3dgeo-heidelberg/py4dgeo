@@ -1006,6 +1006,14 @@ public:
   std::size_t get_cell_population(const OctreeCoordinate& query_cell,
                                   unsigned int level) const;
 
+  /** @brief Returns the unique spatial keys of occupied cells at a specified
+   * depth level
+   *
+   * @param[in] level The depth level at which to retrieve the unique cells
+   * @return A container of unique spatial keys of occupied cells
+   */
+  KeyContainer get_unique_cells(unsigned int level) const;
+
   /**
    * @brief Return indices of points lying in a single octree cell at a
    * specified depth level
