@@ -980,6 +980,20 @@ public:
   std::size_t get_cell_population(SpatialKey truncated_key,
                                   unsigned int level) const;
 
+  /**
+   * @brief Returns the number of points lying in a single octree cell at a
+   * specified depth level for
+   *
+   * @param[in] truncated_keys Truncated spatial keys identifying the query
+   * cells
+   * @param[in] level Octree depth level of the query cell
+   *
+   * @return The number of points in the specified cells
+   */
+  std::vector<std::size_t> get_cell_population(
+    const KeyContainer& truncated_keys,
+    unsigned int level) const;
+
   /** @brief Returns the number of points lying in a single octree cell at a
    * specified depth level
    *

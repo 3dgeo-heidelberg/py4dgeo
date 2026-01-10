@@ -412,12 +412,34 @@ PYBIND11_MODULE(_py4dgeo, m)
   // Allow extraction from cell population
   octree.def(
     "get_cell_population",
+    [](const Octree& self, Octree::SpatialKey key, unsigned int level) {
+      return self.get_cell_population(key, level);
+    },
+    "Retrieve point count for a given cell",
+    py::arg("key"),
+    py::arg("level"));
+
+  octree.def(
+    "get_cell_population",
+    [](const Octree& self,
+       const Octree::KeyContainer& keys,
+       unsigned int level) {
+      std::vector<std::size_t> populations =
+        self.get_cell_population(keys, level);
+      return as_pyarray(std::move(populations));
+    },
+    "Retrieve point counts for given cells",
+    py::arg("keys"),
+    py::arg("level"));
+
+  octree.def(
+    "get_cell_population",
     [](const Octree& self,
        const Octree::OctreeCoordinate& query_cell,
        unsigned int level) {
       return self.get_cell_population(query_cell, level);
     },
-    "Retrieve point indices and spatial keys for a given cell",
+    "Retrieve point count for a given cell",
     py::arg("query_cell"),
     py::arg("level"));
 

@@ -723,6 +723,17 @@ Octree::get_cell_population(SpatialKey truncated_key, unsigned int level) const
   return static_cast<std::size_t>(range->second - range->first);
 }
 
+std::vector<std::size_t>
+Octree::get_cell_population(const KeyContainer& truncated_keys,
+                            unsigned int level) const
+{
+  std::vector<std::size_t> result;
+  for (const auto& key : truncated_keys) {
+    result.push_back(get_cell_population(key, level));
+  }
+  return result;
+}
+
 std::size_t
 Octree::get_cell_population(const OctreeCoordinate& query_cell,
                             unsigned int level) const
