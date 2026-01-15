@@ -23,7 +23,7 @@ jobs:
         openmp: ['ON', 'OFF']
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: 'recursive'
 
@@ -68,7 +68,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: 'recursive'
 
@@ -129,7 +129,7 @@ jobs:
       ASAN_OPTIONS: "detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
 
     steps:
-    - uses: actions/checkout@v5
+    - uses: actions/checkout@v6
       with:
         submodules: 'recursive'
 
