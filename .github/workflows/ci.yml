@@ -36,7 +36,7 @@ jobs:
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
       run: brew install libomp
 
-    - name: make build directory
+    - name: Make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Install Python development requirements
@@ -96,13 +96,13 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/tests/data
         copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
-    - name: run tests
+    - name: Run tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo/build
       run: |
         ctest -C Debug
 
-    - name: collect coverage report
+    - name: Collect coverage report
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       run: |
@@ -154,12 +154,12 @@ jobs:
         mkdir -p $GITHUB_WORKSPACE/tests/data
         ASAN_OPTIONS="halt_on_error=0" LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)" PYTHONPATH=src copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
-    - name: run c++ tests
+    - name: Run C++ tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo/build
       run: LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)" ctest --rerun-failed --output-on-failure -C Debug
 
-    - name: run python tests
+    - name: Run python tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       # for LD_PRELOAD see https://github.com/google/sanitizers/issues/934#issuecomment-649516500
