@@ -16,8 +16,7 @@ import _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2024-06-28/data.tar.gz"
-TEST_DATA_CHECKSUM = "5ee51a43b008181b829113d8b967cdf519eae4ac37a3301f1eaf53d15d3016cc"
+TEST_DATA_ARCHIVE = "https://zenodo.org/records/16751963/files/"
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
@@ -35,19 +34,34 @@ class Py4DGeoError(Exception):
 
 def download_test_data(path=pooch.os_cache("py4dgeo"), fatal=False):
     """Download the test data and copy it into the given path"""
-    try:
-        return pooch.retrieve(
-            TEST_DATA_ARCHIVE,
-            TEST_DATA_CHECKSUM,
-            path=path,
-            downloader=pooch.HTTPDownloader(timeout=(3, None)),
-            processor=pooch.Untar(extract_dir="."),
-        )
-    except requests.RequestException as e:
-        if fatal:
-            raise e
-        else:
-            return []
+
+    p = pooch.create(
+        path=path,
+        base_url=TEST_DATA_ARCHIVE,
+        registry={
+            "usage_data.zip": "md5:2340574f10d50a72f95766fcab5f8259",
+            "synthetic.zip": "md5:534ffec84060f5462757b19d06b2b2e1",
+            "pbm3c2.zip": "md5:dee1a9446e1cd1e30f59864c58fd793c",
+        },
+    )
+    path_data = p.fetch(
+        "usage_data.zip",
+        downloader=pooch.HTTPDownloader(timeout=(3, None)),
+        processor=pooch.Unzip(extract_dir="."),
+    )
+
+    path_data = p.fetch(
+        "synthetic.zip",
+        downloader=pooch.HTTPDownloader(timeout=(3, None)),
+        processor=pooch.Unzip(extract_dir="."),
+    )
+    path_data = p.fetch(
+        "pbm3c2.zip",
+        downloader=pooch.HTTPDownloader(timeout=(3, None)),
+        processor=pooch.Unzip(extract_dir="."),
+    )
+
+    return path_data
 
 
 def find_file(filename, fatal=True):
