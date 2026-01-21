@@ -32,8 +32,22 @@ class Py4DGeoError(Exception):
         logger.error(self)
 
 
-def download_test_data(path=pooch.os_cache("py4dgeo"), fatal=False):
+def get_test_data_dir():
+    # CI
+    env = os.environ.get(
+        "PY4DGEO_TEST_DATA_DIR"
+    )  # PY4DGEO_TEST_DATA_DIR corresponds to the cached path in the CI workflow
+    if env:
+        return env
+
+    # Local
+    return pooch.os_cache("py4dgeo")
+
+
+def download_test_data(path=None):
     """Download the test data and copy it into the given path"""
+    if path is None:
+        path = get_test_data_dir()
 
     p = pooch.create(
         path=path,
@@ -44,24 +58,15 @@ def download_test_data(path=pooch.os_cache("py4dgeo"), fatal=False):
             "pbm3c2.zip": "md5:dee1a9446e1cd1e30f59864c58fd793c",
         },
     )
-    path_data = p.fetch(
-        "usage_data.zip",
-        downloader=pooch.HTTPDownloader(timeout=(3, None)),
-        processor=pooch.Unzip(extract_dir="."),
-    )
 
-    path_data = p.fetch(
-        "synthetic.zip",
-        downloader=pooch.HTTPDownloader(timeout=(3, None)),
-        processor=pooch.Unzip(extract_dir="."),
-    )
-    path_data = p.fetch(
-        "pbm3c2.zip",
-        downloader=pooch.HTTPDownloader(timeout=(3, None)),
-        processor=pooch.Unzip(extract_dir="."),
-    )
+    for archive in p.registry:
+        p.fetch(
+            archive,
+            downloader=pooch.HTTPDownloader(timeout=(3, None)),
+            processor=pooch.Unzip(extract_dir=os.path.join(path, "extracted")),
+        )
 
-    return path_data
+    return path
 
 
 def find_file(filename, fatal=True):
@@ -97,22 +102,22 @@ def find_file(filename, fatal=True):
     # Use the current working directory
     candidates.append(os.path.join(os.getcwd(), filename))
 
+    data_dir = get_test_data_dir()
+    candidates.append(os.path.join(data_dir, filename))
+    for root, _, files in os.walk(data_dir):
+        if filename in files:
+            candidates.append(os.path.join(root, filename))
+
     # Use the XDG data directories
     if platform.system() in ["Linux", "Darwin"]:
         for xdg_dir in xdg.xdg_data_dirs():
             candidates.append(os.path.join(xdg_dir, filename))
-
-    # Ensure that the test data is taken into account. This is properly
-    # cached across sessions and uses a connection timeout.
-    for datafile in download_test_data():
-        if os.path.basename(datafile) == filename:
-            candidates.append(datafile)
+    print(candidates)
 
     # Iterate through the list to check for file existence
     for candidate in candidates:
         if os.path.exists(candidate):
             return candidate
-
     if fatal:
         raise FileNotFoundError(
             f"Cannot locate file {filename}. Tried the following locations: {', '.join(candidates)}"
@@ -299,4 +304,4 @@ def copy_test_data_entrypoint():
     if len(sys.argv) > 1:
         target = sys.argv[1]
 
-    download_test_data(path=target, fatal=True)
+    download_test_data(path=target)

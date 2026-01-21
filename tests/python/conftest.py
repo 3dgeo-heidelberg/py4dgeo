@@ -2,7 +2,7 @@ from py4dgeo.epoch import read_from_xyz, read_from_las
 from py4dgeo.logger import set_py4dgeo_logfile
 from py4dgeo.m3c2 import M3C2
 from py4dgeo.segmentation import SpatiotemporalAnalysis
-from py4dgeo.util import MemoryPolicy, set_memory_policy, find_file
+from py4dgeo.util import MemoryPolicy, set_memory_policy, download_test_data, find_file
 
 import numpy as np
 import os
@@ -10,6 +10,11 @@ import pytest
 import shutil
 import subprocess
 import tempfile
+
+
+@pytest.fixture(scope="session", autouse=True)
+def ensure_test_data():
+    download_test_data()
 
 
 # The path to our data directory
@@ -82,7 +87,10 @@ def pbm3c2_correspondences_file():
 
 @pytest.fixture
 def analysis(tmp_path):
-    shutil.copy(os.path.join(data_dir, "synthetic.zip"), tmp_path)
+    shutil.copy(find_file("synthetic.zip"), tmp_path)
+    print(
+        "Copying synthetic.zip to {}\n".format(os.path.join(tmp_path, "synthetic.zip"))
+    )
     return SpatiotemporalAnalysis(os.path.join(tmp_path, "synthetic.zip"))
 
 

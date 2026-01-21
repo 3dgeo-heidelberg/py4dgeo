@@ -2,6 +2,7 @@ from py4dgeo.segmentation import *
 from py4dgeo.m3c2 import M3C2
 from py4dgeo.util import Py4DGeoError
 
+import os
 import pytest
 import ruptures
 
@@ -109,6 +110,7 @@ def test_region_growing_algorithm(analysis, tmp_path):
     assert len(objects) == len(analysis.objects)
 
     imgfile = os.path.join(tmp_path, "object.png")
+
     objects[0].plot(filename=imgfile)
     assert os.path.isfile(imgfile)
 

@@ -678,7 +678,6 @@ class RegionGrowingAlgorithmBase:
         return self._analysis
 
     def run(self, analysis, force=False):
-        _py4dgeo.Epoch.set_default_radius_search_tree("octree")
         """Calculate the _segmentation
 
         :param analysis:
