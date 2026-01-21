@@ -1,0 +1,37 @@
+name: Test cached test data
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test-cache:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Restore cached test data
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: .py4dgeo-test-data
+          key: py4dgeo-test-data-v0
+          enableCrossOsArchive: true
+
+      - name: Fail if cache was not restored
+        shell: bash
+        run: |
+          if [ "${{ steps.cache.outputs.cache-hit }}" != "true" ]; then
+            echo "Cache was NOT restored"
+            exit 1
+          fi
+          echo "Cache restored successfully"
+
+      - name: Inspect cached files
+        shell: bash
+        run: |
+          echo "Cache directory contents:"
+          find .py4dgeo-test-data -maxdepth 3 -type f
