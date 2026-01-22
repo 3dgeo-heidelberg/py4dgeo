@@ -17,7 +17,7 @@ import _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://zenodo.org/records/16751963/files/"
+TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.16751963/"
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
@@ -55,7 +55,7 @@ def download_test_data(path=None):
     for archive in p.registry:
         p.fetch(
             archive,
-            downloader=pooch.HTTPDownloader(timeout=(3, None)),
+            downloader=pooch.DOIDownloader(timeout=(3, None)),
             processor=pooch.Unzip(extract_dir=os.path.join(path, "extracted")),
         )
 
