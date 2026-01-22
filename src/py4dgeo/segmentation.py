@@ -543,9 +543,12 @@ class SpatiotemporalAnalysis:
 
     @objects.setter
     def objects(self, _objects):
+        if _objects is None:
+            return
+
         # Assert that we received the correct type
-        for seed in _objects:
-            if not isinstance(seed, ObjectByChange):
+        for obj in _objects:
+            if not isinstance(obj, ObjectByChange):
                 raise Py4DGeoError(
                     "Objects are expected to inherit from ObjectByChange"
                 )
