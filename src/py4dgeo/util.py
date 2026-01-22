@@ -1,3 +1,4 @@
+import argparse
 import collections
 import logging
 import numpy as np
@@ -290,9 +291,17 @@ def initialize_openmp_defaults():
 
 
 def copy_test_data_entrypoint():
-    # Define the target directory
-    target = os.getcwd()
-    if len(sys.argv) > 1:
-        target = sys.argv[1]
+    """A command line entry point to download test data"""
 
-    download_test_data(path=target, fatal=True)
+    parser = argparse.ArgumentParser(description="Download py4dgeo test data")
+
+    parser.add_argument(
+        "path",
+        nargs="?",
+        default=os.getcwd(),
+        help="Target directory for test data (default: current working directory)",
+    )
+
+    args = parser.parse_args()
+
+    download_test_data(path=args.path)
