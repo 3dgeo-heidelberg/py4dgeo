@@ -1140,6 +1140,31 @@ class ObjectByChange:
         """The distance threshold that produced this object"""
         return self._data.threshold
 
+    def __getstate__(self):
+        """
+        Return the pickle state for this object.
+
+        We explicitly omit `_analysis` because it can contain a back-link to the
+        SpatiotemporalAnalysis object, which would cause the full analysis to be
+        pickled into every ObjectByChange instance.
+        """
+        return {
+            "_data": self._data,
+            "seed": self.seed,
+            # intentionally NOT storing "_analysis"
+        }
+
+    def __setstate__(self, state):
+        """
+        Restore the object from pickle state.
+
+        `_analysis` is always reset to None. It can later be re-attached by the
+        algorithm / analysis code if needed.
+        """
+        self._data = state["_data"]
+        self.seed = state["seed"]
+        self._analysis = None
+
     def plot(self, filename=None):
         """Create an informative visualization of the Object By Change
 
