@@ -16,8 +16,7 @@ import _py4dgeo
 
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2024-06-28/data.tar.gz"
-TEST_DATA_CHECKSUM = "5ee51a43b008181b829113d8b967cdf519eae4ac37a3301f1eaf53d15d3016cc"
+TEST_DATA_ARCHIVE = "https://zenodo.org/records/16751963/files/"
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
@@ -33,21 +32,33 @@ class Py4DGeoError(Exception):
         logger.error(self)
 
 
-def download_test_data(path=pooch.os_cache("py4dgeo"), fatal=False):
-    """Download the test data and copy it into the given path"""
-    try:
-        return pooch.retrieve(
-            TEST_DATA_ARCHIVE,
-            TEST_DATA_CHECKSUM,
-            path=path,
+def get_test_data_dir():
+    return pooch.os_cache("py4dgeo")
+
+
+def download_test_data(path=None):
+    """Download the test data"""
+    if path is None:
+        path = get_test_data_dir()
+
+    p = pooch.create(
+        path=path,
+        base_url=TEST_DATA_ARCHIVE,
+        registry={
+            "usage_data.zip": "md5:2340574f10d50a72f95766fcab5f8259",
+            "synthetic.zip": "md5:534ffec84060f5462757b19d06b2b2e1",
+            "pbm3c2.zip": "md5:dee1a9446e1cd1e30f59864c58fd793c",
+        },
+    )
+
+    for archive in p.registry:
+        p.fetch(
+            archive,
             downloader=pooch.HTTPDownloader(timeout=(3, None)),
-            processor=pooch.Untar(extract_dir="."),
+            processor=pooch.Unzip(extract_dir=os.path.join(path, "extracted")),
         )
-    except requests.RequestException as e:
-        if fatal:
-            raise e
-        else:
-            return []
+
+    return path
 
 
 def find_file(filename, fatal=True):
@@ -83,22 +94,21 @@ def find_file(filename, fatal=True):
     # Use the current working directory
     candidates.append(os.path.join(os.getcwd(), filename))
 
+    data_dir = get_test_data_dir()
+    candidates.append(os.path.join(data_dir, filename))
+    for root, _, files in os.walk(data_dir):
+        if filename in files:
+            candidates.append(os.path.join(root, filename))
+
     # Use the XDG data directories
     if platform.system() in ["Linux", "Darwin"]:
         for xdg_dir in xdg.xdg_data_dirs():
             candidates.append(os.path.join(xdg_dir, filename))
 
-    # Ensure that the test data is taken into account. This is properly
-    # cached across sessions and uses a connection timeout.
-    for datafile in download_test_data():
-        if os.path.basename(datafile) == filename:
-            candidates.append(datafile)
-
     # Iterate through the list to check for file existence
     for candidate in candidates:
         if os.path.exists(candidate):
             return candidate
-
     if fatal:
         raise FileNotFoundError(
             f"Cannot locate file {filename}. Tried the following locations: {', '.join(candidates)}"
