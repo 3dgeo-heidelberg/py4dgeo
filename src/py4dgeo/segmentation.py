@@ -531,7 +531,15 @@ class SpatiotemporalAnalysis:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 zf.extract("objects.pickle", path=tmp_dir)
                 with open(os.path.join(tmp_dir, "objects.pickle"), "rb") as f:
-                    return pickle.load(f)
+                    objects = pickle.load(f)
+
+        # Re-attach analysis backlink after unpickling
+        if objects is not None:
+            for obj in objects:
+                if hasattr(obj, "_analysis"):
+                    obj.attach_analysis(self)
+
+        return objects
 
     @objects.setter
     def objects(self, _objects):
@@ -1139,6 +1147,9 @@ class ObjectByChange:
     def threshold(self):
         """The distance threshold that produced this object"""
         return self._data.threshold
+
+    def attach_analysis(self, analysis):
+        self._analysis = analysis
 
     def __getstate__(self):
         """
