@@ -18,6 +18,9 @@ import _py4dgeo
 
 # The current data archive URL
 TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.16751963/"
+PY4DGEO_REQUEST_HEADERS = {
+    "User-Agent": "py4dgeo (https://github.com/3dgeo-heidelberg/py4dgeo)"
+}
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
@@ -55,7 +58,9 @@ def download_test_data(path=None):
     for archive in p.registry:
         p.fetch(
             archive,
-            downloader=pooch.DOIDownloader(timeout=(3, None)),
+            downloader=pooch.DOIDownloader(
+                headers=PY4DGEO_REQUEST_HEADERS, timeout=(3, None)
+            ),
             processor=pooch.Unzip(extract_dir=os.path.join(path, "extracted")),
         )
 
