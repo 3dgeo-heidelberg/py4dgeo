@@ -18,6 +18,11 @@ import _py4dgeo
 
 # The current data archive URL
 TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.16751963/"
+TEST_DATA_REGISTRY = {
+    "usage_data.zip": "md5:2340574f10d50a72f95766fcab5f8259",
+    "synthetic.zip": "md5:534ffec84060f5462757b19d06b2b2e1",
+    "pbm3c2.zip": "md5:dee1a9446e1cd1e30f59864c58fd793c",
+}
 PY4DGEO_REQUEST_HEADERS = {
     "User-Agent": "py4dgeo (https://github.com/3dgeo-heidelberg/py4dgeo)"
 }
@@ -40,22 +45,21 @@ def get_test_data_dir():
     return pooch.os_cache("py4dgeo")
 
 
-def download_test_data(path=None):
+def download_test_data(path=None, filename=None):
     """Download the test data"""
+
+    # Get the target path
     if path is None:
         path = get_test_data_dir()
 
-    p = pooch.create(
-        path=path,
-        base_url=TEST_DATA_ARCHIVE,
-        registry={
-            "usage_data.zip": "md5:2340574f10d50a72f95766fcab5f8259",
-            "synthetic.zip": "md5:534ffec84060f5462757b19d06b2b2e1",
-            "pbm3c2.zip": "md5:dee1a9446e1cd1e30f59864c58fd793c",
-        },
-    )
+    # Create a pooch instance
+    p = pooch.create(path=path, base_url=TEST_DATA_ARCHIVE, registry=TEST_DATA_REGISTRY)
 
-    for archive in p.registry:
+    # Decide which files to download, defaulding to all
+    files_to_download = [filename] if filename else p.registry.keys()
+
+    # Download the files
+    for archive in files_to_download:
         p.fetch(
             archive,
             downloader=pooch.DOIDownloader(
