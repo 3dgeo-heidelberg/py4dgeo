@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import tempfile
 
-
 # The path to the log directory
 log_dir = tempfile.TemporaryDirectory()
 

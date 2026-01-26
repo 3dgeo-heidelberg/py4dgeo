@@ -15,7 +15,6 @@ from importlib import metadata
 
 import _py4dgeo
 
-
 # The current data archive URL
 TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.16751963/"
 PY4DGEO_REQUEST_HEADERS = {

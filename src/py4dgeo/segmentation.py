@@ -16,7 +16,6 @@ import tempfile
 import zipfile
 import _py4dgeo
 
-
 # Get the py4dgeo logger instance
 logger = logging.getLogger("py4dgeo")
 
