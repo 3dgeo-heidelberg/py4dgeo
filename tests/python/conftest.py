@@ -11,7 +11,6 @@ import shutil
 import subprocess
 import tempfile
 
-
 # The path to our data directory
 data_dir = os.path.join(os.path.split(__file__)[0], "..", "data")
 log_dir = tempfile.TemporaryDirectory()
