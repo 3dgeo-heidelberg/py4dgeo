@@ -57,7 +57,7 @@ target_sources(py4dgeo
 )
 
 target_compile_features(py4dgeo
-  PRIVATE
+  PUBLIC
     cxx_std_17
 )
 
