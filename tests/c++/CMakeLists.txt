@@ -29,7 +29,7 @@ include(Catch)
 # Build the py4dgeo_test library (a helper for all test files). This provides
 # access to shared setup/utility functions and test data.
 # ---------------------------------------------------------------------------
-add_library(py4dgeo_test testsetup.cpp)
+add_library(py4dgeo_test)
 
 target_sources(py4dgeo_test
   PRIVATE
