@@ -50,7 +50,7 @@ def download_test_data(path=None, filename=None):
     p = pooch.create(path=path, base_url=TEST_DATA_ARCHIVE)
     p.load_registry_from_doi()
 
-    # Decide which files to download, defaulding to all
+    # Decide which files to download, defaulting to all
     files_to_download = (
         [filename] if filename else ["usage_data.zip", "synthetic.zip", "pbm3c2.zip"]
     )
@@ -62,7 +62,7 @@ def download_test_data(path=None, filename=None):
             downloader=pooch.DOIDownloader(
                 headers=PY4DGEO_REQUEST_HEADERS, timeout=(3, None)
             ),
-            processor=pooch.Unzip(extract_dir=os.path.join(path, "extracted")),
+            processor=pooch.Unzip(extract_dir="extracted"),
         )
 
     return path
