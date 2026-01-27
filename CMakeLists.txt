@@ -81,23 +81,10 @@ target_compile_features(nanoflann
     cxx_std_11
 )
 
-# ----------------------------------
-# Add Eigen interface library target
-# ----------------------------------
-add_library(eigen INTERFACE)
-
-target_sources(eigen
-  INTERFACE
-    FILE_SET eigen_headers
-    TYPE HEADERS
-    BASE_DIRS
-      ext/eigen
-)
-
-target_compile_features(eigen
-  INTERFACE
-    cxx_std_14
-)
+# -----------------
+# Eigen3 dependency
+# -----------------
+add_subdirectory(ext/eigen EXCLUDE_FROM_ALL)
 
 # -----------------------------------
 # Link nanoflann and eigen to py4dgeo
@@ -105,7 +92,7 @@ target_compile_features(eigen
 target_link_libraries(py4dgeo
   PUBLIC
     nanoflann
-    eigen
+    Eigen3::Eigen
 )
 
 # ------------------------------------------
