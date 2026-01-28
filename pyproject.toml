@@ -4,7 +4,7 @@
 [build-system]
 requires = [
     "pybind11",
-    "scikit-build-core >=0.6.1",
+    "scikit-build-core >=0.11.0",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -20,12 +20,12 @@ maintainers = [
     { name = "Dominic Kempf", email = "ssc@iwr.uni-heidelberg.de" },
 ]
 requires-python = ">=3.8"
-license = { file = "LICENSE.md" }
+license = "MIT"
+license-files = ["LICENSE.md"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: C++",
     "Operating System :: OS Independent",
-    "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering :: GIS",
     "Intended Audience :: Science/Research",
 ]
@@ -47,12 +47,9 @@ dependencies = [
 [project.scripts]
 copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 
-[tool.scikit-build.cmake]
-minimum-version = "3.30"
-
-[tool.scikit-build.cmake.define]
-BUILD_DOCS = "OFF"
-BUILD_TESTING = "OFF"
+[tool.scikit-build]
+cmake.version = ">=3.30"
+cmake.define = { BUILD_DOCS = "OFF", BUILD_TESTING = "OFF" }
 
 # The next section configures building wheels in Continuous Integration
 # The cibuildwheel documentation covers the available options in detail:
