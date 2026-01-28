@@ -44,6 +44,11 @@ dependencies = [
     "psutil"
 ]
 
+[project.urls]
+homepage = "https://github.com/3dgeo-heidelberg/py4dgeo/"
+documentation = "https://py4dgeo.readthedocs.io/"
+repository = "https://github.com/3dgeo-heidelberg/py4dgeo/"
+
 # Command line scripts installed as part of the installation
 [project.scripts]
 copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
