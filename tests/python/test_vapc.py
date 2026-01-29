@@ -4,7 +4,6 @@ import pytest
 from py4dgeo.epoch import Epoch
 from py4dgeo.vapc import Vapc, enable_trace, enable_timeit
 
-
 enable_trace(False)
 enable_timeit(False)
 
@@ -331,6 +330,4 @@ def test_save_as_ply_with_features(tmp_path):
     assert ply["vertex"].count == voxel_count * 8
     assert ply["face"].count == voxel_count * 12
     assert "count" in ply["vertex"].data.dtype.names
-    assert np.allclose(
-        ply["vertex"].data["count"].reshape(-1, 8)[:, 0], v.out["count"]
-    )
+    assert np.allclose(ply["vertex"].data["count"].reshape(-1, 8)[:, 0], v.out["count"])
