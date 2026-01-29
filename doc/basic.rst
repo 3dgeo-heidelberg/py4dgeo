@@ -16,3 +16,5 @@ In the following, you find a number of tutorials that demonstrate the basic capa
     pbm3c2-segmented
     pbm3c2-tools
     pbm3c2-longterm
+    hierarchical_change_analysis
+    spatial_subsampling
