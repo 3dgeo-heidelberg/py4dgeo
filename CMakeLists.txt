@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.30)
 # Set a name and a version number for your project:
 project(
   py4dgeo
-  VERSION 0.8.0
+  VERSION 1.0.0
   LANGUAGES CXX)
 
 # Take into account <Package>_ROOT environment variable (used in packaging
