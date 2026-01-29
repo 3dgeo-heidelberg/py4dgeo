@@ -1,4 +1,4 @@
-# This is a version of VAPC (https://github.com/3dgeo-heidelberg/vapc.git) that has been developed
+﻿# This is a version of VAPC (https://github.com/3dgeo-heidelberg/vapc.git) that has been developed
 # specifically for py4dgeo. Functions relevant to change analysis, such as the hierarchical
 # analysis and subsampling of point clouds, have been transferred. Other functions, such as
 # the calculation of geometric features, have been partially transferred, but are currently
@@ -22,32 +22,32 @@ DECORATOR_CONFIG = {"trace": True, "timeit": True}
 
 
 def enable_trace(enable=True):
-    """
-    Enables or disables the trace decorator.
+    """Enable or disable trace output for decorated functions.
 
-    Parameters
-    ----------
-    enable : bool, optional
-        If True, tracing is enabled. If False, tracing is disabled.
+    :param enable:
+        If True, emit trace output. If False, suppress it.
+    :type enable: bool
     """
     DECORATOR_CONFIG["trace"] = enable
 
 
 def enable_timeit(enable=True):
-    """
-    Enables or disables the timeit decorator.
+    """Enable or disable timing output for decorated functions.
 
-    Parameters
-    ----------
-    enable : bool, optional
-        If True, timing is enabled. If False, timing is disabled.
+    :param enable:
+        If True, emit timing output. If False, suppress it.
+    :type enable: bool
     """
     DECORATOR_CONFIG["timeit"] = enable
 
 
 def trace(func):
-    """
-    A decorator that prints the name of the function before it is called. Controlled by the DECORATOR_CONFIG["trace"] flag.
+    """Decorate a function to emit a call trace when enabled.
+
+    :param func:
+        The function to wrap.
+    :return:
+        A wrapped function that prints the function name when tracing is enabled.
     """
 
     @wraps(func)
@@ -60,8 +60,12 @@ def trace(func):
 
 
 def timeit(func):
-    """
-    A decorator that measures and prints the execution time of a function.Controlled by the DECORATOR_CONFIG["timeit"] flag.
+    """Decorate a function to emit timing output when enabled.
+
+    :param func:
+        The function to wrap.
+    :return:
+        A wrapped function that prints the execution time when timing is enabled.
     """
 
     @wraps(func)
@@ -96,6 +100,15 @@ if NUMBA_AVAILABLE:
 
     @numba.njit(parallel=True, cache=True)
     def _argmin_per_group(inverse, d2):
+        """Return indices of the minimum value in each group.
+
+        :param inverse:
+            Integer group labels for each element in ``d2``.
+        :param d2:
+            Values to minimize per group.
+        :return:
+            Indices into ``d2`` of the minimum value per group.
+        """
         inverse = inverse.astype(np.int64)
         M = inverse.max() + 1
         N = d2.size
@@ -103,7 +116,7 @@ if NUMBA_AVAILABLE:
         # counts per group
         counts = np.bincount(inverse, minlength=M).astype(np.int64)
 
-        # prefix sum → group offsets
+        # prefix sum for group offsets
         offsets = np.empty(M + 1, np.int64)
         offsets[0] = 0
         for g in range(M):
@@ -138,8 +151,16 @@ if NUMBA_AVAILABLE:
 else:
 
     def _argmin_per_group(inverse, d2):
-        """
-        Pure-NumPy sort by (group, value) and take the first index per group.
+        """Return indices of the minimum value in each group.
+
+        This fallback uses NumPy sorting instead of Numba.
+
+        :param inverse:
+            Integer group labels for each element in ``d2``.
+        :param d2:
+            Values to minimize per group.
+        :return:
+            Indices into ``d2`` of the minimum value per group.
         """
         inverse = np.asarray(inverse, dtype=np.int64)
         d2 = np.asarray(d2)
@@ -155,10 +176,16 @@ else:
 
 class Vapc:
     def __init__(self, epoch: Epoch, voxel_size: float, origin: list = None):
-        """
-        epoch      : py4dgeo.Epoch containing your points in epoch._cloud (Nx3 numpy) and optional extra dimensions
-        voxel_size : edge length of the  voxel
-        origin     : [x0,y0,z0] offset of your voxel grid (default [0,0,0])
+        """Create a voxelized view of an epoch.
+
+        :param epoch:
+            Input epoch containing a point cloud of shape (N, 3) and optional
+            additional dimensions.
+        :param voxel_size:
+            Edge length of each voxel.
+        :param origin:
+            Voxel grid origin as ``[x0, y0, z0]``. Defaults to ``[0.0, 0.0, 0.0]``.
+        :type origin: list[float] or None
         """
         self.epoch = epoch
         self.voxel_size = float(voxel_size)
@@ -187,7 +214,7 @@ class Vapc:
 
         self.delta = None
 
-        # map feature‐names to computations
+        # map feature names to computations
         self.AVAILABLE_COMPUTATIONS = {
             "count": self._compute_count,
             "density": self._compute_density,
@@ -233,18 +260,18 @@ class Vapc:
     # @trace
     # def compute_octree_keys(self, level: int = None) -> np.ndarray:
     #     """
-    #     Returns a length‐N array of integer “cell keys” for each point.
-    #     If level is None, these are full‐depth (Morton) keys.
-    #     If level is given, keys are right‐shifted so they index the
-    #     level’s 2^level grid.
+    #     Returns a length-N array of integer cell keys for each point.
+    #     If level is None, these are full-depth (Morton) keys.
+    #     If level is given, keys are right-shifted so they index the
+    #     level's 2^level grid.
     #     """
     #     self._ensure_octree_with_voxel_size()
 
-    #     # Get the raw (sorted) Z‐order keys + the mapping back to point indices:
+    #     # Get the raw (sorted) Z-order keys + the mapping back to point indices:
     #     sorted_keys    = np.array(self.octree.get_spatial_keys(),    dtype=np.uint32)
     #     sorted_indices = np.array(self.octree.get_point_indices(),   dtype=np.int32)
 
-    #     # Reassemble `keys_full[i]` = Morton‐key of point i
+    #     # Reassemble `keys_full[i]` = Morton key of point i
     #     keys_full = np.empty_like(sorted_keys)
     #     keys_full[sorted_indices] = sorted_keys
 
@@ -252,7 +279,7 @@ class Vapc:
     #         return keys_full
 
     #     # Truncate to the desired level:
-    #     #   bit_shift = 3*(max_depth − level)
+    #     #   bit_shift = 3*(max_depth - level)
     #     shift = 3 * (self._max_depth - level)
     #     return keys_full >> shift
 
@@ -262,10 +289,10 @@ class Vapc:
     #     """
     #     Groups points by their Octree cell at the given level.
     #     Populates:
-    #       • self.octree_keys      – length‐N array of keys per point
-    #       • self.unique_cells     – sorted array of unique cell‐keys
-    #       • self.inverse          – length‐N array, giving 0…M-1 cell‐ID for each point
-    #       • self.counts           – length‐M array of point counts per cell
+    #       self.octree_keys  : length-N array of keys per point
+    #       self.unique_cells : sorted array of unique cell keys
+    #       self.inverse      : length-N array, giving 0..M-1 cell ID for each point
+    #       self.counts       : length-M array of point counts per cell
     #     """
     #     keys       = self.compute_octree_keys(level)
     #     unique, inv, counts = np.unique(keys,
@@ -282,11 +309,13 @@ class Vapc:
     @timeit
     @trace
     def compute_voxel_indices(self) -> np.ndarray:
+        """Compute voxel indices for each point.
+
+        :return:
+            Integer voxel indices of shape (N, 3). The result is cached in
+            ``self.voxel_indices``.
         """
-        Compute integer (i,j,k) voxel indices for each point in epoch._cloud.
-        Returns an (Nx3) int array.
-        """
-        # grab the raw point‐cloud as an (Nx3) numpy array
+        # grab the raw point cloud as an (Nx3) numpy array
         coords = np.asarray(self.epoch.cloud)
         # shift by origin, scale by voxel_size, floor to get integer voxel coords
         self.voxel_indices = np.floor((coords - self.origin) / self.voxel_size).astype(
@@ -297,6 +326,14 @@ class Vapc:
     @timeit
     @trace
     def group_voxels(self):
+        """Group points into voxels using integer voxel indices.
+
+        :return:
+            A tuple ``(unique_voxels, inverse, counts)`` where ``unique_voxels``
+            is an array of voxel indices (M, 3), ``inverse`` maps each point to
+            its voxel (N,), and ``counts`` contains the number of points per
+            voxel (M,).
+        """
         if self.voxel_indices is None:
             self.compute_voxel_indices()
 
@@ -343,9 +380,7 @@ class Vapc:
         return unique_arr, inverse, counts
 
     def group(self):
-        """
-        Group points into voxels (or octree cells -> currently disabled).
-        """
+        """Group points into voxels (octree grouping is currently disabled)."""
         # if self.use_octree:
         #     return self.group_octree_cells()
         # else:
@@ -355,8 +390,10 @@ class Vapc:
     @timeit
     @trace
     def compute_voxel_centers(self) -> np.ndarray:
-        """
-        Compute the center of each *unique* voxel (one per voxel, Mx3).
+        """Compute the center coordinates of each unique voxel.
+
+        :return:
+            Array of voxel centers with shape (M, 3).
         """
         if self.unique_voxels is None:
             self.group()
@@ -369,7 +406,7 @@ class Vapc:
         # else:
         ijk = self.unique_voxels
         origin = self.origin
-        # real‐world center: origin + (i,j,k)*size + half‐voxel
+        # real-world center: origin + (i,j,k)*size + half-voxel
         centers = ijk * self.voxel_size + origin + self.voxel_size / 2.0
 
         self.voxel_centers = centers  # cache for later
@@ -378,6 +415,11 @@ class Vapc:
     @timeit
     @trace
     def compute_centroids(self):
+        """Compute the centroid of each voxel.
+
+        :return:
+            Array of voxel centroids with shape (M, 3).
+        """
         if self.inverse is None or self.counts is None:
             self.group()
 
@@ -396,6 +438,11 @@ class Vapc:
     @timeit
     @trace
     def compute_local_centroids(self):
+        """Compute centroids relative to voxel centers.
+
+        :return:
+            Array of local centroids with shape (M, 3).
+        """
         centroids = self.compute_centroids()
         voxel_centers = self.compute_voxel_centers()
         self.local_centroids = centroids - voxel_centers
@@ -406,8 +453,10 @@ class Vapc:
     def compute_closest_to_voxel_centers(
         self,
     ):  # using numba turned out to be the fastest
-        """
-        Compute the closest point to the center of each voxel using Numba.
+        """Compute the point closest to each voxel center.
+
+        :return:
+            Array of representative points with shape (M, 3).
         """
         # ensure voxel-centers exist
         if self.voxel_centers is None:
@@ -429,9 +478,10 @@ class Vapc:
     @timeit
     @trace
     def compute_closest_to_centroids(self):
-        """
-        Compute the closest point to the centroid of each voxel
-        using the existing _argmin_per_group implementation.
+        """Compute the point closest to each voxel centroid.
+
+        :return:
+            Array of representative points with shape (M, 3).
         """
         if self.centroids is None:
             self.compute_centroids()
@@ -454,6 +504,11 @@ class Vapc:
     @timeit
     @trace
     def _compute_count(self):
+        """Return the number of points per voxel.
+
+        :return:
+            Array of counts with shape (M,).
+        """
         if self.counts is None:
             self.group()
         return self.counts
@@ -461,14 +516,21 @@ class Vapc:
     @timeit
     @trace
     def _compute_density(self):
-        # points per voxel volume
+        """Return the point density per voxel.
+
+        :return:
+            Array of densities with shape (M,), measured as points per voxel
+            volume.
+        """
         return self._compute_count() / (self.voxel_size**3)
 
     @timeit
     @trace
     def compute_covariance(self):
-        """
-        Covariance per voxel using np.bincount.
+        """Compute the covariance matrix per voxel.
+
+        :return:
+            Array of covariance matrices with shape (M, 3, 3).
         """
         if self.inverse is None:
             self.group()
@@ -517,21 +579,23 @@ class Vapc:
     @timeit
     @trace
     def compute_eigenvalues(self):
-        """
-        Compute sorted eigenvalues [λ1 ≥ λ2 ≥ λ3] for each voxel.
+        """Compute eigenvalues of the per-voxel covariance matrix.
+
+        :return:
+            Array of eigenvalues with shape (M, 3), sorted in descending order.
         """
         if self.covariance is None:
             self.compute_covariance()
 
         covs = self.covariance.astype(np.float64)
 
-        # Compute the eigenvalues of each 3×3 covariance matrix
+        # Compute the eigenvalues of each 3x3 covariance matrix
         eigvals = np.linalg.eigvalsh(covs)
 
-        # Clamp any small negative values (e.g. −1e-12) up to zero
+        # Clamp any small negative values (e.g. -1e-12) up to zero
         eigvals[eigvals < 0] = 0.0
 
-        # Sort in descending order so λ₁ ≥ λ₂ ≥ λ₃
+        # Sort in descending order so lambda1 >= lambda2 >= lambda3
         eigvals = np.sort(eigvals, axis=1)[:, ::-1]
 
         self.eigenvalues = eigvals
@@ -540,67 +604,77 @@ class Vapc:
     @timeit
     @trace
     def _compute_linearity(self):
-        """
-        Linearity is defined as:
-        L = (λ1 - λ2) / λ1
-        where λ1 ≥ λ2 ≥ λ3 are the sorted eigenvalues of the covariance matrix.
-        http://dx.doi.org/10.1109/CVPR.2016.178
+        """Compute linearity per voxel.
+
+        Linearity is defined as (lambda1 - lambda2) / lambda1 using the
+        descending eigenvalues of the covariance matrix.
+
+        :return:
+            Array of linearity values with shape (M,).
         """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
-        λ1 = self.eigenvalues[:, 0]
-        λ2 = self.eigenvalues[:, 1]
-        λ3 = self.eigenvalues[:, 2]
+        lam1 = self.eigenvalues[:, 0]
+        lam2 = self.eigenvalues[:, 1]
+        lam3 = self.eigenvalues[:, 2]
         # avoid division by zero
         with np.errstate(divide="ignore", invalid="ignore"):
-            linearity = (λ1 - λ2) / λ1
+            linearity = (lam1 - lam2) / lam1
             linearity[np.isnan(linearity)] = 0
         return linearity
 
     @timeit
     @trace
     def _compute_planarity(self):
-        """
-        Planarity is defined as:
-        P = (λ2 - λ3) / λ1
-        where λ1 ≥ λ2 ≥ λ3 are the sorted eigenvalues of the covariance matrix.
-        http://dx.doi.org/10.1109/CVPR.2016.178
+        """Compute planarity per voxel.
+
+        Planarity is defined as (lambda2 - lambda3) / lambda1 using the
+        descending eigenvalues of the covariance matrix.
+
+        :return:
+            Array of planarity values with shape (M,).
         """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
-        λ1 = self.eigenvalues[:, 0]
-        λ2 = self.eigenvalues[:, 1]
-        λ3 = self.eigenvalues[:, 2]
+        lam1 = self.eigenvalues[:, 0]
+        lam2 = self.eigenvalues[:, 1]
+        lam3 = self.eigenvalues[:, 2]
         # avoid division by zero
         with np.errstate(divide="ignore", invalid="ignore"):
-            planarity = (λ2 - λ3) / λ1
+            planarity = (lam2 - lam3) / lam1
             planarity[np.isnan(planarity)] = 0
         return planarity
 
     @timeit
     @trace
     def _compute_sphericity(self):
-        """
-        Sphericity is defined as:
-        S = λ3 / λ1
-        where λ1 ≥ λ2 ≥ λ3 are the sorted eigenvalues of the covariance matrix.
-        http://dx.doi.org/10.1109/CVPR.2016.178
+        """Compute sphericity per voxel.
+
+        Sphericity is defined as lambda3 / lambda1 using the descending
+        eigenvalues of the covariance matrix.
+
+        :return:
+            Array of sphericity values with shape (M,).
         """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
-        λ1 = self.eigenvalues[:, 0]
-        λ2 = self.eigenvalues[:, 1]
-        λ3 = self.eigenvalues[:, 2]
+        lam1 = self.eigenvalues[:, 0]
+        lam2 = self.eigenvalues[:, 1]
+        lam3 = self.eigenvalues[:, 2]
         # avoid division by zero
         with np.errstate(divide="ignore", invalid="ignore"):
-            sphericity = λ3 / λ1
+            sphericity = lam3 / lam1
             sphericity[np.isnan(sphericity)] = 0
         return sphericity
 
     @trace
     @timeit
     def _compute_sum_of_eigenvalues(self) -> np.ndarray:
-        """Σ λᵢ per voxel."""
+        """Return the sum of eigenvalues per voxel.
+
+        :return:
+            Array of sums with shape (M,).
+        """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
         return self.eigenvalues.sum(axis=1)
@@ -608,7 +682,13 @@ class Vapc:
     @trace
     @timeit
     def _compute_omnivariance(self) -> np.ndarray:
-        """(λ1·λ2·λ3)^(1/3) per voxel."""
+        """Compute omnivariance per voxel.
+
+        Omnivariance is defined as (lambda1 * lambda2 * lambda3) ** (1 / 3).
+
+        :return:
+            Array of omnivariance values with shape (M,).
+        """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
         prod = np.prod(self.eigenvalues, axis=1)
@@ -617,20 +697,30 @@ class Vapc:
     @trace
     @timeit
     def _compute_eigenentropy(self) -> np.ndarray:
-        """–∑ pᵢ log pᵢ where pᵢ=λᵢ/∑λ per voxel."""
+        """Compute eigenentropy per voxel.
+
+        :return:
+            Array of eigenentropy values with shape (M,).
+        """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
         lam = self.eigenvalues
         s = lam.sum(axis=1, keepdims=True)
         p = lam / np.where(s > 0, s, 1.0)
-        # safe log: log(0)→0
+        # safe log: log(0) -> 0
         logs = np.where(p > 0, np.log(p), 0.0)
         return -np.sum(p * logs, axis=1)
 
     @trace
     @timeit
     def _compute_anisotropy(self) -> np.ndarray:
-        """(λ1 − λ3) / λ1 per voxel."""
+        """Compute anisotropy per voxel.
+
+        Anisotropy is defined as (lambda1 - lambda3) / lambda1.
+
+        :return:
+            Array of anisotropy values with shape (M,).
+        """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
         lam1 = self.eigenvalues[:, 0]
@@ -644,7 +734,13 @@ class Vapc:
     @trace
     @timeit
     def _compute_surface_variation(self) -> np.ndarray:
-        """λ3 / (λ1+λ2+λ3) per voxel."""
+        """Compute surface variation per voxel.
+
+        Surface variation is defined as lambda3 / (lambda1 + lambda2 + lambda3).
+
+        :return:
+            Array of surface variation values with shape (M,).
+        """
         if self.eigenvalues is None:
             self.compute_eigenvalues()
         lam = self.eigenvalues
@@ -657,9 +753,13 @@ class Vapc:
     @timeit
     @trace
     def compute_features(self, feature_names: list):
-        """
-        Compute any subset of AVAILABLE_COMPUTATIONS.
-        Returns a dict: { name → ndarray_for_each_voxel }
+        """Compute voxel-wise features by name.
+
+        :param feature_names:
+            List of feature names from ``AVAILABLE_COMPUTATIONS``.
+        :type feature_names: list[str]
+        :return:
+            Dictionary mapping feature names to arrays with per-voxel values.
         """
         self.out = {}
         for name in feature_names:
@@ -669,7 +769,7 @@ class Vapc:
             if out.ndim == 1:
                 self.out[name] = out
             elif out.ndim == 2 and out.shape[1] > 1:
-                # multi‐dimensional feature, e.g. eigenvalues
+                # multi-dimensional feature, e.g. eigenvalues
                 if name == "centroid":
                     keys = ["centroid_x", "centroid_y", "centroid_z"]
                     for i, key in enumerate(keys):
@@ -717,24 +817,21 @@ class Vapc:
     def select_by_mask(
         self, vapc_mask: "Vapc", segment_in_or_out: str = "in", overwrite: bool = False
     ) -> "Vapc":
-        """
-        Select points from this Vapc based on overlap with another Vapc mask.
+        """Select points based on overlap with another Vapc mask.
 
-        :param vapc_mask: Vapc
+        :param vapc_mask:
             Vapc whose occupied voxels define the mask.
-        :param segment_in_or_out: str
-            "in"  → keep points in voxels that overlap with the mask
-            "out" → keep points in voxels that do NOT overlap with the mask
-        :param overwrite: bool
-            If True, overwrite this Vapc’s epoch with the selected points.
-            If False, return a new Vapc with the selected points.
-
-        :returns:
-            new_vapc: Vapc
-                New Vapc containing only the selected points.
-            sel: ndarray(bool)
-                Boolean array of length N indicating which points were selected.
-
+        :type vapc_mask: Vapc
+        :param segment_in_or_out:
+            "in" to keep points in voxels that overlap with the mask, "out" to keep
+            points in voxels that do not overlap with the mask.
+        :type segment_in_or_out: str
+        :param overwrite:
+            If True, overwrite this Vapc's data with the selection.
+        :type overwrite: bool
+        :return:
+            A tuple ``(selected_vapc, selection_mask)`` where ``selection_mask`` is a
+            boolean array of length N.
         """
 
         # sanity checks
@@ -751,12 +848,12 @@ class Vapc:
 
         coord2gid = {tuple(vox): gid for gid, vox in enumerate(self.unique_voxels)}
 
-        # map mask’s voxels into my group‐IDs (only those that overlap)
+        # map mask's voxels into my group IDs (only those that overlap)
         mask_gids = [
             coord2gid[c] for c in map(tuple, vapc_mask.unique_voxels) if c in coord2gid
         ]
         if len(mask_gids) == 0:
-            # no overlap → empty selection
+            # no overlap -> empty selection
             sel = np.zeros_like(self.inverse, dtype=bool)
         else:
             mask_gids = np.array(mask_gids, dtype=self.inverse.dtype)
@@ -787,21 +884,17 @@ class Vapc:
     @timeit
     @trace
     def map_features_to_points(self) -> dict:
-        """
-        Compute the given voxel‐wise features and map each one
-        back onto the original N points.
+        """Map voxel-wise features back to the original point cloud.
 
-        Returns:
-          mapped: dict[name → ndarray]
-            where each ndarray is length N (or NxD for multi‐dim
-            features) such that
-            mapped[name][i] == feature_value_of_voxel_containing_point_i
+        :return:
+            Dictionary mapping feature names to per-point arrays. The result is
+            stored in ``self.out`` and ``self.mapped`` is set to True.
         """
 
         if self.inverse is None:
             self.group()
 
-        # for each feature, index by inverse to get per‐point array
+        # for each feature, index by inverse to get per-point array
         mapped = {}
         for name, arr in self.out.items():
             mapped[name] = arr[self.inverse]
@@ -819,10 +912,16 @@ class Vapc:
     @timeit
     @trace
     def delta_vapc(self, other: "Vapc"):
-        """
-        Compare this Vapc to another Vapc (same voxel_size & origin).
-        Returns a Vapc whose `out["delta_vapc"]` is a (K,) int array of
-        1 = only self, 2 = only other, 3 = both.
+        """Compare voxel occupancy between two Vapc objects.
+
+        :param other:
+            The other Vapc instance to compare against.
+        :type other: Vapc
+        :return:
+            Vapc containing the union of voxels with ``out["delta_vapc"]`` labels
+            (1=only self, 2=only other, 3=shared).
+        :raises ValueError:
+            If voxel_size or origin differ.
         """
         # sanity checks
         if not np.isclose(self.voxel_size, other.voxel_size):
@@ -872,19 +971,26 @@ class Vapc:
     def compute_bitemporal_mahalanobis(
         self, other: "Vapc", alpha: float = 0.999, min_points: int = 30
     ):
-        """
-        Compute per-voxel Mahalanobis distance between this Vapc
-        and another Vapc (same voxel_size & origin).
+        """Compute per-voxel bitemporal Mahalanobis distance.
 
-        Returns a Vapc whose `out` dict contains:
-          - "change_type"  : int array (K,) with 1=only self, 2=only other, 3=both (= shared voxels)
-          - "mahalanobis"  : float array (K,) Mahalanobis distance on shared voxels where min points are met, NaN else
-          - "p_value"      : float array (K,) p-value of Mahalanobis test on shared voxels, NaN else
-          - "significance" : int array (K,) 1=significant change on shared voxels, 0 else
-          - "changed"      : int array (K,) 1=changed voxel (shared voxel with significant change, or
-          change_type is 1, or change_type is 2, or shared voxel but min points not met ), 0=unchanged
-          voxel (shared voxel with no significant change and min points met)
-        where K = total number of unique voxels across both Vapcs.
+        :param other:
+            Other Vapc with the same voxel_size and origin.
+        :type other: Vapc
+        :param alpha:
+            Significance level for the chi-square test.
+        :type alpha: float
+        :param min_points:
+            Minimum points per voxel required to compute the statistic.
+        :type min_points: int
+        :return:
+            Vapc containing the union of voxels with the following outputs:
+            ``change_type`` (1=only self, 2=only other, 3=shared), ``mahalanobis``
+            (distance for shared voxels, NaN otherwise), ``p_value`` (NaN for
+            non-shared voxels), ``significance`` (1 if significant change on
+            shared voxels, else 0), and ``changed`` (1 if occupancy change,
+            significant change, or too few points).
+        :raises ValueError:
+            If voxel_size or origin differ.
         """
         from scipy.stats import chi2
 
@@ -980,17 +1086,17 @@ class Vapc:
     @timeit
     @trace
     def reduce_to_feature(self, feature_name: str) -> "Vapc":
-        """
-        Build a new Vapc with exactly one point per voxel, chosen or synthesized
-        according to `feature_name`, and carry over both original extra-dims
-        (for “closest_to_…” cases) or their per-voxel means (for synthetic points),
-        as well as all previously computed voxel-wise features.
+        """Reduce to one representative point per voxel.
 
-        Supported feature_name’s:
-          - "closest_to_centroid"
-          - "closest_to_voxel_centers"
-          - "centroid"
-          - "voxel_center"
+        :param feature_name:
+            Reduction mode: ``closest_to_centroids``, ``closest_to_voxel_centers``,
+            ``centroid``, or ``voxel_center``.
+        :type feature_name: str
+        :return:
+            A new Vapc with one point per voxel and carried or aggregated
+            attributes.
+        :raises ValueError:
+            If the feature name is unsupported.
         """
         # ensure grouped voxels
         if self.inverse is None or self.counts is None:
@@ -1007,7 +1113,7 @@ class Vapc:
         new_extra = None
         original_point_cloud_indices = None
         # select one point per voxel
-        if feature_name == "closest_to_centroid":
+        if feature_name == "closest_to_centroids":
             centroids = self.compute_centroids()
             centers_pp = centroids[inv]
             d2 = np.sum((coords_orig - centers_pp) ** 2, axis=1)
@@ -1030,7 +1136,7 @@ class Vapc:
 
         elif feature_name == "centroid":
             # synthetic centroid points
-            centroids = self.compute_centroids()  # M×3
+            centroids = self.compute_centroids()  # M x 3
             coords = centroids
             # average every extra_dim per voxel
             if self.extra_dims is not None:
@@ -1076,7 +1182,7 @@ class Vapc:
             for nm in new_extra.dtype.names:
                 new.out[nm] = new_extra[nm]
 
-        # transform/copy features from self.out → new.out
+        # transform/copy features from self.out -> new.out
         for nm, arr in self.out.items():
             # skip coordinates if present
             if nm in ("X", "Y", "Z", "x", "y", "z"):
@@ -1085,11 +1191,11 @@ class Vapc:
             a = np.asarray(arr)
 
             if a.shape[0] == M:
-                # already per-voxel → copy as-is
+                # already per-voxel, copy as-is
                 new.out[nm] = a
 
             elif a.shape[0] == N:
-                # per-point → reduce to one per voxel
+                # per-point, reduce to one per voxel
                 if idx is not None:
                     # representative-point modes: index by chosen representatives
                     new.out[nm] = a[idx]
@@ -1098,7 +1204,7 @@ class Vapc:
                     sums = np.bincount(inv, weights=a.astype(float), minlength=M)
                     new.out[nm] = sums / self.counts
             else:
-                # length mismatch; don’t break the export, just warn
+                # length mismatch; don't break the export, just warn
                 print(
                     f"Warning: feature '{nm}' has incompatible length {a.shape[0]} "
                     f"(expected {N} per-point or {M} per-voxel). Skipping."
@@ -1119,23 +1225,21 @@ class Vapc:
         las_offset=None,
         skip=dict(),
     ):
-        """
-        Saves the point-cloud + any per-point attributes in self.df to a LAS/LAZ file.
+        """Save the point cloud and attributes to a LAS/LAZ file.
 
-        Parameters
-        ----------
-        outfile : str
+        :param outfile:
             Path where the LAS or LAZ file will be stored.
-        las_point_format : int, optional
-            Point format for the LAS file (default is 7).
-        las_version : str, optional
-            LAS file version (default is "1.4").
-        las_scales : list of float, optional
-            Scale factors for X, Y, Z (default is [0.00025, 0.00025, 0.00025]).
-        las_offset : list of float, optional
-            Offset values for X, Y, Z (default is [X.min(), Y.min(), Z.min()]).
-        skip : dict, optional
-            Dictionary of column names to skip when writing to the LAS file.
+        :type outfile: str
+        :param las_point_format:
+            LAS point format number.
+        :param las_version:
+            LAS file version string.
+        :param las_scales:
+            Scale factors for X, Y, Z. Defaults to ``[0.00025, 0.00025, 0.00025]``.
+        :param las_offset:
+            Offset values for X, Y, Z. Defaults to the minimum coordinate values.
+        :param skip:
+            Dictionary of attribute names to skip when writing.
         """
         dtype_map = {
             "return_number": np.uint8,
@@ -1221,10 +1325,22 @@ class Vapc:
         features: list[str] = None,
         shift_to_center: bool = False,
     ):
-        """
-        Export occupied voxels as perfect cubes in a single PLY, with
-        optional choice of cube‐centers and extra per‐vertex features.
-        This version uses explicit corner‐ordering so faces always connect correctly.
+        """Export occupied voxels as cubes in a PLY mesh.
+
+        :param outfile:
+            Output PLY path.
+        :type outfile: str
+        :param mode:
+            Either a mode string ("grid", "voxel_center", "centroid",
+            "closest_to_centroids", "closest_to_voxel_centers") or an array
+            of custom centers.
+        :type mode: str or np.ndarray
+        :param features:
+            Feature names to store per vertex.
+        :type features: list[str] or None
+        :param shift_to_center:
+            If True, recenter vertices around the mesh centroid.
+        :type shift_to_center: bool
         """
         try:
             from plyfile import PlyData, PlyElement
@@ -1270,7 +1386,7 @@ class Vapc:
                 #     base_positions = self._octree_origin + ijk * self.voxel_size
                 # else:
                 base_positions = self.unique_voxels * self.voxel_size + self.origin
-                # cube corners from the min‐corner, ordered to match base_faces:
+                # cube corners from the min corner, ordered to match base_faces:
                 corner_offsets = (
                     np.array(
                         [
@@ -1291,8 +1407,8 @@ class Vapc:
             elif mode in (
                 "voxel_center",
                 "centroid",
-                "closest_to_centroid",
-                "closest_to_voxel_center",
+                "closest_to_centroids",
+                "closest_to_voxel_centers",
             ):
                 if mode == "voxel_center":
                     centers = (
@@ -1306,18 +1422,20 @@ class Vapc:
                         if self.centroids is None
                         else self.centroids
                     )
-                elif mode == "closest_to_centroid":
+                elif mode == "closest_to_centroids":
                     centers = (
                         self.compute_closest_to_centroids()
                         if self.closest_to_centroids is None
                         else self.closest_to_centroids
                     )
-                else:  # "closest_to_voxel_center"
+                elif mode == "closest_to_voxel_centers":
                     centers = (
                         self.compute_closest_to_voxel_centers()
                         if self.closest_to_voxel_centers is None
                         else self.closest_to_voxel_centers
                     )
+                else:
+                    raise ValueError(f"Unknown mode: {mode!r}")
                 base_positions = centers.astype(float)
                 h = self.voxel_size / 2.0
                 # same ordering as above, now centered
@@ -1378,7 +1496,7 @@ class Vapc:
         vertex_array = np.empty(len(verts), dtype=dtype)
         vertex_array["x"], vertex_array["y"], vertex_array["z"] = verts.T
 
-        # 7) Fill feature columns by repeating each voxel's scalar 8×
+        # 7) Fill feature columns by repeating each voxel's scalar 8x
         if features:
             for f in features:
                 arr = self.out[f].astype(float)
@@ -1401,6 +1519,16 @@ class Vapc:
     @timeit
     @trace
     def filter(self, mask, overwrite=False):
+        """Filter points by a boolean mask.
+
+        :param mask:
+            Boolean mask of length N indicating which points to keep.
+        :param overwrite:
+            If True, update this Vapc in place and return it.
+        :type overwrite: bool
+        :return:
+            A new Vapc containing the filtered points, or ``self`` if overwriting.
+        """
         pts = np.asarray(self.epoch.cloud)[mask]
         new = Vapc(Epoch(pts), voxel_size=self.voxel_size, origin=list(self.origin))
         # new.use_octree = self.use_octree
