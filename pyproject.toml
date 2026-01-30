@@ -34,7 +34,7 @@ dependencies = [
     "laspy[lazrs]>=2.0,<3.0",
     "matplotlib",
     "numpy",
-    "pooch@git+https://github.com/fatiando/pooch.git@27e3ab2a686040554068a1a08a433588c6524aed",
+    "pooch",
     "requests",
     "seaborn",
     "scikit-learn",
