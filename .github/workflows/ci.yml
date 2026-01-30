@@ -26,6 +26,8 @@ jobs:
             usage_data.zip
             synthetic.zip
             pbm3c2.zip
+          extract: true
+          extract-dir: extracted
 
   build-and-test:
     name: Testing on ${{matrix.os}} Py${{matrix.python-version}}- OpenMP ${{matrix.openmp}}
