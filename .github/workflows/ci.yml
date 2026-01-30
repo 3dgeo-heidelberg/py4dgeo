@@ -54,6 +54,20 @@ jobs:
         extract: true
         extract-dir: extracted
 
+    - name: List cached test data
+      shell: bash
+      run: |
+        echo "=== Contents of ~/.cache/py4dgeo ==="
+        ls -lR ~/.cache/py4dgeo 2>/dev/null || echo "Directory not found"
+
+        echo ""
+        echo "=== XDG_CACHE_HOME value ==="
+        echo "$XDG_CACHE_HOME"
+
+        echo ""
+        echo "=== HOME value ==="
+        echo "$HOME"
+
     - name: Install OpenMP
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
       run: brew install libomp
