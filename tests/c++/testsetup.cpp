@@ -71,8 +71,14 @@ datapath(const char* filename)
       return hit;
   }
 
-  std::cerr << "Test data file not found: " << filename << " under " << base
-            << " or common pooch cache locations." << std::endl;
+  std::cerr << "Searching for test data in:\n"
+            << "  - " << base << "\n"
+            << "  - " << base / "extracted"
+            << "\n";
+  for (const auto& root : pooch_candidates) {
+    std::cerr << "  - " << root << "\n";
+  }
+  std::cerr << "Test data file not found: " << filename << "\n";
   std::exit(1);
 }
 
