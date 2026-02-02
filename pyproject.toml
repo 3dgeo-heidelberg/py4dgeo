@@ -16,7 +16,7 @@ name = "py4dgeo"
 version = "1.0.0"
 description = "Library for change detection in 4D point cloud data"
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = "MIT"
 license-files = ["LICENSE.md"]
 keywords = ["point-cloud", "change-detection", "4D", "geospatial", "lidar"]
@@ -39,7 +39,6 @@ dependencies = [
     "requests",
     "seaborn",
     "scikit-learn",
-    "vedo",
     "xdg",
     "psutil"
 ]
@@ -70,7 +69,7 @@ archs = ["auto64"]
 # We restrict ourselves to recent Python versions.
 # We temporarily skip win32 builds, because lazrs
 # does not provide Win32 wheels.
-skip = "pp* cp38-* cp314-* cp314t-* *musllinux* *-win32"
+skip = "*musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
