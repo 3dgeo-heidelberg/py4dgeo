@@ -59,22 +59,6 @@ jobs:
     - name: List cached test data
       shell: bash
       run: |
-        echo "=== XDG_CACHE_HOME value ==="
-        echo "$XDG_CACHE_HOME"
-
-        echo ""
-        echo "=== HOME value ==="
-        echo "$HOME"
-
-        echo ""
-        echo "=== Contents of cache directory ==="
-        if [ -d "$XDG_CACHE_HOME/py4dgeo" ]; then
-          find "$XDG_CACHE_HOME/py4dgeo" -type f | head -20
-        else
-          echo "Directory $XDG_CACHE_HOME/py4dgeo not found"
-        fi
-
-        echo ""
         echo "=== Checking pooch.os_cache() location ==="
         python -c "import pooch; print(pooch.os_cache('py4dgeo'))"
 
@@ -86,7 +70,7 @@ jobs:
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
       run: brew install libomp
 
-    - name: make build directory
+    - name: Make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Install Python development requirements
