@@ -195,6 +195,10 @@ jobs:
       run: |
         mv ./build/_py4dgeo.*.so src/py4dgeo/.
         echo "leak:/usr/bin/bash" > supp.txt
+        echo "leak:fc-list" >> supp.txt
+        echo "leak:libfontconfig" >> supp.txt
+        echo "leak:ft2font" >> supp.txt
+        echo "leak:PyFT2Font" >> supp.txt
         echo "leak:_PyObject_New" >> supp.txt
         echo "leak:_PyObject_GC" >> supp.txt
         echo "leak:_PyUnicodeWriter_Finish">> supp.txt
