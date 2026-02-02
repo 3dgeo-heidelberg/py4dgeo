@@ -16,7 +16,6 @@ import laspy
 
 import _py4dgeo
 
-
 logger = logging.getLogger("py4dgeo")
 
 
