@@ -13,9 +13,27 @@ on:
   workflow_dispatch:
 
 jobs:
+  pooch-cache-setup:
+    name: Setting up Pooch cache
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ssciwr/pooch-cache@v1
+        with:
+          name: py4dgeo
+          dois:
+            10.5281/zenodo.18378272/
+          filename-whitelist: |
+            usage_data.zip
+            synthetic.zip
+            pbm3c2.zip
+          extract: true
+          extract-dir: extracted
+
   build-and-test:
     name: Testing on ${{matrix.os}} Py${{matrix.python-version}}- OpenMP ${{matrix.openmp}}
     runs-on: ${{matrix.os}}
+    needs: [pooch-cache-setup]
+
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
@@ -32,27 +50,37 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
 
+    - uses: ssciwr/pooch-cache@v1
+      with:
+        name: py4dgeo
+        extract: true
+        extract-dir: extracted
+
+    - name: List cached test data
+      shell: bash
+      run: |
+        echo "=== Checking pooch.os_cache() location ==="
+        python -c "import pooch; print(pooch.os_cache('py4dgeo'))"
+
+        echo ""
+        echo "=== Contents of pooch cache ==="
+        python -c "import pooch; from pathlib import Path; p = Path(pooch.os_cache('py4dgeo')); print(list(p.rglob('*')) if p.exists() else 'Not found')"
+
     - name: Install OpenMP
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
       run: brew install libomp
 
-    - name: make build directory
+    - name: Make build directory
       run: cmake -E make_directory ${{runner.workspace}}/build
 
     - name: Install Python development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install scikit-build-core pybind11
+        python -m pip install scikit-build-core pybind11 "setuptools>=80" setuptools_scm[toml] wheel
 
     - name: Install Python package
       run: |
         python -m pip install --no-build-isolation --config-settings=build-dir="${{runner.workspace}}/build" --config-settings=cmake.build-type="Debug" --config-settings=cmake.define.BUILD_TESTING="ON" -v .
-
-    - name: Install py4dgeo test data
-      shell: bash
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/tests/data
-        copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
 
     - name: Run tests
       shell: bash
@@ -66,6 +94,7 @@ jobs:
   coverage-test:
     name: Coverage Testing
     runs-on: ubuntu-latest
+    needs: [pooch-cache-setup]
 
     steps:
     - uses: actions/checkout@v6
@@ -77,6 +106,12 @@ jobs:
       with:
         python-version: "3.9"
 
+    - uses: ssciwr/pooch-cache@v1
+      with:
+        name: py4dgeo
+        extract: true
+        extract-dir: extracted
+
     - name: Install LCov
       run: |
         sudo apt-get install -y lcov
@@ -84,25 +119,19 @@ jobs:
     - name: Install development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install scikit-build-core pybind11
+        python -m pip install scikit-build-core pybind11 "setuptools>=80" setuptools_scm[toml] wheel
 
     - name: Install Python package
       run: |
         python -m pip install --no-build-isolation --config-settings=build-dir="build" --config-settings=cmake.build-type="Debug" --config-settings=cmake.define.BUILD_TESTING="ON" --config-settings=cmake.define.CMAKE_CXX_FLAGS="--coverage" -v -e .
 
-    - name: Install py4dgeo test data
-      shell: bash
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/tests/data
-        copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
-
-    - name: run tests
+    - name: Run tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo/build
       run: |
         ctest -C Debug
 
-    - name: collect coverage report
+    - name: Collect coverage report
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       run: |
@@ -125,6 +154,7 @@ jobs:
   address-sanitizer:
     name: Address sanitizer run
     runs-on: ubuntu-latest
+    needs: [pooch-cache-setup]
     env:
       ASAN_OPTIONS: "detect_stack_use_after_return=1:check_initialization_order=1:strict_init_order=1"
 
@@ -138,34 +168,37 @@ jobs:
       with:
         python-version: "3.10"
 
+    - uses: ssciwr/pooch-cache@v1
+      with:
+        name: py4dgeo
+        extract: true
+        extract-dir: extracted
+
     - name: Install Python development requirements
       run: |
         python -m pip install -r requirements-dev.txt
-        python -m pip install scikit-build-core pybind11
+        python -m pip install scikit-build-core pybind11 "setuptools>=80" setuptools_scm[toml] wheel
 
     - name: Install Python package
       run: |
         python -m pip install --no-build-isolation --config-settings=build-dir="build" --config-settings=cmake.build-type="Debug" --config-settings=cmake.define.BUILD_TESTING="ON" --config-settings=cmake.define.CMAKE_CXX_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer" --config-settings=cmake.define.CMAKE_EXE_LINKER_FLAGS="-fsanitize=address -fsanitize-address-use-after-scope -fno-omit-frame-pointer" -v -e .
 
-    - name: Install py4dgeo test data
-      shell: bash
-      working-directory: ${{runner.workspace}}/py4dgeo
-      run: |
-        mkdir -p $GITHUB_WORKSPACE/tests/data
-        ASAN_OPTIONS="halt_on_error=0" LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)" PYTHONPATH=src copy_py4dgeo_test_data $GITHUB_WORKSPACE/tests/data
-
-    - name: run c++ tests
+    - name: Run C++ tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo/build
       run: LD_PRELOAD="$(gcc -print-file-name=libasan.so) $(gcc -print-file-name=libstdc++.so)" ctest --rerun-failed --output-on-failure -C Debug
 
-    - name: run python tests
+    - name: Run Python tests
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       # for LD_PRELOAD see https://github.com/google/sanitizers/issues/934#issuecomment-649516500
       run: |
         mv ./build/_py4dgeo.*.so src/py4dgeo/.
         echo "leak:/usr/bin/bash" > supp.txt
+        echo "leak:fc-list" >> supp.txt
+        echo "leak:libfontconfig" >> supp.txt
+        echo "leak:ft2font" >> supp.txt
+        echo "leak:PyFT2Font" >> supp.txt
         echo "leak:_PyObject_New" >> supp.txt
         echo "leak:_PyObject_GC" >> supp.txt
         echo "leak:_PyUnicodeWriter_Finish">> supp.txt

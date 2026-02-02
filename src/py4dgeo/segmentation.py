@@ -530,13 +530,24 @@ class SpatiotemporalAnalysis:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 zf.extract("objects.pickle", path=tmp_dir)
                 with open(os.path.join(tmp_dir, "objects.pickle"), "rb") as f:
-                    return pickle.load(f)
+                    objects = pickle.load(f)
+
+        # Re-attach analysis backlink after unpickling
+        if objects is not None:
+            for obj in objects:
+                if hasattr(obj, "_analysis"):
+                    obj.attach_analysis(self)
+
+        return objects
 
     @objects.setter
     def objects(self, _objects):
+        if _objects is None:
+            return
+
         # Assert that we received the correct type
-        for seed in _objects:
-            if not isinstance(seed, ObjectByChange):
+        for obj in _objects:
+            if not isinstance(obj, ObjectByChange):
                 raise Py4DGeoError(
                     "Objects are expected to inherit from ObjectByChange"
                 )
@@ -677,7 +688,6 @@ class RegionGrowingAlgorithmBase:
         return self._analysis
 
     def run(self, analysis, force=False):
-        _py4dgeo.Epoch.set_default_radius_search_tree("octree")
         """Calculate the _segmentation
 
         :param analysis:
@@ -1139,6 +1149,34 @@ class ObjectByChange:
     def threshold(self):
         """The distance threshold that produced this object"""
         return self._data.threshold
+
+    def attach_analysis(self, analysis):
+        self._analysis = analysis
+
+    def __getstate__(self):
+        """
+        Return the pickle state for this object.
+
+        We explicitly omit `_analysis` because it can contain a back-link to the
+        SpatiotemporalAnalysis object, which would cause the full analysis to be
+        pickled into every ObjectByChange instance.
+        """
+        return {
+            "_data": self._data,
+            "seed": self.seed,
+            # intentionally NOT storing "_analysis"
+        }
+
+    def __setstate__(self, state):
+        """
+        Restore the object from pickle state.
+
+        `_analysis` is always reset to None. It can later be re-attached by the
+        algorithm / analysis code if needed.
+        """
+        self._data = state["_data"]
+        self.seed = state["seed"]
+        self._analysis = None
 
     def plot(self, filename=None):
         """Create an informative visualization of the Object By Change
