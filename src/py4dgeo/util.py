@@ -1,3 +1,4 @@
+import argparse
 import collections
 import logging
 import numpy as np
@@ -14,10 +15,11 @@ from importlib import metadata
 
 import _py4dgeo
 
-
 # The current data archive URL
-TEST_DATA_ARCHIVE = "https://github.com/3dgeo-heidelberg/py4dgeo-test-data/releases/download/2024-06-28/data.tar.gz"
-TEST_DATA_CHECKSUM = "5ee51a43b008181b829113d8b967cdf519eae4ac37a3301f1eaf53d15d3016cc"
+TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.18378272/"
+PY4DGEO_REQUEST_HEADERS = {
+    "User-Agent": "py4dgeo (https://github.com/3dgeo-heidelberg/py4dgeo)"
+}
 
 # Read the version from package metadata
 __version__ = metadata.version(__package__)
@@ -33,21 +35,37 @@ class Py4DGeoError(Exception):
         logger.error(self)
 
 
-def download_test_data(path=pooch.os_cache("py4dgeo"), fatal=False):
-    """Download the test data and copy it into the given path"""
-    try:
-        return pooch.retrieve(
-            TEST_DATA_ARCHIVE,
-            TEST_DATA_CHECKSUM,
-            path=path,
-            downloader=pooch.HTTPDownloader(timeout=(3, None)),
-            processor=pooch.Untar(extract_dir="."),
+def get_test_data_dir():
+    return pooch.os_cache("py4dgeo")
+
+
+def download_test_data(path=None, filename=None):
+    """Download the test data"""
+
+    # Get the target path
+    if path is None:
+        path = get_test_data_dir()
+
+    # Create a pooch instance
+    p = pooch.create(path=path, base_url=TEST_DATA_ARCHIVE)
+    p.load_registry_from_doi()
+
+    # Decide which files to download, defaulting to all
+    files_to_download = (
+        [filename] if filename else ["usage_data.zip", "synthetic.zip", "pbm3c2.zip"]
+    )
+
+    # Download the files
+    for archive in files_to_download:
+        p.fetch(
+            archive,
+            downloader=pooch.DOIDownloader(
+                headers=PY4DGEO_REQUEST_HEADERS, timeout=(3, None)
+            ),
+            processor=pooch.Unzip(extract_dir="extracted"),
         )
-    except requests.RequestException as e:
-        if fatal:
-            raise e
-        else:
-            return []
+
+    return path
 
 
 def find_file(filename, fatal=True):
@@ -63,6 +81,7 @@ def find_file(filename, fatal=True):
     * Check whether the given relative path exists with respect to the current working directory
     * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable :code:`XDG_DATA_DIRS`).
     * Check whether the given relative path exists in downloaded test data.
+    * If still not found, attempt to download test data and search again.
 
     :param filename:
         The (relative) filename to search for
@@ -73,33 +92,66 @@ def find_file(filename, fatal=True):
     :return: An absolute filename
     """
 
-    # If the path is absolute, do not change it
-    if os.path.isabs(filename):
-        return filename
+    def search_candidates(filename):
+        """Search for the file in candidate locations, return path if found."""
+        # If the path is absolute, check it directly
+        if os.path.isabs(filename):
+            if os.path.exists(filename):
+                return filename
+            return None
 
-    # Gather a list of candidate paths for relative path
-    candidates = []
+        # Gather a list of candidate paths for relative path
+        candidates = []
 
-    # Use the current working directory
-    candidates.append(os.path.join(os.getcwd(), filename))
+        # Use the current working directory
+        candidates.append(os.path.join(os.getcwd(), filename))
 
-    # Use the XDG data directories
-    if platform.system() in ["Linux", "Darwin"]:
-        for xdg_dir in xdg.xdg_data_dirs():
-            candidates.append(os.path.join(xdg_dir, filename))
+        data_dir = get_test_data_dir()
+        candidates.append(os.path.join(data_dir, filename))
+        if os.path.isdir(data_dir):
+            for root, _, files in os.walk(data_dir):
+                if filename in files:
+                    candidates.append(os.path.join(root, filename))
 
-    # Ensure that the test data is taken into account. This is properly
-    # cached across sessions and uses a connection timeout.
-    for datafile in download_test_data():
-        if os.path.basename(datafile) == filename:
-            candidates.append(datafile)
+        # Use the XDG data directories
+        if platform.system() in ["Linux", "Darwin"]:
+            for xdg_dir in xdg.xdg_data_dirs():
+                candidates.append(os.path.join(xdg_dir, filename))
 
-    # Iterate through the list to check for file existence
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return candidate
+        # Iterate through the list to check for file existence
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
 
+        return None
+
+    # First attempt to find the file
+    result = search_candidates(filename)
+    if result:
+        return result
+
+    # File not found - try downloading test data
+    try:
+        download_test_data()
+    except Exception:
+        # Download failed, continue to error handling
+        pass
+
+    # Search again after download
+    result = search_candidates(filename)
+    if result:
+        return result
+
+    # Still not found
     if fatal:
+        data_dir = get_test_data_dir()
+        candidates = [
+            os.path.join(os.getcwd(), filename),
+            os.path.join(data_dir, filename),
+        ]
+        if platform.system() in ["Linux", "Darwin"]:
+            for xdg_dir in xdg.xdg_data_dirs():
+                candidates.append(os.path.join(xdg_dir, filename))
         raise FileNotFoundError(
             f"Cannot locate file {filename}. Tried the following locations: {', '.join(candidates)}"
         )
@@ -280,9 +332,17 @@ def initialize_openmp_defaults():
 
 
 def copy_test_data_entrypoint():
-    # Define the target directory
-    target = os.getcwd()
-    if len(sys.argv) > 1:
-        target = sys.argv[1]
+    """A command line entry point to download test data"""
 
-    download_test_data(path=target, fatal=True)
+    parser = argparse.ArgumentParser(description="Download py4dgeo test data")
+
+    parser.add_argument(
+        "path",
+        nargs="?",
+        default=os.getcwd(),
+        help="Target directory for test data (default: current working directory)",
+    )
+
+    args = parser.parse_args()
+
+    download_test_data(path=args.path)

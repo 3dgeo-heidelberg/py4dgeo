@@ -19,7 +19,7 @@ readme = "README.md"
 maintainers = [
     { name = "Dominic Kempf", email = "ssc@iwr.uni-heidelberg.de" },
 ]
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file = "LICENSE.md" }
 classifiers = [
     "Programming Language :: Python :: 3",
@@ -38,7 +38,6 @@ dependencies = [
     "requests",
     "seaborn",
     "scikit-learn",
-    "vedo",
     "xdg",
     "psutil"
 ]
@@ -67,7 +66,7 @@ archs = ["auto64"]
 # We restrict ourselves to recent Python versions.
 # We temporarily skip win32 builds, because lazrs
 # does not provide Win32 wheels.
-skip = "pp* cp38-* cp314-* cp314t-* *musllinux* *-win32"
+skip = "*musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"
