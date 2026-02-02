@@ -2,7 +2,7 @@ from py4dgeo.epoch import read_from_xyz, read_from_las
 from py4dgeo.logger import set_py4dgeo_logfile
 from py4dgeo.m3c2 import M3C2
 from py4dgeo.segmentation import SpatiotemporalAnalysis
-from py4dgeo.util import MemoryPolicy, set_memory_policy
+from py4dgeo.util import MemoryPolicy, set_memory_policy, download_test_data, find_file
 
 import numpy as np
 import os
@@ -11,19 +11,14 @@ import shutil
 import subprocess
 import tempfile
 
-
-# The path to our data directory
-data_dir = os.path.join(os.path.split(__file__)[0], "..", "data")
+# The path to the log directory
 log_dir = tempfile.TemporaryDirectory()
 
+
 # Ensure that the data directory has been downloaded
-if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
-    subprocess.call(["copy_py4dgeo_test_data", data_dir])
-
-
-def find_data_file(filename):
-    return os.path.join(data_dir, filename)
+@pytest.fixture(scope="session", autouse=True)
+def ensure_test_data():
+    download_test_data()
 
 
 def epoch_fixture(*filenames):
@@ -31,7 +26,7 @@ def epoch_fixture(*filenames):
 
     @pytest.fixture
     def _epoch_fixture():
-        return read_from_xyz(*tuple(find_data_file(fn) for fn in filenames))
+        return read_from_xyz(*tuple(find_file(fn) for fn in filenames))
 
     return _epoch_fixture
 
@@ -45,7 +40,7 @@ def epoch_las_fixture(*filenames):
             ["NormalX", "NormalY", "NormalZ"] if ("normals" in filenames[0]) else None
         )
         return read_from_las(
-            *tuple(find_data_file(fn) for fn in filenames),
+            *tuple(find_file(fn) for fn in filenames),
             normal_columns=normal_columns,
         )
 
@@ -58,7 +53,7 @@ def epoch_pbm3c2_fixture(*filenames, additional_dimensions):
     @pytest.fixture
     def _epoch_pbm3c2_fixture():
         return read_from_xyz(
-            *tuple(find_data_file(fn) for fn in filenames),
+            *tuple(find_file(fn) for fn in filenames),
             additional_dimensions=additional_dimensions,
             delimiter=",",
         )
@@ -81,12 +76,12 @@ epochs_segmented = epoch_pbm3c2_fixture(
 
 @pytest.fixture()
 def pbm3c2_correspondences_file():
-    return find_data_file("testdata-labelling2.csv")
+    return find_file("testdata-labelling2.csv")
 
 
 @pytest.fixture
 def analysis(tmp_path):
-    shutil.copy(os.path.join(data_dir, "synthetic.zip"), tmp_path)
+    shutil.copy(find_file("synthetic.zip"), tmp_path)
     return SpatiotemporalAnalysis(os.path.join(tmp_path, "synthetic.zip"))
 
 
@@ -103,7 +98,7 @@ def memory_policy_fixture():
 
 @pytest.fixture()
 def scanpos_info():
-    filename = find_data_file("sps.json")
+    filename = find_file("sps.json")
     with open(filename, "r") as load_f:
         try:
             json_str = load_f.read()
@@ -119,7 +114,7 @@ def epoch_m3c2ep_fixture(*filenames, additional_dimensions):
     @pytest.fixture
     def _epoch_m3c2ep_fixture():
         return read_from_las(
-            *tuple(find_data_file(fn) for fn in filenames),
+            *tuple(find_file(fn) for fn in filenames),
             additional_dimensions=additional_dimensions,
         )
 
@@ -136,20 +131,20 @@ epochs_m3c2ep = epoch_m3c2ep_fixture(
 @pytest.fixture()
 def Cxx():
     covariance_matrix = np.loadtxt(
-        find_data_file("Cxx.csv"), dtype=np.float64, delimiter=","
+        find_file("Cxx.csv"), dtype=np.float64, delimiter=","
     )
     return covariance_matrix
 
 
 @pytest.fixture()
 def tfM():
-    tf_matrix = np.loadtxt(find_data_file("tfM.csv"), dtype=np.float64, delimiter=",")
+    tf_matrix = np.loadtxt(find_file("tfM.csv"), dtype=np.float64, delimiter=",")
     return tf_matrix
 
 
 @pytest.fixture()
 def redPoint():
     reduction_point = np.loadtxt(
-        find_data_file("redPoint.csv"), dtype=np.float64, delimiter=","
+        find_file("redPoint.csv"), dtype=np.float64, delimiter=","
     )
     return reduction_point

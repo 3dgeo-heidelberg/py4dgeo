@@ -1,6 +1,5 @@
 from py4dgeo.m3c2 import M3C2
 
-
 _cloudcompare_param_mapping = {
     "normalscale": "normal_radii",
     "registrationerror": "reg_error",
