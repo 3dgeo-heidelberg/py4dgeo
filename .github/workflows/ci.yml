@@ -59,16 +59,28 @@ jobs:
     - name: List cached test data
       shell: bash
       run: |
-        echo "=== Contents of ~/.cache/py4dgeo ==="
-        ls -lR ~/.cache/py4dgeo 2>/dev/null || echo "Directory not found"
-
-        echo ""
         echo "=== XDG_CACHE_HOME value ==="
         echo "$XDG_CACHE_HOME"
 
         echo ""
         echo "=== HOME value ==="
         echo "$HOME"
+
+        echo ""
+        echo "=== Contents of cache directory ==="
+        if [ -d "$XDG_CACHE_HOME/py4dgeo" ]; then
+          find "$XDG_CACHE_HOME/py4dgeo" -type f | head -20
+        else
+          echo "Directory $XDG_CACHE_HOME/py4dgeo not found"
+        fi
+
+        echo ""
+        echo "=== Checking pooch.os_cache() location ==="
+        python -c "import pooch; print(pooch.os_cache('py4dgeo'))"
+
+        echo ""
+        echo "=== Contents of pooch cache ==="
+        python -c "import pooch; from pathlib import Path; p = Path(pooch.os_cache('py4dgeo')); print(list(p.rglob('*')) if p.exists() else 'Not found')"
 
     - name: Install OpenMP
       if: runner.os == 'macOS' && matrix.openmp == 'ON'
