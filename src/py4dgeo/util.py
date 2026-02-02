@@ -81,6 +81,7 @@ def find_file(filename, fatal=True):
     * Check whether the given relative path exists with respect to the current working directory
     * Check whether the given relative path exists with respect to the specified XDG data directory (e.g. through the environment variable :code:`XDG_DATA_DIRS`).
     * Check whether the given relative path exists in downloaded test data.
+    * If still not found, attempt to download test data and search again.
 
     :param filename:
         The (relative) filename to search for
@@ -91,32 +92,66 @@ def find_file(filename, fatal=True):
     :return: An absolute filename
     """
 
-    # If the path is absolute, do not change it
-    if os.path.isabs(filename):
-        return filename
+    def search_candidates(filename):
+        """Search for the file in candidate locations, return path if found."""
+        # If the path is absolute, check it directly
+        if os.path.isabs(filename):
+            if os.path.exists(filename):
+                return filename
+            return None
 
-    # Gather a list of candidate paths for relative path
-    candidates = []
+        # Gather a list of candidate paths for relative path
+        candidates = []
 
-    # Use the current working directory
-    candidates.append(os.path.join(os.getcwd(), filename))
+        # Use the current working directory
+        candidates.append(os.path.join(os.getcwd(), filename))
 
-    data_dir = get_test_data_dir()
-    candidates.append(os.path.join(data_dir, filename))
-    for root, _, files in os.walk(data_dir):
-        if filename in files:
-            candidates.append(os.path.join(root, filename))
+        data_dir = get_test_data_dir()
+        candidates.append(os.path.join(data_dir, filename))
+        if os.path.isdir(data_dir):
+            for root, _, files in os.walk(data_dir):
+                if filename in files:
+                    candidates.append(os.path.join(root, filename))
 
-    # Use the XDG data directories
-    if platform.system() in ["Linux", "Darwin"]:
-        for xdg_dir in xdg.xdg_data_dirs():
-            candidates.append(os.path.join(xdg_dir, filename))
+        # Use the XDG data directories
+        if platform.system() in ["Linux", "Darwin"]:
+            for xdg_dir in xdg.xdg_data_dirs():
+                candidates.append(os.path.join(xdg_dir, filename))
 
-    # Iterate through the list to check for file existence
-    for candidate in candidates:
-        if os.path.exists(candidate):
-            return candidate
+        # Iterate through the list to check for file existence
+        for candidate in candidates:
+            if os.path.exists(candidate):
+                return candidate
+
+        return None
+
+    # First attempt to find the file
+    result = search_candidates(filename)
+    if result:
+        return result
+
+    # File not found - try downloading test data
+    try:
+        download_test_data()
+    except Exception:
+        # Download failed, continue to error handling
+        pass
+
+    # Search again after download
+    result = search_candidates(filename)
+    if result:
+        return result
+
+    # Still not found
     if fatal:
+        data_dir = get_test_data_dir()
+        candidates = [
+            os.path.join(os.getcwd(), filename),
+            os.path.join(data_dir, filename),
+        ]
+        if platform.system() in ["Linux", "Darwin"]:
+            for xdg_dir in xdg.xdg_data_dirs():
+                candidates.append(os.path.join(xdg_dir, filename))
         raise FileNotFoundError(
             f"Cannot locate file {filename}. Tried the following locations: {', '.join(candidates)}"
         )
