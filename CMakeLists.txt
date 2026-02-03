@@ -84,6 +84,7 @@ target_compile_features(nanoflann
 # -----------------
 # Eigen3 dependency
 # -----------------
+set(EIGEN_BUILD_TESTING OFF CACHE BOOL "Disable Eigen tests" FORCE)
 add_subdirectory(ext/eigen EXCLUDE_FROM_ALL)
 
 # -----------------------------------
