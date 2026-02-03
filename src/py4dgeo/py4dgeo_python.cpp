@@ -385,8 +385,7 @@ PYBIND11_MODULE(_py4dgeo, m)
     "get_point_indices_from_cells",
     [](const Octree& self, Octree::SpatialKey key, unsigned int level) {
       RadiusSearchResult result;
-      std::size_t num_points =
-        self.get_point_indices_from_cells(key, level, result);
+      self.get_point_indices_from_cells(key, level, result);
 
       return as_pyarray(std::move(result));
     },
@@ -402,8 +401,7 @@ PYBIND11_MODULE(_py4dgeo, m)
       RadiusSearchResult result;
       result.reserve(keys.size() * self.get_max_cell_population(level));
 
-      std::size_t num_points =
-        self.get_point_indices_from_cells(keys, level, result);
+      self.get_point_indices_from_cells(keys, level, result);
 
       return as_pyarray(std::move(result));
     },
