@@ -563,8 +563,8 @@ Octree::invalidate()
   indexed_keys.indices.shrink_to_fit();
 
   std::fill(cell_size.begin(), cell_size.end(), Eigen::Vector3d::Zero());
-  std::fill(occupied_cells.begin(), occupied_cells.end(), 0.0);
-  std::fill(max_cell_population.begin(), max_cell_population.end(), 0.0);
+  std::fill(occupied_cells.begin(), occupied_cells.end(), 0u);
+  std::fill(max_cell_population.begin(), max_cell_population.end(), 0u);
   std::fill(
     average_cell_population.begin(), average_cell_population.end(), 0.0);
   std::fill(std_cell_population.begin(), std_cell_population.end(), 0.0);
