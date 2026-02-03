@@ -990,8 +990,7 @@ public:
   // ======================================================================
 
   /**
-   * @brief Return the octree-grid coordinate (x,y,z) of a spatial key at a
-   * given level.
+   * @brief Return the octree-grid coordinate (x,y,z) of a spatial key.
    *
    * If no level is provided, the coordinate at maximum depth is returned.
    */
@@ -999,7 +998,7 @@ public:
 
   /**
    * @brief Return the octree-grid coordinates (x,y,z) of a set of spatial
-   * keys at a given level.
+   * keys.
    *
    * If no level is provided, the coordinates at maximum depth is returned.
    */

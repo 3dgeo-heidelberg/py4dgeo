@@ -286,7 +286,7 @@ PYBIND11_MODULE(_py4dgeo, m)
              &Octree::get_number_of_points,
              "Return the number of points in the associated cloud");
 
-  // Allow extraction of number of points
+  // Allow extraction of maximum octree depth
   octree.def("get_max_depth",
              &Octree::get_max_depth,
              "Return the maximum octree depth level");
