@@ -230,6 +230,7 @@ class Vapc:
             "anisotropy": self._compute_anisotropy,
             "surface_variation": self._compute_surface_variation,
         }
+
     ############### Voxel methods for grouping ####################################
     @timeit
     @trace
