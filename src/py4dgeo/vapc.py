@@ -863,18 +863,22 @@ class Vapc:
         # slice out
         pts = np.asarray(self.epoch._cloud)
         filtered_pts = pts[sel]
+        extra = None
+        if self.extra_dims is not None:
+            extra = self.extra_dims[sel]
 
         # build new Vapc
-        new_epoch = Epoch(cloud=filtered_pts)
+        new_epoch = Epoch(cloud=filtered_pts, additional_dimensions=extra)
         new = Vapc(
             epoch=new_epoch, voxel_size=self.voxel_size, origin=list(self.origin)
         )
 
         # new.use_octree = self.use_octree
+        if self.out:
+            new.out = {k: v[sel] for k, v in self.out.items() if len(v) == len(sel)}
         if overwrite:
             # overwrite the original Vapc
-            self.epoch = new_epoch
-            self.out = new.out
+            self.__dict__.update(new.__dict__)
             self.mapped = True
             return self, sel
         return new, sel
@@ -1530,7 +1534,14 @@ class Vapc:
             A new Vapc containing the filtered points, or ``self`` if overwriting.
         """
         pts = np.asarray(self.epoch.cloud)[mask]
-        new = Vapc(Epoch(pts), voxel_size=self.voxel_size, origin=list(self.origin))
+        extra = None
+        if self.extra_dims is not None:
+            extra = self.extra_dims[mask]
+        new = Vapc(
+            Epoch(pts, additional_dimensions=extra),
+            voxel_size=self.voxel_size,
+            origin=list(self.origin),
+        )
         # new.use_octree = self.use_octree
         # Remap per-point outputs if present
         if self.out:
