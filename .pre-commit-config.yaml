@@ -40,12 +40,10 @@ repos:
       # Unify file endings
       - id: end-of-file-fixer
 
-
-  # CMake Formatting/Linting Utility
+  # CMake Linting Utility
   - repo: https://github.com/cheshirekow/cmake-format-precommit
     rev: v0.6.13
     hooks:
-      - id: cmake-format
       - id: cmake-lint
         args:
           # We *need* to set a variable with mixed casing - relax the linter to allow that.
@@ -54,7 +52,7 @@ repos:
 
   # Check Configuration as Code files for integrations
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.36.0
+    rev: 0.36.1
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs
