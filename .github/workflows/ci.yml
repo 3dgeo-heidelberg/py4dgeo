@@ -92,7 +92,7 @@ jobs:
         python -m pytest --nbval
 
   coverage-test:
-    name: Coverage Testing
+    name: Coverage testing
     runs-on: ubuntu-latest
     needs: [pooch-cache-setup]
 
@@ -131,25 +131,42 @@ jobs:
       run: |
         ctest -C Debug
 
-    - name: Collect coverage report
+    - name: Collect C++ coverage report
       shell: bash
       working-directory: ${{runner.workspace}}/py4dgeo
       run: |
-        lcov --directory ./build --capture --output-file coverage.info --ignore-errors mismatch --exclude '*/catch2/*'
-        lcov_cobertura coverage.info -o coverage2.xml
+        lcov --capture --directory ./build --output-file cxx-coverage.raw.info --ignore-errors mismatch,unused,source,inconsistent,count
+        lcov --remove cxx-coverage.raw.info '*/benchmarks/*' '*/catch2/*' '*/_deps/*' '*/ext/*' '*/tests/*' '/usr/*' --output-file cxx-coverage.info --ignore-errors mismatch,unused,source,inconsistent,count
+        lcov --extract cxx-coverage.info '*/lib/*' '*/src/py4dgeo/*' --output-file cxx-coverage.final.info --ignore-errors unused
+        lcov_cobertura cxx-coverage.final.info -o cxx-coverage.xml
 
-    - name: Run coverage tests
+    - name: Run Python coverage tests
       working-directory: ${{runner.workspace}}/py4dgeo
       run: |
-        python -m pytest --cov=src --cov-report=xml
+        python -m pytest --cov=src --cov-report=xml --cov-report=term
 
-    - name: Upload coverage to Codecov.io
-      working-directory: ${{runner.workspace}}/py4dgeo
-      run: |
-        curl --connect-timeout 10 --retry 5 -Os https://uploader.codecov.io/latest/linux/codecov
-        chmod +x codecov
-        ./codecov -f py4dgeo/coverage.xml -F python
-        ./codecov -f coverage2.xml -F cxx
+    - name: Upload C++ coverage to Codecov
+      uses: codecov/codecov-action@v5
+
+      with:
+        files: ./cxx-coverage.xml
+        flags: cxx
+        fail_ci_if_error: false
+        verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+        working-directory: ${{runner.workspace}}/py4dgeo
+
+    - name: Upload Python coverage to Codecov
+      uses: codecov/codecov-action@v5
+
+      with:
+        files: ./coverage.xml
+        flags: python
+        fail_ci_if_error: false
+        verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+        working-directory: ${{runner.workspace}}/py4dgeo
+
 
   address-sanitizer:
     name: Address sanitizer run
