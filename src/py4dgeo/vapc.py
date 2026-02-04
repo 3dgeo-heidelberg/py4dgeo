@@ -5,10 +5,7 @@
 # not tested as they are not the focus of this implementation.
 # The py4dgeo implementation is more efficient than the original implementation.
 # Further functionalities can be incorporated if there is demand.
-# The Octree implementation of py4dgeo is only partially implemented here.
-# Due to the slower computation times observed in some initial tests, not every function has been
-# adapted to use it yet (if implemented in a later stage, we may need to change the max possible
-# octree depth).
+# The Octree implementation of py4dgeo is not implemented yet.
 
 from __future__ import annotations
 import numpy as np
@@ -195,8 +192,6 @@ class Vapc:
         if hasattr(self.epoch, "additional_dimensions"):
             self.extra_dims = self.epoch.additional_dimensions
 
-        # self.use_octree = False  # use octree for grouping, OFF by default
-
         self.voxel_indices = None
         self.unique_voxels = None
         self.inverse = None
@@ -235,76 +230,6 @@ class Vapc:
             "anisotropy": self._compute_anisotropy,
             "surface_variation": self._compute_surface_variation,
         }
-
-    ############### Octree methods for until grouping ####################################
-    # @timeit
-    # @trace
-    # def _ensure_octree_with_voxel_size(self,min_corner=None, max_corner=None):
-    #     if not hasattr(self, "octree"):
-    #         self._max_depth = 10  # default max depth for octree
-    #         self._level_of_interest = self._max_depth
-    #         # Ensure the octree is built to get a specific cell size (voxel size) at the deepest level
-    #         bbox_extent = self.voxel_size * (2 **  self._level_of_interest)
-
-    #         print("Bounding box extent for cell size %s at level %s: %s"%(self.voxel_size, self._level_of_interest, bbox_extent))
-    #         if min_corner is None:
-    #             min_corner = self.epoch.cloud.min(axis=0)
-
-    #         self._octree_origin = min_corner.astype(float)
-    #         max_corner = min_corner + np.array([bbox_extent, bbox_extent, bbox_extent])  # Adjusted to match the octree size
-    #         print("\nDifference between min and max corner:", max_corner - min_corner)
-    #         self.epoch._octree.build_tree(force_cubic=True, min_corner=min_corner, max_corner=max_corner)
-    #         self.octree = self.epoch._octree
-
-    # @timeit
-    # @trace
-    # def compute_octree_keys(self, level: int = None) -> np.ndarray:
-    #     """
-    #     Returns a length-N array of integer cell keys for each point.
-    #     If level is None, these are full-depth (Morton) keys.
-    #     If level is given, keys are right-shifted so they index the
-    #     level's 2^level grid.
-    #     """
-    #     self._ensure_octree_with_voxel_size()
-
-    #     # Get the raw (sorted) Z-order keys + the mapping back to point indices:
-    #     sorted_keys    = np.array(self.octree.get_spatial_keys(),    dtype=np.uint32)
-    #     sorted_indices = np.array(self.octree.get_point_indices(),   dtype=np.int32)
-
-    #     # Reassemble `keys_full[i]` = Morton key of point i
-    #     keys_full = np.empty_like(sorted_keys)
-    #     keys_full[sorted_indices] = sorted_keys
-
-    #     if level is None:
-    #         return keys_full
-
-    #     # Truncate to the desired level:
-    #     #   bit_shift = 3*(max_depth - level)
-    #     shift = 3 * (self._max_depth - level)
-    #     return keys_full >> shift
-
-    # @timeit
-    # @trace
-    # def group_octree_cells(self, level: int = None):
-    #     """
-    #     Groups points by their Octree cell at the given level.
-    #     Populates:
-    #       self.octree_keys  : length-N array of keys per point
-    #       self.unique_cells : sorted array of unique cell keys
-    #       self.inverse      : length-N array, giving 0..M-1 cell ID for each point
-    #       self.counts       : length-M array of point counts per cell
-    #     """
-    #     keys       = self.compute_octree_keys(level)
-    #     unique, inv, counts = np.unique(keys,
-    #                                     return_inverse=True,
-    #                                     return_counts=True)
-
-    #     self.octree_keys  = keys
-    #     self.unique_voxels = unique
-    #     self.inverse      = inv
-    #     self.counts       = counts
-    #     return unique, inv, counts
-
     ############### Voxel methods for grouping ####################################
     @timeit
     @trace
@@ -380,10 +305,7 @@ class Vapc:
         return unique_arr, inverse, counts
 
     def group(self):
-        """Group points into voxels (octree grouping is currently disabled)."""
-        # if self.use_octree:
-        #     return self.group_octree_cells()
-        # else:
+        """Group points into voxels."""
         return self.group_voxels()
 
     ############### Computation methods ####################################
@@ -398,12 +320,6 @@ class Vapc:
         if self.unique_voxels is None:
             self.group()
 
-        # handle octree vs voxel grouping
-        # if self.use_octree:
-        #     # decode Morton keys into 3D voxel indices
-        #     ijk = decode_morton(self.unique_voxels, self._max_depth)
-        #     origin = self._octree_origin
-        # else:
         ijk = self.unique_voxels
         origin = self.origin
         # real-world center: origin + (i,j,k)*size + half-voxel
@@ -872,8 +788,6 @@ class Vapc:
         new = Vapc(
             epoch=new_epoch, voxel_size=self.voxel_size, origin=list(self.origin)
         )
-
-        # new.use_octree = self.use_octree
         if self.out:
             new.out = {k: v[sel] for k, v in self.out.items() if len(v) == len(sel)}
         if overwrite:
@@ -1173,7 +1087,6 @@ class Vapc:
         new = Vapc(
             epoch=new_epoch, voxel_size=self.voxel_size, origin=list(self.origin)
         )
-        # new.use_octree = self.use_octree
 
         new.extra_dims = new_extra
         new.original_point_cloud_indices = original_point_cloud_indices
@@ -1384,11 +1297,6 @@ class Vapc:
             )
         else:
             if mode == "grid":
-                # if self.use_octree:
-                #     keys = self.unique_voxels.astype(np.uint32)
-                #     ijk  = decode_morton(keys, self._max_depth)
-                #     base_positions = self._octree_origin + ijk * self.voxel_size
-                # else:
                 base_positions = self.unique_voxels * self.voxel_size + self.origin
                 # cube corners from the min corner, ordered to match base_faces:
                 corner_offsets = (
@@ -1542,7 +1450,6 @@ class Vapc:
             voxel_size=self.voxel_size,
             origin=list(self.origin),
         )
-        # new.use_octree = self.use_octree
         # Remap per-point outputs if present
         if self.out:
             new.out = {k: v[mask] for k, v in self.out.items() if len(v) == len(mask)}
