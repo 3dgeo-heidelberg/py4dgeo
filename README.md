@@ -34,6 +34,8 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 * **Point cloud registration with automatic determination of stable areas** ([Yang et al., 2022](https://doi.org/10.1515/jag-2022-0031)) for multitemporal change detection.
 
+* **Hierarchical 3D surface change analysis** for near real-time 3D surface change analysis of permanent laser scanning point clouds ([Tabernig et al., 2025](https://doi.org/10.5445/IR/1000180377))
+
 ## 🎮 Examples
 
 ### Demo notebooks using methods provided by py4dgeo
@@ -42,8 +44,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 | [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/m3c2-change_analysis.ipynb)       | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/m3c2ep_change_analysis.ipynb)      |
 | [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/4dobc-change_analysis.ipynb)          | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/kmeans_clustering_of_time_series.ipynb) |
 | [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/principal_component_analysis_of_time_series.ipynb) | [![Example 6](img/pbm3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/jupyter/pbm3c2.ipynb)                                   |
-| [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/registration_standard_ICP.ipynb)          |
-
+| [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/registration_standard_ICP.ipynb)          | [![Example 8](img/hierarchical_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/jupyter/hierarchical_change_analysis.ipynb)                                   |
 
 ## 💻 Installation
 
@@ -179,5 +180,6 @@ See [LICENSE.md](LICENSE.md).
 
 * Anders, K., Winiwarter, L., Mara, H., Lindenbergh, R., Vos, S.E. & Höfle, B. (2021): Fully automatic spatiotemporal segmentation of 3D LiDAR time series for the extraction of natural surface changes. ISPRS Journal of Photogrammetry and Remote Sensing, 173, pp. 297-308. DOI: [10.1016/j.isprsjprs.2021.01.015](https://doi.org/10.1016/j.isprsjprs.2021.01.015).
 * Lague, D., Brodu, N., & Leroux, J. (2013). Accurate 3D comparison of complex topography with terrestrial laser scanner: Application to the Rangitikei canyon (N-Z). ISPRS Journal of Photogrammetry and Remote Sensing, 82, pp. 10-26. DOI: [10.1016/j.isprsjprs.2013.04.009](https://doi.org/10.1016/j.isprsjprs.2013.04.009).
+* Tabernig, R., Albert, W., Weiser, H., & Höfle, B. (2025). A hierarchical approach for near real-time 3D surface change analysis of permanent laser scanning point clouds. In: 6th Joint  International Symposium on Deformation Monitoring (JISDM). DOI: [10.5445/IR/1000180377](https://doi.org/10.5445/IR/1000180377)
 * Winiwarter, L., Anders, K., Höfle, B. (2021): M3C2-EP: Pushing the limits of 3D topographic point cloud change detection by error propagation. ISPRS Journal of Photogrammetry and Remote Sensing, 178, pp. 240–258. DOI: [10.1016/j.isprsjprs.2021.06.011](https://doi.org/10.1016/j.isprsjprs.2021.06.011).
 * Zahs, V., Winiwarter, L., Anders, K., Williams, J.G., Rutzinger, M. & Höfle, B. (2022): Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification. ISPRS Journal of Photogrammetry and Remote Sensing, 183, pp. 541-559. DOI: [10.1016/j.isprsjprs.2021.11.018](https://doi.org/10.1016/j.isprsjprs.2021.11.018).
