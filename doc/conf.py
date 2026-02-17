@@ -36,12 +36,23 @@ extensions = [
     "breathe",
     "nbsphinx",
     "nbsphinx_link",
-    "sphinx_mdinclude",
+    "myst_parser",
     "sphinx_rtd_theme",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = []
+
+# Source file suffixes
+source_suffix = {
+    '.rst': 'restructuredtext',
+    '.md': 'markdown',
+}
+
+# MyST parser configuration
+myst_enable_extensions = [
+    "html_image",
+]
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
