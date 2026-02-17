@@ -2,6 +2,7 @@ breathe
 cmake
 ipykernel
 lcov_cobertura
+myst-parser
 nbsphinx
 nbsphinx-link
 nbval
@@ -12,5 +13,4 @@ pytest
 pytest-cov
 ruptures @ git+https://github.com/deepcharles/ruptures.git@master
 sphinx
-myst-parser
 sphinx_rtd_theme

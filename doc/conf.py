@@ -45,8 +45,8 @@ templates_path = []
 
 # Source file suffixes
 source_suffix = {
-    '.rst': 'restructuredtext',
-    '.md': 'markdown',
+    ".rst": "restructuredtext",
+    ".md": "markdown",
 }
 
 # MyST parser configuration
