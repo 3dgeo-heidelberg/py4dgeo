@@ -46,7 +46,7 @@ templates_path = []
 source_suffix = {
     ".rst": "restructuredtext",
     ".md": "myst-nb",
-    ".ipynb": "myst-nb",
+    # ".ipynb": "myst-nb",
 }
 
 # MyST parser configuration
@@ -54,8 +54,8 @@ myst_enable_extensions = [
     "html_image",
 ]
 
-# MyST-NB configuration: don't execute notebooks during build
-nb_execution_mode = "off"
+# # MyST-NB configuration: don't execute notebooks during build
+# nb_execution_mode = "off"
 
 # Allow errors in notebooks to avoid connection issues
 nbsphinx_allow_errors = True
