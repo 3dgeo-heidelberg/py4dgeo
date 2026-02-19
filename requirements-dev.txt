@@ -2,6 +2,7 @@ breathe
 cmake
 ipykernel
 lcov_cobertura
+myst-nb
 myst-parser
 nbsphinx
 nbsphinx-link

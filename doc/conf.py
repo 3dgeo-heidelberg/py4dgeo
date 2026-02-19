@@ -34,9 +34,8 @@ release = py4dgeo.__version__
 extensions = [
     "sphinx.ext.autodoc",
     "breathe",
-    "nbsphinx",
+    "myst_nb",
     "nbsphinx_link",
-    "myst_parser",
     "sphinx_rtd_theme",
 ]
 
@@ -46,13 +45,16 @@ templates_path = []
 # Source file suffixes
 source_suffix = {
     ".rst": "restructuredtext",
-    ".md": "markdown",
+    ".md": "myst-nb",
 }
 
 # MyST parser configuration
 myst_enable_extensions = [
     "html_image",
 ]
+
+# Allow errors in notebooks to avoid connection issues
+nbsphinx_allow_errors = True
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
