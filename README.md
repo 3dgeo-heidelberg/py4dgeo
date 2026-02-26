@@ -140,22 +140,8 @@ Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11
 
 
 ## 📑 Citation
-Please cite py4dgeo when using it in your research and reference the appropriate release version.
+Please cite py4dgeo when using it in your research and reference the appropriate release version. You can find the Bibtex reference of the latest release via the `Cite this repository` link on the right side of this website (source: [CITATION.cff](CITATION.cff)).
 
-<!-- TODO: All releases of py4dgeo are listed on Zenodo where you will find the citation information including DOI. -->
-
-```
-article{py4dgeo,
-author = {py4dgeo Development Core Team}
-title = {py4dgeo: library for change analysis in 4D point clouds},
-journal = {},
-year = {2022},
-number = {},
-volume = {},
-doi = {},
-url = {https://github.com/3dgeo-heidelberg/py4dgeo},
-}
- ```
 
 ## 💟 Funding / Acknowledgements
 The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
