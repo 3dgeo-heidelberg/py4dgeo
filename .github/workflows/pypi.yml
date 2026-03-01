@@ -41,7 +41,7 @@ jobs:
         CIBW_REPAIR_WHEEL_COMMAND_WINDOWS: delvewheel repair -v -w {dest_dir} {wheel}
         MACOSX_DEPLOYMENT_TARGET: ${{ matrix.target }}
 
-    - uses: actions/upload-artifact@v6
+    - uses: actions/upload-artifact@v7
       with:
         name: wheels-${{ matrix.os }}
         path: ./wheelhouse/*.whl
@@ -58,7 +58,7 @@ jobs:
       - name: Build SDist
         run: pipx run build --sdist
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         with:
           name: sdist
           path: dist/*.tar.gz
