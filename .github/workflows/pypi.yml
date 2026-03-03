@@ -84,7 +84,7 @@ jobs:
         with:
           python-version: '3.9'
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: sdist
           path: dist
@@ -113,13 +113,13 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: sdist
           merge-multiple: true
           path: dist
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
           merge-multiple: true
@@ -137,13 +137,13 @@ jobs:
       id-token: write
 
     steps:
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           name: sdist
           merge-multiple: true
           path: dist
 
-      - uses: actions/download-artifact@v7
+      - uses: actions/download-artifact@v8
         with:
           pattern: wheels-*
           merge-multiple: true
