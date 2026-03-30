@@ -9,7 +9,7 @@ repos:
 
   # Run Black - the uncompromising Python code formatter
   - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 26.1.0
+    rev: 26.3.1
     hooks:
       - id: black-jupyter
 
@@ -52,7 +52,7 @@ repos:
 
   # Check Configuration as Code files for integrations
   - repo: https://github.com/python-jsonschema/check-jsonschema
-    rev: 0.37.0
+    rev: 0.37.1
     hooks:
       - id: check-github-workflows
       - id: check-readthedocs
