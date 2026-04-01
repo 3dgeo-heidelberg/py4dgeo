@@ -146,7 +146,7 @@ jobs:
         python -m pytest --cov=src --cov-report=xml --cov-report=term
 
     - name: Upload C++ coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
 
       with:
         files: ./cxx-coverage.xml
@@ -157,7 +157,7 @@ jobs:
         working-directory: ${{runner.workspace}}/py4dgeo
 
     - name: Upload Python coverage to Codecov
-      uses: codecov/codecov-action@v5
+      uses: codecov/codecov-action@v6
 
       with:
         files: ./coverage.xml
