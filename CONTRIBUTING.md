@@ -32,7 +32,7 @@ Running pre-commit and pytest locally helps you avoid CI failures.
 It will be integrated into the official documentation [readthedocs](https://py4dgeo.readthedocs.io/en/latest/basic.html).
    - [`application_demo.ipynb`](contributor_template/application_demo.ipynb): Use this notebook to demonstrate practical use cases or applications of a method.
 
-4. **Add yourself to the contributor list**: Please add your name to the [COPYING.md](../COPYING.md) file under the contributors name list. This helps us keep track of project contributors and acknowledge your work in software publications.
+4. **Add yourself to the contributor list**: Please add your name to the [COPYING.md](COPYING.md) file under the contributors name list. This helps us keep track of project contributors and acknowledge your work in software publications.
    Example entry:
 
    `- Your Name, YYYY-YYYY - contribution summary (e.g., "Implemented new method X", "Added application demo Y")`
