@@ -18,6 +18,9 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autofunction:: py4dgeo.load_epoch
 
+.. autoclass:: py4dgeo.C2C
+    :members:
+
 .. autoclass:: py4dgeo.M3C2
     :members:
     :inherited-members:
