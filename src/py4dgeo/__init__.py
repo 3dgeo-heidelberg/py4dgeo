@@ -15,6 +15,7 @@ from py4dgeo.registration import (
     point_to_plane_icp,
     icp_with_stable_areas,
 )
+from py4dgeo.c2c import C2C, write_c2c_results_to_las
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
     SpatiotemporalAnalysis,
