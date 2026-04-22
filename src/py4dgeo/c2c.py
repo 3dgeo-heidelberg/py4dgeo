@@ -138,9 +138,7 @@ class C2C:
         return self.calculate_distances(self.epochs[0], self.epochs[1])
 
 
-def write_c2c_results_to_las(
-    outfilepath: str, c2c: C2C, attribute_dict: dict = {}
-):
+def write_c2c_results_to_las(outfilepath: str, c2c: C2C, attribute_dict: dict = {}):
     """Save the C2C output points and attributes to a LAS file.
 
     :param outfilepath:

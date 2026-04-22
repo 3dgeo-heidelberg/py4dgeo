@@ -33,9 +33,7 @@ def test_c2c_calculate_distances_applies_max_distance():
     source = np.array([[0.0, 0.0, 0.0], [5.0, 0.0, 0.0]], dtype=np.float64)
     target = np.array([[1.0, 0.0, 0.0]], dtype=np.float64)
 
-    distances = py4dgeo.C2C(max_distance=1.5).calculate_distances(
-        source, target
-    )
+    distances = py4dgeo.C2C(max_distance=1.5).calculate_distances(source, target)
 
     assert np.isclose(distances[0], 1.0)
     assert np.isnan(distances[1])
