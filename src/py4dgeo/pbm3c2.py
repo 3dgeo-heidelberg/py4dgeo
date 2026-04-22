@@ -22,6 +22,7 @@ class PBM3C2:
 
     This class implements the PBM3C2 algorithm as described in Zahs et al. (2022).
     """
+
     _VALID_CORRESPONDENCE_METHODS = ("random_forest", "nearest_neighbor")
     _VALID_CORRESPONDENCE_FILTERS = ("none", "mutual_nearest_neighbors")
 
@@ -485,10 +486,7 @@ class PBM3C2:
                 "Use one of: 'random_forest', 'nearest_neighbor'."
             )
 
-        if (
-            correspondence_method == "random_forest"
-            and correspondences_file is None
-        ):
+        if correspondence_method == "random_forest" and correspondences_file is None:
             raise Py4DGeoError(
                 "correspondences_file is required when correspondence_method='random_forest'."
             )
@@ -498,9 +496,7 @@ class PBM3C2:
 
         print("\n[1/6] Preprocessing epochs and correspondences...")
         preprocess_correspondences = (
-            correspondences_file
-            if correspondence_method == "random_forest"
-            else None
+            correspondences_file if correspondence_method == "random_forest" else None
         )
         (
             epoch0_processed,
