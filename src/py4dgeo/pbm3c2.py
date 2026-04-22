@@ -22,6 +22,8 @@ class PBM3C2:
 
     This class implements the PBM3C2 algorithm as described in Zahs et al. (2022).
     """
+    _VALID_CORRESPONDENCE_METHODS = ("random_forest", "nearest_neighbor")
+    _VALID_CORRESPONDENCE_FILTERS = ("none", "mutual_nearest_neighbors")
 
     def __init__(self, registration_error=0.0):
         self.clf = RandomForestClassifier(n_estimators=100, random_state=42)
@@ -37,16 +39,16 @@ class PBM3C2:
         self.epoch1_reverse_mapping = None
 
     @staticmethod
-    def preprocess_epochs(epoch0, epoch1, correspondences_file):
+    def preprocess_epochs(epoch0, epoch1, correspondences_file=None):
         """
         Assign globally unique segment IDs using independent sequential numbering.
-        Map correspondence file IDs to the new ID scheme.
+        Optionally map correspondence file IDs to the new ID scheme.
 
         Parameters
         ----------
         epoch0, epoch1 : Epoch
             Input epochs with segment_id in additional_dimensions
-        correspondences_file : str
+        correspondences_file : str, optional
             Path to CSV file with correspondence data
 
         Returns
@@ -68,60 +70,64 @@ class PBM3C2:
             f"  Epoch 1: {len(orig_ids1)} unique segments (range: {orig_ids1.min()}-{orig_ids1.max()})"
         )
 
-        # Load correspondence file
-        try:
-            correspondences_arr = np.genfromtxt(
-                correspondences_file, delimiter=",", dtype=np.float64
-            )
-            if correspondences_arr.ndim == 1:
-                correspondences_arr = correspondences_arr.reshape(1, -1)
-        except Exception as e:
-            raise Py4DGeoError(
-                f"Failed to read correspondence file '{correspondences_file}': {e}"
-            )
+        correspondences_arr = None
+        if correspondences_file is not None:
+            # Load correspondence file
+            try:
+                correspondences_arr = np.genfromtxt(
+                    correspondences_file, delimiter=",", dtype=np.float64
+                )
+                if correspondences_arr.ndim == 1:
+                    correspondences_arr = correspondences_arr.reshape(1, -1)
+            except Exception as e:
+                raise Py4DGeoError(
+                    f"Failed to read correspondence file '{correspondences_file}': {e}"
+                )
 
-        if correspondences_arr.shape[1] < 2:
-            raise Py4DGeoError(
-                f"The correspondence file must contain at least two columns (got {correspondences_arr.shape[1]})."
-            )
+            if correspondences_arr.shape[1] < 2:
+                raise Py4DGeoError(
+                    f"The correspondence file must contain at least two columns (got {correspondences_arr.shape[1]})."
+                )
 
-        if not np.issubdtype(correspondences_arr.dtype, np.number):
-            raise Py4DGeoError(
-                "The correspondence file appears to contain non-numeric data."
-            )
+            if not np.issubdtype(correspondences_arr.dtype, np.number):
+                raise Py4DGeoError(
+                    "The correspondence file appears to contain non-numeric data."
+                )
 
-        corr_ids0 = correspondences_arr[:, 0]
-        corr_ids1 = correspondences_arr[:, 1]
+            corr_ids0 = correspondences_arr[:, 0]
+            corr_ids1 = correspondences_arr[:, 1]
 
-        # Validate correspondence IDs
-        invalid_ids0 = ~np.isin(corr_ids0, orig_ids0)
-        invalid_ids1 = ~np.isin(corr_ids1, orig_ids1)
+            # Validate correspondence IDs
+            invalid_ids0 = ~np.isin(corr_ids0, orig_ids0)
+            invalid_ids1 = ~np.isin(corr_ids1, orig_ids1)
 
-        if invalid_ids0.any():
-            invalid_list = corr_ids0[invalid_ids0]
-            print(
-                f"  Warning: {invalid_ids0.sum()} epoch0 IDs in correspondences don't exist in epoch0 segments"
-            )
-            print(f"    First 10 invalid IDs: {invalid_list[:10]}")
+            if invalid_ids0.any():
+                invalid_list = corr_ids0[invalid_ids0]
+                print(
+                    f"  Warning: {invalid_ids0.sum()} epoch0 IDs in correspondences don't exist in epoch0 segments"
+                )
+                print(f"    First 10 invalid IDs: {invalid_list[:10]}")
 
-        if invalid_ids1.any():
-            invalid_list = corr_ids1[invalid_ids1]
-            print(
-                f"  Warning: {invalid_ids1.sum()} epoch1 IDs in correspondences don't exist in epoch1 segments"
-            )
-            print(f"    First 10 invalid IDs: {invalid_list[:10]}")
+            if invalid_ids1.any():
+                invalid_list = corr_ids1[invalid_ids1]
+                print(
+                    f"  Warning: {invalid_ids1.sum()} epoch1 IDs in correspondences don't exist in epoch1 segments"
+                )
+                print(f"    First 10 invalid IDs: {invalid_list[:10]}")
 
-        # Filter invalid correspondences
-        valid_mask = ~invalid_ids0 & ~invalid_ids1
-        if not valid_mask.all():
-            print(f"  Filtering out {(~valid_mask).sum()} invalid correspondence pairs")
-            correspondences_arr = correspondences_arr[valid_mask]
+            # Filter invalid correspondences
+            valid_mask = ~invalid_ids0 & ~invalid_ids1
+            if not valid_mask.all():
+                print(
+                    f"  Filtering out {(~valid_mask).sum()} invalid correspondence pairs"
+                )
+                correspondences_arr = correspondences_arr[valid_mask]
 
-        if len(correspondences_arr) == 0:
-            raise Py4DGeoError(
-                "No valid correspondences remain after filtering. "
-                "Please verify that segment IDs in the correspondence file match those in the input epochs."
-            )
+            if len(correspondences_arr) == 0:
+                raise Py4DGeoError(
+                    "No valid correspondences remain after filtering. "
+                    "Please verify that segment IDs in the correspondence file match those in the input epochs."
+                )
 
         # Create new independent ID mappings
         new_ids0 = np.arange(1, len(orig_ids0) + 1, dtype=np.int64)
@@ -158,16 +164,22 @@ class PBM3C2:
             cloud=epoch1.cloud.copy(), additional_dimensions=new_add_dims1
         )
 
-        # Remap correspondence IDs
-        remapped_corr = correspondences_arr.copy()
-        remapped_corr[:, 0] = np.array(
-            [epoch0_id_mapping[int(cid)] for cid in correspondences_arr[:, 0]]
-        )
-        remapped_corr[:, 1] = np.array(
-            [epoch1_id_mapping[int(cid)] for cid in correspondences_arr[:, 1]]
-        )
+        remapped_corr = None
+        if correspondences_arr is not None:
+            # Remap correspondence IDs
+            remapped_corr = correspondences_arr.copy()
+            remapped_corr[:, 0] = np.array(
+                [epoch0_id_mapping[int(cid)] for cid in correspondences_arr[:, 0]]
+            )
+            remapped_corr[:, 1] = np.array(
+                [epoch1_id_mapping[int(cid)] for cid in correspondences_arr[:, 1]]
+            )
+            print(
+                f"  Remapped {len(remapped_corr)} correspondence pairs to new ID scheme"
+            )
+        else:
+            print("  No correspondence file provided, skipping training set remapping")
 
-        print(f"  Remapped {len(remapped_corr)} correspondence pairs to new ID scheme")
         print("Preprocessing complete.\n")
 
         return (
@@ -334,6 +346,72 @@ class PBM3C2:
             found_correspondences, columns=["epoch0_segment_id", "epoch1_segment_id"]
         )
 
+    def apply_nearest_neighbor(
+        self, apply_ids, search_radius=10.0, correspondence_filter="none"
+    ):
+        """Find correspondences by nearest-neighbor matching of segment CoGs.
+
+        This mirrors the C2C nearest-neighbor logic with optional
+        mutual-nearest-neighbor filtering.
+        """
+        if correspondence_filter not in self._VALID_CORRESPONDENCE_FILTERS:
+            raise Py4DGeoError(
+                "Invalid correspondence_filter. "
+                "Use one of: 'none', 'mutual_nearest_neighbors'."
+            )
+
+        valid_apply_ids = np.array(
+            [
+                seg_id
+                for seg_id in apply_ids
+                if seg_id in self.epoch0_segment_metrics.index
+            ]
+        )
+
+        if valid_apply_ids.size == 0:
+            self.correspondences = pd.DataFrame(
+                columns=["epoch0_segment_id", "epoch1_segment_id"]
+            )
+            return
+
+        epoch0_cogs = self.epoch0_segment_metrics.loc[valid_apply_ids][
+            ["cog_x", "cog_y", "cog_z"]
+        ].values
+        epoch1_cogs = self.epoch1_segment_metrics[["cog_x", "cog_y", "cog_z"]].values
+        epoch1_segment_ids = self.epoch1_segment_metrics.index.to_numpy()
+
+        tree = cKDTree(epoch1_cogs)
+        distances, forward_indices = tree.query(
+            epoch0_cogs,
+            k=1,
+            distance_upper_bound=search_radius,
+            workers=-1,
+        )
+
+        valid_forward = np.isfinite(distances)
+
+        if correspondence_filter == "mutual_nearest_neighbors":
+            reverse_tree = cKDTree(epoch0_cogs)
+            _, reverse_indices = reverse_tree.query(epoch1_cogs, k=1, workers=-1)
+
+            source_indices = np.arange(epoch0_cogs.shape[0], dtype=np.int64)
+            mutual_mask = np.zeros(epoch0_cogs.shape[0], dtype=bool)
+            mutual_mask[valid_forward] = (
+                reverse_indices[forward_indices[valid_forward]]
+                == source_indices[valid_forward]
+            )
+            valid_forward &= mutual_mask
+
+        matched_epoch0 = valid_apply_ids[valid_forward]
+        matched_epoch1 = epoch1_segment_ids[forward_indices[valid_forward]]
+
+        self.correspondences = pd.DataFrame(
+            {
+                "epoch0_segment_id": matched_epoch0,
+                "epoch1_segment_id": matched_epoch1,
+            }
+        )
+
     def _calculate_cog_distance(self, segment1_id, segment2_id):
         """Calculate CoG distance and level of detection."""
         metrics1 = self.epoch0_segment_metrics.loc[segment1_id]
@@ -360,7 +438,16 @@ class PBM3C2:
 
         return dist, lod
 
-    def run(self, epoch0, epoch1, correspondences_file, apply_ids, search_radius=3.0):
+    def run(
+        self,
+        epoch0,
+        epoch1,
+        correspondences_file=None,
+        apply_ids=None,
+        search_radius=3.0,
+        correspondence_method="random_forest",
+        correspondence_filter="none",
+    ):
         """
         Execute complete PBM3C2 workflow.
 
@@ -368,12 +455,20 @@ class PBM3C2:
         ----------
         epoch0, epoch1 : Epoch
             Input point cloud epochs with segment_id
-        correspondences_file : str
-            Path to CSV with training correspondences
+        correspondences_file : str, optional
+            Path to CSV with training correspondences. Required for
+            correspondence_method="random_forest".
         apply_ids : array-like
-            Segment IDs to find correspondences for (using original IDs)
+            Segment IDs to find correspondences for (using original IDs).
+            If None, all segment IDs from epoch0 are used.
         search_radius : float
             Spatial search radius in meters
+        correspondence_method : str
+            Correspondence strategy. One of: "random_forest" (default),
+            "nearest_neighbor".
+        correspondence_filter : str
+            Used when correspondence_method="nearest_neighbor".
+            One of: "none", "mutual_nearest_neighbors".
 
         Returns
         -------
@@ -384,7 +479,29 @@ class PBM3C2:
         print("PBM3C2 Processing Pipeline")
         print("=" * 60)
 
+        if correspondence_method not in self._VALID_CORRESPONDENCE_METHODS:
+            raise Py4DGeoError(
+                "Invalid correspondence_method. "
+                "Use one of: 'random_forest', 'nearest_neighbor'."
+            )
+
+        if (
+            correspondence_method == "random_forest"
+            and correspondences_file is None
+        ):
+            raise Py4DGeoError(
+                "correspondences_file is required when correspondence_method='random_forest'."
+            )
+
+        if apply_ids is None:
+            apply_ids = np.unique(epoch0.additional_dimensions["segment_id"])
+
         print("\n[1/6] Preprocessing epochs and correspondences...")
+        preprocess_correspondences = (
+            correspondences_file
+            if correspondence_method == "random_forest"
+            else None
+        )
         (
             epoch0_processed,
             epoch1_processed,
@@ -393,7 +510,7 @@ class PBM3C2:
             self.epoch1_id_mapping,
             self.epoch0_reverse_mapping,
             self.epoch1_reverse_mapping,
-        ) = self.preprocess_epochs(epoch0, epoch1, correspondences_file)
+        ) = self.preprocess_epochs(epoch0, epoch1, preprocess_correspondences)
 
         print("[2/6] Loading and processing segments...")
         self.epoch0_segments = self._get_segments(epoch0_processed)
@@ -409,9 +526,12 @@ class PBM3C2:
             f"  Computed metrics for {len(self.epoch0_segment_metrics)} + {len(self.epoch1_segment_metrics)} segments"
         )
 
-        print("\n[4/6] Training Random Forest classifier...")
-        self.train(correspondences_for_training)
-        print(f"  Classifier trained on {len(correspondences_for_training)} pairs")
+        if correspondence_method == "random_forest":
+            print("\n[4/6] Training Random Forest classifier...")
+            self.train(correspondences_for_training)
+            print(f"  Classifier trained on {len(correspondences_for_training)} pairs")
+        else:
+            print("\n[4/6] Skipping Random Forest training (nearest-neighbor mode)...")
 
         print("\n[5/6] Finding correspondences...")
         remapped_apply_ids = [
@@ -425,7 +545,14 @@ class PBM3C2:
                 f"  Warning: {len(apply_ids) - len(remapped_apply_ids)} apply_ids not found in epoch0"
             )
 
-        self.apply(apply_ids=remapped_apply_ids, search_radius=search_radius)
+        if correspondence_method == "random_forest":
+            self.apply(apply_ids=remapped_apply_ids, search_radius=search_radius)
+        else:
+            self.apply_nearest_neighbor(
+                apply_ids=remapped_apply_ids,
+                search_radius=search_radius,
+                correspondence_filter=correspondence_filter,
+            )
 
         print("\n[6/6] Calculating M3C2 distances and uncertainties...")
         if self.correspondences is None or self.correspondences.empty:
