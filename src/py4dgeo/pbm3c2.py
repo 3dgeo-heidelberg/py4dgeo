@@ -381,19 +381,33 @@ class PBM3C2:
         epoch1_cogs = self.epoch1_segment_metrics[["cog_x", "cog_y", "cog_z"]].values
         epoch1_segment_ids = self.epoch1_segment_metrics.index.to_numpy()
 
-        tree = cKDTree(epoch1_cogs)
-        distances, forward_indices = tree.query(
-            epoch0_cogs,
-            k=1,
-            distance_upper_bound=search_radius,
-            workers=-1,
-        )
+        if epoch1_cogs.shape[0] == 0:
+            self.correspondences = pd.DataFrame(
+                columns=["epoch0_segment_id", "epoch1_segment_id"]
+            )
+            return
 
-        valid_forward = np.isfinite(distances)
+        epoch1_cogs_epoch = Epoch(epoch1_cogs)
+        epoch1_cogs_epoch._validate_search_tree()
+
+        neighbor_arrays = np.asarray(
+            epoch1_cogs_epoch.kdtree.nearest_neighbors(epoch0_cogs, 1)
+        )
+        forward_indices, distances = np.split(neighbor_arrays, 2, axis=0)
+        forward_indices = np.asarray(forward_indices, dtype=np.int64).reshape(-1)
+        distances = np.sqrt(np.asarray(distances, dtype=float).reshape(-1))
+
+        valid_forward = distances <= search_radius
 
         if correspondence_filter == "mutual_nearest_neighbors":
-            reverse_tree = cKDTree(epoch0_cogs)
-            _, reverse_indices = reverse_tree.query(epoch1_cogs, k=1, workers=-1)
+            epoch0_cogs_epoch = Epoch(epoch0_cogs)
+            epoch0_cogs_epoch._validate_search_tree()
+
+            reverse_arrays = np.asarray(
+                epoch0_cogs_epoch.kdtree.nearest_neighbors(epoch1_cogs, 1)
+            )
+            reverse_indices, _ = np.split(reverse_arrays, 2, axis=0)
+            reverse_indices = np.asarray(reverse_indices, dtype=np.int64).reshape(-1)
 
             source_indices = np.arange(epoch0_cogs.shape[0], dtype=np.int64)
             mutual_mask = np.zeros(epoch0_cogs.shape[0], dtype=bool)
