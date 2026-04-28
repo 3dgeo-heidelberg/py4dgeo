@@ -61,6 +61,31 @@ class C2C(PairwiseEpochCorepointsBase):
             )
         self._correspondence_filter = filter_name
 
+    def _nearest_neighbor_query(
+        self,
+        reference: typing.Union[np.ndarray, Epoch],
+        query: np.ndarray,
+    ):
+        if isinstance(reference, Epoch):
+            reference._validate_search_tree()
+
+            # Taken from registration 89-93 and 247-249
+            neighbor_arrays = np.asarray(reference.kdtree.nearest_neighbors(query, 1))
+            indices, distances = np.split(neighbor_arrays, 2, axis=0)
+
+            nearest_indices = np.asarray(indices, dtype=np.int64).reshape(-1)
+            # Distances returned by py4dgeo KDTree are squared, see test_kdtree
+            distances = np.sqrt(np.asarray(distances, dtype=float).reshape(-1))
+
+            return distances, nearest_indices
+
+        tree = cKDTree(np.asarray(reference))
+        distances, nearest_indices = tree.query(query, k=1, workers=-1)
+        distances = np.asarray(distances, dtype=float).reshape(-1)
+        nearest_indices = np.asarray(nearest_indices, dtype=np.int64).reshape(-1)
+
+        return distances, nearest_indices
+
     def calculate_distances(
         self,
         epoch1: typing.Union[np.ndarray, Epoch],
@@ -76,21 +101,12 @@ class C2C(PairwiseEpochCorepointsBase):
         if pts_2.shape[0] == 0:
             return np.full(pts_1.shape[0], np.nan, dtype=float)
 
-        tree = cKDTree(pts_2)
-        distances, forward_indices = tree.query(
-            pts_1,
-            k=1,
-            distance_upper_bound=self.max_distance,
-            workers=-1,
-        )
-
-        # cKDTree returns inf when no neighbor is found within max_distance
+        distances, forward_indices = self._nearest_neighbor_query(epoch2, pts_1)
         distances = distances.astype(float, copy=False)
-        valid_forward = np.isfinite(distances)
+        valid_forward = distances <= self.max_distance
 
         if self.correspondence_filter == "mutual_nearest_neighbors":
-            reverse_tree = cKDTree(pts_1)
-            _, reverse_indices = reverse_tree.query(pts_2, k=1, workers=-1)
+            _, reverse_indices = self._nearest_neighbor_query(source, pts_2)
 
             source_indices = np.arange(pts_1.shape[0], dtype=np.int64)
             mutual_mask = np.zeros(pts_1.shape[0], dtype=bool)
