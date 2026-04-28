@@ -137,10 +137,23 @@ Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI).
 
 
-
-
 ## 📑 Citation
-Please cite py4dgeo when using it in your research and reference the appropriate release version. You can find the Bibtex reference of the latest release via the `Cite this repository` link on the right side of this website (source: [CITATION.cff](CITATION.cff)).
+If you use py4dgeo in a scientific context, please cite the following article:
+
+```
+@Article{py4dgeo_softwarex,
+   author = {Anders, K. and Kempf, D. and Albert, W. and Andriushchenko, P. and Huang, X. and Hulskemper, D. and Isensee, T. and Kapitan, D. and Tabernig, R. and Weiser, H. and Winiwarter, L. and Zahs, V. and Höfle, B.},
+   title = {py4dgeo: Open-source scientific software for topographic change analysis in 3D/4D geographic point clouds},
+   journal = {SoftwareX},
+   volume = {34},
+   pages = {102670},
+   DOI = {10.1016/j.softx.2026.102670},
+   year = {2026},
+   type = {Journal Article}
+}
+```
+
+As a software citation, please reference the appropriate release version. You can find the Bibtex reference of the latest release via the `Cite this repository` link on the right side of this website (source: [CITATION.cff](CITATION.cff)).
 
 
 ## 💟 Funding / Acknowledgements
