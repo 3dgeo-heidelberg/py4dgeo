@@ -1,8 +1,7 @@
 from py4dgeo.epoch import Epoch
+from py4dgeo.base import PairwiseEpochCorepointsBase
 from py4dgeo.util import (
     Py4DGeoError,
-    as_double_precision,
-    make_contiguous,
 )
 
 import numpy as np
@@ -12,7 +11,7 @@ import laspy
 from scipy.spatial import cKDTree
 
 
-class C2C:
+class C2C(PairwiseEpochCorepointsBase):
     """Cloud-to-cloud distance based on nearest neighbors.
 
     Parameters
@@ -41,35 +40,9 @@ class C2C:
         max_distance: float = np.inf,
         correspondence_filter: str = "none",
     ):
-        self.epochs = epochs
-        self.corepoints = corepoints
+        super().__init__(epochs=epochs, corepoints=corepoints)
         self.max_distance = max_distance
         self.correspondence_filter = correspondence_filter
-
-    @property
-    def corepoints(self):
-        return self._corepoints
-
-    @corepoints.setter
-    def corepoints(self, _corepoints):
-        if _corepoints is None:
-            self._corepoints = None
-            return
-
-        if len(_corepoints.shape) != 2 or _corepoints.shape[1] != 3:
-            raise Py4DGeoError("Corepoints need to be given as an array of shape nx3")
-
-        self._corepoints = as_double_precision(make_contiguous(_corepoints))
-
-    @property
-    def epochs(self):
-        return self._epochs
-
-    @epochs.setter
-    def epochs(self, _epochs):
-        if _epochs is not None and len(_epochs) != 2:
-            raise Py4DGeoError("Exactly two epochs need to be given!")
-        self._epochs = _epochs
 
     @property
     def name(self):
