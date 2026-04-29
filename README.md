@@ -157,7 +157,7 @@ As a software citation, please reference the appropriate release version. You ca
 
 
 ## 💟 Funding / Acknowledgements
-The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
+The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**Extract4D**](https://www.asg.ed.tum.de/en/rsa/research/extract4d/), [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
 
 ## 🔔 Contact / Bugs / Feature Requests
 
