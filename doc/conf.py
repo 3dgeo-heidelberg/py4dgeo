@@ -14,7 +14,10 @@ import sys
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
-sys.path.insert(0, os.path.abspath("../../src"))
+doc_dir = os.path.abspath(os.path.dirname(__file__))
+repo_root = os.path.abspath(os.path.join(doc_dir, ".."))
+python_package_src = os.path.join(repo_root, "src")
+sys.path.insert(0, python_package_src)
 
 # We need to be able to locate data files to include Jupyter notebooks
 os.environ["XDG_DATA_DIRS"] = os.path.abspath("../tests/data")
@@ -36,11 +39,7 @@ extensions = [
     "breathe",
     "myst_nb",
     "nbsphinx_link",
-    "sphinx_rtd_theme",
 ]
-
-# Add any paths that contain templates here, relative to this directory.
-templates_path = []
 
 # Source file suffixes
 source_suffix = {
@@ -55,11 +54,6 @@ myst_enable_extensions = [
 
 # Allow errors in notebooks to avoid connection issues
 nbsphinx_allow_errors = True
-
-# List of patterns, relative to source directory, that match files and
-# directories to ignore when looking for source files.
-# This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -76,17 +70,7 @@ html_extra_path = ["img"]
 
 # Breathe Configuration: Breathe is the bridge between the information extracted
 # from the C++ sources by Doxygen and Sphinx.
-breathe_projects = {}
+breathe_projects = {
+    "py4dgeo": os.path.join(repo_root, "build", "doc", "xml"),
+}
 breathe_default_project = "py4dgeo"
-
-# Implement the Doxygen generation logic on RTD servers
-if os.environ.get("READTHEDOCS", "False") == "True":
-    cwd = os.getcwd()
-    os.makedirs("build-cmake", exist_ok=True)
-    builddir = os.path.join(cwd, "build-cmake")
-    subprocess.check_call(
-        "cmake -DBUILD_DOCS=ON -DBUILD_TESTING=OFF -DBUILD_PYTHON=OFF ../..".split(),
-        cwd=builddir,
-    )
-    subprocess.check_call("cmake --build . --target doxygen".split(), cwd=builddir)
-    breathe_projects["py4dgeo"] = os.path.join(builddir, "doc", "xml")

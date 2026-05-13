@@ -1,22 +1,30 @@
 version: 2
 
-sphinx:
-  builder: html
-  configuration: doc/conf.py
-
-formats: all
-
 submodules:
   include: all
   recursive: true
 
 build:
-  os: ubuntu-22.04
+  os: ubuntu-24.04
   tools:
-    python: "3.10"
+    python: "3.14"
+  apt_packages:
+    - cmake
+    - doxygen
+  jobs:
+    pre_build:
+      - cmake -B build -DBUILD_DOCS=ON -DBUILD_TESTING=OFF -DBUILD_BENCHMARKS=OFF -DBUILD_PYTHON=OFF
+      - cmake --build build --target doxygen
+    build:
+      html:
+        - uv run sphinx-build -T -j auto -b html -d doc/_build/doctrees -D language=en doc $READTHEDOCS_OUTPUT/html
 
 python:
   install:
-    - requirements: requirements-dev.txt
-    - method: pip
-      path: .[docs]
+    - method: uv
+      command: sync
+      extras:
+        - docs
+
+sphinx:
+  configuration: doc/conf.py
