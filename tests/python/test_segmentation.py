@@ -133,6 +133,7 @@ def test_regular_corepoint_grid():
     grid = regular_corepoint_grid((0, 0), (1, 1), (4, 4))
     assert grid.shape == (16, 3)
 
+
 def test_custom_distance_function(analysis):
     def custom_distance(params):
         # NB: This is only a proof-of-concept how individual distance measures
