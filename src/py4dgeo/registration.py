@@ -20,16 +20,16 @@ def _fit_transform(A, B, reduction_point=None):
 
     assert A.shape == B.shape
 
+    # Apply the reduction_point if provided
+    if reduction_point is not None:
+        A = A - reduction_point
+        B = B - reduction_point
+
     # get number of dimensions
     m = A.shape[1]
 
     centroid_A = np.mean(A, axis=0)
     centroid_B = np.mean(B, axis=0)
-
-    # Apply the reduction_point if provided
-    if reduction_point is not None:
-        centroid_A -= reduction_point
-        centroid_B -= reduction_point
 
     AA = A - centroid_A
     BB = B - centroid_B
@@ -108,8 +108,8 @@ def iterative_closest_point(
         prev_error = mean_error
 
     return Transformation(
-        affine_transformation=_fit_transform(epoch.cloud, cloud),
-        reduction_point=reduction_point,
+        affine_transformation=_fit_transform(epoch.cloud, cloud, reduction_point=reduction_point),
+        reduction_point=reduction_point
     )
 
 
