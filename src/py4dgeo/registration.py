@@ -108,8 +108,10 @@ def iterative_closest_point(
         prev_error = mean_error
 
     return Transformation(
-        affine_transformation=_fit_transform(epoch.cloud, cloud, reduction_point=reduction_point),
-        reduction_point=reduction_point
+        affine_transformation=_fit_transform(
+            epoch.cloud, cloud, reduction_point=reduction_point
+        ),
+        reduction_point=reduction_point,
     )
 
 
