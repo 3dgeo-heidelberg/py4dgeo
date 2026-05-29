@@ -141,7 +141,6 @@ def fit_transform_GN_with_rp(src, dst, normals, reduction_point=None):
     return _py4dgeo.fit_transform_GN(src, dst, normals)
 
 
-
 def point_to_plane_icp(
     reference_epoch, epoch, max_iterations=50, tolerance=0.00001, reduction_point=None
 ):
@@ -199,7 +198,7 @@ def point_to_plane_icp(
             trans_epoch.cloud,
             reference_epoch.cloud[indices, :],
             reference_epoch.normals[indices, :],
-            reduction_point=reduction_point
+            reduction_point=reduction_point,
         )
         trans_epoch.transform(
             Transformation(affine_transformation=T, reduction_point=reduction_point)
@@ -216,9 +215,9 @@ def point_to_plane_icp(
             epoch.cloud,
             trans_epoch.cloud,
             trans_epoch.normals,
-            reduction_point=reduction_point
+            reduction_point=reduction_point,
         ),
-        reduction_point=reduction_point
+        reduction_point=reduction_point,
     )
 
 
