@@ -71,9 +71,7 @@ class SOR:
             # This should be fixed at a later stage
             for neighbor_order in range(2, n_neighbors + 2):
                 neighbor_arrays = np.asarray(
-                    self.epoch.kdtree.nearest_neighbors(
-                        cloud, neighbor_order
-                    )
+                    self.epoch.kdtree.nearest_neighbors(cloud, neighbor_order)
                 )
                 _, distances = np.split(neighbor_arrays, 2, axis=0)
                 distance_sum += np.sqrt(np.asarray(distances, dtype=float).reshape(-1))
