@@ -1,6 +1,9 @@
 import py4dgeo
 import numpy as np
 import os
+import pytest
+
+from py4dgeo.util import Py4DGeoError
 
 
 def test_read_segmented_epochs(epochs_segmented, pbm3c2_correspondences_file):
@@ -71,3 +74,44 @@ def test_compute_distances(epochs_segmented, pbm3c2_correspondences_file):
     )
 
     assert rez is not None
+
+
+def test_compute_distances_nearest_neighbor_without_training(epochs_segmented):
+    epoch0, epoch1 = epochs_segmented
+    apply_ids = np.arange(1, 31)
+
+    alg = py4dgeo.PBM3C2(registration_error=0.01)
+
+    rez = alg.run(
+        epoch0=epoch0,
+        epoch1=epoch1,
+        correspondences_file=None,
+        apply_ids=apply_ids,
+        search_radius=5.0,
+        correspondence_method="nearest_neighbor",
+    )
+
+    assert rez is not None
+    if not rez.empty:
+        for col in (
+            "epoch0_original_id",
+            "epoch1_original_id",
+            "epoch0_segment_id",
+            "epoch1_segment_id",
+            "distance",
+            "uncertainty",
+        ):
+            assert col in rez.columns
+
+
+def test_pbm3c2_invalid_correspondence_method_raises(epochs_segmented):
+    epoch0, epoch1 = epochs_segmented
+
+    with pytest.raises(Py4DGeoError):
+        py4dgeo.PBM3C2(registration_error=0.01).run(
+            epoch0=epoch0,
+            epoch1=epoch1,
+            correspondences_file=None,
+            apply_ids=np.array([1]),
+            correspondence_method="invalid",
+        )

@@ -18,6 +18,9 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autofunction:: py4dgeo.load_epoch
 
+.. autoclass:: py4dgeo.C2C
+    :members:
+
 .. autoclass:: py4dgeo.M3C2
     :members:
     :inherited-members:
@@ -50,6 +53,13 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autoclass:: py4dgeo.PBM3C2
     :members:
+
+.. autoclass:: py4dgeo.Vapc
+    :members:
+
+.. autofunction:: py4dgeo.enable_trace
+
+.. autofunction:: py4dgeo.enable_timeit
 
 Developer API reference
 -----------------------

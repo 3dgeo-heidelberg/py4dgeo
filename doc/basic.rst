@@ -5,6 +5,7 @@ In the following, you find a number of tutorials that demonstrate the basic capa
 
 .. toctree::
 
+    c2c
     m3c2
     customization
     registration

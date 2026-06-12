@@ -1,9 +1,10 @@
 from ast import List
+from py4dgeo.base import PairwiseEpochCorepointsBase
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.util import (
-    as_double_precision,
     MemoryPolicy,
     Py4DGeoError,
+    as_double_precision,
     make_contiguous,
     memory_policy_is_minimum,
 )
@@ -19,7 +20,7 @@ import _py4dgeo
 logger = logging.getLogger("py4dgeo")
 
 
-class M3C2LikeAlgorithm(abc.ABC):
+class M3C2LikeAlgorithm(PairwiseEpochCorepointsBase, abc.ABC):
     def __init__(
         self,
         epochs: typing.Optional[typing.Tuple[Epoch, ...]] = None,
@@ -30,38 +31,12 @@ class M3C2LikeAlgorithm(abc.ABC):
         registration_error: float = 0.0,
         robust_aggr: bool = False,
     ):
-        self.epochs = epochs
-        self.corepoints = corepoints
+        super().__init__(epochs=epochs, corepoints=corepoints)
         self.cyl_radii = cyl_radii
         self.cyl_radius = cyl_radius
         self.max_distance = max_distance
         self.registration_error = registration_error
         self.robust_aggr = robust_aggr
-
-    @property
-    def corepoints(self):
-        return self._corepoints
-
-    @corepoints.setter
-    def corepoints(self, _corepoints):
-        if _corepoints is None:
-            self._corepoints = None
-        else:
-            if len(_corepoints.shape) != 2 or _corepoints.shape[1] != 3:
-                raise Py4DGeoError(
-                    "Corepoints need to be given as an array of shape nx3"
-                )
-            self._corepoints = as_double_precision(make_contiguous(_corepoints))
-
-    @property
-    def epochs(self):
-        return self._epochs
-
-    @epochs.setter
-    def epochs(self, _epochs):
-        if _epochs is not None and len(_epochs) != 2:
-            raise Py4DGeoError("Exactly two epochs need to be given!")
-        self._epochs = _epochs
 
     @property
     def name(self):
