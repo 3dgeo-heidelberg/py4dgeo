@@ -12,6 +12,5 @@ pandoc
 pre-commit
 pytest
 pytest-cov
-ruptures @ git+https://github.com/deepcharles/ruptures.git@master
 sphinx
 sphinx_rtd_theme
