@@ -14,6 +14,7 @@ from py4dgeo.epoch import Epoch
 from functools import wraps
 import time
 import psutil
+import warnings
 
 DECORATOR_CONFIG = {"trace": True, "timeit": True}
 
@@ -86,12 +87,24 @@ try:
     NUMBA_AVAILABLE = True
     prange = numba.prange  # safe alias
 except Exception:
-    print("Numba is not installed.")
-    print(
-        "Use `pip install numba` to install it to enable faster computations in Vapc."
-    )
-    print("You can run py4dgeo.Vapc without Numba, but it may be slower.")
     NUMBA_AVAILABLE = False
+
+
+_WARNED_NUMBA_MISSING = False
+
+
+def _warn_numba_missing_once():
+    global _WARNED_NUMBA_MISSING
+    if not NUMBA_AVAILABLE and not _WARNED_NUMBA_MISSING:
+        with warnings.catch_warnings():
+            warnings.simplefilter("default", UserWarning)
+            warnings.warn(
+                "Numba is not installed. Vapc uses slower NumPy fallbacks.",
+                UserWarning,
+                stacklevel=2,
+            )
+        _WARNED_NUMBA_MISSING = True
+
 
 if NUMBA_AVAILABLE:
 
@@ -159,6 +172,7 @@ else:
         :return:
             Indices into ``d2`` of the minimum value per group.
         """
+        _warn_numba_missing_once()
         inverse = np.asarray(inverse, dtype=np.int64)
         d2 = np.asarray(d2)
         # sort by group, then by value
