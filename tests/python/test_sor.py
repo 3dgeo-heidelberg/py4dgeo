@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 import py4dgeo
-from py4dgeo.sor import SOR
 
 cKDTree = pytest.importorskip("scipy.spatial").cKDTree
 
@@ -25,7 +24,7 @@ def _scipy_sor_reference(cloud, k, std_dev_multiplier):
 
 
 def test_sor_matches_scipy_reference():
-    # Compare SOR against the scipy implementation to validate neighbor distances, thresholding, and stored threshold.
+    # Compare SOR against the scipy implementation to validate neighbor distances and thresholding.
     cloud = np.array(
         [
             [0.0, 0.0, 0.0],
@@ -36,16 +35,15 @@ def test_sor_matches_scipy_reference():
     )
     epoch = py4dgeo.Epoch(cloud)
 
-    sor = SOR(epoch, k=2, std_dev_multiplier=1.0)
-    filtered_epoch, flags, mean_distances = sor.run()
-    expected_flags, expected_mean_distances, expected_threshold = _scipy_sor_reference(
+    result = py4dgeo.statistical_outlier_removal(epoch, k=2, std_dev_multiplier=1.0)
+    expected_flags, _, _ = _scipy_sor_reference(
         cloud, k=2, std_dev_multiplier=1.0
     )
+    filtered_epoch, flags = result
 
+    assert len(result) == 2
     assert filtered_epoch is epoch
     assert np.array_equal(flags, expected_flags)
-    assert np.allclose(mean_distances, expected_mean_distances)
-    assert np.isclose(sor.threshold, expected_threshold)
 
 
 def test_sor_remove_points_preserves_aligned_point_data():
@@ -68,12 +66,10 @@ def test_sor_remove_points_preserves_aligned_point_data():
         timestamp="2020-01-01",
     )
 
-    filtered_epoch, flags, mean_distances = SOR(
+    filtered_epoch, flags = py4dgeo.statistical_outlier_removal(
         epoch, k=1, std_dev_multiplier=1.0, remove_points=True
-    ).run()
-    expected_flags, expected_mean_distances, _ = _scipy_sor_reference(
-        cloud, k=1, std_dev_multiplier=1.0
     )
+    expected_flags, _, _ = _scipy_sor_reference(cloud, k=1, std_dev_multiplier=1.0)
     mask = expected_flags == 0
 
     assert np.allclose(filtered_epoch.cloud, cloud[mask])
@@ -81,7 +77,6 @@ def test_sor_remove_points_preserves_aligned_point_data():
     assert np.array_equal(filtered_epoch.additional_dimensions, extra[mask])
     assert str(filtered_epoch.timestamp) == "2020-01-01 00:00:00"
     assert np.array_equal(flags, expected_flags[mask])
-    assert np.allclose(mean_distances, expected_mean_distances[mask])
 
 
 def test_sor_rejects_invalid_k():
@@ -89,4 +84,4 @@ def test_sor_rejects_invalid_k():
     epoch = py4dgeo.Epoch(np.array([[0.0, 0.0, 0.0]]))
 
     with pytest.raises(ValueError, match="k >= 1"):
-        SOR(epoch, k=0)
+        py4dgeo.statistical_outlier_removal(epoch, k=0)
