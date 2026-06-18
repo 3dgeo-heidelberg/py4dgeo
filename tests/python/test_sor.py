@@ -36,9 +36,7 @@ def test_sor_matches_scipy_reference():
     epoch = py4dgeo.Epoch(cloud)
 
     result = py4dgeo.statistical_outlier_removal(epoch, k=2, std_dev_multiplier=1.0)
-    expected_flags, _, _ = _scipy_sor_reference(
-        cloud, k=2, std_dev_multiplier=1.0
-    )
+    expected_flags, _, _ = _scipy_sor_reference(cloud, k=2, std_dev_multiplier=1.0)
     filtered_epoch, flags = result
 
     assert len(result) == 2
