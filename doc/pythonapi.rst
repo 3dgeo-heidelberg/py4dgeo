@@ -21,6 +21,8 @@ It focuses on those aspects relevant to end users that are not interested in alg
 .. autoclass:: py4dgeo.C2C
     :members:
 
+.. autofunction:: py4dgeo.statistical_outlier_removal
+
 .. autoclass:: py4dgeo.M3C2
     :members:
     :inherited-members:
