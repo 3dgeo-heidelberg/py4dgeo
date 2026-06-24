@@ -20,16 +20,16 @@ def _fit_transform(A, B, reduction_point=None):
 
     assert A.shape == B.shape
 
+    # Apply the reduction_point if provided
+    if reduction_point is not None:
+        A = A - reduction_point
+        B = B - reduction_point
+
     # get number of dimensions
     m = A.shape[1]
 
     centroid_A = np.mean(A, axis=0)
     centroid_B = np.mean(B, axis=0)
-
-    # Apply the reduction_point if provided
-    if reduction_point is not None:
-        centroid_A -= reduction_point
-        centroid_B -= reduction_point
 
     AA = A - centroid_A
     BB = B - centroid_B
@@ -108,9 +108,39 @@ def iterative_closest_point(
         prev_error = mean_error
 
     return Transformation(
-        affine_transformation=_fit_transform(epoch.cloud, cloud),
+        affine_transformation=_fit_transform(
+            epoch.cloud, cloud, reduction_point=reduction_point
+        ),
         reduction_point=reduction_point,
     )
+
+
+def fit_transform_GN_with_rp(src, dst, normals, reduction_point=None):
+    """
+    Wrapper around _py4dgeo.fit_transform_GN that applies a reduction point
+
+    Parameters
+    ----------
+    src : np.ndarray (N, 3)
+        Source point cloud
+    dst : np.ndarray (N, 3)
+        Target point cloud (corresponding points!)
+    normals : np.ndarray (N, 3)
+        Normals at target points
+    reduction_point : np.ndarray (3,), optional
+        Shift applied before estimation to improve numerical stability
+
+    Returns
+    -------
+    T : np.ndarray (4, 4)
+        Homogeneous transformation matrix
+    """
+
+    if reduction_point is not None:
+        src = src - reduction_point
+        dst = dst - reduction_point
+
+    return _py4dgeo.fit_transform_GN(src, dst, normals)
 
 
 def point_to_plane_icp(
@@ -166,10 +196,11 @@ def point_to_plane_icp(
         distances = np.squeeze(distances)
 
         # Calculate a transform and apply it
-        T = _py4dgeo.fit_transform_GN(
+        T = fit_transform_GN_with_rp(
             trans_epoch.cloud,
             reference_epoch.cloud[indices, :],
             reference_epoch.normals[indices, :],
+            reduction_point=reduction_point,
         )
         trans_epoch.transform(
             Transformation(affine_transformation=T, reduction_point=reduction_point)
@@ -182,10 +213,11 @@ def point_to_plane_icp(
         prev_error = mean_error
 
     return Transformation(
-        affine_transformation=_py4dgeo.fit_transform_GN(
+        affine_transformation=fit_transform_GN_with_rp(
             epoch.cloud,
             trans_epoch.cloud,
             trans_epoch.normals,
+            reduction_point=reduction_point,
         ),
         reduction_point=reduction_point,
     )
