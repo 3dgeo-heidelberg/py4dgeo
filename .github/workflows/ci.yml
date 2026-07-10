@@ -21,7 +21,7 @@ jobs:
         with:
           name: py4dgeo
           dois:
-            10.5281/zenodo.18378272/
+            10.5281/zenodo.18432391/
           filename-whitelist: |
             usage_data.zip
             synthetic.zip
