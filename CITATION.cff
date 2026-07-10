@@ -1,5 +1,5 @@
 cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
+message: "If you use this software, please cite both the article from preferred-citation and the software itself."
 authors:
   - family-names: Höfle
     given-names: Bernhard
@@ -28,9 +28,65 @@ authors:
   - family-names: Weiser
     given-names: Hannah
     orcid: "https://orcid.org/0000-0003-3256-7311"
-
 title: "py4dgeo: library for change analysis in 4D point clouds."
 version: 1.2.0
 date-released: 2026-06-24
 license: ["MIT"]
 repository-code: "https://github.com/3dgeo-heidelberg/py4dgeo"
+preferred-citation:
+  authors:
+    - family-names: Anders
+      given-names: Katharina
+      orcid: "https://orcid.org/0000-0001-5698-7041"
+
+    - family-names: Kempf
+      given-names: Dominic
+      orcid: "https://orcid.org/0000-0002-6140-2332"
+
+    - family-names: William
+      given-names: Albert
+      orcid: "https://orcid.org/0009-0007-6019-4336"
+
+    - family-names: Petr
+      given-names: Andriushchenko
+      orcid: "https://orcid.org/0000-0002-4518-6588"
+
+    - family-names: Huang
+      given-names: Xiaoyu
+      orcid: "https://orcid.org/0009-0007-8493-7659"
+
+    - family-names: Daan
+      given-names: Hulskemper
+      orcid: "https://orcid.org/0009-0006-0949-5726"
+
+    - family-names: Isensee
+      given-names: Thomas
+      orcid: "https://orcid.org/0000-0002-7242-4529"
+
+    - family-names: Dimitrii
+      given-names: Kapitan
+
+    - family-names: Tabernig
+      given-names: Ronald
+      orcid: "https://orcid.org/0009-0002-3700-899X"
+
+    - family-names: Weiser
+      given-names: Hannah
+      orcid: "https://orcid.org/0000-0003-3256-7311"
+
+    - family-names: Lukas
+      given-names: Winiwarter
+      orcid: "https://orcid.org/0000-0001-8229-1160"
+
+    - family-names: Vivien
+      given-names: Zahs
+      orcid: "https://orcid.org/0000-0001-8200-1661"
+
+    - family-names: Höfle
+      given-names: Bernhard
+      orcid: "https://orcid.org/0000-0001-5849-1461"
+  doi: 10.1016/j.softx.2026.102670
+  journal: "SoftwareX"
+  title: "py4dgeo: Open-source scientific software for topographic change analysis in 3D/4D geographic point clouds"
+  type: article
+  date-released: "2026-04-25"
