@@ -52,7 +52,9 @@ def download_test_data(path=None, filename=None):
 
     # Decide which files to download, defaulting to all
     files_to_download = (
-        [filename] if filename else ["usage_data.zip", "synthetic.zip", "pbm3c2.zip"]
+        [filename]
+        if filename
+        else ["usage_data.zip", "synthetic.zip", "pbm3c2.zip", "trier_sim.zip"]
     )
 
     # Download the files
