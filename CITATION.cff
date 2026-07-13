@@ -86,7 +86,18 @@ preferred-citation:
       given-names: Bernhard
       orcid: "https://orcid.org/0000-0001-5849-1461"
   doi: 10.1016/j.softx.2026.102670
+  issn: "2352-7110"
   journal: "SoftwareX"
+  keywords:
+    - "Python library"
+    - "Change detection"
+    - "Spatiotemporal analysis"
+    - "Topographic time series"
+    - "Geospatial software"
+    - "M3C2 algorithm"
+    - "Point cloud registration"
+  pages: 102670
   title: "py4dgeo: Open-source scientific software for topographic change analysis in 3D/4D geographic point clouds"
   type: article
-  date-released: "2026-04-25"
+  volume: 34
+  year: 2026
