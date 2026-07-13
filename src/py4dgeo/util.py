@@ -16,7 +16,7 @@ from importlib import metadata
 import _py4dgeo
 
 # The current data archive URL
-TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.18378272/"
+TEST_DATA_ARCHIVE = "doi:10.5281/zenodo.18432391/"
 PY4DGEO_REQUEST_HEADERS = {
     "User-Agent": "py4dgeo (https://github.com/3dgeo-heidelberg/py4dgeo)"
 }
@@ -52,7 +52,9 @@ def download_test_data(path=None, filename=None):
 
     # Decide which files to download, defaulting to all
     files_to_download = (
-        [filename] if filename else ["usage_data.zip", "synthetic.zip", "pbm3c2.zip"]
+        [filename]
+        if filename
+        else ["usage_data.zip", "synthetic.zip", "pbm3c2.zip", "trier_sim.zip"]
     )
 
     # Download the files
