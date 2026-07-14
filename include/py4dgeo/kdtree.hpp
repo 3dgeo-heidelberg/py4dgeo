@@ -56,6 +56,7 @@ private:
   struct NoDistancesReturnSet
   {
     using DistanceType = double;
+    using IndexType = py4dgeo::IndexType;
 
     double radius;
     RadiusSearchResult& indices;
@@ -100,6 +101,7 @@ private:
   struct WithDistancesReturnSet
   {
     using DistanceType = double;
+    using IndexType = py4dgeo::IndexType;
 
     double radius;
     RadiusSearchDistanceResult& result;
