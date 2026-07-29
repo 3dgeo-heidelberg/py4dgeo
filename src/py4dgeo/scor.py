@@ -81,9 +81,19 @@ def _sorted_angular_bins(
     """Group points by angular bin and return the sorted representation."""
     bin_ids = (phi_indices - phi_min) * theta_span + theta_indices - theta_min
     order = np.argsort(bin_ids)
-    unique_bins, starts, counts = np.unique(
-        bin_ids[order], return_index=True, return_counts=True
-    )
+    sorted_bin_ids = bin_ids[order]
+
+    # The bin IDs are already sorted, so group boundaries can be found by
+    # comparing adjacent IDs. This avoids sorting the same IDs again inside
+    # np.unique.
+    boundaries = np.empty(sorted_bin_ids.size, dtype=bool)
+    if sorted_bin_ids.size:
+        boundaries[0] = True
+        boundaries[1:] = sorted_bin_ids[1:] != sorted_bin_ids[:-1]
+    starts = np.flatnonzero(boundaries)
+    unique_bins = sorted_bin_ids[starts]
+    counts = np.diff(np.append(starts, sorted_bin_ids.size))
+
     return (
         order.astype(np.int64, copy=False),
         unique_bins.astype(np.int64, copy=False),
@@ -108,7 +118,18 @@ def _neighbor_matrices(
     targets = search_bin_ids[:, None] + offset_ids
     positions = np.searchsorted(candidate_bin_ids, targets)
 
-    valid = positions < candidate_bin_ids.size
+    # A flattened ID alone would allow vertical offsets to wrap from the top
+    # of one phi column to the bottom of the next. Check the target theta
+    # coordinate in the original 2D grid before accepting an ID match.
+    theta_offsets = np.array(
+        [theta for _, theta in offsets], dtype=np.int64
+    )
+    target_theta = search_bin_ids[:, None] % theta_span + theta_offsets
+    valid = (
+        (target_theta >= 0)
+        & (target_theta < theta_span)
+        & (positions < candidate_bin_ids.size)
+    )
     matches = np.zeros_like(valid)
     matches[valid] = candidate_bin_ids[positions[valid]] == targets[valid]
 
@@ -434,8 +455,8 @@ def scan_outlier_ratio(
     offset_distances = np.sqrt(
         np.array([phi**2 + theta**2 for phi, theta in offsets], dtype=np.float64)
     )
-    angle = np.deg2rad(abs(float(scan_resolution)) * abs(np.ceil(float(increment))))
-    expected_distances = search_ranges * np.tan(angle) * offset_distances.mean()
+    offset_angles = np.deg2rad(float(scan_resolution)) * offset_distances
+    expected_distances = search_ranges * np.tan(offset_angles).mean()
 
     # Retrieve the 3D coordinates in the selected angular cells and average
     # their observed Euclidean distances to each search point.
