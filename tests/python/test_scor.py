@@ -1,6 +1,8 @@
 import numpy as np
+import pytest
 
 import py4dgeo
+from py4dgeo.util import Py4DGeoError
 
 
 def _point_from_angles(distance, azimuth, elevation):
@@ -128,3 +130,46 @@ def test_scor_does_not_wrap_angular_grid_boundaries():
 
     assert observed[0] == 99999.0
     assert values[0] < 0.01
+
+
+def test_scor_rejects_empty_search_epoch():
+    epoch = py4dgeo.Epoch(np.empty((0, 3)))
+
+    with pytest.raises(Py4DGeoError, match="must not be empty"):
+        py4dgeo.scan_outlier_ratio(epoch)
+
+
+def test_scor_uses_search_epoch_for_empty_candidate_list():
+    epoch = py4dgeo.Epoch(
+        np.array(
+            [
+                _point_from_angles(10.0, 0.0, 0.0),
+                _point_from_angles(10.0, 1.0, 0.0),
+            ]
+        )
+    )
+
+    default = py4dgeo.scan_outlier_ratio(epoch, scan_resolution=1.0)
+    empty = py4dgeo.scan_outlier_ratio(epoch, [], scan_resolution=1.0)
+
+    for default_array, empty_array in zip(default, empty):
+        assert np.allclose(default_array, empty_array)
+
+
+def test_scor_rejects_invalid_scan_position():
+    epoch = py4dgeo.Epoch(np.array([[1.0, 0.0, 0.0]]))
+
+    with pytest.raises(Py4DGeoError, match="three finite values"):
+        py4dgeo.scan_outlier_ratio(epoch, scan_position=(0.0, 0.0))
+
+    with pytest.raises(Py4DGeoError, match="three finite values"):
+        py4dgeo.scan_outlier_ratio(
+            epoch, scan_position=(0.0, np.nan, 0.0)
+        )
+
+
+def test_scor_rejects_non_finite_coordinates():
+    epoch = py4dgeo.Epoch(np.array([[np.nan, 0.0, 0.0]]))
+
+    with pytest.raises(Py4DGeoError, match="finite values"):
+        py4dgeo.scan_outlier_ratio(epoch)

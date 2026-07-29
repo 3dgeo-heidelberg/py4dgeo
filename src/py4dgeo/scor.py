@@ -13,6 +13,19 @@ except ImportError:
     numba = None
 
 
+def _validated_epoch_points(epoch: Epoch, name: str) -> np.ndarray:
+    """Return finite ``(n, 3)`` point coordinates from an epoch."""
+    if not isinstance(epoch, Epoch):
+        raise Py4DGeoError(f"{name} must be a py4dgeo.Epoch.")
+
+    points = np.asarray(epoch.cloud, dtype=np.float64)
+    if points.ndim != 2 or points.shape[1] != 3:
+        raise Py4DGeoError(f"{name} coordinates must have shape (n, 3).")
+    if not np.all(np.isfinite(points)):
+        raise Py4DGeoError(f"{name} coordinates must contain only finite values.")
+    return points
+
+
 def _spherical_coordinates(
     points: np.ndarray, scan_position: Sequence[float]
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -305,7 +318,8 @@ def scan_outlier_ratio(
         Epoch or epochs supplying the angular-neighborhood candidates. Multiple
         epochs can be used to construct a multi-temporal neighborhood, provided
         that they were acquired from the same scan position. If omitted,
-        ``search_point_epoch`` is used for both search points and candidates.
+        or if an empty sequence is supplied, ``search_point_epoch`` is used for
+        both search points and candidates.
     scan_position : sequence of float, default=(0.0, 0.0, 0.0)
         Cartesian scanner position ``(x, y, z)`` in the same coordinate system
         and unit as the point clouds.
@@ -332,8 +346,10 @@ def scan_outlier_ratio(
     Raises
     ------
     py4dgeo.util.Py4DGeoError
-        If ``scan_resolution`` is not positive or ``increment`` is neither
-        ``0.5`` nor a positive integer.
+        If the search epoch is empty, point coordinates are not finite or do
+        not have shape ``(n, 3)``, ``scan_position`` does not contain exactly
+        three finite values, ``scan_resolution`` is not positive, or
+        ``increment`` is neither ``0.5`` nor a positive integer.
 
     Notes
     -----
@@ -345,13 +361,40 @@ def scan_outlier_ratio(
     # Use the search epoch itself for a single-epoch ScOR analysis. Supplying
     # other epochs instead creates the multi-temporal neighborhood described
     # in Section 3.3 of the paper.
-    search_points = np.asarray(search_point_epoch.cloud, dtype=np.float64)
+    search_points = _validated_epoch_points(
+        search_point_epoch, "search_point_epoch"
+    )
+    if search_points.shape[0] == 0:
+        raise Py4DGeoError("search_point_epoch must not be empty.")
+
+    try:
+        scan_position = np.asarray(scan_position, dtype=np.float64)
+    except (TypeError, ValueError) as error:
+        raise Py4DGeoError(
+            "scan_position must contain exactly three finite values."
+        ) from error
+    if scan_position.shape != (3,) or not np.all(np.isfinite(scan_position)):
+        raise Py4DGeoError(
+            "scan_position must contain exactly three finite values."
+        )
+
     if neighborhood_candidate_epochs is None:
         candidate_epochs = (search_point_epoch,)
     elif isinstance(neighborhood_candidate_epochs, Epoch):
         candidate_epochs = (neighborhood_candidate_epochs,)
     else:
         candidate_epochs = tuple(neighborhood_candidate_epochs)
+        if not candidate_epochs:
+            candidate_epochs = (search_point_epoch,)
+
+    candidate_clouds = [
+        _validated_epoch_points(epoch, "neighborhood candidate epoch")
+        for epoch in candidate_epochs
+    ]
+    if not any(points.shape[0] for points in candidate_clouds):
+        raise Py4DGeoError(
+            "neighborhood candidate epochs must contain at least one point."
+        )
 
     # In the standard single-epoch case, search points and neighborhood
     # candidates are identical. Scanner coordinates, angular bins, and 
@@ -361,10 +404,10 @@ def scan_outlier_ratio(
     )
     if candidates_are_search_points:
         candidate_points = search_points
+    elif len(candidate_clouds) == 1:
+        candidate_points = candidate_clouds[0]
     else:
-        candidate_points = np.concatenate(
-            [epoch.cloud for epoch in candidate_epochs]
-        )
+        candidate_points = np.concatenate(candidate_clouds)
 
     # Express every point in the scanner-centered spherical coordinate system.
     # The range is required for the expected object-space point spacing, while
