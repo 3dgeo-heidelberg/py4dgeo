@@ -226,7 +226,19 @@ def scan_outlier_ratio(
         candidate_epochs = (neighborhood_candidate_epochs,)
     else:
         candidate_epochs = tuple(neighborhood_candidate_epochs)
-    candidate_points = np.concatenate([epoch.cloud for epoch in candidate_epochs])
+
+    # In the standard single-epoch case, search points and neighborhood
+    # candidates are identical. Scanner coordinates, angular bins, and 
+    # grouped representation can be reused below.
+    candidates_are_search_points = (
+        len(candidate_epochs) == 1 and candidate_epochs[0] is search_point_epoch
+    )
+    if candidates_are_search_points:
+        candidate_points = search_points
+    else:
+        candidate_points = np.concatenate(
+            [epoch.cloud for epoch in candidate_epochs]
+        )
 
     # Express every point in the scanner-centered spherical coordinate system.
     # The range is required for the expected object-space point spacing, while
@@ -234,9 +246,13 @@ def scan_outlier_ratio(
     search_ranges, search_theta, search_phi = _spherical_coordinates(
         search_points, scan_position
     )
-    _, candidate_theta, candidate_phi = _spherical_coordinates(
-        candidate_points, scan_position
-    )
+    if candidates_are_search_points:
+        candidate_theta = search_theta
+        candidate_phi = search_phi
+    else:
+        _, candidate_theta, candidate_phi = _spherical_coordinates(
+            candidate_points, scan_position
+        )
 
     # Divide both scan angles by the angular resolution and round them to the
     # nearest integer, reproducing the discrete scan-grid indices from
@@ -244,9 +260,13 @@ def scan_outlier_ratio(
     search_phi, search_theta = _angular_bins(
         search_phi, search_theta, scan_resolution
     )
-    candidate_phi, candidate_theta = _angular_bins(
-        candidate_phi, candidate_theta, scan_resolution
-    )
+    if candidates_are_search_points:
+        candidate_phi = search_phi
+        candidate_theta = search_theta
+    else:
+        candidate_phi, candidate_theta = _angular_bins(
+            candidate_phi, candidate_theta, scan_resolution
+        )
 
     # Treat the angular bins as a 2D grid, with phi as the horizontal
     # axis and theta as the vertical axis. Define a shared grid origin
@@ -269,8 +289,19 @@ def scan_outlier_ratio(
             theta_span,
         )
     )
-    _, candidate_bins, candidate_starts, candidate_counts, sorted_candidates = (
-        _sorted_angular_bins(
+    if candidates_are_search_points:
+        candidate_bins = search_bins
+        candidate_starts = search_starts
+        candidate_counts = search_counts
+        sorted_candidates = sorted_search
+    else:
+        (
+            _,
+            candidate_bins,
+            candidate_starts,
+            candidate_counts,
+            sorted_candidates,
+        ) = _sorted_angular_bins(
             candidate_points,
             candidate_phi,
             candidate_theta,
@@ -278,7 +309,6 @@ def scan_outlier_ratio(
             theta_min,
             theta_span,
         )
-    )
 
     # Construct each point's neighborhood in the angular scan domain. The
     # default consists of the immediate cells above, below, left, and right;
