@@ -7,6 +7,11 @@ import numpy as np
 from py4dgeo.epoch import Epoch
 from py4dgeo.util import Py4DGeoError
 
+try:
+    import numba
+except ImportError:
+    numba = None
+
 
 def _spherical_coordinates(
     points: np.ndarray, scan_position: Sequence[float]
@@ -114,7 +119,7 @@ def _neighbor_matrices(
     return starts, counts
 
 
-def _observed_distances(
+def _observed_distances_numpy(
     search_points: np.ndarray,
     search_order: np.ndarray,
     search_bin_starts: np.ndarray,
@@ -154,6 +159,106 @@ def _observed_distances(
             observed[search_indices] = distance_sum / neighbor_total
 
     return observed
+
+
+if numba is not None:
+
+    @numba.njit(parallel=True, cache=True)
+    def _observed_distances_numba(
+        search_points: np.ndarray,
+        search_order: np.ndarray,
+        search_bin_starts: np.ndarray,
+        search_bin_counts: np.ndarray,
+        candidate_points: np.ndarray,
+        neighbor_starts: np.ndarray,
+        neighbor_counts: np.ndarray,
+    ) -> np.ndarray:
+        """Compiled observed-distance calculation."""
+        observed = np.full(search_points.shape[0], 99999.0, dtype=np.float64)
+
+        # Angular bins are independent and can therefore be processed safely
+        # in parallel. Each iteration writes to different search-point indices.
+        for bin_index in numba.prange(search_bin_starts.shape[0]):
+            search_start = search_bin_starts[bin_index]
+            search_count = search_bin_counts[bin_index]
+
+            for local_index in range(search_count):
+                sorted_search_index = search_start + local_index
+                original_search_index = search_order[sorted_search_index]
+                search_x = search_points[sorted_search_index, 0]
+                search_y = search_points[sorted_search_index, 1]
+                search_z = search_points[sorted_search_index, 2]
+                distance_sum = 0.0
+                neighbor_total = 0
+
+                for offset_index in range(neighbor_starts.shape[1]):
+                    candidate_count = neighbor_counts[
+                        bin_index, offset_index
+                    ]
+                    if candidate_count == 0:
+                        continue
+
+                    candidate_start = neighbor_starts[
+                        bin_index, offset_index
+                    ]
+                    for candidate_index in range(
+                        candidate_start, candidate_start + candidate_count
+                    ):
+                        dx = (
+                            candidate_points[candidate_index, 0] - search_x
+                        )
+                        dy = (
+                            candidate_points[candidate_index, 1] - search_y
+                        )
+                        dz = (
+                            candidate_points[candidate_index, 2] - search_z
+                        )
+                        distance_sum += np.sqrt(
+                            dx * dx + dy * dy + dz * dz
+                        )
+                    neighbor_total += candidate_count
+
+                if neighbor_total > 0:
+                    observed[original_search_index] = (
+                        distance_sum / neighbor_total
+                    )
+
+        return observed
+
+else:
+    _observed_distances_numba = None
+
+
+def _observed_distances(
+    search_points: np.ndarray,
+    search_order: np.ndarray,
+    search_bin_starts: np.ndarray,
+    search_bin_counts: np.ndarray,
+    candidate_points: np.ndarray,
+    neighbor_starts: np.ndarray,
+    neighbor_counts: np.ndarray,
+) -> np.ndarray:
+    """Calculate observed distances with Numba when it is available."""
+    if _observed_distances_numba is not None:
+        return _observed_distances_numba(
+            search_points,
+            search_order,
+            search_bin_starts,
+            search_bin_counts,
+            candidate_points,
+            neighbor_starts,
+            neighbor_counts,
+        )
+
+    return _observed_distances_numpy(
+        search_points,
+        search_order,
+        search_bin_starts,
+        search_bin_counts,
+        candidate_points,
+        neighbor_starts,
+        neighbor_counts,
+    )
 
 
 def scan_outlier_ratio(
