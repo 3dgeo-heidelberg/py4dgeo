@@ -35,9 +35,7 @@ def test_scor_returns_expected_values():
     )
 
     expected_distance = 10.0 * np.tan(np.deg2rad(1.0))
-    observed_distance = np.linalg.norm(
-        neighbor_points - search_point[0], axis=1
-    ).mean()
+    observed_distance = np.linalg.norm(neighbor_points - search_point[0], axis=1).mean()
 
     assert np.allclose(expected, [expected_distance])
     assert np.allclose(observed, [observed_distance])
@@ -46,9 +44,7 @@ def test_scor_returns_expected_values():
 
 def test_scor_accepts_multiple_candidate_epochs():
     # Candidate points from several epochs form one shared neighborhood.
-    search_epoch = py4dgeo.Epoch(
-        np.array([_point_from_angles(10.0, 0.0, 0.0)])
-    )
+    search_epoch = py4dgeo.Epoch(np.array([_point_from_angles(10.0, 0.0, 0.0)]))
     first_epoch = py4dgeo.Epoch(
         np.array(
             [
@@ -83,12 +79,8 @@ def test_scor_accepts_multiple_candidate_epochs():
 
 def test_scor_expected_distance_for_larger_increment():
     # Every cell in a larger window contributes its own angular distance.
-    search_epoch = py4dgeo.Epoch(
-        np.array([_point_from_angles(10.0, 0.0, 0.0)])
-    )
-    candidate_epoch = py4dgeo.Epoch(
-        np.array([_point_from_angles(10.0, 1.0, 0.0)])
-    )
+    search_epoch = py4dgeo.Epoch(np.array([_point_from_angles(10.0, 0.0, 0.0)]))
+    candidate_epoch = py4dgeo.Epoch(np.array([_point_from_angles(10.0, 1.0, 0.0)]))
 
     _, expected, _ = py4dgeo.scan_outlier_ratio(
         search_epoch,
@@ -103,24 +95,16 @@ def test_scor_expected_distance_for_larger_increment():
         for theta in range(-2, 3)
         if phi != 0 or theta != 0
     ]
-    offset_distances = np.array(
-        [np.hypot(phi, theta) for phi, theta in offsets]
-    )
-    expected_distance = 10.0 * np.tan(
-        np.deg2rad(offset_distances)
-    ).mean()
+    offset_distances = np.array([np.hypot(phi, theta) for phi, theta in offsets])
+    expected_distance = 10.0 * np.tan(np.deg2rad(offset_distances)).mean()
 
     assert np.allclose(expected, [expected_distance])
 
 
 def test_scor_does_not_wrap_angular_grid_boundaries():
     # These points occupy diagonally adjacent bins, not vertical neighbors.
-    search_epoch = py4dgeo.Epoch(
-        np.array([_point_from_angles(10.0, 0.0, 1.0)])
-    )
-    candidate_epoch = py4dgeo.Epoch(
-        np.array([_point_from_angles(10.0, 1.0, 0.0)])
-    )
+    search_epoch = py4dgeo.Epoch(np.array([_point_from_angles(10.0, 0.0, 1.0)]))
+    candidate_epoch = py4dgeo.Epoch(np.array([_point_from_angles(10.0, 1.0, 0.0)]))
 
     values, _, observed = py4dgeo.scan_outlier_ratio(
         search_epoch,
@@ -163,9 +147,7 @@ def test_scor_rejects_invalid_scan_position():
         py4dgeo.scan_outlier_ratio(epoch, scan_position=(0.0, 0.0))
 
     with pytest.raises(Py4DGeoError, match="three finite values"):
-        py4dgeo.scan_outlier_ratio(
-            epoch, scan_position=(0.0, np.nan, 0.0)
-        )
+        py4dgeo.scan_outlier_ratio(epoch, scan_position=(0.0, np.nan, 0.0))
 
 
 def test_scor_rejects_non_finite_coordinates():

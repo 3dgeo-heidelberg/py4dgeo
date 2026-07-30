@@ -45,9 +45,7 @@ def _angular_bins(
     if scan_resolution <= 0:
         raise Py4DGeoError("scan_resolution must be > 0 degrees.")
     azimuth_bins = np.rint(np.rad2deg(azimuth) / scan_resolution).astype(np.int64)
-    elevation_bins = np.rint(np.rad2deg(elevation) / scan_resolution).astype(
-        np.int64
-    )
+    elevation_bins = np.rint(np.rad2deg(elevation) / scan_resolution).astype(np.int64)
     return azimuth_bins, elevation_bins
 
 
@@ -134,9 +132,7 @@ def _neighbor_matrices(
     # A flattened ID alone would allow vertical offsets to wrap from the top
     # of one phi column to the bottom of the next. Check the target theta
     # coordinate in the original 2D grid before accepting an ID match.
-    theta_offsets = np.array(
-        [theta for _, theta in offsets], dtype=np.int64
-    )
+    theta_offsets = np.array([theta for _, theta in offsets], dtype=np.int64)
     target_theta = search_bin_ids[:, None] % theta_span + theta_offsets
     valid = (
         (target_theta >= 0)
@@ -226,36 +222,22 @@ if numba is not None:
                 neighbor_total = 0
 
                 for offset_index in range(neighbor_starts.shape[1]):
-                    candidate_count = neighbor_counts[
-                        bin_index, offset_index
-                    ]
+                    candidate_count = neighbor_counts[bin_index, offset_index]
                     if candidate_count == 0:
                         continue
 
-                    candidate_start = neighbor_starts[
-                        bin_index, offset_index
-                    ]
+                    candidate_start = neighbor_starts[bin_index, offset_index]
                     for candidate_index in range(
                         candidate_start, candidate_start + candidate_count
                     ):
-                        dx = (
-                            candidate_points[candidate_index, 0] - search_x
-                        )
-                        dy = (
-                            candidate_points[candidate_index, 1] - search_y
-                        )
-                        dz = (
-                            candidate_points[candidate_index, 2] - search_z
-                        )
-                        distance_sum += np.sqrt(
-                            dx * dx + dy * dy + dz * dz
-                        )
+                        dx = candidate_points[candidate_index, 0] - search_x
+                        dy = candidate_points[candidate_index, 1] - search_y
+                        dz = candidate_points[candidate_index, 2] - search_z
+                        distance_sum += np.sqrt(dx * dx + dy * dy + dz * dz)
                     neighbor_total += candidate_count
 
                 if neighbor_total > 0:
-                    observed[original_search_index] = (
-                        distance_sum / neighbor_total
-                    )
+                    observed[original_search_index] = distance_sum / neighbor_total
 
         return observed
 
@@ -361,9 +343,7 @@ def scan_outlier_ratio(
     # Use the search epoch itself for a single-epoch ScOR analysis. Supplying
     # other epochs instead creates the multi-temporal neighborhood described
     # in Section 3.3 of the paper.
-    search_points = _validated_epoch_points(
-        search_point_epoch, "search_point_epoch"
-    )
+    search_points = _validated_epoch_points(search_point_epoch, "search_point_epoch")
     if search_points.shape[0] == 0:
         raise Py4DGeoError("search_point_epoch must not be empty.")
 
@@ -374,9 +354,7 @@ def scan_outlier_ratio(
             "scan_position must contain exactly three finite values."
         ) from error
     if scan_position.shape != (3,) or not np.all(np.isfinite(scan_position)):
-        raise Py4DGeoError(
-            "scan_position must contain exactly three finite values."
-        )
+        raise Py4DGeoError("scan_position must contain exactly three finite values.")
 
     if neighborhood_candidate_epochs is None:
         candidate_epochs = (search_point_epoch,)
@@ -397,7 +375,7 @@ def scan_outlier_ratio(
         )
 
     # In the standard single-epoch case, search points and neighborhood
-    # candidates are identical. Scanner coordinates, angular bins, and 
+    # candidates are identical. Scanner coordinates, angular bins, and
     # grouped representation can be reused below.
     candidates_are_search_points = (
         len(candidate_epochs) == 1 and candidate_epochs[0] is search_point_epoch
@@ -426,9 +404,7 @@ def scan_outlier_ratio(
     # Divide both scan angles by the angular resolution and round them to the
     # nearest integer, reproducing the discrete scan-grid indices from
     # Section 3.1 of the paper.
-    search_phi, search_theta = _angular_bins(
-        search_phi, search_theta, scan_resolution
-    )
+    search_phi, search_theta = _angular_bins(search_phi, search_theta, scan_resolution)
     if candidates_are_search_points:
         candidate_phi = search_phi
         candidate_theta = search_theta
@@ -516,9 +492,7 @@ def scan_outlier_ratio(
     # Form the ratio of mean expected and observed spacings.
     # Values above one are capped because they do not represent
     # the detached points ScOR is designed to identify.
-    denominator = np.where(
-        observed_distances == 0.0, 1e-6, observed_distances
-    )
+    denominator = np.where(observed_distances == 0.0, 1e-6, observed_distances)
     scor_values = np.clip(expected_distances / denominator, 0.0, 1.0)
     return scor_values, expected_distances, observed_distances
 
