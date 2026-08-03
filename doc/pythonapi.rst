@@ -47,6 +47,8 @@ It focuses on those aspects relevant to end users that are not interested in alg
 .. autoclass:: py4dgeo.PBM3C2
     :members:
 
+.. autofunction:: py4dgeo.write_m3c2_results_to_las
+
 .. autofunction:: py4dgeo.temporal_averaging
 
 .. autoclass:: py4dgeo.SpatiotemporalAnalysis
