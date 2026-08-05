@@ -117,6 +117,10 @@ docker run -t -p 8888:8888 py4dgeo:latest
 
 As a starting point, please have a look to the [Jupyter Notebooks](jupyter) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
 
+## 🎓 Tutorial of py4dgeo
+
+Explore what `py4dgeo` can do with the [py4dgeo tutorial](https://3dgeo-heidelberg.github.io/py4dgeo-tutorial/). It provides an introduction to the methods available in the library, explains when and how to use them, and guides you through practical examples. It is the best way to get started with `py4dgeo`!
+
 ## 🌐 Published test data
 
 <!-- TODO: integrate example notebooks for these use cases and data -->
