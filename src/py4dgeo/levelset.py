@@ -189,11 +189,11 @@ class LevelSetAlgorithm:
         iou_thr = self.options.get("iou_threshold", 0.5)
         # setup the geodataframe
         gdf = gpd.GeoDataFrame(self.shape_dict).T
-        gdf[
-            ["first_epoch", "short_epoch", "second_epoch", "index_in_epoch"]
-        ] = gdf.index.str.extract(
-            r"delta_(\d+)_(\d+)_delta_\d+_(\d+).*?_ind_(\d+)"
-        ).values
+        gdf[["first_epoch", "short_epoch", "second_epoch", "index_in_epoch"]] = (
+            gdf.index.str.extract(
+                r"delta_(\d+)_(\d+)_delta_\d+_(\d+).*?_ind_(\d+)"
+            ).values
+        )
 
         gdf["first_epoch"] = pd.to_numeric(gdf["first_epoch"])
         gdf["short_epoch"] = pd.to_numeric(gdf["short_epoch"])
@@ -203,7 +203,6 @@ class LevelSetAlgorithm:
         gdf.sort_values("first_epoch", inplace=True)
         gdf["status"] = "candidate"
         gdf["IoU_threshold"] = iou_thr
-
 
         iou_matrix = self._calc_iou_matrix(gdf, iou_thr)
 
@@ -289,13 +288,9 @@ class LevelSetAlgorithm:
             short_field = f"delta_{i}_{i + short_cue}"
             long_field = f"delta_{i}_{i + long_cue}"
 
-            data[short_field] = (
-                    distances[:, i + short_cue] - distances[:, i]
-            ).copy()
+            data[short_field] = (distances[:, i + short_cue] - distances[:, i]).copy()
 
-            data[long_field] = (
-                    distances[:, i + long_cue] - distances[:, i]
-            ).copy()
+            data[long_field] = (distances[:, i + long_cue] - distances[:, i]).copy()
 
             data["fields"].extend([short_field, long_field])
             data["pairs"].append((short_field, long_field))
@@ -385,9 +380,7 @@ class LevelSetAlgorithm:
     def _collect_result_files(self):
 
         dirs_list = [
-            Path(d)
-            for d in Path(self.options["base_dir"]).iterdir()
-            if d.is_dir()
+            Path(d) for d in Path(self.options["base_dir"]).iterdir() if d.is_dir()
         ]
 
         _filter = self.options.get("filter", "positive")
