@@ -268,7 +268,7 @@ class LevelSetAlgorithm:
         for t in range(len(data["timedeltas"])):
             fields_name = f"change_{t}"
             if fields_name in data["fields"]:
-                data[f"change_{t}"] = np.array([cp[t] for cp in distances])
+                data[fields_name] = distances[:, t].copy()
 
         # form the pairs
 
