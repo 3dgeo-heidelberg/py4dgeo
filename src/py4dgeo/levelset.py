@@ -123,7 +123,14 @@ class LevelSetAlgorithm:
         gdf = self.get_shape_connectivity()
         objects = self.group_objects(gdf)
 
-        analysis.objects = objects
+        try:
+            analysis.objects = objects
+            # currently not possible because
+            # Objects are expected to inherit from ObjectByChange
+            # but for now are an own ObjectByLevelset class.
+            # Conceptual design to be determined from scientific view and then properly implemented,
+        except Exception:
+            pass
 
         return objects
 
@@ -182,15 +189,21 @@ class LevelSetAlgorithm:
         iou_thr = self.options.get("iou_threshold", 0.5)
         # setup the geodataframe
         gdf = gpd.GeoDataFrame(self.shape_dict).T
-        gdf[["first_epoch", "second_epoch", "index_in_epoch"]] = gdf.index.str.extract(
-            r"(\d+).*?(\d+).*?(\d+)"
+        gdf[
+            ["first_epoch", "short_epoch", "second_epoch", "index_in_epoch"]
+        ] = gdf.index.str.extract(
+            r"delta_(\d+)_(\d+)_delta_\d+_(\d+).*?_ind_(\d+)"
         ).values
 
         gdf["first_epoch"] = pd.to_numeric(gdf["first_epoch"])
+        gdf["short_epoch"] = pd.to_numeric(gdf["short_epoch"])
         gdf["second_epoch"] = pd.to_numeric(gdf["second_epoch"])
+        gdf["index_in_epoch"] = pd.to_numeric(gdf["index_in_epoch"])
+
         gdf.sort_values("first_epoch", inplace=True)
         gdf["status"] = "candidate"
         gdf["IoU_threshold"] = iou_thr
+
 
         iou_matrix = self._calc_iou_matrix(gdf, iou_thr)
 
@@ -227,13 +240,15 @@ class LevelSetAlgorithm:
 
 
 
+
         :return: dictionary containing all necessary data for the levelset function
         :rtype: dict
         """
 
         first_timestep = self.options.get("first_timestep", 0)
         last_timestep = self.options.get("last_timestep", -1)
-        timestep_interval = self.options.get("timestep_interval", 1)
+        short_cue = self.options.get("short_cue", 24)
+        long_cue = self.options.get("long_cue", 168)
 
         data = {}
         data_obj = self._analysis
@@ -246,36 +261,44 @@ class LevelSetAlgorithm:
         data["timedeltas"] = np.array(
             [int(dt.total_seconds()) for dt in data_obj.timedeltas]
         )  # in seconds
-        distances = data_obj.distances_for_compute
+
+        distances = np.asarray(data_obj.distances_for_compute)
+        n_epochs = distances.shape[1]
+
+        max_cue = max(short_cue, long_cue)
+
+        if max_cue >= n_epochs:
+            raise ValueError(
+                f"Requested cue length of {max_cue} exceeds "
+                f"the available analysis period ({n_epochs} epochs)."
+            )
 
         if last_timestep == -1:
-            last_timestep = len(distances[0]) - timestep_interval
+            last_timestep = n_epochs - max_cue - 1
 
-        if last_timestep + timestep_interval > len(distances[0]):
+        if last_timestep + max_cue >= n_epochs:
             raise ValueError(
-                "The last timestep plus the interval is larger than the available data"
+                "The last timestep plus the longest cue length is larger than "
+                "the available data."
             )
 
-        # slice the available field data from the first timestep to the last timestep plus the interval
-        fields = [
-            f"change_{i}"
-            for i in range(
-                first_timestep, len(distances[0][: last_timestep + timestep_interval])
-            )
-        ]
-        data["fields"] = fields
+        data["fields"] = []
+        data["pairs"] = []
 
-        for t in range(len(data["timedeltas"])):
-            fields_name = f"change_{t}"
-            if fields_name in data["fields"]:
-                data[fields_name] = distances[:, t].copy()
+        for i in range(first_timestep, last_timestep + 1):
+            short_field = f"delta_{i}_{i + short_cue}"
+            long_field = f"delta_{i}_{i + long_cue}"
 
-        # form the pairs
+            data[short_field] = (
+                    distances[:, i + short_cue] - distances[:, i]
+            ).copy()
 
-        data["pairs"] = [
-            (data["fields"][i], data["fields"][i + timestep_interval])
-            for i in range(len(data["fields"]) - timestep_interval)
-        ]
+            data[long_field] = (
+                    distances[:, i + long_cue] - distances[:, i]
+            ).copy()
+
+            data["fields"].extend([short_field, long_field])
+            data["pairs"].append((short_field, long_field))
 
         in_file = self._analysis.filename
 
@@ -283,7 +306,8 @@ class LevelSetAlgorithm:
         base_dir = os.path.join(
             os.path.dirname(self.working_dir),
             os.path.splitext(os.path.basename(in_file))[0]
-            + f"_k{first_timestep}_{last_timestep}_{timestep_interval}",
+            + f"_ls_k{first_timestep}_{last_timestep}"
+            + f"_short{short_cue}_long{long_cue}",
         )
         if not os.path.exists(base_dir):
             os.makedirs(base_dir)
@@ -360,7 +384,11 @@ class LevelSetAlgorithm:
 
     def _collect_result_files(self):
 
-        dirs_list = [Path(d) for d in Path(self.options["base_dir"]).glob("change_*")]
+        dirs_list = [
+            Path(d)
+            for d in Path(self.options["base_dir"]).iterdir()
+            if d.is_dir()
+        ]
 
         _filter = self.options.get("filter", "positive")
 

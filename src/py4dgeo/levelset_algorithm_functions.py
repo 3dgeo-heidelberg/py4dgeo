@@ -7,10 +7,8 @@ verbose = False
 
 
 def _process(data, fields, options, restrict_domain=""):
-    (
-        field1,
-        field2,
-    ) = fields
+
+    field1, field2 = fields
 
     base_dir = options["base_dir"]
 
@@ -83,8 +81,8 @@ def _process(data, fields, options, restrict_domain=""):
         os.mkdir(out_dir)
 
     points = data["xyz"]
-
     zeta = np.zeros((points.shape[0], 2))
+
     zeta[:, 0] = data[field1].copy()
 
     if field2 is not None:
