@@ -7,7 +7,6 @@ verbose = False
 
 
 def _process(data, fields, options, restrict_domain=""):
-
     """
     Apply the level-set extraction to a pair of temporal change cues.
 

@@ -217,11 +217,11 @@ class LevelSetAlgorithm:
         iou_thr = self.options.get("iou_threshold", 0.5)
         # setup the geodataframe
         gdf = gpd.GeoDataFrame(self.shape_dict).T
-        gdf[
-            ["first_epoch", "short_epoch", "second_epoch", "index_in_epoch"]
-        ] = gdf.index.str.extract(
-            r"delta_(\d+)_(\d+)_delta_\d+_(\d+).*?_ind_(\d+)"
-        ).values
+        gdf[["first_epoch", "short_epoch", "second_epoch", "index_in_epoch"]] = (
+            gdf.index.str.extract(
+                r"delta_(\d+)_(\d+)_delta_\d+_(\d+).*?_ind_(\d+)"
+            ).values
+        )
 
         gdf["first_epoch"] = pd.to_numeric(gdf["first_epoch"])
         gdf["short_epoch"] = pd.to_numeric(gdf["short_epoch"])
@@ -231,7 +231,6 @@ class LevelSetAlgorithm:
         gdf.sort_values("first_epoch", inplace=True)
         gdf["status"] = "candidate"
         gdf["IoU_threshold"] = iou_thr
-
 
         iou_matrix = self._calc_iou_matrix(gdf, iou_thr)
 
@@ -349,13 +348,11 @@ class LevelSetAlgorithm:
             long_field = f"delta_{i}_{i + long_cue}"
 
             data[short_field] = (
-                    distances[point_idx, i + short_cue]
-                    - distances[point_idx, i]
+                distances[point_idx, i + short_cue] - distances[point_idx, i]
             ).copy()
 
             data[long_field] = (
-                    distances[point_idx, i + long_cue]
-                    - distances[point_idx, i]
+                distances[point_idx, i + long_cue] - distances[point_idx, i]
             ).copy()
 
             data["fields"].extend([short_field, long_field])
@@ -446,9 +443,7 @@ class LevelSetAlgorithm:
     def _collect_result_files(self):
 
         dirs_list = [
-            Path(d)
-            for d in Path(self.options["base_dir"]).iterdir()
-            if d.is_dir()
+            Path(d) for d in Path(self.options["base_dir"]).iterdir() if d.is_dir()
         ]
 
         _filter = self.options.get("filter", "positive")
@@ -596,12 +591,12 @@ class LevelSetAlgorithm:
         distance_dict[file.parent.name] = distance_df
 
     def plot_epoch(
-            self,
-            epoch,
-            show_labels=True,
-            show_points=False,
-            object_ids=None,
-            outfile=None,
+        self,
+        epoch,
+        show_labels=True,
+        show_points=False,
+        object_ids=None,
+        outfile=None,
     ):
         """
         Plot all dynamic objects present at a given epoch.
@@ -905,12 +900,12 @@ class ObjectByLevelset:
         return fig
 
     def plot_evolution(
-            self,
-            analysis=None,
-            epoch=None,
-            outfile=None,
-            cmap="RdYlBu_r",
-            pointsize=1,
+        self,
+        analysis=None,
+        epoch=None,
+        outfile=None,
+        cmap="RdYlBu_r",
+        pointsize=1,
     ):
         """
         Plot object evolution on a change basemap.
@@ -1001,9 +996,7 @@ class ObjectByLevelset:
         # figure elements
         duration = max(self.timesteps) - min(self.timesteps)
 
-        ax.set_title(
-            f"Object {self.oid} (duration: {duration} epochs)"
-        )
+        ax.set_title(f"Object {self.oid} (duration: {duration} epochs)")
 
         ax.set_aspect("equal")
 
@@ -1018,4 +1011,3 @@ class ObjectByLevelset:
             plt.show()
 
         return fig, ax
-
