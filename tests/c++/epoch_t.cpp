@@ -1,6 +1,7 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/epoch.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/epoch.hpp>
+
+#include <catch2/catch_test_macros.hpp>
 
 #include <sstream>
 

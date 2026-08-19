@@ -1,14 +1,13 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+#include <py4dgeo/searchtree.hpp>
+
+#include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <sstream>
-#include <string>
+#include <array>
 
 using namespace py4dgeo;
 
@@ -26,7 +25,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
   {
     // Find all nodes with a radius search
     std::array<double, 3> o{ 0.0, 0.0, 0.0 };
-    KDTree::RadiusSearchResult result;
+    RadiusSearchResult result;
 
     // Do radius search with radius wide enough to cover the entire cloud
     auto num = tree.radius_search(o.data(), 100.0, result);
@@ -38,7 +37,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
   {
     // Find all nodes with a radius search
     std::array<double, 3> o{ 0.0, 0.0, 0.0 };
-    KDTree::RadiusSearchDistanceResult result;
+    RadiusSearchDistanceResult result;
 
     // Do radius search with radius wide enough to cover the entire cloud
     auto num = tree.radius_search_with_distances(o.data(), 100.0, result);
@@ -51,7 +50,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
 
   SECTION("Nearest neighbor search with distances")
   {
-    KDTree::NearestNeighborsDistanceResult result;
+    NearestNeighborsDistanceResult result;
     int k = 5;
     tree.nearest_neighbors_with_distances(epoch.cloud, result, k);
     REQUIRE(result.size() == epoch.cloud.rows());
@@ -61,7 +60,7 @@ TEST_CASE("KDTree is correctly build", "[kdtree]")
 
   SECTION("Nearest neighbor search:")
   {
-    KDTree::NearestNeighborsResult result;
+    NearestNeighborsResult result;
     int k = 5;
     tree.nearest_neighbors(epoch.cloud, result, k);
     REQUIRE(result.size() == epoch.cloud.rows());

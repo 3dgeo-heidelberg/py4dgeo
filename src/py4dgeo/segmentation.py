@@ -2,8 +2,6 @@ from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
 from py4dgeo.util import Py4DGeoError, find_file
 from py4dgeo.UpdateableZipFile import UpdateableZipFile
-from py4dgeo.levelset import ObjectByLevelset
-
 
 import datetime
 import json
@@ -16,9 +14,7 @@ import pickle
 import seaborn
 import tempfile
 import zipfile
-
 import _py4dgeo
-
 
 # Get the py4dgeo logger instance
 logger = logging.getLogger("py4dgeo")
@@ -133,8 +129,8 @@ class SpatiotemporalAnalysis:
             # Ensure that we do have a timestamp on the epoch
             epoch = check_epoch_timestamp(epoch)
 
-            # Ensure that the KDTree is built - no-op if triggered by the user
-            epoch.build_kdtree()
+            # Ensure that the tearch tree is built - no-op if triggered by the user
+            epoch._validate_search_tree()
 
             # Write the reference epoch into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -176,9 +172,9 @@ class SpatiotemporalAnalysis:
                     "Corepoints cannot be changed - please start a new analysis"
                 )
 
-            # Ensure that the corepoints are stored as an epoch and build its KDTree
+            # Ensure that the corepoints are stored as an epoch and its search trees are built
             self._corepoints = as_epoch(_corepoints)
-            self._corepoints.build_kdtree()
+            self._corepoints._validate_search_tree()
 
             # Write the corepoints into the archive
             with tempfile.TemporaryDirectory() as tmp_dir:
@@ -534,15 +530,24 @@ class SpatiotemporalAnalysis:
             with tempfile.TemporaryDirectory() as tmp_dir:
                 zf.extract("objects.pickle", path=tmp_dir)
                 with open(os.path.join(tmp_dir, "objects.pickle"), "rb") as f:
-                    return pickle.load(f)
+                    objects = pickle.load(f)
+
+        # Re-attach analysis backlink after unpickling
+        if objects is not None:
+            for obj in objects:
+                if hasattr(obj, "_analysis"):
+                    obj.attach_analysis(self)
+
+        return objects
 
     @objects.setter
     def objects(self, _objects):
+        if _objects is None:
+            return
+
         # Assert that we received the correct type
-        for seed in _objects:
-            if not isinstance(seed, ObjectByChange) and not isinstance(
-                seed, ObjectByLevelset
-            ):
+        for obj in _objects:
+            if not isinstance(obj, ObjectByChange):
                 raise Py4DGeoError(
                     "Objects are expected to inherit from ObjectByChange"
                 )
@@ -701,14 +706,28 @@ class RegionGrowingAlgorithmBase:
             analysis.invalidate_results()
 
         # Return pre-calculated objects if they are available
-        precalculated = analysis.objects
+        # precalculated = analysis.objects
+        # if precalculated is not None:
+        #     logger.info("Reusing objects by change stored in analysis object")
+        #     return precalculated
+
+        # Check if there are pre-calculated objects.
+        # If so, create objects list from these and continue growing objects, taking into consideration objects that are already grown.
+        # if not initiate new empty objects list
+        precalculated = analysis.objects  # TODO: do not assign to new object
         if precalculated is not None:
             logger.info("Reusing objects by change stored in analysis object")
-            return precalculated
+            objects = (
+                precalculated.copy()
+            )  # test if .copy() solves memory problem, or deepcopy?
+        else:
+            objects = (
+                []
+            )  # TODO: test initializing this in the analysis class, see if it crashes instantly
 
-        # Get corepoints from M3C2 class and build a KDTree on them
+        # Get corepoints from M3C2 class and build a search tree on them
         corepoints = as_epoch(analysis.corepoints)
-        corepoints.build_kdtree()
+        corepoints._validate_search_tree()
 
         # Calculate the list of seed points and sort them
         seeds = analysis.seeds
@@ -724,11 +743,34 @@ class RegionGrowingAlgorithmBase:
             analysis.seeds = seeds
         else:
             logger.info("Reusing seed candidates stored in analysis object")
-
-        objects = []
+        # write the number of seeds to a separate text file if self.write_nr_seeds is True
+        if self.write_nr_seeds:
+            with open("number_of_seeds.txt", "w") as f:
+                f.write(str(len(seeds)))
 
         # Iterate over the seeds to maybe turn them into objects
-        for i, seed in enumerate(seeds):
+        for i, seed in enumerate(
+            seeds
+        ):  # [self.resume_from_seed-1:]): # starting seed ranked at the `resume_from_seed` variable (representing 1 for index 0)
+            # or to keep within the same index range when resuming from seed:
+            if i < (
+                self.resume_from_seed - 1
+            ):  # resume from index 0 when `resume_from_seed` == 1
+                continue
+            if i >= (self.stop_at_seed - 1):  # stop at index 0 when `stop_at_seed` == 1
+                break
+
+            # save objects to analysis object when at index `intermediate_saving`
+            if (
+                (self.intermediate_saving)
+                and ((i % self.intermediate_saving) == 0)
+                and (i != 0)
+            ):
+                with logger_context(
+                    f"Intermediate saving of first {len(objects)} objects, grown from first {i+1}/{len(seeds)} seeds"
+                ):
+                    analysis.objects = objects  # This assigns itself to itself
+
             # Check all already calculated objects whether they overlap with this seed.
             found = False
             for obj in objects:
@@ -766,7 +808,9 @@ class RegionGrowingAlgorithmBase:
 
                 # If the returned object has 0 indices, the min_segments threshold was violated
                 if objdata.indices_distances:
-                    obj = ObjectByChange(objdata, seed, analysis)
+                    obj = ObjectByChange(
+                        objdata, seed, analysis
+                    )  # TODO: check, does it copy the whole analysis object when initializing
                     if self.filter_objects(obj):
                         objects.append(obj)
 
@@ -779,7 +823,7 @@ class RegionGrowingAlgorithmBase:
         # Store the results in the analysis object
         analysis.objects = objects
 
-        # Potentially remove objects from memory # TODO Why do we remove these?
+        # Potentially remove objects from memory
         del analysis.smoothed_distances
         del analysis.distances
 
@@ -797,6 +841,11 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         window_penalty=1.0,
         minperiod=24,
         height_threshold=0.0,
+        use_unfinished=True,
+        intermediate_saving=0,
+        resume_from_seed=0,
+        stop_at_seed=np.inf,
+        write_nr_seeds=False,
         **kwargs,
     ):
         """Construct the 4D-OBC algorithm.
@@ -840,7 +889,27 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             as unsigned difference between magnitude (i.e. distance) at start epoch and peak magnitude.
             The default is 0.0, in which case all detected changes are used as seed candidates.
         :type height_threshold: float
-
+        :param use_unfinished:
+            If False, seed candidates that are not finished by the end of the time series are not considered in further
+            analysis. The default is True, in which case unfinished seed_candidates are regarded as seeds region growing.
+        :type use_unfinished: bool
+        :param intermediate_saving:
+            Parameter that determines after how many considered seeds, the resulting list of 4D-OBCs is saved to the SpatiotemporalAnalysis object.
+            This is to ensure that if the algorithm is terminated unexpectedly not all results are lost. If set to 0 no intermediate saving is done.
+        :type intermediate_saving: int
+        :param resume_from_seed:
+            Parameter specifying from which seed index the region growing algorithm must resume. If zero all seeds are considered, starting from the highest ranked seed.
+            Default is 0.
+        :type resume_from_seed: int
+        :param stop_at_seed:
+            Parameter specifying at which seed to stop region growing and terminate the run function.
+            Default is np.inf, meaning all seeds are considered.
+        :type stop_at_seed: int
+        :param write_nr_seeds:
+            If True, after seed detection, a text file is written in the working directory containing the total number of detected seeds.
+            This can be used to split up the consecutive 4D-OBC segmentation into different subsets.
+            Default is False, meaning no txt file is written.
+        :type write_nr_seeds: bool
         """
 
         # Initialize base class
@@ -855,6 +924,11 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         self.window_penalty = window_penalty
         self.minperiod = minperiod
         self.height_threshold = height_threshold
+        self.use_unfinished = use_unfinished
+        self.intermediate_saving = intermediate_saving
+        self.resume_from_seed = resume_from_seed
+        self.stop_at_seed = stop_at_seed
+        self.write_nr_seeds = write_nr_seeds
 
     def find_seedpoints(self):
         """Calculate seedpoints for the region growing algorithm"""
@@ -866,6 +940,12 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # window_min_size = 12
         # window_jump = 1
         # window_penalty = 1.0
+
+        # Before starting the process, we check if the user has set a reasonable window width parameter
+        if self.window_width >= self.analysis.distances_for_compute.shape[1]:
+            raise Py4DGeoError(
+                "Window width cannot be larger than the length of the time series - please adapt parameter"
+            )
 
         # The list of generated seeds
         seeds = []
@@ -945,8 +1025,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
 
                     # Check whether the volume started decreasing
                     if previous_volume > volume:
-                        # Only add seed if larger than the minimum period
-                        if target_idx - start_idx >= self.minperiod:
+                        # Only add seed if larger than the minimum period and height of the change form larger than threshold
+                        if (target_idx - start_idx >= self.minperiod) and (
+                            np.abs(
+                                np.max(used_timeseries[start_idx : target_idx + 1])
+                                - np.min(used_timeseries[start_idx : target_idx + 1])
+                            )
+                            >= self.height_threshold
+                        ):
                             corepoint_seeds.append(
                                 RegionGrowingSeed(i, start_idx, target_idx)
                             )
@@ -957,7 +1043,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
                     # This causes a seed to always be detected if the volume doesn't decrease before present
                     #  Useful when used in an online setting, can be filtered before region growing
                     # Only if the last epoch is reached we use the segment as seed
-                    if target_idx == timeseries.shape[0] - 1:
+                    if (target_idx == timeseries.shape[0] - 1) and self.use_unfinished:
                         # We reached the present and add a seed based on it
                         corepoint_seeds.append(
                             RegionGrowingSeed(i, start_idx, timeseries.shape[0] - 1)
@@ -974,9 +1060,14 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
         # The 4D-OBC algorithm sorts by similarity in the neighborhood
         # of the seed.
         def neighborhood_similarity(seed):
-            neighbors = self.analysis.corepoints.kdtree.radius_search(
+            self.analysis.corepoints._validate_search_tree()
+            neighbors = self.analysis.corepoints._radius_search(
                 self.analysis.corepoints.cloud[seed.index, :], self.neighborhood_radius
             )
+            # if no neighbors are found make sure the algorithm continues its search but with a large dissimilarity
+            if len(neighbors) < 2:
+                return 9999999.0  # return very large number? or delete the seed point, but then also delete from the seeds list
+
             similarities = []
             for n in neighbors:
                 data = _py4dgeo.TimeseriesDistanceFunctionData(
@@ -1058,6 +1149,34 @@ class ObjectByChange:
     def threshold(self):
         """The distance threshold that produced this object"""
         return self._data.threshold
+
+    def attach_analysis(self, analysis):
+        self._analysis = analysis
+
+    def __getstate__(self):
+        """
+        Return the pickle state for this object.
+
+        We explicitly omit `_analysis` because it can contain a back-link to the
+        SpatiotemporalAnalysis object, which would cause the full analysis to be
+        pickled into every ObjectByChange instance.
+        """
+        return {
+            "_data": self._data,
+            "seed": self.seed,
+            # intentionally NOT storing "_analysis"
+        }
+
+    def __setstate__(self, state):
+        """
+        Restore the object from pickle state.
+
+        `_analysis` is always reset to None. It can later be re-attached by the
+        algorithm / analysis code if needed.
+        """
+        self._data = state["_data"]
+        self.seed = state["seed"]
+        self._analysis = None
 
     def plot(self, filename=None):
         """Create an informative visualization of the Object By Change

@@ -1,22 +1,86 @@
-# Test support library that implements e.g. easy access to data files
-add_library(py4dgeo_test testsetup.cpp)
-target_link_libraries(py4dgeo_test PUBLIC py4dgeo)
-target_compile_definitions(
-  py4dgeo_test
-  PUBLIC PY4DGEO_TEST_DATA_DIRECTORY="${CMAKE_SOURCE_DIR}/tests/data")
-target_include_directories(py4dgeo_test PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+# ------------------------------------------------------------------------------
+# Enable CMake's FetchContent module, which allows downloading dependencies like
+# Catch2 automatically at configure time.
+# ------------------------------------------------------------------------------
+include(FetchContent)
 
-# The Catch test executable
-add_executable(
-  tests
-  tests.cpp
+# ---------------------------------------------------------------------------
+# Declare a dependency on Catch2 via FetchContent. This will clone the Catch2
+# GitHub repository during configuration.
+# ---------------------------------------------------------------------------
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG v3.12.0)
+
+# --------------------------------------------------------------------------
+# Make Catch2 available in this project. This defines the CMake targets like
+# Catch2::Catch2 and Catch2::Catch2WithMain.
+# --------------------------------------------------------------------------
+FetchContent_MakeAvailable(Catch2)
+
+# --------------------------------------------------------------------------
+# Make Catch2 available in this project. This defines the CMake targets like
+# Catch2::Catch2 and Catch2::Catch2WithMain.
+# --------------------------------------------------------------------------
+include(Catch)
+
+# ---------------------------------------------------------------------------
+# Build the py4dgeo_test library (a helper for all test files). This provides
+# access to shared setup/utility functions and test data.
+# ---------------------------------------------------------------------------
+add_library(py4dgeo_test)
+
+target_sources(py4dgeo_test
+  PRIVATE
+    testsetup.cpp
+
+  PUBLIC
+    FILE_SET testsetup_headers
+    TYPE HEADERS
+    FILES
+      testsetup.hpp
+)
+
+# Define a macro to pass the test data path into the tests.
+target_compile_definitions(py4dgeo_test
+  PUBLIC
+    PY4DGEO_TEST_DATA_DIRECTORY="${CMAKE_SOURCE_DIR}/tests/data"
+)
+
+# Link it to the main py4dgeo library under test.
+target_link_libraries(py4dgeo_test PUBLIC py4dgeo)
+
+# ------------------------------------------------------------------------
+# Create a single test binary that compiles all unit test files. Each file
+# should use TEST_CASE(...) macros from Catch2.
+# ------------------------------------------------------------------------
+add_executable(tests
   directions_t.cpp
   distances_t.cpp
   epoch_t.cpp
   kdtree_t.cpp
+  octree_t.cpp
   registration_t.cpp
-  segmentation_t.cpp)
-target_link_libraries(tests PUBLIC py4dgeo py4dgeo_test Catch2::Catch2)
+  segmentation_t.cpp
+  searchtrees_t.cpp
+)
 
-# allow user to run tests with `make test` or `ctest`
+# ------------------------------------------------------
+# Link the test binary against:
+# - the main library py4dgeo
+# - the test helper library py4dgeo_test
+# - the Catch2 main entry point (Catch2::Catch2WithMain)
+# ------------------------------------------------------
+target_link_libraries(tests
+  PUBLIC
+    py4dgeo
+    py4dgeo_test
+    Catch2::Catch2WithMain
+)
+
+# ---------------------------------------------------------------------------
+# Register the tests with CTest so that `ctest` or `make test` will run them.
+# This parses all TEST_CASE(...) macros in the 'tests' binary.
+# ---------------------------------------------------------------------------
 catch_discover_tests(tests)

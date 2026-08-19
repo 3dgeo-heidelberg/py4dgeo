@@ -1,0 +1,844 @@
+#include <py4dgeo/octree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
+
+#include <Eigen/Core>
+
+#include <algorithm>
+#include <cassert>
+#include <cmath>
+#include <cstddef>
+#include <istream>
+#include <numeric>
+#include <optional>
+#include <ostream>
+#include <stdexcept>
+#include <utility>
+#include <vector>
+
+namespace py4dgeo {
+
+Octree::Octree(const EigenPointCloudRef& cloud)
+  : cloud{ cloud }
+{
+}
+
+void
+Octree::compute_bounding_box(bool force_cubic,
+                             std::optional<Eigen::Vector3d> min_corner,
+                             std::optional<Eigen::Vector3d> max_corner)
+{
+
+  if (min_corner && max_corner) {
+    Eigen::Vector3d extent = *max_corner - *min_corner;
+
+    if (extent.x() <= 0 || extent.y() <= 0 || extent.z() <= 0) {
+      throw std::invalid_argument("Provided min_corner and max_corner do not "
+                                  "define a valid bounding box.");
+    }
+  }
+
+  // Point cloud's bounding box
+  Eigen::Vector3d auto_min = cloud.colwise().minCoeff();
+  Eigen::Vector3d auto_max = cloud.colwise().maxCoeff();
+
+  // Set actual min_point
+  if (min_corner) {
+    if ((*min_corner).x() > auto_min.x() || (*min_corner).y() > auto_min.y() ||
+        (*min_corner).z() > auto_min.z()) {
+
+      std::ostringstream oss;
+      oss << "Provided min_corner lies inside the point cloud bounds.\n"
+          << "Provided min_corner: " << (*min_corner).transpose() << "\n"
+          << "Auto-detected min:  " << auto_min.transpose();
+      throw std::invalid_argument(oss.str());
+    }
+    min_point = *min_corner;
+  } else {
+    min_point = auto_min;
+  }
+
+  // Set actual max_point
+  if (max_corner) {
+    if ((*max_corner).x() < auto_max.x() || (*max_corner).y() < auto_max.y() ||
+        (*max_corner).z() < auto_max.z()) {
+
+      std::ostringstream oss;
+      oss << "Provided max_corner lies inside the point cloud bounds.\n"
+          << "Provided max_corner: " << (*max_corner).transpose() << "\n"
+          << "Auto-detected max:  " << auto_max.transpose();
+      throw std::invalid_argument(oss.str());
+    }
+    max_point = *max_corner;
+  } else {
+    max_point = auto_max;
+  }
+
+  // Compute extent of the bounding box
+  Eigen::Vector3d extent = max_point - min_point;
+
+  if (force_cubic) {
+    // Use the largest extent across all axes
+    double max_extent = extent.maxCoeff();
+
+    // Handle case: Neither min_corner nor max_corner are given and force_cubic
+    // = True
+    if (!min_corner && !max_corner) {
+      Eigen::Vector3d center = (min_point + max_point) * 0.5;
+
+      // Round it up to the next power of two
+      double cube_size = std::pow(2.0, std::ceil(std::log2(max_extent)));
+
+      // Assign to box_size
+      box_size = Eigen::Vector3d::Constant(cube_size);
+
+      // Gives the corner of the min point
+      min_point = center - box_size * 0.5;
+
+      // Gives the corner of the max point
+      max_point = center + box_size * 0.5;
+    } else {
+      // Handle case: Either min_corner or max_corner or both are given and
+      // force_cubic = True
+
+      // Assign to box_size
+      box_size = Eigen::Vector3d::Constant(max_extent);
+
+      // Set the missing corner points (min_point and/or max_point)
+      if (max_corner && !min_corner) {
+        min_point = *max_corner - box_size;
+      } else if (min_corner && !max_corner) {
+        max_point = *min_corner + box_size;
+      } else {
+        max_point = *min_corner + box_size; // Special case
+      }
+    }
+  } else {
+    // Handle case: Neither min_corner nor max_corner are given and force_cubic
+    // = False
+    if (!min_corner && !max_corner) {
+      Eigen::Vector3d center = (min_point + max_point) * 0.5;
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+          box_size[i] = 1.0;
+        } else {
+          box_size[i] = std::pow(2.0, std::ceil(std::log2(extent[i])));
+        }
+      }
+
+      // Gives the corner of the min point
+      min_point = center - box_size * 0.5;
+
+      // Gives the corner of the max point
+      max_point = center + box_size * 0.5;
+    }
+    // Handle case: Both min_corner and max_corner are given and force_cubic =
+    // False
+    else if (min_corner && max_corner) {
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        box_size[i] = extent[i];
+      }
+    } else {
+      // Handle case: Either min_corner or max_corner is given, not both,
+      // force_cubic = False
+
+      // For each axis, round extent to next power of two
+      for (int i = 0; i < 3; ++i) {
+        if (extent[i] <= 0) { // If the extent is zero or negative, set it to 1
+          box_size[i] = 1.0;
+        } else {
+          box_size[i] = extent[i];
+        }
+      }
+
+      // Set the missing corner point (min_point or max_point)
+      if (max_corner) {
+        min_point = *max_corner - box_size;
+      } else {
+        max_point = *min_corner + box_size;
+      }
+    }
+  }
+
+  inv_box_size = box_size.cwiseInverse();
+
+  // Compute cell sizes
+  cell_size[0] = box_size;
+
+  for (std::size_t i = 1; i <= max_depth; ++i) {
+    cell_size[i] = cell_size[i - 1] * 0.5;
+  }
+}
+
+void
+Octree::compute_statistics()
+{
+  occupied_cells[0] = 1;
+  max_cell_population[0] = number_of_points;
+  average_cell_population[0] = static_cast<double>(number_of_points);
+  std_cell_population[0] = 0.0;
+
+  for (std::size_t level = 1; level <= max_depth; ++level) {
+
+    unsigned int unique_cells = 0;
+    unsigned int max_population = 0;
+    double sum = 0.0;
+    double sum2 = 0.0;
+    unsigned int current_cell_population = 0;
+
+    // Initialize with the first element's truncated key
+    SpatialKey previous_key = indexed_keys.keys[0] >> bit_shift[level];
+    current_cell_population = 1; // Count the first point
+
+    for (IndexType i = 1; i < indexed_keys.keys.size(); ++i) {
+      SpatialKey current_key = indexed_keys.keys[i] >> bit_shift[level];
+      if (current_key == previous_key) {
+        current_cell_population++;
+      } else {
+        // New cell encountered
+        unique_cells++;
+        sum += current_cell_population;
+        sum2 += static_cast<double>(current_cell_population) *
+                current_cell_population;
+        if (current_cell_population > max_population)
+          max_population = current_cell_population;
+
+        // Reset for the new cell
+        previous_key = current_key;
+        current_cell_population = 1;
+      }
+    }
+    // Process the final cell
+    unique_cells++;
+    sum += current_cell_population;
+    sum2 +=
+      static_cast<double>(current_cell_population) * current_cell_population;
+    if (current_cell_population > max_population)
+      max_population = current_cell_population;
+
+    // Store computed statistics for this level
+    occupied_cells[level] = unique_cells;
+    max_cell_population[level] = max_population;
+    average_cell_population[level] =
+      static_cast<double>(indexed_keys.keys.size()) / unique_cells;
+    std_cell_population[level] =
+      std::sqrt(sum2 / unique_cells - average_cell_population[level] *
+                                        average_cell_population[level]);
+  }
+}
+
+std::size_t
+Octree::get_cells_intersected_by_sphere(
+  const Eigen::Vector3d& query_point,
+  double radius,
+  unsigned int level,
+  Octree::KeyContainer& inside,
+  Octree::KeyContainer& intersecting) const
+{
+  // Number of cells per axis at this level is 2^level
+  const unsigned int num_cells = 1u << level;
+  const Eigen::Vector3d cellSize = cell_size[level];
+
+  // Compute the AABB of the sphere
+  Eigen::Vector3d sphere_min = query_point - Eigen::Vector3d::Constant(radius);
+  Eigen::Vector3d sphere_max = query_point + Eigen::Vector3d::Constant(radius);
+
+  // Helper: compute index range along a given axis
+  const Eigen::Vector3d inv_cell_size = cellSize.cwiseInverse();
+  auto compute_index_range = [this, inv_cell_size, num_cells](
+                               double coord_min, double coord_max, int axis)
+    -> std::pair<unsigned int, unsigned int> {
+    int i_min = static_cast<int>(
+      std::floor((coord_min - min_point[axis]) * inv_cell_size[axis]));
+    int i_max = static_cast<int>(
+      std::floor((coord_max - min_point[axis]) * inv_cell_size[axis]));
+    i_min = std::max(i_min, 0);
+    i_max = std::min(i_max, static_cast<int>(num_cells - 1));
+    return { static_cast<unsigned int>(i_min),
+             static_cast<unsigned int>(i_max) };
+  };
+
+  // Early out: if sphere AABB does not intersect octree AABB
+  if ((sphere_max.array() < min_point.array()).any() ||
+      (sphere_min.array() > max_point.array()).any()) {
+    return 0;
+  }
+
+  // Compute index ranges of the AABB for x, y, and z
+  auto [imin, imax] = compute_index_range(sphere_min.x(), sphere_max.x(), 0);
+  auto [jmin, jmax] = compute_index_range(sphere_min.y(), sphere_max.y(), 1);
+  auto [kmin, kmax] = compute_index_range(sphere_min.z(), sphere_max.z(), 2);
+
+  // Precompute the squared radius
+  const double radius_squared = radius * radius;
+
+  // Lambda to check sphere-AABB intersection for a cell
+  // Classify whether the cell is fully inside or just intersecting the sphere
+  auto classify_cell_relation_to_sphere =
+    [this, &query_point, cellSize, radius_squared](
+      unsigned int i,
+      unsigned int j,
+      unsigned int k) -> cell_relation_to_sphere {
+    // Compute the axis-aligned bounding box of the cell
+    Eigen::Vector3d cell_min =
+      min_point + cellSize.cwiseProduct(Eigen::Vector3d(i, j, k));
+    Eigen::Vector3d cell_max = cell_min + cellSize;
+
+    // First: Cheap AABB–sphere intersection test
+    double distance_squared = 0.0;
+    const double qx = query_point.x();
+    const double qy = query_point.y();
+    const double qz = query_point.z();
+
+    if (qx < cell_min.x()) {
+      double diff = cell_min.x() - qx;
+      distance_squared += diff * diff;
+    } else if (qx > cell_max.x()) {
+      double diff = qx - cell_max.x();
+      distance_squared += diff * diff;
+    }
+
+    if (qy < cell_min.y()) {
+      double diff = cell_min.y() - qy;
+      distance_squared += diff * diff;
+    } else if (qy > cell_max.y()) {
+      double diff = qy - cell_max.y();
+      distance_squared += diff * diff;
+    }
+
+    if (qz < cell_min.z()) {
+      double diff = cell_min.z() - qz;
+      distance_squared += diff * diff;
+    } else if (qz > cell_max.z()) {
+      double diff = qz - cell_max.z();
+      distance_squared += diff * diff;
+    }
+
+    if (distance_squared > radius_squared)
+      return cell_relation_to_sphere::Outside;
+
+    // Next: check if all 8 corners are inside the sphere
+    bool any_outside = false;
+
+    for (std::size_t cx = 0; cx <= 1; ++cx) {
+      const double x = cx ? cell_max.x() : cell_min.x();
+      for (std::size_t cy = 0; cy <= 1; ++cy) {
+        const double y = cy ? cell_max.y() : cell_min.y();
+        for (std::size_t cz = 0; cz <= 1; ++cz) {
+          const double z = cz ? cell_max.z() : cell_min.z();
+
+          const double dx = x - qx;
+          const double dy = y - qy;
+          const double dz = z - qz;
+          const double dist_sq = dx * dx + dy * dy + dz * dz;
+
+          if (dist_sq > radius_squared) {
+            return cell_relation_to_sphere::Intersecting;
+          }
+        }
+      }
+    }
+
+    return cell_relation_to_sphere::Inside;
+  };
+
+  // Iterate over all cells in the AABB
+  Eigen::Vector3d cell_center;
+  for (std::size_t i = imin; i <= imax; ++i) {
+    for (std::size_t j = jmin; j <= jmax; ++j) {
+      for (std::size_t k = kmin; k <= kmax; ++k) {
+        auto relation = classify_cell_relation_to_sphere(i, j, k);
+        if (relation == cell_relation_to_sphere::Outside)
+          continue;
+
+        cell_center = min_point + cellSize.cwiseProduct(
+                                    Eigen::Vector3d(i + 0.5, j + 0.5, k + 0.5));
+        SpatialKey full_key = compute_spatial_key(cell_center);
+
+        if (relation == cell_relation_to_sphere::Inside) {
+          inside.push_back(full_key >> bit_shift[level]);
+        } else {
+          intersecting.push_back(full_key >> bit_shift[level]);
+        }
+      }
+    }
+  }
+
+  // Sort the keys before returning (required)
+  std::sort(inside.begin(), inside.end());
+  std::sort(intersecting.begin(), intersecting.end());
+
+  return intersecting.size() + inside.size();
+}
+
+std::optional<IndexType>
+Octree::get_cell_index_start(SpatialKey truncated_key,
+                             SpatialKey bitShift,
+                             IndexType start_index,
+                             IndexType end_index) const
+{
+  const auto keys_begin = indexed_keys.keys.begin();
+  auto it = std::lower_bound(keys_begin + start_index,
+                             keys_begin + end_index,
+                             truncated_key,
+                             [bitShift](SpatialKey element, SpatialKey value) {
+                               return (element >> bitShift) < value;
+                             });
+
+  if (it != keys_begin + end_index && ((*it) >> bitShift) == truncated_key) {
+    return std::distance(keys_begin, it);
+  }
+
+  return std::nullopt;
+}
+
+std::optional<IndexType>
+Octree::get_cell_index_end(SpatialKey truncated_key,
+                           SpatialKey bitShift,
+                           IndexType start_index,
+                           IndexType end_index) const
+{
+  const auto keys_begin = indexed_keys.keys.begin();
+
+  auto it = std::upper_bound(keys_begin + start_index,
+                             keys_begin + end_index,
+                             truncated_key,
+                             [bitShift](SpatialKey value, SpatialKey element) {
+                               return value < (element >> bitShift);
+                             });
+
+  // Check if the element just before it (if any) matches the key
+  if (it != keys_begin + start_index) {
+    auto prev = it - 1;
+    if (((*prev) >> bitShift) == truncated_key) {
+      return std::distance(keys_begin, it);
+    }
+  }
+
+  return std::nullopt;
+}
+
+std::optional<IndexType>
+Octree::get_cell_index_end_exponential(SpatialKey truncated_key,
+                                       unsigned int level,
+                                       IndexType first_index,
+                                       IndexType global_end_index) const
+{
+  // 1. Estimate the last occurrence of the truncated key using the average cell
+  // population at this level
+  IndexType avg_cell_pop = average_cell_population[level];
+  IndexType bound = avg_cell_pop;
+  SpatialKey bitShift = bit_shift[level];
+
+  // 2. Perform exponential search to find an upper bound, where the
+  // truncated_key is no longer present
+  while (
+    (first_index + bound < global_end_index) &&
+    (indexed_keys.keys[first_index + bound] >> bitShift == truncated_key)) {
+    bound += avg_cell_pop;
+  }
+
+  // 3. Delegate to binary search (upper_bound) within the discovered narrow
+  // range Cap it to avoid overshooting the array
+  return get_cell_index_end(truncated_key,
+                            bitShift,
+                            first_index,
+                            std::min(first_index + bound, global_end_index));
+}
+
+std::optional<std::pair<IndexType, IndexType>>
+Octree::get_cell_index_range(SpatialKey truncated_key,
+                             unsigned int level,
+                             IndexType search_start,
+                             IndexType search_end) const
+{
+  const SpatialKey bitShift = bit_shift[level];
+
+  auto opt_first =
+    get_cell_index_start(truncated_key, bitShift, search_start, search_end);
+
+  if (!opt_first)
+    return std::nullopt;
+
+  IndexType first = *opt_first;
+
+  auto opt_last = get_cell_index_end_exponential(
+    truncated_key,
+    level,
+    first,
+    std::min(first + max_cell_population[level], search_end));
+
+  if (!opt_last)
+    return std::nullopt;
+
+  return std::pair{ first, *opt_last };
+}
+
+bool
+Octree::append_points_from_cell(SpatialKey truncated_key,
+                                unsigned int level,
+                                IndexType& current_start_index,
+                                IndexType search_limit_index,
+                                RadiusSearchResult& result) const
+{
+  auto range = get_cell_index_range(
+    truncated_key, level, current_start_index, search_limit_index);
+
+  if (!range)
+    return false;
+
+  const auto& indices = indexed_keys.indices;
+  const auto [first, last] = *range;
+
+  result.insert(result.end(), indices.begin() + first, indices.begin() + last);
+
+  current_start_index = last;
+  return true;
+}
+
+Octree
+Octree::create(const EigenPointCloudRef& cloud)
+{
+  return Octree(cloud);
+}
+
+void
+Octree::build_tree(bool force_cubic,
+                   std::optional<Eigen::Vector3d> min_corner,
+                   std::optional<Eigen::Vector3d> max_corner)
+{
+  compute_bounding_box(force_cubic, min_corner, max_corner);
+
+  number_of_points = cloud.rows();
+  indexed_keys.keys.resize(number_of_points);
+  indexed_keys.indices.resize(number_of_points);
+
+  // Step 1: Compute Z-order values and store point indices
+  for (IndexType i = 0; i < number_of_points; ++i) {
+    // Compute the spatial key for the point
+    indexed_keys.keys[i] = compute_spatial_key(cloud.row(i));
+    // Save the original index
+    indexed_keys.indices[i] = i;
+  }
+
+  // Step 2: Sort the indexed keys by Z-order value
+  PointContainer permutation(number_of_points);
+  std::iota(permutation.begin(), permutation.end(), 0);
+
+  std::sort(
+    permutation.begin(), permutation.end(), [&](IndexType a, IndexType b) {
+      return indexed_keys.keys[a] < indexed_keys.keys[b];
+    });
+
+  // Reorder the keys and indices based on the sorted permutation
+  Octree::KeyContainer sorted_keys(number_of_points);
+  PointContainer sorted_indices(number_of_points);
+  for (IndexType i = 0; i < number_of_points; ++i) {
+    sorted_keys[i] = indexed_keys.keys[permutation[i]];
+    sorted_indices[i] = indexed_keys.indices[permutation[i]];
+  }
+
+  // Swap the sorted vectors back into the member structure
+  indexed_keys.keys.swap(sorted_keys);
+  indexed_keys.indices.swap(sorted_indices);
+
+  // Step 3: Compute related properties (max cell population, avg, ...)
+  compute_statistics();
+}
+
+void
+Octree::invalidate()
+{
+  number_of_points = 0;
+  box_size[0] = box_size[1] = box_size[2] = 0.0;
+  inv_box_size[0] = inv_box_size[1] = inv_box_size[2] = 0.0;
+  min_point = max_point = Eigen::Vector3d::Zero();
+
+  indexed_keys.keys.clear();
+  indexed_keys.indices.clear();
+  indexed_keys.keys.shrink_to_fit();
+  indexed_keys.indices.shrink_to_fit();
+
+  std::fill(cell_size.begin(), cell_size.end(), Eigen::Vector3d::Zero());
+  std::fill(occupied_cells.begin(), occupied_cells.end(), 0u);
+  std::fill(max_cell_population.begin(), max_cell_population.end(), 0u);
+  std::fill(
+    average_cell_population.begin(), average_cell_population.end(), 0.0);
+  std::fill(std_cell_population.begin(), std_cell_population.end(), 0.0);
+}
+
+std::ostream&
+Octree::saveIndex(std::ostream& stream) const
+{
+  // Write number of points as an indicator
+  stream.write(reinterpret_cast<const char*>(&number_of_points),
+               sizeof(number_of_points));
+
+  // If no points, skip the rest
+  if (number_of_points == 0) {
+    return stream;
+  }
+
+  // Save keys
+  IndexType size = static_cast<IndexType>(indexed_keys.indices.size());
+  stream.write(reinterpret_cast<const char*>(&size), sizeof(IndexType));
+
+  stream.write(reinterpret_cast<const char*>(indexed_keys.indices.data()),
+               sizeof(IndexType) * size);
+  stream.write(reinterpret_cast<const char*>(indexed_keys.keys.data()),
+               sizeof(SpatialKey) * size);
+
+  return stream;
+}
+
+std::istream&
+Octree::loadIndex(std::istream& stream)
+{
+  // Read the number of points, serving as indicator
+  stream.read(reinterpret_cast<char*>(&number_of_points),
+              sizeof(number_of_points));
+
+  // If no points, skip loading
+  if (number_of_points == 0) {
+    return stream;
+  }
+
+  // Load keys
+  IndexType size;
+  stream.read(reinterpret_cast<char*>(&size), sizeof(IndexType));
+
+  indexed_keys.indices.resize(size);
+  indexed_keys.keys.resize(size);
+
+  stream.read(reinterpret_cast<char*>(indexed_keys.indices.data()),
+              sizeof(IndexType) * size);
+  stream.read(reinterpret_cast<char*>(indexed_keys.keys.data()),
+              sizeof(SpatialKey) * size);
+
+  compute_bounding_box(); // Recalculates box_size, cell_size, etc.
+  compute_statistics();   // Recomputes level-wise stats
+  assert(box_size.allFinite());
+  assert(!cell_size[1].isZero());
+
+  return stream;
+}
+
+std::size_t
+Octree::radius_search(const Eigen::Vector3d& query_point,
+                      double radius,
+                      unsigned int level,
+                      RadiusSearchResult& result) const
+{
+  result.clear();
+
+  radius_search_backend(
+    query_point,
+    radius,
+    level,
+    [&](std::size_t size) { result.reserve(size); },
+    [&](IndexType index, double squared_dist) { result.push_back(index); },
+    [&](const RadiusSearchResult& all_inside) {
+      result.insert(result.end(), all_inside.begin(), all_inside.end());
+    });
+
+  return result.size();
+}
+
+std::size_t
+Octree::radius_search_with_distances(const Eigen::Vector3d& query_point,
+                                     double radius,
+                                     unsigned int level,
+                                     RadiusSearchDistanceResult& result) const
+{
+  result.clear();
+
+  radius_search_backend(
+    query_point,
+    radius,
+    level,
+    [&](std::size_t size) { result.reserve(size); },
+    [&](IndexType index, double squared_dist) {
+      result.emplace_back(index, squared_dist);
+    },
+    [&](const RadiusSearchResult& all_inside) {
+      for (const auto& idx : all_inside) {
+        const Eigen::Vector3d point = cloud.row(idx);
+        double squared_dist = (point - query_point).squaredNorm();
+        result.emplace_back(idx, squared_dist);
+      }
+    });
+
+  // Sort the result by distance (ascending)
+  std::sort(result.begin(), result.end(), [](const auto& a, const auto& b) {
+    return a.second < b.second;
+  });
+
+  return result.size();
+}
+
+std::size_t
+Octree::get_cell_population(SpatialKey truncated_key, unsigned int level) const
+{
+  IndexType start = 0;
+  IndexType end = indexed_keys.keys.size();
+
+  auto range = get_cell_index_range(truncated_key, level, start, end);
+  if (!range)
+    return 0;
+
+  return static_cast<std::size_t>(range->second - range->first);
+}
+
+std::vector<std::size_t>
+Octree::get_cell_population(const KeyContainer& truncated_keys,
+                            unsigned int level) const
+{
+  assert(level <= max_depth);
+  assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
+
+  std::vector<std::size_t> result;
+  result.reserve(truncated_keys.size());
+
+  IndexType start = 0;
+  IndexType end = indexed_keys.keys.size();
+
+  for (SpatialKey key : truncated_keys) {
+    auto range = get_cell_index_range(key, level, start, end);
+
+    if (!range) {
+      result.push_back(0);
+      continue;
+    }
+
+    std::size_t count = static_cast<std::size_t>(range->second - range->first);
+
+    result.push_back(count);
+
+    // Advance search window
+    start = range->second;
+  }
+
+  return result;
+}
+
+std::size_t
+Octree::get_point_indices_from_cells(SpatialKey truncated_key,
+                                     unsigned int level,
+                                     RadiusSearchResult& result) const
+{
+  IndexType start = 0;
+  IndexType end = indexed_keys.keys.size();
+
+  append_points_from_cell(truncated_key, level, start, end, result);
+  return result.size();
+}
+
+std::size_t
+Octree::get_point_indices_from_cells(const Octree::KeyContainer& truncated_keys,
+                                     unsigned int level,
+                                     RadiusSearchResult& result) const
+{
+  assert(level <= max_depth);
+  assert(std::is_sorted(truncated_keys.begin(), truncated_keys.end()));
+
+  IndexType current_start_index = 0;
+  const IndexType search_limit_index = indexed_keys.keys.size();
+
+  for (SpatialKey key : truncated_keys) {
+    append_points_from_cell(
+      key, level, current_start_index, search_limit_index, result);
+  }
+
+  return result.size();
+}
+
+Octree::KeyContainer
+Octree::get_unique_cells(unsigned int level) const
+{
+  assert(level <= max_depth);
+
+  const SpatialKey shift = bit_shift[level];
+
+  KeyContainer unique_keys;
+  unique_keys.reserve(indexed_keys.keys.size());
+
+  SpatialKey last = invalid_key;
+  for (SpatialKey key : indexed_keys.keys) {
+    SpatialKey truncated = key >> shift;
+    if (truncated != last) {
+      unique_keys.push_back(truncated);
+      last = truncated;
+    }
+  }
+
+  return unique_keys;
+}
+
+Octree::OctreeCoordinate
+Octree::get_coordinates(SpatialKey truncated_key) const
+{
+  return decode_spatial_key(truncated_key);
+}
+
+Octree::OctreeCoordinates
+Octree::get_coordinates(const Octree::KeyContainer& keys) const
+{
+  Octree::OctreeCoordinates coords(keys.size(), 3);
+
+  for (std::size_t i = 0; i < keys.size(); ++i) {
+    auto c = decode_spatial_key(keys[i]);
+    coords.row(i) << c[0], c[1], c[2];
+  }
+
+  return coords;
+}
+
+Octree::OctreeCoordinates
+Octree::get_coordinates_at_level(unsigned int level) const
+{
+  if (level > max_depth) {
+    throw std::out_of_range("Requested level " + std::to_string(level) +
+                            " exceeds the maximum depth of " +
+                            std::to_string(max_depth) + ".");
+  }
+
+  Octree::OctreeCoordinates coords(indexed_keys.keys.size(), 3);
+
+  for (std::size_t i = 0; i < indexed_keys.keys.size(); ++i) {
+    auto c = decode_spatial_key_at_level(indexed_keys.keys[i], level);
+    coords.row(i) << c[0], c[1], c[2];
+  }
+
+  return coords;
+}
+
+unsigned int
+Octree::find_appropriate_level_for_radius_search(double radius) const
+{
+  constexpr double min_population_threshold = 1.5; // Threshold from CC
+
+  Eigen::Vector3d aim =
+    Eigen::Vector3d::Constant(radius / 1.5); // CC uses r/2.5
+
+  unsigned int best_level = 1;
+
+  double min_error = (cell_size[1] - aim).cwiseAbs().maxCoeff();
+  for (size_t level = 2; level <= max_depth; ++level) {
+    if (average_cell_population[level] < min_population_threshold)
+      break;
+
+    double error = (cell_size[level] - aim).cwiseAbs().maxCoeff();
+
+    if (error < min_error) {
+      best_level = level;
+      min_error = error;
+    }
+  }
+
+  return best_level;
+}
+
+} // namespace py4dgeo

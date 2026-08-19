@@ -2,9 +2,14 @@
 #include <omp.h>
 #endif
 
-#include "py4dgeo/kdtree.hpp"
-#include "py4dgeo/py4dgeo.hpp"
+#include <py4dgeo/kdtree.hpp>
+#include <py4dgeo/py4dgeo.hpp>
 
+#include <cstddef>
+#include <istream>
+#include <memory>
+#include <ostream>
+#include <utility>
 #include <vector>
 
 namespace py4dgeo {
@@ -68,7 +73,7 @@ KDTree::radius_search(const double* query,
                       RadiusSearchResult& result) const
 {
   NoDistancesReturnSet set{ radius * radius, result };
-  nanoflann::SearchParams params;
+  nanoflann::SearchParameters params;
   params.sorted = false;
   return search->radiusSearchCustomCallback(query, set, params);
 }
@@ -78,8 +83,9 @@ KDTree::radius_search_with_distances(const double* query,
                                      double radius,
                                      RadiusSearchDistanceResult& result) const
 {
-  nanoflann::SearchParams params;
-  return search->radiusSearch(query, radius * radius, result, params);
+  WithDistancesReturnSet set{ radius * radius, result };
+  nanoflann::SearchParameters params;
+  return search->radiusSearchCustomCallback(query, set, params);
 }
 
 void
@@ -88,7 +94,7 @@ KDTree::nearest_neighbors_with_distances(EigenPointCloudConstRef cloud,
                                          int k) const
 {
   result.resize(cloud.rows());
-  nanoflann::SearchParams params;
+  nanoflann::SearchParameters params;
 
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)
@@ -115,7 +121,7 @@ KDTree::nearest_neighbors(EigenPointCloudConstRef cloud,
                           int k) const
 {
   result.resize(cloud.rows());
-  nanoflann::SearchParams params;
+  nanoflann::SearchParameters params;
 
 #ifdef PY4DGEO_WITH_OPENMP
 #pragma omp parallel for schedule(dynamic, 1)

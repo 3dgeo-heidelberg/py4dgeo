@@ -7,6 +7,7 @@ from py4dgeo.epoch import (
     save_epoch,
     load_epoch,
 )
+from _py4dgeo import SearchTree
 from py4dgeo.m3c2 import M3C2, write_m3c2_results_to_las
 from py4dgeo.m3c2ep import M3C2EP
 from py4dgeo.registration import (
@@ -14,6 +15,7 @@ from py4dgeo.registration import (
     point_to_plane_icp,
     icp_with_stable_areas,
 )
+from py4dgeo.c2c import C2C
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
     SpatiotemporalAnalysis,
@@ -27,8 +29,14 @@ from py4dgeo.util import (
     set_memory_policy,
     get_num_threads,
     set_num_threads,
+    initialize_openmp_defaults,
 )
 
-from py4dgeo.pbm3c2 import *
+initialize_openmp_defaults()
+
+from py4dgeo.pbm3c2 import PBM3C2
+from py4dgeo.vapc import Vapc, enable_trace, enable_timeit
+from py4dgeo.sor import statistical_outlier_removal
+from py4dgeo.scor import scan_outlier_ratio, scor
 
 from py4dgeo.levelset import LevelSetAlgorithm

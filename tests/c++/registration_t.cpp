@@ -1,13 +1,14 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/epoch.hpp"
-#include "py4dgeo/registration.hpp"
 #include "testsetup.hpp"
-#include <iostream>
+#include <py4dgeo/compute.hpp>
+#include <py4dgeo/epoch.hpp>
+#include <py4dgeo/registration.hpp>
 
-#include "py4dgeo/compute.hpp"
-#include <vector>
+#include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
 #include <fstream>
+#include <iostream>
+#include <vector>
 
 using namespace py4dgeo;
 
@@ -78,10 +79,15 @@ TEST_CASE("Affine Transformation", "[compute]")
     epoch_test_s.kdtree.build_tree(10); //????
     EigenNormalSet normals(epoch_test_s.cloud.rows(), 3);
     std::vector<double> normal_radii{ 3.0 };
+    std::vector<double> used_radii;
     EigenNormalSet orientation(1, 3);
     orientation << 0, 0, 1;
-    compute_multiscale_directions(
-      epoch_test_s, *corepoints_s, normal_radii, orientation, normals);
+    compute_multiscale_directions(epoch_test_s,
+                                  *corepoints_s,
+                                  normal_radii,
+                                  orientation,
+                                  normals,
+                                  used_radii);
 
     double resolution = 10;
     int k = 10;

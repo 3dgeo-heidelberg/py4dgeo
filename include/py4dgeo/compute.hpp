@@ -1,10 +1,12 @@
 #pragma once
 
-#include <functional>
-
 #include <py4dgeo/epoch.hpp>
 #include <py4dgeo/kdtree.hpp>
 #include <py4dgeo/py4dgeo.hpp>
+
+#include <functional>
+#include <tuple>
+#include <vector>
 
 namespace py4dgeo {
 
@@ -89,7 +91,8 @@ compute_multiscale_directions(const Epoch&,
                               EigenPointCloudConstRef,
                               const std::vector<double>&,
                               EigenNormalSetConstRef,
-                              EigenNormalSetRef);
+                              EigenNormalSetRef,
+                              std::vector<double>&);
 
 /** @brief Compute M3C2 distances */
 void

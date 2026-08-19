@@ -35,6 +35,7 @@ def test_epoch_pickle(epochs):
 def test_epoch_saveload(epochs):
     epoch1, _ = epochs
     epoch1.build_kdtree()
+    epoch1.build_octree()
 
     # Operate in a temporary directory
     with tempfile.TemporaryDirectory() as dir:
@@ -48,6 +49,10 @@ def test_epoch_saveload(epochs):
         assert np.allclose(
             loaded.kdtree.radius_search(np.array([0, 0, 0]), 10),
             epoch1.kdtree.radius_search(np.array([0, 0, 0]), 10),
+        )
+        assert np.allclose(
+            loaded.octree.radius_search(np.array([0, 0, 0]), 10),
+            epoch1.octree.radius_search(np.array([0, 0, 0]), 10),
         )
 
 
@@ -119,9 +124,6 @@ def test_read_from_xyz_header(tmp_path):
         f.write("and another one\n")
         f.write("0 0 0\n")
         f.write("1 1 1\n")
-
-    with pytest.raises(Py4DGeoError):
-        epoch = read_from_xyz(filename)
 
     epoch = read_from_xyz(filename, skip_header=2)
     assert epoch.cloud.shape[0] == 2
@@ -276,3 +278,46 @@ def test_read_from_las_file_w_normals(epochs_las_w_normals):
     assert epoch1.normals.shape[0] > 0
     assert epoch1.cloud.shape[1] == 3
     assert epoch1.normals.shape[1] == 3
+
+
+def test_epoch_slicing(epochs_las_w_normals):
+    epoch1, _ = epochs_las_w_normals
+
+    # Take every second point
+    epoch = epoch1[::2]
+
+    assert epoch.cloud.shape[0] == (epoch1.cloud.shape[0] + 1) // 2
+    assert epoch.normals.shape[0] == (epoch1.normals.shape[0] + 1) // 2
+    assert (
+        epoch.additional_dimensions.shape[0]
+        == (epoch1.additional_dimensions.shape[0] + 1) // 2
+    )
+    assert len(epoch.metadata) == len(epoch1.metadata)
+    for key in epoch.metadata:
+        assert epoch.metadata[key] == epoch1.metadata[key]
+
+
+def test_cpp_props_not_interchangeable(epochs):
+    epoch, _ = epochs
+    with pytest.raises(Py4DGeoError):
+        epoch.cloud = 42
+    with pytest.raises(Py4DGeoError):
+        epoch.kdtree = None
+
+
+def test_read_from_xyz_additional_dimensions(tmp_path):
+    filename = os.path.join(tmp_path, "with_additional_dimensions.xyz")
+    with open(filename, "w") as f:
+        f.write("0 0 0 1 3\n")
+        f.write("1 1 1 0 6\n")
+
+    epoch = read_from_xyz(
+        filename,
+        additional_dimensions={3: "somebool", 4: "someint"},
+        additional_dimensions_dtypes={"someint": np.int32},
+    )
+
+    assert epoch.additional_dimensions.shape == (2,)
+    assert epoch.additional_dimensions["someint"].dtype == np.int32
+    assert epoch.additional_dimensions["someint"][0] == 3
+    assert epoch.additional_dimensions["someint"][1] == 6

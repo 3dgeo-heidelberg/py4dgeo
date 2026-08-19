@@ -1,8 +1,12 @@
-#include "catch2/catch.hpp"
-#include "py4dgeo/segmentation.hpp"
 #include "testsetup.hpp"
+#include <py4dgeo/segmentation.hpp>
 
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_vector.hpp>
+
+#include <cmath>
 #include <limits>
+#include <vector>
 
 using namespace py4dgeo;
 
@@ -230,9 +234,9 @@ TEST_CASE("Fit change point detection", "[segmentation]")
   score3 = fit_change_point_detection(signal, window_width3, jump3, min_size3);
   std::vector<double> true_value3{ 0.0, 0.0, 1.56555928, 0.0, 4.38637792 };
 
-  REQUIRE_THAT(score1, Catch::Approx(true_value1).epsilon(1e-8));
-  REQUIRE_THAT(score2, Catch::Approx(true_value2).epsilon(1e-8));
-  REQUIRE_THAT(score3, Catch::Approx(true_value3).epsilon(1e-8));
+  REQUIRE_THAT(score1, Catch::Matchers::Approx(true_value1).epsilon(1e-8));
+  REQUIRE_THAT(score2, Catch::Matchers::Approx(true_value2).epsilon(1e-8));
+  REQUIRE_THAT(score3, Catch::Matchers::Approx(true_value3).epsilon(1e-8));
 }
 
 TEST_CASE("Predict change point detection", "[segmentation]")

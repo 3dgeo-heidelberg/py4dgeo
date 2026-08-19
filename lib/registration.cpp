@@ -1,12 +1,19 @@
 #include <py4dgeo/registration.hpp>
 
-#include <Eigen/Dense>
-#include <Eigen/Eigen>
-#include <Eigen/StdVector>
+#include <py4dgeo/searchtree.hpp>
+
+#include <Eigen/Core>
+
+#include <algorithm>
+#include <cmath>
+#include <cstddef>
 #include <limits>
 #include <numeric>
 #include <queue>
+#include <stdexcept>
+#include <tuple>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #define LMBD_MAX 1e20
@@ -99,17 +106,14 @@ estimate_supervoxel_count(EigenPointCloudConstRef cloud, double seed_resolution)
   using std::floor;
   using MultiIndex = Eigen::Array<std::size_t, 1, 3>;
   MultiIndex voxelsizes =
-    floor(((upperright - lowerleft) / seed_resolution) + 1)
-      .cast<std::size_t>()
-      .eval();
+    floor(((upperright - lowerleft) / seed_resolution) + 1).cast<std::size_t>();
 
   // Assign all points to their voxels by throwing them in a hashmap
   std::unordered_map<std::size_t, std::vector<Eigen::Index>> voxelmap;
   for (IndexType i = 0; i < cloud.rows(); ++i) {
     Coordinate coord(cloud.row(i));
-    auto ind = floor(((coord - lowerleft) / seed_resolution) + 1)
-                 .cast<std::size_t>()
-                 .eval();
+    MultiIndex ind =
+      floor(((coord - lowerleft) / seed_resolution) + 1).cast<std::size_t>();
     voxelmap[ind[2] * voxelsizes[1] * voxelsizes[0] + ind[1] * voxelsizes[0] +
              ind[0]]
       .push_back(i);
@@ -125,12 +129,9 @@ point_2_point_VCCS_distance(const Eigen::RowVector3d& point1,
                             const Eigen::RowVector3d& normal2,
                             double resolution)
 {
-  const Eigen::RowVector3d diff = point1 - point2;
+  double distance = (point1 - point2).norm();
 
-  double squaredDistance = diff.squaredNorm();
-
-  return 1.0 - std::fabs(normal1.dot(normal2)) +
-         std::sqrt(squaredDistance) / resolution * 0.4;
+  return 1.0 - std::fabs(normal1.dot(normal2)) + distance / resolution * 0.4;
 }
 
 std::vector<std::vector<int>>
@@ -153,14 +154,15 @@ supervoxel_segmentation(Epoch& epoch,
   DisjointSet set(epoch.cloud.rows());
 
   // Calculate k neigbors and its distances for each point
-  KDTree::NearestNeighborsDistanceResult result;
+  NearestNeighborsDistanceResult result;
   kdtree.nearest_neighbors_with_distances(epoch.cloud, result, k);
 
   int supervoxels_amount = epoch.cloud.rows();
 
   // calculate lambda for segmentation
-  DistanceVector lambda_distances(epoch.cloud.rows());
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  DistanceVector lambda_distances;
+  lambda_distances.reserve(epoch.cloud.rows());
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     int current = result[i].first[1];
     lambda_distances.push_back(
       point_2_point_VCCS_distance(epoch.cloud.row(i),
@@ -183,9 +185,9 @@ supervoxel_segmentation(Epoch& epoch,
   std::vector<int> queue_DEL(epoch.cloud.rows());
   std::vector<bool> isVisited(epoch.cloud.rows(), false);
 
-  for (size_t i = 0; i < result.size(); ++i) {
+  for (std::size_t i = 0; i < result.size(); ++i) {
 
-    for (size_t j = 1; j < result[i].first.size(); ++j) {
+    for (std::size_t j = 1; j < result[i].first.size(); ++j) {
       neighborIndexes[i].push_back(result[i].first[j]);
     }
   }
@@ -271,7 +273,7 @@ supervoxel_segmentation(Epoch& epoch,
   std::queue<int> boundaries_queue;
   std::vector<bool> is_in_boundaries_queue(epoch.cloud.rows(), false);
 
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = set.Find(i);
     distances.push_back(point_2_point_VCCS_distance(epoch.cloud.row(i),
                                                     epoch.cloud.row(labels[i]),
@@ -280,7 +282,7 @@ supervoxel_segmentation(Epoch& epoch,
                                                     resolution));
   }
 
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     for (auto j : result[i].first) {
       if (labels[i] != labels[j]) {
         if (!is_in_boundaries_queue[i]) {
@@ -333,10 +335,10 @@ supervoxel_segmentation(Epoch& epoch,
 
   // Relabel the supervoxels points
   std::vector<int> map(epoch.cloud.rows());
-  for (size_t i = 0; i < temporary_supervoxels.size(); ++i) {
+  for (std::size_t i = 0; i < temporary_supervoxels.size(); ++i) {
     map[temporary_supervoxels[i]] = i;
   }
-  for (size_t i = 0; i < epoch.cloud.rows(); ++i) {
+  for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     labels[i] = map[labels[i]];
   }
 

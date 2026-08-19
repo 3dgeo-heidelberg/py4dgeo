@@ -96,6 +96,36 @@ class Epoch(_py4dgeo.Epoch):
         super().__init__(cloud)
 
     @property
+    def cloud(self):
+        return self._cloud
+
+    @cloud.setter
+    def cloud(self, cloud):
+        raise Py4DGeoError(
+            "The Epoch point cloud cannot be changed after initialization. Please construct a new Epoch, e.g. by slicing an existing one."
+        )
+
+    @property
+    def kdtree(self):
+        return self._kdtree
+
+    @kdtree.setter
+    def kdtree(self, kdtree):
+        raise Py4DGeoError(
+            "The KDTree of an Epoch cannot be changed after initialization."
+        )
+
+    @property
+    def octree(self):
+        return self._octree
+
+    @octree.setter
+    def octree(self, octree):
+        raise Py4DGeoError(
+            "The Octree of an Epoch cannot be changed after initialization."
+        )
+
+    @property
     def normals(self):
         # Maybe calculate normals
         if self._normals is None:
@@ -117,25 +147,31 @@ class Epoch(_py4dgeo.Epoch):
             A vector to determine orientation of the normals. It should point "up".
         """
 
-        # Ensure that the KDTree is built
-        if self.kdtree.leaf_parameter() == 0:
-            self.build_kdtree()
-
-        # Allocate memory for the normals
-        self._normals = np.empty(self.cloud.shape, dtype=np.float64)
+        self._validate_search_tree()
 
         # Reuse the multiscale code with a single radius in order to
         # avoid code duplication.
         with logger_context("Calculating point cloud normals:"):
-            _py4dgeo.compute_multiscale_directions(
+            self._normals, _ = _py4dgeo.compute_multiscale_directions(
                 self,
                 self.cloud,
                 [radius],
                 orientation_vector,
-                self._normals,
             )
 
         return self.normals
+
+    def _validate_search_tree(self):
+        """ "Check if the default search tree is built"""
+
+        tree_type = self.get_default_radius_search_tree()
+
+        if tree_type == _py4dgeo.SearchTree.KDTreeSearch:
+            if self.kdtree.leaf_parameter() == 0:
+                self.build_kdtree()
+        else:
+            if self.octree.get_number_of_points() == 0:
+                self.build_octree()
 
     def normals_attachment(self, normals_array):
         """Attach normals to the epoch object
@@ -168,6 +204,23 @@ class Epoch(_py4dgeo.Epoch):
         )
 
         return new_epoch
+
+    def __getitem__(self, ind):
+        """Slice the epoch in order to e.g. downsample it.
+
+        Creates a copy of the epoch.
+        """
+
+        return Epoch(
+            self.cloud[ind],
+            normals=self.normals[ind] if self.normals is not None else None,
+            additional_dimensions=(
+                self.additional_dimensions[ind]
+                if self.additional_dimensions is not None
+                else None
+            ),
+            **self.metadata,
+        )
 
     @property
     def timestamp(self):
@@ -249,6 +302,12 @@ class Epoch(_py4dgeo.Epoch):
             logger.info(f"Building KDTree structure with leaf parameter {leaf_size}")
             self.kdtree.build_tree(leaf_size)
 
+    def build_octree(self):
+        """Build the search octree index"""
+        if self.octree.get_number_of_points() == 0:
+            logger.info(f"Building Octree structure")
+            self.octree.build_tree()
+
     def transform(
         self,
         transformation: typing.Optional[Transformation] = None,
@@ -309,6 +368,9 @@ class Epoch(_py4dgeo.Epoch):
 
         # Invalidate the KDTree
         self.kdtree.invalidate()
+
+        # Invalidate the Octree
+        self.octree.invalidate()
 
         if self._normals is None:
             self._normals = np.empty((1, 3))  # dummy array to avoid error in C++ code
@@ -420,6 +482,11 @@ class Epoch(_py4dgeo.Epoch):
                     self.kdtree.save_index(kdtreefile)
                 zf.write(kdtreefile, arcname="kdtree")
 
+                octreefile = os.path.join(tmp_dir, "octree")
+                with open(octreefile, "w") as f:
+                    self.octree.save_index(octreefile)
+                zf.write(octreefile, arcname="octree")
+
     @staticmethod
     def load(filename):
         """Construct an Epoch instance by loading it from a file
@@ -465,6 +532,15 @@ class Epoch(_py4dgeo.Epoch):
                 # Restore the KDTree object
                 kdtreefile = zf.extract("kdtree", path=tmp_dir)
                 epoch.kdtree.load_index(kdtreefile)
+
+                # Restore the Octree object if present
+                try:
+                    octreefile = zf.extract("octree", path=tmp_dir)
+                    epoch.octree.load_index(octreefile)
+                except KeyError:
+                    logger.warning(
+                        "No octree found in the archive. Skipping octree loading."
+                    )
 
                 # Read the transformation if it exists
                 if version >= 3:
@@ -545,6 +621,7 @@ def read_from_xyz(
     xyz_columns=[0, 1, 2],
     normal_columns=[],
     additional_dimensions={},
+    additional_dimensions_dtypes={},
     **parse_opts,
 ):
     """Create an epoch from an xyz file
@@ -570,6 +647,11 @@ def read_from_xyz(
         They will be read from the file and are accessible under their names from the
         created Epoch objects.
         Additional column indexes start with 3.
+    :type additional_dimensions: dict
+    :param additional_dimensions_dtypes:
+        A dictionary, mapping column names to numpy dtypes which should be used
+        in parsing the data.
+    :type additional_dimensions_dtypes: dict
     :type parse_opts: dict
     """
 
@@ -600,32 +682,29 @@ def read_from_xyz(
 
         try:
             normals = np.genfromtxt(
-                filename, dtype=np.float64, usecols=normal_columns, **parse_opts
+                filename,
+                dtype=np.float64,
+                usecols=normal_columns,
+                **parse_opts,
             )
         except ValueError:
             raise Py4DGeoError("Malformed XYZ file")
 
     # Potentially read additional_dimensions passed by the user
-    additional_columns = np.empty(
-        shape=(cloud.shape[0], 1),
-        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
-    )
-
-    add_cols = list(sorted(additional_dimensions.keys()))
-    try:
-        parsed_additionals = np.genfromtxt(
-            filename, dtype=np.float64, usecols=add_cols, **parse_opts
+    if additional_dimensions:
+        additional_columns = np.genfromtxt(
+            filename,
+            dtype=np.dtype(
+                [
+                    (name, additional_dimensions_dtypes.get(name, np.float64))
+                    for name in additional_dimensions.values()
+                ]
+            ),
+            usecols=additional_dimensions.keys(),
+            **parse_opts,
         )
-        # Ensure that the parsed array is two-dimensional, even if only
-        # one additional dimension was given (avoids an edge case)
-        parsed_additionals = parsed_additionals.reshape(-1, 1)
-    except ValueError:
-        raise Py4DGeoError("Malformed XYZ file")
-
-    for i, col in enumerate(add_cols):
-        additional_columns[additional_dimensions[col]] = parsed_additionals[
-            :, i
-        ].reshape(-1, 1)
+    else:
+        additional_columns = np.empty(shape=(cloud.shape[0], 1), dtype=[])
 
     # Finalize the construction of the new epoch
     new_epoch = Epoch(cloud, normals=normals, additional_dimensions=additional_columns)
@@ -642,6 +721,7 @@ def read_from_xyz(
                 xyz_columns=xyz_columns,
                 normal_columns=normal_columns,
                 additional_dimensions=additional_dimensions,
+                additional_dimensions_dtypes=additional_dimensions_dtypes,
                 **parse_opts,
             )
         )
@@ -692,15 +772,21 @@ def read_from_las(*filenames, normal_columns=[], additional_dimensions={}):
             ]
         ).transpose()
 
-    # set scan positions
     # build additional_dimensions dtype structure
     additional_columns = np.empty(
         shape=(cloud.shape[0], 1),
-        dtype=np.dtype([(name, "<f8") for name in additional_dimensions.values()]),
+        dtype=np.dtype(
+            [
+                (column_name, lasfile.points[column_id].dtype)
+                for column_id, column_name in additional_dimensions.items()
+            ]
+        ),
     )
+
+    # and fill it with the data from the lasfile
     for column_id, column_name in additional_dimensions.items():
         additional_columns[column_name] = np.array(
-            lasfile.points[column_id], dtype=np.int32
+            lasfile.points[column_id], dtype=lasfile.points[column_id].dtype
         ).reshape(-1, 1)
 
     # Construct Epoch and go into recursion
