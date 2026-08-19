@@ -100,14 +100,19 @@ def _process(data, fields, options, restrict_domain=""):
         zeta[:, 0][zeta[:, 0] > 0] = 0
         zeta[:, 1][zeta[:, 1] > 0] = 0
 
-    tmp_file = os.path.join(base_dir, "tmp.npz")
+    npoints = points.shape[0]
+    tmp_file = os.path.join(
+        base_dir,
+        f"cache_h{h:g}_k{k}_n{npoints}.npz",
+    )
+
     if reuse_intermediate and os.path.exists(tmp_file):
         # load neighborhoods, normals, tangents
         #  print('loading previous neighbors/normals/tangents')
-        archive = np.load(tmp_file)
-        neighbors = archive["neighbors"]
-        normals = archive["normals"]
-        tangents = archive["tangents"]
+        with np.load(tmp_file) as archive:
+            neighbors = archive["neighbors"]
+            normals = archive["normals"]
+            tangents = archive["tangents"]
         if (
             normals.shape[0] != points.shape[0]
             or neighbors.shape[0] != points.shape[0]

@@ -3,7 +3,6 @@ from py4dgeo.levelset_algorithm_functions import _process
 
 import numpy as np
 import os
-from multiprocessing import Pool
 from pathlib import Path
 import alphashape
 import re
@@ -18,6 +17,8 @@ from shapely.geometry import Point, MultiPolygon, Polygon
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import platform
+import plotly.express as px
+from shapely.geometry import Polygon, MultiPolygon
 
 verbose = False
 
@@ -25,24 +26,51 @@ verbose = False
 class LevelSetAlgorithm:
     def __init__(self, working_dir=None, **kwargs):
         """
-        Initialize the LevelSetAlgorithm
+        Initialize the LevelSetAlgorithm.
 
+        Options for data setup:
 
-        Options for the data setup:
-        - `first_timestep` (int): The first timestep to process. Default is 0.
-        - `last_timestep` (int): The last timestep to process. If set to -1, all timesteps until the end are processed. Default is -1.
-        - `timestep_interval` (int): The interval between timesteps to process. Default is 1.
+        - `first_timestep` (int):
+          First timestep used as the start of a cue combination.
+          Default is 0.
 
-        Example for the interval pairings:
-            interval: 24 (every timestep will be compared to the timestep + 24)
-            first_timestep: 0 (start with the 0 index)
-            last_timestep: 75 (last index to be used will be 75, so the highest index accessed will be 99)
-            step0: f1:0 f2:24
-            step1: f1:1 f2:25
-            step2: f1:2 f2:26
-            step3: f3:3 f2:27
-            ...
-            stepN f1:75 f2:99
+        - `last_timestep` (int):
+          Last timestep used as the start of a cue combination.
+          If set to -1, all valid timesteps are used until the end of the
+          available time series. Default is -1.
+
+        - `temporal_subsample` (int):
+          Temporal subsampling factor applied to the time series before
+          level-set extraction. A value of 1 uses all epochs. A value of
+          24 uses every 24th epoch. Default is 1.
+
+        - `short_cue` (int):
+          Temporal lag of the short-term cue in units of the original
+          time series.
+
+          Example:
+            short_cue = 24
+            long_cue = 168
+            temporal_subsample = 24
+
+            Anchor epochs:
+            0, 24, 48, 72, ...
+
+            Generated cue pair:
+            delta_0_24
+            delta_0_168
+
+          Default is 24.
+
+        - `long_cue` (int):
+          Temporal lag of the long-term cue in units of the original
+          time series.
+
+          Default is 168.
+
+        The level-set algorithm operates on relative change cues derived
+        from these temporal pairings and processes all valid cue
+        combinations throughout the selected time series interval.
 
         Options for level set algorithm:
         - `reuse_intermediate` (bool): Re-use intermediate calculations
@@ -237,10 +265,6 @@ class LevelSetAlgorithm:
         - change_{t}: the change in the field at time step t
         - pairs: the pairs of fields that will be used for the levelset function
 
-
-
-
-
         :return: dictionary containing all necessary data for the levelset function
         :rtype: dict
         """
@@ -249,11 +273,29 @@ class LevelSetAlgorithm:
         last_timestep = self.options.get("last_timestep", -1)
         short_cue = self.options.get("short_cue", 24)
         long_cue = self.options.get("long_cue", 168)
+        temporal_subsample = self.options.get("temporal_subsample", 1)
+        spatial_subsample = self.options.get("spatial_subsample", 1)
+
+        if short_cue < 1:
+            raise ValueError(
+                "short_cue becomes smaller than one epoch after temporal subsampling."
+            )
+
+        if long_cue < 1:
+            raise ValueError(
+                "long_cue becomes smaller than one epoch after temporal subsampling."
+            )
 
         data = {}
         data_obj = self._analysis
 
-        data["xyz"] = data_obj.corepoints.cloud
+        point_idx = np.arange(
+            0,
+            data_obj.corepoints.cloud.shape[0],
+            spatial_subsample,
+        )
+
+        data["xyz"] = data_obj.corepoints.cloud[point_idx]
         data["origin"] = np.round(np.median(data["xyz"], axis=0), 0)
         data["xyz"] = (
             data["xyz"] - data["origin"]
@@ -261,8 +303,14 @@ class LevelSetAlgorithm:
         data["timedeltas"] = np.array(
             [int(dt.total_seconds()) for dt in data_obj.timedeltas]
         )  # in seconds
+        data["timedeltas"] = data["timedeltas"][::temporal_subsample]
 
-        distances = np.asarray(data_obj.distances_for_compute)
+        # store info about subsampling
+        data["short_cue"] = short_cue
+        data["long_cue"] = long_cue
+        data["temporal_subsample"] = temporal_subsample
+
+        distances = data_obj.distances_for_compute
         n_epochs = distances.shape[1]
 
         max_cue = max(short_cue, long_cue)
@@ -276,25 +324,38 @@ class LevelSetAlgorithm:
         if last_timestep == -1:
             last_timestep = n_epochs - max_cue - 1
 
-        if last_timestep + max_cue >= n_epochs:
+        # ensure all specified cue combinations can be constructed
+        last_timestep = min(
+            last_timestep,
+            n_epochs - max_cue - 1,
+        )
+
+        if max_cue >= n_epochs:
             raise ValueError(
-                "The last timestep plus the longest cue length is larger than "
-                "the available data."
+                f"Long cue ({max_cue}) exceeds available time series length ({n_epochs})."
             )
+
+        start_epochs = range(
+            first_timestep,
+            last_timestep + 1,
+            temporal_subsample,
+        )
 
         data["fields"] = []
         data["pairs"] = []
 
-        for i in range(first_timestep, last_timestep + 1):
+        for i in start_epochs:
             short_field = f"delta_{i}_{i + short_cue}"
             long_field = f"delta_{i}_{i + long_cue}"
 
             data[short_field] = (
-                    distances[:, i + short_cue] - distances[:, i]
+                    distances[point_idx, i + short_cue]
+                    - distances[point_idx, i]
             ).copy()
 
             data[long_field] = (
-                    distances[:, i + long_cue] - distances[:, i]
+                    distances[point_idx, i + long_cue]
+                    - distances[point_idx, i]
             ).copy()
 
             data["fields"].extend([short_field, long_field])
@@ -534,6 +595,132 @@ class LevelSetAlgorithm:
         distance_df["polygon_id"] = polygon_ids
         distance_dict[file.parent.name] = distance_df
 
+    def plot_epoch(
+            self,
+            epoch,
+            show_labels=True,
+            show_points=False,
+            object_ids=None,
+            outfile=None,
+    ):
+        """
+        Plot all dynamic objects present at a given epoch.
+
+        Parameters
+        ----------
+        epoch : int
+            Epoch to visualize.
+
+        show_labels : bool, default=True
+            Show object IDs at polygon centroids.
+
+        show_points : bool, default=False
+            Also display the object points used for the object state.
+
+        object_ids : list[int] or None
+            Restrict plotting to selected object IDs.
+
+        outfile : str or None
+            If given, save html file to this path.
+
+        Returns
+        -------
+        plotly.graph_objects.Figure
+        """
+
+        fig = go.Figure()
+
+        colors = px.colors.qualitative.Alphabet
+
+        for i, obj in enumerate(self._analysis.objects):
+
+            if object_ids is not None:
+                if obj.oid not in object_ids:
+                    continue
+
+            if epoch not in obj.timesteps:
+                continue
+
+            color = colors[i % len(colors)]
+
+            # optional points
+            if show_points:
+                coords = obj.coordinates[epoch]
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=coords[:, 0],
+                        y=coords[:, 1],
+                        mode="markers",
+                        marker=dict(
+                            size=2,
+                            color=color,
+                            opacity=0.5,
+                        ),
+                        name=f"Object {obj.oid} points",
+                        legendgroup=f"object_{obj.oid}",
+                    )
+                )
+
+            # polygons
+            geom = obj.polygons[epoch]
+
+            if isinstance(geom, Polygon):
+                polygons = [geom]
+
+            elif isinstance(geom, MultiPolygon):
+                polygons = geom.geoms
+
+            else:
+                continue
+
+            for poly in polygons:
+
+                x, y = np.asarray(poly.exterior.coords).T
+
+                fig.add_trace(
+                    go.Scatter(
+                        x=x,
+                        y=y,
+                        mode="lines",
+                        line=dict(
+                            color=color,
+                            width=3,
+                        ),
+                        name=f"Object {obj.oid}",
+                        legendgroup=f"object_{obj.oid}",
+                    )
+                )
+
+                if show_labels:
+                    centroid = poly.centroid
+
+                    fig.add_trace(
+                        go.Scatter(
+                            x=[centroid.x],
+                            y=[centroid.y],
+                            mode="text",
+                            text=[str(obj.oid)],
+                            textposition="middle center",
+                            showlegend=False,
+                        )
+                    )
+
+        fig.update_layout(
+            title=f"Dynamic objects at epoch {epoch}",
+            template="plotly_white",
+            xaxis_title="x",
+            yaxis_title="y",
+            yaxis_scaleanchor="x",
+            width=1200,
+            height=1000,
+        )
+
+        if outfile is not None:
+            fig.write_html(outfile)
+
+        return fig
+
 
 class ObjectByLevelset:
     """Representation a change object in the spatiotemporal domain"""
@@ -716,3 +903,119 @@ class ObjectByLevelset:
             width=500,
         )
         return fig
+
+    def plot_evolution(
+            self,
+            analysis=None,
+            epoch=None,
+            outfile=None,
+            cmap="RdYlBu_r",
+            pointsize=1,
+    ):
+        """
+        Plot object evolution on a change basemap.
+
+        Parameters
+        ----------
+        analysis : py4dgeo.SpatiotemporalAnalysis
+            Analysis object used to retrieve the background change field.
+        epoch : int, optional
+            Epoch used for the basemap.
+            Defaults to the first object timestep.
+        outfile : str, optional
+            File path where the figure is saved.
+        """
+
+        import matplotlib.pyplot as plt
+        import numpy as np
+
+        if epoch is None:
+            epoch = min(self.timesteps)
+
+        fig, ax = plt.subplots(
+            figsize=(8, 12),
+            constrained_layout=True,
+        )
+
+        # background change map
+        if analysis is not None:
+
+            coords = analysis.corepoints.cloud
+
+            try:
+                change = np.asarray(
+                    [cp[epoch] for cp in analysis.distances_for_compute]
+                )
+            except Exception:
+                change = analysis.distances_for_compute[:, epoch]
+
+            sc = ax.scatter(
+                coords[:, 0],
+                coords[:, 1],
+                c=change,
+                s=pointsize,
+                cmap=cmap,
+                rasterized=True,
+                zorder=1,
+                vmin=np.nanpercentile(change, 2),
+                vmax=np.nanpercentile(change, 98),
+            )
+
+            cb = fig.colorbar(sc, ax=ax)
+            cb.set_label("Surface change [m]")
+
+        # object evolution
+        timesteps_sorted = sorted(self.polygons.keys())
+
+        for i, t in enumerate(timesteps_sorted):
+
+            poly = self.polygons[t]
+
+            if hasattr(poly, "geoms"):
+                polygons = poly.geoms
+            else:
+                polygons = [poly]
+
+            for p in polygons:
+
+                x, y = np.asarray(p.exterior.coords).T
+
+                if i == 0:
+                    ax.plot(
+                        x,
+                        y,
+                        color="blue",
+                        linewidth=2.5,
+                        zorder=100,
+                    )
+                else:
+                    ax.plot(
+                        x,
+                        y,
+                        color="black",
+                        linewidth=0.8,
+                        alpha=0.6,
+                        zorder=50,
+                    )
+
+        # figure elements
+        duration = max(self.timesteps) - min(self.timesteps)
+
+        ax.set_title(
+            f"Object {self.oid} (duration: {duration} epochs)"
+        )
+
+        ax.set_aspect("equal")
+
+        if outfile is not None:
+            fig.savefig(
+                outfile,
+                dpi=300,
+                bbox_inches="tight",
+            )
+            plt.close(fig)
+        else:
+            plt.show()
+
+        return fig, ax
+
