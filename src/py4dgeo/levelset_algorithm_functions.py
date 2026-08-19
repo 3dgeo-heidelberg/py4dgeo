@@ -8,7 +8,77 @@ verbose = False
 
 def _process(data, fields, options, restrict_domain=""):
 
-    field1, field2 = fields
+    """
+    Apply the level-set extraction to a pair of temporal change cues.
+
+    Parameters
+    ----------
+    data : dict
+        Dictionary containing the spatiotemporal analysis data.
+
+        Expected entries include:
+
+        - ``xyz`` :
+          Corepoint coordinates.
+
+        - ``origin`` :
+          Coordinate offset applied during preprocessing.
+
+        - ``field_name`` :
+          Change cue arrays stored under their corresponding field names.
+
+    fields : tuple(str, str)
+        Pair of change-cue field names.
+
+        The first entry corresponds to the short-term cue and the second
+        entry to the long-term cue.
+
+        Example
+        -------
+        ::
+
+            (
+                "delta_168_192",
+                "delta_168_336",
+            )
+
+        representing
+
+        - short-term cue:
+          change between epochs 168 and 192
+
+        - long-term cue:
+          change between epochs 168 and 336
+
+    options : dict
+        Level-set configuration including solver parameters, cue handling,
+        initialization settings, and output directories.
+
+    restrict_domain : {"positive", "negative", ""}, optional
+        Restrict extraction to positive or negative change domains.
+
+        - ``"positive"`` :
+          accumulation / positive surface change
+
+        - ``"negative"`` :
+          erosion / negative surface change
+
+        - ``""`` :
+          unrestricted processing
+
+    Notes
+    -----
+    The supplied cue pair is converted into a combined saliency cue used
+    to drive the point-based level-set evolution.
+
+    Neighbourhood information, surface normals, and tangent vectors are
+    reused from cached intermediate results whenever possible.
+
+    Output files are written to the directory specified by
+    ``options["base_dir"]``.
+    """
+
+    short_cue_field, long_cue_field = fields
 
     base_dir = options["base_dir"]
 
@@ -43,11 +113,11 @@ def _process(data, fields, options, restrict_domain=""):
     # heaviside/delta approximation "width", is scaled with h
     epsilon = options.get("epsilon", 1.0)
 
-    # approximate neighborhood radius
-    h = options.get("h", 2.5)  # (all k neighbours should be within)
+    # local neighborhood support radius
+    h = options.get("support_radius", options.get("h", 2.5))
 
-    # number of kNN neighbors
-    k = options.get("k", 7)
+    # number of neighbors used for MLS approximation
+    k = options.get("num_neighbors", options.get("k", 7))
 
     # termination tolerance
     tolerance = options.get("tolerance", 5e-5)
@@ -71,9 +141,9 @@ def _process(data, fields, options, restrict_domain=""):
     # recenter cues by substracting cue median
     center_data = False
 
-    # print(f"processing '{field1}'/'{field2}' | restriction: {restrict_domain}")
+    # print(f"processing '{short_cue_field}'/'{long_cue_field}' | restriction: {restrict_domain}")
 
-    out_dir = os.path.join(base_dir, f"{field1}_{field2}")
+    out_dir = os.path.join(base_dir, f"{short_cue_field}_{long_cue_field}")
     if restrict_domain is not None:
         out_dir += f"_{restrict_domain}"
 
@@ -83,10 +153,10 @@ def _process(data, fields, options, restrict_domain=""):
     points = data["xyz"]
     zeta = np.zeros((points.shape[0], 2))
 
-    zeta[:, 0] = data[field1].copy()
+    zeta[:, 0] = data[short_cue_field].copy()
 
-    if field2 is not None:
-        zeta[:, 1] = data[field2].copy() - data[field1].copy()
+    if long_cue_field is not None:
+        zeta[:, 1] = data[long_cue_field].copy() - data[short_cue_field].copy()
 
     zeta[np.isnan(zeta)] = 0
 
