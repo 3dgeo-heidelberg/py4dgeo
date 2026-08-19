@@ -3,7 +3,6 @@ import os
 from multiprocessing import Pool
 from sklearn.neighbors import BallTree
 
-
 verbose = False
 
 
