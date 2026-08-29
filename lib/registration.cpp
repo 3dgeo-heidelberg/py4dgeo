@@ -160,7 +160,8 @@ supervoxel_segmentation(Epoch& epoch,
   int supervoxels_amount = epoch.cloud.rows();
 
   // calculate lambda for segmentation
-  DistanceVector lambda_distances(epoch.cloud.rows());
+  DistanceVector lambda_distances;
+  lambda_distances.reserve(epoch.cloud.rows());
   for (std::size_t i = 0; i < epoch.cloud.rows(); ++i) {
     int current = result[i].first[1];
     lambda_distances.push_back(

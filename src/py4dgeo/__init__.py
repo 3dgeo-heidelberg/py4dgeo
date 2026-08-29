@@ -15,6 +15,7 @@ from py4dgeo.registration import (
     point_to_plane_icp,
     icp_with_stable_areas,
 )
+from py4dgeo.c2c import C2C
 from py4dgeo.segmentation import (
     RegionGrowingAlgorithm,
     SpatiotemporalAnalysis,
@@ -33,4 +34,7 @@ from py4dgeo.util import (
 
 initialize_openmp_defaults()
 
-from py4dgeo.pbm3c2 import *
+from py4dgeo.pbm3c2 import PBM3C2
+from py4dgeo.vapc import Vapc, enable_trace, enable_timeit
+from py4dgeo.sor import statistical_outlier_removal
+from py4dgeo.scor import scan_outlier_ratio, scor

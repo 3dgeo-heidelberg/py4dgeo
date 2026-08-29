@@ -34,15 +34,17 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 * **Point cloud registration with automatic determination of stable areas** ([Yang et al., 2022](https://doi.org/10.1515/jag-2022-0031)) for multitemporal change detection.
 
+* **Hierarchical 3D surface change analysis** for near real-time 3D surface change analysis of permanent laser scanning point clouds ([Tabernig et al., 2025](https://doi.org/10.5445/IR/1000180377))
+
 ## 🎮 Examples
 
 ### Demo notebooks using methods provided by py4dgeo
 |                                                                                                                                                              |                                                                                                                                                                 |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2-change_analysis.ipynb)       | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/m3c2ep_change_analysis.ipynb)      |
-| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/4dobc-change_analysis.ipynb)          | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/kmeans_clustering_of_time_series.ipynb) |
-| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/principal_component_analysis_of_time_series.ipynb) | [![Example 6](img/pbm3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/jupyter/pbm3c2.ipynb)                                   |
- [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/main/demo/registration_standard_ICP.ipynb)          |
+| [![Example 1](img/m3c2_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/m3c2-change_analysis.ipynb)       | [![Example 2](img/m3c2ep_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/m3c2ep_change_analysis.ipynb)      |
+| [![Example 3](img/4dobc_extraction_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/4dobc-change_analysis.ipynb)          | [![Example 4](img/kmeans_clustering_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/kmeans_clustering_of_time_series.ipynb) |
+| [![Example 5](img/pca_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/principal_component_analysis_of_time_series.ipynb) | [![Example 6](img/pbm3c2_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/jupyter/pbm3c2.ipynb)                                   |
+| [![Example 7](img/standard_icp_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/24fe2b105c1f05bc30dab02b16960ba09c3b0f0b/demo/registration_standard_ICP.ipynb)          | [![Example 8](img/hierarchical_change_analysis_thumbnail.png)](https://nbviewer.org/github/3dgeo-heidelberg/py4dgeo/blob/25e9e7a085cd2ad914035e1408abb090d9c28680/jupyter/hierarchical_change_analysis.ipynb)                                   |
 
 ## 💻 Installation
 
@@ -50,7 +52,7 @@ Below, you find a list of [provided methods](#methods-provided-by-py4dgeo).
 
 Using py4dgeo requires the following software installed:
 
-* 64-bit Python `>= 3.9` (32-bit installations might cause trouble during installation of dependencies)
+* 64-bit Python `>= 3.10` (32-bit installations might cause trouble during installation of dependencies)
 
 In order to build the package from source, the following tools are also needed.
 
@@ -115,6 +117,10 @@ docker run -t -p 8888:8888 py4dgeo:latest
 
 As a starting point, please have a look to the [Jupyter Notebooks](jupyter) available in the repository and find the `py4dgeo` documentation [on readthedocs](https://py4dgeo.readthedocs.io/en/latest/intro.html).
 
+## 🎓 Tutorial of py4dgeo
+
+Explore what `py4dgeo` can do with the [py4dgeo tutorial](https://3dgeo-heidelberg.github.io/py4dgeo-tutorial/). It provides an introduction to the methods available in the library, explains when and how to use them, and guides you through practical examples. It is the best way to get started with `py4dgeo`!
+
 ## 🌐 Published test data
 
 <!-- TODO: integrate example notebooks for these use cases and data -->
@@ -135,28 +141,27 @@ Vos et al. (2022): [https://doi.org/10.1038/s41597-022-01291-9](https://doi.org/
 Zahs et al. (2022): [https://doi.org/10.11588/data/TGSVUI](https://doi.org/10.11588/data/TGSVUI).
 
 
-
-
 ## 📑 Citation
-Please cite py4dgeo when using it in your research and reference the appropriate release version.
-
-<!-- TODO: All releases of py4dgeo are listed on Zenodo where you will find the citation information including DOI. -->
+If you use py4dgeo in a scientific context, please cite the following article:
 
 ```
-article{py4dgeo,
-author = {py4dgeo Development Core Team}
-title = {py4dgeo: library for change analysis in 4D point clouds},
-journal = {},
-year = {2022},
-number = {},
-volume = {},
-doi = {},
-url = {https://github.com/3dgeo-heidelberg/py4dgeo},
+@Article{py4dgeo_softwarex,
+   author = {Anders, K. and Kempf, D. and Albert, W. and Andriushchenko, P. and Huang, X. and Hulskemper, D. and Isensee, T. and Kapitan, D. and Tabernig, R. and Weiser, H. and Winiwarter, L. and Zahs, V. and Höfle, B.},
+   title = {py4dgeo: Open-source scientific software for topographic change analysis in 3D/4D geographic point clouds},
+   journal = {SoftwareX},
+   volume = {34},
+   pages = {102670},
+   DOI = {10.1016/j.softx.2026.102670},
+   year = {2026},
+   type = {Journal Article}
 }
- ```
+```
+
+As a software citation, please reference the appropriate release version. You can find the Bibtex reference of the latest release via the `Cite this repository` link on the right side of this website (source: [CITATION.cff](CITATION.cff)).
+
 
 ## 💟 Funding / Acknowledgements
-The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
+The initial software development was supported by the [**Scientific Software Center (SSC)**](https://ssc.iwr.uni-heidelberg.de/) in the Open Call 2021. The scientific software project is further supported by the research projects [**Extract4D**](https://www.asg.ed.tum.de/en/rsa/research/extract4d/), [**CharAct4D**](https://www.uni-heidelberg.de/charact4d) and [**AImon5.0**](https://www.uni-heidelberg.de/aimon).
 
 ## 🔔 Contact / Bugs / Feature Requests
 
@@ -164,14 +169,20 @@ You think you have found a bug or have specific request for a new feature? Pleas
 
 Scientific requests can be directed to the [3DGeo Research Group Heidelberg](https://uni-heidelberg.de/3dgeo) and its respective members.
 
+## 📄 How to contribute
+
+We welcome contributions of new methods and usage demonstrations!
+Please see the full guidelines in our [CONTRIBUTING.md](./CONTRIBUTING.md) for details on how to get started.
+
 ## 📜 License
 
 See [LICENSE.md](LICENSE.md).
 
 
-## 📚 Literature
+## 📚 Related literature
 
 * Anders, K., Winiwarter, L., Mara, H., Lindenbergh, R., Vos, S.E. & Höfle, B. (2021): Fully automatic spatiotemporal segmentation of 3D LiDAR time series for the extraction of natural surface changes. ISPRS Journal of Photogrammetry and Remote Sensing, 173, pp. 297-308. DOI: [10.1016/j.isprsjprs.2021.01.015](https://doi.org/10.1016/j.isprsjprs.2021.01.015).
 * Lague, D., Brodu, N., & Leroux, J. (2013). Accurate 3D comparison of complex topography with terrestrial laser scanner: Application to the Rangitikei canyon (N-Z). ISPRS Journal of Photogrammetry and Remote Sensing, 82, pp. 10-26. DOI: [10.1016/j.isprsjprs.2013.04.009](https://doi.org/10.1016/j.isprsjprs.2013.04.009).
+* Tabernig, R., Albert, W., Weiser, H., & Höfle, B. (2025). A hierarchical approach for near real-time 3D surface change analysis of permanent laser scanning point clouds. In: 6th Joint  International Symposium on Deformation Monitoring (JISDM). DOI: [10.5445/IR/1000180377](https://doi.org/10.5445/IR/1000180377)
 * Winiwarter, L., Anders, K., Höfle, B. (2021): M3C2-EP: Pushing the limits of 3D topographic point cloud change detection by error propagation. ISPRS Journal of Photogrammetry and Remote Sensing, 178, pp. 240–258. DOI: [10.1016/j.isprsjprs.2021.06.011](https://doi.org/10.1016/j.isprsjprs.2021.06.011).
 * Zahs, V., Winiwarter, L., Anders, K., Williams, J.G., Rutzinger, M. & Höfle, B. (2022): Correspondence-driven plane-based M3C2 for lower uncertainty in 3D topographic change quantification. ISPRS Journal of Photogrammetry and Remote Sensing, 183, pp. 541-559. DOI: [10.1016/j.isprsjprs.2021.11.018](https://doi.org/10.1016/j.isprsjprs.2021.11.018).

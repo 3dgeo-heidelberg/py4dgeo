@@ -135,6 +135,111 @@ def test_regular_corepoint_grid():
     assert grid.shape == (16, 3)
 
 
+def test_volume_cpd(analysis):
+    # test of volume_cpd method, works if no method is called, to ensure that the function backward compatible
+    # volume_cpd does not use the timedelta, so it's not affected by the timedeöta-vector being dublicated
+    algo = RegionGrowingAlgorithm(neighborhood_radius=2.0, seed_subsampling=20)
+    algo._analysis = analysis
+    seeds = algo.find_seedpoints()
+
+    n_corepoints, n_epochs = analysis.distances_for_compute.shape
+
+    # asserting that epochs and indexes of seeds are reasonable and exist
+    assert isinstance(seeds, list)
+    assert len(seeds) > 0
+    for s in seeds:
+        assert 0 <= s.index < n_corepoints
+        assert 0 <= s.start_epoch <= s.end_epoch <= n_epochs - 1
+
+
+def test_linear_rdp(tmp_path, epochs):
+    # test data needs to be created 'manually'. Timedelta from conftest.py is repeated and therfore twice as long, as the distance vector, wich then fails.
+    ref_epoch, epoch = epochs
+    ref_epoch.timestamp = "March 9th 2022, 16:32"
+    epoch.timestamp = "March 9th 2022, 16:33"
+
+    analysis = SpatiotemporalAnalysis(os.path.join(tmp_path, "scratch.zip"))
+    analysis.reference_epoch = ref_epoch
+    analysis.corepoints = epoch.cloud
+
+    n_corepoints = analysis.corepoints.cloud.shape[0]
+    n_epochs = 95
+
+    ramp = np.linspace(0.0, 5.0, n_epochs)
+    analysis.distances = np.tile(ramp, (n_corepoints, 1))
+
+    analysis.uncertainties = np.zeros(
+        (n_corepoints, n_epochs),
+        dtype=np.dtype(
+            [
+                ("lodetection", "<f8"),
+                ("spread1", "<f8"),
+                ("num_samples1", "<i8"),
+                ("spread2", "<f8"),
+                ("num_samples2", "<i8"),
+            ]
+        ),
+    )
+    analysis.uncertainties["lodetection"] = 0.1
+    analysis.timedeltas = [datetime.timedelta(days=float(i)) for i in range(n_epochs)]
+    algo = RegionGrowingAlgorithm(
+        neighborhood_radius=2.0, seed_subsampling=20, method="linear_rdp"
+    )
+    algo._analysis = analysis
+    seeds = algo.find_seedpoints()
+
+    # asserting that epochs and indexes of seeds are reasonable and exist
+    assert isinstance(seeds, list)
+    assert len(seeds) > 0
+    for s in seeds:
+        assert 0 <= s.index < n_corepoints
+        assert 0 <= s.start_epoch <= s.end_epoch <= n_epochs - 1
+
+
+def test_linear_dtr(tmp_path, epochs):
+    # test data needs to be created 'manually'. Timedelta from conftest.py is repeated and therfore twice as long, as the distance vector, wich then fails.
+    ref_epoch, epoch = epochs
+    ref_epoch.timestamp = "March 9th 2022, 16:32"
+    epoch.timestamp = "March 9th 2022, 16:33"
+
+    analysis = SpatiotemporalAnalysis(os.path.join(tmp_path, "scratch.zip"))
+    analysis.reference_epoch = ref_epoch
+    analysis.corepoints = epoch.cloud
+
+    n_corepoints = analysis.corepoints.cloud.shape[0]
+    n_epochs = 95
+
+    ramp = np.linspace(0.0, 5.0, n_epochs)
+    analysis.distances = np.tile(ramp, (n_corepoints, 1))
+
+    analysis.uncertainties = np.zeros(
+        (n_corepoints, n_epochs),
+        dtype=np.dtype(
+            [
+                ("lodetection", "<f8"),
+                ("spread1", "<f8"),
+                ("num_samples1", "<i8"),
+                ("spread2", "<f8"),
+                ("num_samples2", "<i8"),
+            ]
+        ),
+    )
+    analysis.uncertainties["lodetection"] = 0.1
+    analysis.timedeltas = [datetime.timedelta(days=float(i)) for i in range(n_epochs)]
+    algo = RegionGrowingAlgorithm(
+        neighborhood_radius=2.0, seed_subsampling=20, method="linear_dtr"
+    )
+    algo._analysis = analysis
+    seeds = algo.find_seedpoints()
+
+    # asserting that epochs and indexes of seeds are reasonable and exist
+    assert isinstance(seeds, list)
+    assert len(seeds) > 0
+    for s in seeds:
+        assert 0 <= s.index < n_corepoints
+        assert 0 <= s.start_epoch <= s.end_epoch <= n_epochs - 1
+
+
 @pytest.mark.parametrize("ts", (simple_jump(), complex_timeseries()))
 @pytest.mark.parametrize("window_size", (12, 24, 48))
 @pytest.mark.parametrize("min_size", (6, 9, 12))

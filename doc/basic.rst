@@ -5,6 +5,7 @@ In the following, you find a number of tutorials that demonstrate the basic capa
 
 .. toctree::
 
+    c2c
     m3c2
     customization
     registration
@@ -13,6 +14,5 @@ In the following, you find a number of tutorials that demonstrate the basic capa
     4dobc-analysis
     4dobc-customization
     pbm3c2
-    pbm3c2-segmented
-    pbm3c2-tools
-    pbm3c2-longterm
+    hierarchical_change_analysis
+    spatial_subsampling

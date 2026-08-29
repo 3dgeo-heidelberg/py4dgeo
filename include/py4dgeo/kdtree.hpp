@@ -3,6 +3,7 @@
 #include <py4dgeo/py4dgeo.hpp>
 #include <py4dgeo/searchtree.hpp>
 
+#define NANOFLANN_NODE_ALIGNMENT 8
 #include "nanoflann.hpp"
 #include <Eigen/Core>
 

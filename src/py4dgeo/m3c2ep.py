@@ -803,12 +803,12 @@ def process_corepoint_list(
         normal = n[np.newaxis, :]
         M3C2_spread1[cp_idx] = np.sqrt(
             np.matmul(np.matmul(normal, p1_CoG_Cxx), normal.T)
-        )
+        ).squeeze()
         M3C2_spread2[cp_idx] = np.sqrt(
             np.matmul(np.matmul(normal, p2_CoG_Cxx), normal.T)
-        )
-        M3C2_cov1[cp_idx] = p1_CoG_Cxx
-        M3C2_cov2[cp_idx] = p2_CoG_Cxx
+        ).squeeze()
+        M3C2_cov1[cp_idx] = p1_CoG_Cxx.squeeze()
+        M3C2_cov2[cp_idx] = p2_CoG_Cxx.squeeze()
 
         pbarQueue.put((1, 0))  # point processed
 

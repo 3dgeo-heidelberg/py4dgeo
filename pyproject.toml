@@ -4,7 +4,7 @@
 [build-system]
 requires = [
     "pybind11",
-    "scikit-build-core >=0.6.1",
+    "scikit-build-core >=0.11.0",
 ]
 build-backend = "scikit_build_core.build"
 
@@ -13,19 +13,20 @@ build-backend = "scikit_build_core.build"
 # single source of truth for py4dgeo's version
 [project]
 name = "py4dgeo"
-version = "0.8.0"
+version = "1.2.0"
 description = "Library for change detection in 4D point cloud data"
 readme = "README.md"
+requires-python = ">=3.10"
+license = "MIT"
+license-files = ["LICENSE.md"]
+keywords = ["point-cloud", "change-detection", "4D", "geospatial", "lidar"]
 maintainers = [
     { name = "Dominic Kempf", email = "ssc@iwr.uni-heidelberg.de" },
 ]
-requires-python = ">=3.8"
-license = { file = "LICENSE.md" }
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: C++",
     "Operating System :: OS Independent",
-    "License :: OSI Approved :: MIT License",
     "Topic :: Scientific/Engineering :: GIS",
     "Intended Audience :: Science/Research",
 ]
@@ -38,21 +39,33 @@ dependencies = [
     "requests",
     "seaborn",
     "scikit-learn",
-    "vedo",
     "xdg",
     "psutil"
 ]
+
+[project.optional-dependencies]
+docs = [
+    "breathe",
+    "docutils<0.22",
+    "myst_nb",
+    "myst_parser",
+    "nbsphinx_link",
+    "sphinx",
+    "sphinx_rtd_theme",
+]
+
+[project.urls]
+homepage = "https://github.com/3dgeo-heidelberg/py4dgeo/"
+documentation = "https://py4dgeo.readthedocs.io/"
+repository = "https://github.com/3dgeo-heidelberg/py4dgeo/"
 
 # Command line scripts installed as part of the installation
 [project.scripts]
 copy_py4dgeo_test_data = "py4dgeo.util:copy_test_data_entrypoint"
 
-[tool.scikit-build.cmake]
-minimum-version = "3.30"
-
-[tool.scikit-build.cmake.define]
-BUILD_DOCS = "OFF"
-BUILD_TESTING = "OFF"
+[tool.scikit-build]
+cmake.version = ">=3.30"
+cmake.define = { BUILD_DOCS = "OFF", BUILD_TESTING = "OFF" }
 
 # The next section configures building wheels in Continuous Integration
 # The cibuildwheel documentation covers the available options in detail:
@@ -67,7 +80,7 @@ archs = ["auto64"]
 # We restrict ourselves to recent Python versions.
 # We temporarily skip win32 builds, because lazrs
 # does not provide Win32 wheels.
-skip = "pp* cp38-* cp314-* cp314t-* *musllinux* *-win32"
+skip = "*musllinux* *-win32"
 
 # Testing commands for our wheels
 test-command = "pytest {package}/tests/python"

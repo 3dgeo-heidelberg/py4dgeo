@@ -18,6 +18,17 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autofunction:: py4dgeo.load_epoch
 
+.. autofunction:: py4dgeo.iterative_closest_point
+
+.. autofunction:: py4dgeo.point_to_plane_icp
+
+.. autofunction:: py4dgeo.icp_with_stable_areas
+
+.. autoclass:: py4dgeo.C2C
+    :members:
+
+.. autofunction:: py4dgeo.statistical_outlier_removal
+
 .. autoclass:: py4dgeo.M3C2
     :members:
     :inherited-members:
@@ -27,6 +38,18 @@ It focuses on those aspects relevant to end users that are not interested in alg
     :members:
     :inherited-members:
     :show-inheritance:
+
+.. autoclass:: py4dgeo.M3C2EP
+    :members:
+    :inherited-members:
+    :show-inheritance:
+
+.. autoclass:: py4dgeo.PBM3C2
+    :members:
+
+.. autofunction:: py4dgeo.write_m3c2_results_to_las
+
+.. autofunction:: py4dgeo.temporal_averaging
 
 .. autoclass:: py4dgeo.SpatiotemporalAnalysis
     :members:
@@ -48,8 +71,12 @@ It focuses on those aspects relevant to end users that are not interested in alg
 
 .. autofunction:: py4dgeo.set_num_threads
 
-.. autoclass:: py4dgeo.PBM3C2
+.. autoclass:: py4dgeo.Vapc
     :members:
+
+.. autofunction:: py4dgeo.enable_trace
+
+.. autofunction:: py4dgeo.enable_timeit
 
 Developer API reference
 -----------------------
