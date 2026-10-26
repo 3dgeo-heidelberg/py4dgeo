@@ -569,7 +569,6 @@ class SpatiotemporalAnalysis:
 
                 zf.write(objectsfile, arcname="objects.pickle")
 
-
     @property
     def merged_objects(self):
         """The list of merged objects by change for this analysis"""
@@ -617,7 +616,9 @@ class SpatiotemporalAnalysis:
 
                 zf.write(merged_objectsfile, arcname="merged_objects.pickle")
 
-    def invalidate_results(self, seeds=True, objects=True, merged_objects = True, smoothed_distances=False):
+    def invalidate_results(
+        self, seeds=True, objects=True, merged_objects=True, smoothed_distances=False
+    ):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
@@ -1824,10 +1825,8 @@ def median_smoothing(
 
 
 class MergedObjectByChange:
-    def __init__(
-        self, indices, start_epoch, end_epoch, obj_4dobc, analysis, distances
-    ):
-        
+    def __init__(self, indices, start_epoch, end_epoch, obj_4dobc, analysis, distances):
+
         self.indices = indices
         self.start_epoch = start_epoch
         self.end_epoch = end_epoch
@@ -1842,14 +1841,12 @@ class MergedObjectByChange:
         return self._distances
 
     def distance(self, index):
-        return np.nanmean(
-            self.distances[index, self.start_epoch : self.end_epoch + 1]
-        )
+        return np.nanmean(self.distances[index, self.start_epoch : self.end_epoch + 1])
 
     def attach_analysis(self, analysis):
         self._analysis = analysis
-        self._distances = None 
-    
+        self._distances = None
+
     def __getstate__(self):
         """
         Return the pickle state for this object.
@@ -1880,70 +1877,69 @@ class MergedObjectByChange:
         self._analysis = None
         self._distances = None
 
-
     def plot(self, filename=None):
-            """Create an informative visualization of the Merged Object By Change
-    
-            :param filename:
-                The filename to use to store the plot. Can be omitted to only show
-                plot in a Jupyter notebook session.
-            :type filename: str
-            """
-    
-            # Extract distances from this object
-            indexarray = np.fromiter(self.indices, np.int32)
-            distarray = np.fromiter((self.distance(i) for i in indexarray), np.float64)
-    
-            # Intitialize the figure and all of its subfigures
-            fig = plt.figure(figsize=plt.figaspect(0.3))
-            tsax = fig.add_subplot(1, 3, 1)
-            histax = fig.add_subplot(1, 3, 2)
-            mapax = fig.add_subplot(1, 3, 3)
-    
-            # The first plot (tsax) prints all time series of chosen corepoints
-            # and colors them according to distance.
-            tsax.set_ylabel("Height change [m]")
-            tsax.set_xlabel("Time [h]")
-    
-            # We pad the time series visualization with a number of data
-            # points on both sides. TODO: Expose as argument to plot?
-            timeseries_padding = 10
-            start_epoch = max(self.start_epoch - timeseries_padding, 0)
-            end_epoch = min(
-                self.end_epoch + timeseries_padding,
-                self._analysis.distances_for_compute.shape[1],
+        """Create an informative visualization of the Merged Object By Change
+
+        :param filename:
+            The filename to use to store the plot. Can be omitted to only show
+            plot in a Jupyter notebook session.
+        :type filename: str
+        """
+
+        # Extract distances from this object
+        indexarray = np.fromiter(self.indices, np.int32)
+        distarray = np.fromiter((self.distance(i) for i in indexarray), np.float64)
+
+        # Intitialize the figure and all of its subfigures
+        fig = plt.figure(figsize=plt.figaspect(0.3))
+        tsax = fig.add_subplot(1, 3, 1)
+        histax = fig.add_subplot(1, 3, 2)
+        mapax = fig.add_subplot(1, 3, 3)
+
+        # The first plot (tsax) prints all time series of chosen corepoints
+        # and colors them according to distance.
+        tsax.set_ylabel("Height change [m]")
+        tsax.set_xlabel("Time [h]")
+
+        # We pad the time series visualization with a number of data
+        # points on both sides. TODO: Expose as argument to plot?
+        timeseries_padding = 10
+        start_epoch = max(self.start_epoch - timeseries_padding, 0)
+        end_epoch = min(
+            self.end_epoch + timeseries_padding,
+            self._analysis.distances_for_compute.shape[1],
+        )
+
+        # Create a colormap with distance for this object
+        cmap = matplotlib.colormaps.get_cmap("viridis")
+        maxdist = np.nanmax(distarray)
+
+        # Plot each time series individually
+        for index in self.indices:
+            tsax.plot(
+                self._analysis.distances_for_compute[index, start_epoch:end_epoch],
+                linewidth=0.7,
+                alpha=0.3,
+                color=cmap(self.distance(index) / maxdist),
             )
-    
-            # Create a colormap with distance for this object
-            cmap = matplotlib.colormaps.get_cmap("viridis")
-            maxdist = np.nanmax(distarray)
-    
-            # Plot each time series individually
-            for index in self.indices:
-                tsax.plot(
-                    self._analysis.distances_for_compute[index, start_epoch:end_epoch],
-                    linewidth=0.7,
-                    alpha=0.3,
-                    color=cmap(self.distance(index) / maxdist),
-                )
-    
-            # Plot the seed timeseries again, but with a thicker line
-            #tsax.plot(linewidth=2.0, zorder=10, color="blue")  # seed_ts
-    
-            # Next, we add a histogram plot with the distance values (using seaborn)
-            seaborn.histplot(distarray, ax=histax, kde=True, color="r")
-    
-            # Add labels to the histogram plot
-            histax.set_title(f"Segment size: {distarray.shape[0]}")
-            histax.set_xlabel("DTW Distance") # change label ? 
-    
-            # Create a 2D view of the segment
-            locations = self._analysis.corepoints.cloud[indexarray, 0:2]
-            mapax.scatter(locations[:, 0], locations[:, 1], c=distarray)
-    
-            # Some global settings of the generated figure
-            fig.tight_layout()
-    
-            # Maybe save to file
-            if filename is not None:
-                plt.savefig(filename)
+
+        # Plot the seed timeseries again, but with a thicker line
+        # tsax.plot(linewidth=2.0, zorder=10, color="blue")  # seed_ts
+
+        # Next, we add a histogram plot with the distance values (using seaborn)
+        seaborn.histplot(distarray, ax=histax, kde=True, color="r")
+
+        # Add labels to the histogram plot
+        histax.set_title(f"Segment size: {distarray.shape[0]}")
+        histax.set_xlabel("DTW Distance")  # change label ?
+
+        # Create a 2D view of the segment
+        locations = self._analysis.corepoints.cloud[indexarray, 0:2]
+        mapax.scatter(locations[:, 0], locations[:, 1], c=distarray)
+
+        # Some global settings of the generated figure
+        fig.tight_layout()
+
+        # Maybe save to file
+        if filename is not None:
+            plt.savefig(filename)
