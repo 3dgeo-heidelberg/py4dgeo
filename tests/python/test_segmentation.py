@@ -112,6 +112,25 @@ def test_region_growing_algorithm(analysis, tmp_path):
     objects[0].plot(filename=imgfile)
     assert os.path.isfile(imgfile)
 
+def test_merged_object_by_change():
+    test_distances = np.array([
+        [0.0, 1.0, 2.0, 3.0, 4.0],
+        [0.0, 2.0, 4.0, 6.0, 8.0],
+        [0.0, -1.0, -2.0, -3.0, -4.0],
+    ])
+    obj = MergedObjectByChange(
+        indices=np.array([0, 1]),
+        start_epoch=1,
+        end_epoch=3,
+        obj_4dobc=[0, 2],
+        analysis=None,
+        distances=test_distances
+    )
+
+    assert np.array_equal(obj.indices, [0,1])
+    assert obj.start_epoch == 1
+    assert obj.distance(0) == pytest.approx(2.0)
+    assert obj.distance(1) == pytest.approx(4.0)
 
 def test_region_growing_seed():
     # Construct a seed
