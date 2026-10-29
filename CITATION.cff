@@ -43,28 +43,28 @@ preferred-citation:
       given-names: Dominic
       orcid: "https://orcid.org/0000-0002-6140-2332"
 
-    - family-names: William
-      given-names: Albert
+    - family-names: Albert
+      given-names: William
       orcid: "https://orcid.org/0009-0007-6019-4336"
 
-    - family-names: Petr
-      given-names: Andriushchenko
+    - family-names: Andriushchenko
+      given-names: Petr
       orcid: "https://orcid.org/0000-0002-4518-6588"
 
     - family-names: Huang
       given-names: Xiaoyu
       orcid: "https://orcid.org/0009-0007-8493-7659"
 
-    - family-names: Daan
-      given-names: Hulskemper
+    - family-names: Hulskemper
+      given-names: Daan
       orcid: "https://orcid.org/0009-0006-0949-5726"
 
     - family-names: Isensee
       given-names: Thomas
       orcid: "https://orcid.org/0000-0002-7242-4529"
 
-    - family-names: Dimitrii
-      given-names: Kapitan
+    - family-names: Kapitan
+      given-names: Dimitrii
 
     - family-names: Tabernig
       given-names: Ronald
@@ -74,12 +74,12 @@ preferred-citation:
       given-names: Hannah
       orcid: "https://orcid.org/0000-0003-3256-7311"
 
-    - family-names: Lukas
-      given-names: Winiwarter
+    - family-names: Winiwarter
+      given-names: Lukas
       orcid: "https://orcid.org/0000-0001-8229-1160"
 
-    - family-names: Vivien
-      given-names: Zahs
+    - family-names: Zahs
+      given-names: Vivien
       orcid: "https://orcid.org/0000-0001-8200-1661"
 
     - family-names: Höfle
