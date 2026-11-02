@@ -571,7 +571,9 @@ class SpatiotemporalAnalysis:
 
 
     
-    def invalidate_results(self, seeds=True, objects=True, merged_objects = True, smoothed_distances=False):
+    def invalidate_results(
+            self, seeds=True, objects=True, merged_objects = True, smoothed_distances=False
+            ):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
