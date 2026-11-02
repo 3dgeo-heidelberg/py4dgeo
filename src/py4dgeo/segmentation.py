@@ -569,11 +569,9 @@ class SpatiotemporalAnalysis:
 
                 zf.write(objectsfile, arcname="objects.pickle")
 
-
-    
     def invalidate_results(
-            self, seeds=True, objects=True, merged_objects = True, smoothed_distances=False
-            ):
+        self, seeds=True, objects=True, merged_objects=True, smoothed_distances=False
+    ):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
@@ -1668,5 +1666,3 @@ def median_smoothing(
 
     smoothed[start_row:, :] = smoothed_slice
     return smoothed
-
-

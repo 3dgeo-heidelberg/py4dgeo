@@ -113,7 +113,6 @@ def test_region_growing_algorithm(analysis, tmp_path):
     assert os.path.isfile(imgfile)
 
 
-
 def test_region_growing_seed():
     # Construct a seed
     seed = RegionGrowingSeed(0, 0, 1)
