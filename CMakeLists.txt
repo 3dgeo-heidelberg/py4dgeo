@@ -61,40 +61,54 @@ target_compile_features(py4dgeo
     cxx_std_17
 )
 
-# --------------------------------------
-# Add nanoflann interface library target
-# --------------------------------------
-add_library(nanoflann INTERFACE)
+set(PY4DGEO_USE_EXTERNAL_DEPENDENCIES
+    OFF
+    CACHE BOOL "Use installed Eigen3 and nanoflann instead of the copies in ext/")
 
-target_sources(nanoflann
-  INTERFACE
-    FILE_SET nanoflann_headers
-    TYPE HEADERS
-    BASE_DIRS
-      ext/nanoflann/include
-    FILES
-      ext/nanoflann/include/nanoflann.hpp
-)
+if(PY4DGEO_USE_EXTERNAL_DEPENDENCIES)
+  find_package(Eigen3 CONFIG REQUIRED)
+  find_package(nanoflann CONFIG REQUIRED)
+  target_link_libraries(py4dgeo
+    PUBLIC
+      nanoflann::nanoflann
+      Eigen3::Eigen
+  )
+else()
+  # --------------------------------------
+  # Add nanoflann interface library target
+  # --------------------------------------
+  add_library(nanoflann INTERFACE)
 
-target_compile_features(nanoflann
-  INTERFACE
-    cxx_std_11
-)
+  target_sources(nanoflann
+    INTERFACE
+      FILE_SET nanoflann_headers
+      TYPE HEADERS
+      BASE_DIRS
+        ext/nanoflann/include
+      FILES
+        ext/nanoflann/include/nanoflann.hpp
+  )
 
-# -----------------
-# Eigen3 dependency
-# -----------------
-set(EIGEN_BUILD_TESTING OFF CACHE BOOL "Disable Eigen tests" FORCE)
-add_subdirectory(ext/eigen EXCLUDE_FROM_ALL)
+  target_compile_features(nanoflann
+    INTERFACE
+      cxx_std_11
+  )
 
-# -----------------------------------
-# Link nanoflann and eigen to py4dgeo
-# -----------------------------------
-target_link_libraries(py4dgeo
-  PUBLIC
-    nanoflann
-    Eigen3::Eigen
-)
+  # -----------------
+  # Eigen3 dependency
+  # -----------------
+  set(EIGEN_BUILD_TESTING OFF CACHE BOOL "Disable Eigen tests" FORCE)
+  add_subdirectory(ext/eigen EXCLUDE_FROM_ALL)
+
+  # -----------------------------------
+  # Link nanoflann and eigen to py4dgeo
+  # -----------------------------------
+  target_link_libraries(py4dgeo
+    PUBLIC
+      nanoflann
+      Eigen3::Eigen
+  )
+endif()
 
 # ------------------------------------------
 # Enable OpenMP (if supported and requested)
