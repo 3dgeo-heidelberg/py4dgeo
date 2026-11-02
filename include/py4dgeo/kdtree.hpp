@@ -56,6 +56,8 @@ private:
   struct NoDistancesReturnSet
   {
     using DistanceType = double;
+    // nanoflann >= 2.0 casts the found indices to the result set's IndexType
+    using IndexType = ::py4dgeo::IndexType;
 
     double radius;
     RadiusSearchResult& indices;
@@ -100,6 +102,8 @@ private:
   struct WithDistancesReturnSet
   {
     using DistanceType = double;
+    // nanoflann >= 2.0 casts the found indices to the result set's IndexType
+    using IndexType = ::py4dgeo::IndexType;
 
     double radius;
     RadiusSearchDistanceResult& result;
