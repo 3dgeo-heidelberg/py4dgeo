@@ -40,6 +40,14 @@ dependencies = [
     "seaborn",
     "scikit-learn",
     "xdg",
+    "geopandas",
+    "shapely",
+    "pandas",
+    "scipy",
+    "plotly",
+    "alphashape",
+    "networkx",
+    "tqdm",
     "psutil"
 ]
 
