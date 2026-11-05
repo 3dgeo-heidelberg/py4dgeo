@@ -63,7 +63,7 @@ target_compile_features(py4dgeo
 
 set(PY4DGEO_USE_EXTERNAL_DEPENDENCIES
     OFF
-    CACHE BOOL "Use installed Eigen3 and nanoflann instead of the copies in ext/")
+    CACHE BOOL "Use installed Eigen3 and nanoflann, not the copies in ext/")
 
 if(PY4DGEO_USE_EXTERNAL_DEPENDENCIES)
   find_package(Eigen3 CONFIG REQUIRED)
