@@ -658,11 +658,7 @@ class SpatiotemporalAnalysis:
             distances = self.distances
         return distances
 
-    def aggregate_4dobcs(
-        self,
-        temporal_threshold=0.7,
-        spatial_threshold=0.1
-    ):
+    def aggregate_4dobcs(self, temporal_threshold=0.7, spatial_threshold=0.1):
 
         distance = self.distances_for_compute
         if distance is None:
