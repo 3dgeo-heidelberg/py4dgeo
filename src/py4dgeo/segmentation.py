@@ -673,14 +673,16 @@ class SpatiotemporalAnalysis:
             distance = temporal_averaging(self._distances, smoothing_window)
 
         # allocate array to store whether a change is "negative" (0) or "positive" (1)
-        change = np.zeros(self.objects.shape, dtype=int) # initialize all zeros ("negative")
+        change = np.zeros(
+            self.objects.shape, dtype=int
+        )  # initialize all zeros ("negative")
         for i, obj in enumerate(self.objects):
             if (
                 distance[obj.seed.index, obj.end_epoch]
                 - distance[obj.seed.index, obj.start_epoch]
                 >= 0
             ):
-                change[i]=1 # change to "positive" (1)
+                change[i] = 1  # change to "positive" (1)
 
         merging = [[]] * len(self.objects)
         values = []
@@ -1827,7 +1829,7 @@ class MergedObjectByChange:
         self.indices = indices
         self.start_epoch = start_epoch
         self.end_epoch = end_epoch
-        self.obj_4dobc = obj_4dobc # the indices of the original 4D objects merged here
+        self.obj_4dobc = obj_4dobc  # the indices of the original 4D objects merged here
         self._analysis = analysis
         self._distances = distances
 
