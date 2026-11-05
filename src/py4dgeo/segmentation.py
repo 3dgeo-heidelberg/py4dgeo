@@ -661,16 +661,12 @@ class SpatiotemporalAnalysis:
     def aggregate_4dobcs(
         self,
         temporal_threshold=0.7,
-        spatial_threshold=0.1,
-        smoothing=False,
-        smoothing_window=5,
+        spatial_threshold=0.1
     ):
 
         distance = self.distances_for_compute
         if distance is None:
             raise ValueError
-        if smoothing:
-            distance = temporal_averaging(self._distances, smoothing_window)
 
         # allocate array to store whether a change is "negative" (0) or "positive" (1)
         change = np.zeros(self.objects.shape, dtype=int) # initialize all zeros ("negative")
