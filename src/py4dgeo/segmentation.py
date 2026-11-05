@@ -660,7 +660,7 @@ class SpatiotemporalAnalysis:
 
     def aggregate_4dobcs(
         self,
-        time_threshold=0.7,
+        temporal_threshold=0.7,
         spatial_threshold=0.1,
         smoothing=False,
         smoothing_window=5,
@@ -672,16 +672,15 @@ class SpatiotemporalAnalysis:
         if smoothing:
             distance = temporal_averaging(self._distances, smoothing_window)
 
-        change = []
-        for obj in self.objects:
+        # allocate array to store whether a change is "negative" (0) or "positive" (1)
+        change = np.zeros(self.objects.shape, dtype=int) # initialize all zeros ("negative")
+        for i, obj in enumerate(self.objects):
             if (
                 distance[obj.seed.index, obj.end_epoch]
                 - distance[obj.seed.index, obj.start_epoch]
-                < 0
+                >= 0
             ):
-                change.append("negative")
-            else:
-                change.append("positive")
+                change[i]=1 # change to "positive" (1)
 
         merging = [[]] * len(self.objects)
         values = []
@@ -713,7 +712,7 @@ class SpatiotemporalAnalysis:
 
                 # if calculated overlap exceeds defined thresholds and change direction is equal -> store link between objects
                 if (
-                    max_time > time_threshold
+                    max_time > temporal_threshold
                     and max_spatial > spatial_threshold
                     and change[idx_act] == change[idx_it]
                 ):
@@ -1828,7 +1827,7 @@ class MergedObjectByChange:
         self.indices = indices
         self.start_epoch = start_epoch
         self.end_epoch = end_epoch
-        self.obj_4dobc = obj_4dobc
+        self.obj_4dobc = obj_4dobc # the indices of the original 4D objects merged here
         self._analysis = analysis
         self._distances = distances
 
