@@ -1355,6 +1355,22 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             3600 * 24
         )
 
+        def point_line_distance(point, start, end):
+            # Perpendicular distance of a 2D point to the line through start and end.
+            # Replaces rdp's default, which calls np.cross on 2D vectors. This is
+            # deprecated since NumPy 2.0 and raises an error in newer versions.
+            direction = end - start
+            length = np.hypot(direction[0], direction[1])
+            if length == 0:
+                return np.hypot(point[0] - start[0], point[1] - start[1])
+            return (
+                abs(
+                    direction[0] * (start[1] - point[1])
+                    - direction[1] * (start[0] - point[0])
+                )
+                / length
+            )
+
         # iterate over all time series to identify linear changes
         logger.info("Iterating over seedpoints (RDP)")
         for cp_idx in seed_candidates_curr:
@@ -1364,6 +1380,7 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             poly_aprx = rdp.rdp(
                 np.column_stack([time_day, timeseries]),
                 epsilon=epsilon,
+                dist=point_line_distance,
                 return_mask=True,
             )
 
