@@ -1,4 +1,3 @@
-# %%
 from py4dgeo.epoch import Epoch, as_epoch
 from py4dgeo.logger import logger_context
 from py4dgeo.util import Py4DGeoError, find_file
@@ -599,7 +598,7 @@ class SpatiotemporalAnalysis:
         for obj in _merged:
             if not isinstance(obj, MergedObjectByChange):
                 raise Py4DGeoError(
-                    "Merged Objects are expected to inherit from ObjectByChange"
+                    "Merged objects are expected to be of type MergedObjectByChange"
                 )
 
         if not self.allow_pickle:
@@ -617,12 +616,27 @@ class SpatiotemporalAnalysis:
                 zf.write(merged_objectsfile, arcname="merged_objects.pickle")
 
     def invalidate_results(
-        self, seeds=True, objects=True, merged_objects=True, smoothed_distances=False
+        self, seeds=True, objects=True, smoothed_distances=False, merged_objects=True
     ):
         """Invalidate (and remove) calculated results
 
         This is automatically called when new epochs are added or when
         an algorithm sets the :code:`force` option.
+
+        :param seeds:
+            Whether to remove the stored seed candidates.
+        :type seeds: bool
+        :param objects:
+            Whether to remove the stored objects by change. As merged objects
+            are derived from these, the merged objects are removed as well.
+        :type objects: bool
+        :param smoothed_distances:
+            Whether to remove the stored smoothed distances.
+        :type smoothed_distances: bool
+        :param merged_objects:
+            Whether to remove the stored merged objects by change created by
+            :meth:`aggregate_4dobcs`.
+        :type merged_objects: bool
         """
 
         logger.info(
@@ -659,16 +673,59 @@ class SpatiotemporalAnalysis:
         return distances
 
     def aggregate_4dobcs(self, temporal_threshold=0.7, spatial_threshold=0.1):
+        """Merge 4D objects-by-change that overlap in space and time
+
+        Noise in the time series can lead to an over-segmentation, so that one
+        change process is described by several 4D-OBCs. This method links two
+        objects if they have the same change direction and if both their
+        temporal and their spatial overlap exceed the given thresholds. All
+        objects that are connected by links, directly or via other objects, are
+        merged into one :class:`MergedObjectByChange`.
+
+        The change direction of an object is derived from the distance at its
+        seed core point between the end and the start epoch. The temporal
+        overlap is the length of the common time interval divided by the
+        duration of an object, and the spatial overlap is the number of shared
+        core points divided by the number of core points of an object. For both,
+        the larger of the two ratios of an object pair is used.
+
+        The result is stored in the analysis object and can be accessed later
+        via :attr:`merged_objects`.
+
+        :param temporal_threshold:
+            Minimum temporal overlap (between 0 and 1) for two objects to be
+            merged, where 1 is complete overlap and 0 is no overlap.
+        :type temporal_threshold: float
+        :param spatial_threshold:
+            Minimum spatial overlap (between 0 and 1) for two objects to be
+            merged, where 1 is complete overlap and 0 is no overlap.
+        :type spatial_threshold: float
+        :return:
+            The list of merged objects. Objects that are not linked to any other
+            object are returned as merged objects consisting of a single object.
+        :rtype: list[MergedObjectByChange]
+        """
 
         distance = self.distances_for_compute
         if distance is None:
-            raise ValueError
+            raise Py4DGeoError(
+                "No distances available in the analysis - add epochs before aggregating 4D-OBCs"
+            )
+
+        objects = self.objects
+        if objects is None:
+            raise Py4DGeoError(
+                "No 4D-OBCs available in the analysis - run the RegionGrowingAlgorithm first"
+            )
+
+        def overlap_ratio(common, duration):
+            if duration > 0:
+                return common / duration
+            return 1.0 if common >= 0 else 0.0
 
         # allocate array to store whether a change is "negative" (0) or "positive" (1)
-        change = np.zeros(
-            self.objects.shape, dtype=int
-        )  # initialize all zeros ("negative")
-        for i, obj in enumerate(self.objects):
+        change = np.zeros(len(objects), dtype=int)  # initialize all zeros ("negative")
+        for i, obj in enumerate(objects):
             if (
                 distance[obj.seed.index, obj.end_epoch]
                 - distance[obj.seed.index, obj.start_epoch]
@@ -676,25 +733,25 @@ class SpatiotemporalAnalysis:
             ):
                 change[i] = 1  # change to "positive" (1)
 
-        merging = [[]] * len(self.objects)
-        values = []
-        for idx_act, obj_act in enumerate(self.objects):
+        merging = [[]] * len(objects)
+        for idx_act, obj_act in enumerate(objects):
             logger.debug(f"Seedpoint {idx_act}")
-            for idx_it, obj_it in enumerate(self.objects):
+            for idx_it, obj_it in enumerate(objects):
 
                 # identical 4D-OBC
                 if idx_it == idx_act:
                     continue
 
                 # temporal overlap
-                IoAct_time = (
-                    min(obj_act.end_epoch, obj_it.end_epoch)
-                    - max(obj_act.start_epoch, obj_it.start_epoch)
-                ) / (obj_act.end_epoch - obj_act.start_epoch)
-                IoIt_time = (
-                    min(obj_act.end_epoch, obj_it.end_epoch)
-                    - max(obj_act.start_epoch, obj_it.start_epoch)
-                ) / (obj_it.end_epoch - obj_it.start_epoch)
+                common_time = min(obj_act.end_epoch, obj_it.end_epoch) - max(
+                    obj_act.start_epoch, obj_it.start_epoch
+                )
+                IoAct_time = overlap_ratio(
+                    common_time, obj_act.end_epoch - obj_act.start_epoch
+                )
+                IoIt_time = overlap_ratio(
+                    common_time, obj_it.end_epoch - obj_it.start_epoch
+                )
 
                 # spatial overlap
                 ident_cp = np.intersect1d(obj_act.indices, obj_it.indices)
@@ -711,11 +768,8 @@ class SpatiotemporalAnalysis:
                     and change[idx_act] == change[idx_it]
                 ):
                     merging[idx_act] = merging[idx_act] + [idx_it]
-                    values.append([max_time, max_spatial])
 
-        values = np.array(values)
-
-        visited = [False] * len(self.objects)
+        visited = [False] * len(objects)
         merged_idxs = []
 
         for idx_act, lst in enumerate(merging):
@@ -738,9 +792,9 @@ class SpatiotemporalAnalysis:
 
         merged_4dobcs = []
         for idx in merged_idxs:
-            indices = [self.objects[i].indices for i in idx]
-            start_epochs = [self.objects[i].start_epoch for i in idx]
-            end_epochs = [self.objects[i].end_epoch for i in idx]
+            indices = [objects[i].indices for i in idx]
+            start_epochs = [objects[i].start_epoch for i in idx]
+            end_epochs = [objects[i].end_epoch for i in idx]
 
             indices_merge = np.unique(np.concatenate(indices))
             start_epoch_merge = min(start_epochs)
@@ -756,6 +810,9 @@ class SpatiotemporalAnalysis:
                     distance,
                 )
             )
+
+        # Store the merged objects in the analysis object
+        self.merged_objects = merged_4dobcs
         return merged_4dobcs
 
 
@@ -1283,11 +1340,12 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
     ):
         try:
             import rdp
-            from sklearn.linear_model import LinearRegression
         except ImportError as exc:
             raise Py4DGeoError(
-                "The 'linear_rdp' seed detection method requires the optional seed detection dependencies."
+                "The 'linear_rdp' seed detection method requires the Python package 'rdp', "
+                "which is not installed together with py4dgeo. Install it with: pip install rdp"
             ) from exc
+        from sklearn.linear_model import LinearRegression
 
         seeds = []
         lod = self.analysis.uncertainties["lodetection"]
@@ -1371,26 +1429,21 @@ class RegionGrowingAlgorithm(RegionGrowingAlgorithmBase):
             from sklearn.tree import DecisionTreeRegressor
         except ImportError as exc:
             raise Py4DGeoError(
-                "The 'linear_dtr' seed detection method requires the optional seed detection dependencies."
+                "The 'linear_dtr' seed detection method requires the Python package 'scikit-learn'. "
+                "Install it with: pip install scikit-learn"
             ) from exc
 
         seeds = []
+
+        # time since the reference epoch in days (identical for all core points)
+        time_day = np.array([td.total_seconds() for td in self.analysis.timedeltas]) / (
+            3600 * 24
+        )
 
         # iterate over all time series to identify linear changes
         logger.info("Iterating over seedpoints (DTR)")
         for cp_idx in seed_candidates_curr:
             timeseries = self.analysis.distances_for_compute[cp_idx, :]
-            timestamps = [
-                t + self.analysis.reference_epoch.timestamp
-                for t in self.analysis.timedeltas
-            ]
-            time_day = np.array(
-                [
-                    (t - self.analysis.reference_epoch.timestamp).total_seconds()
-                    / (3600 * 24)
-                    for t in timestamps
-                ]
-            )
 
             idx_nan = np.isnan(timeseries)
             valid = ~idx_nan
@@ -1816,7 +1869,38 @@ def median_smoothing(
 
 
 class MergedObjectByChange:
+    """Representation of several merged change objects in the spatiotemporal domain
+
+    Merged objects are created by :meth:`SpatiotemporalAnalysis.aggregate_4dobcs`
+    from 4D objects-by-change that overlap in space and time.
+    """
+
     def __init__(self, indices, start_epoch, end_epoch, obj_4dobc, analysis, distances):
+        """Construct a merged object by change
+
+        :param indices:
+            The core point indices that compose the merged object, i.e. the union
+            of the core points of all merged objects.
+        :type indices: numpy.ndarray
+        :param start_epoch:
+            The index of the start epoch of the merged object, i.e. the earliest
+            start epoch of all merged objects.
+        :type start_epoch: int
+        :param end_epoch:
+            The index of the end epoch of the merged object, i.e. the latest end
+            epoch of all merged objects.
+        :type end_epoch: int
+        :param obj_4dobc:
+            The indices of the merged objects in the list of objects by change of
+            the analysis.
+        :type obj_4dobc: list
+        :param analysis:
+            The analysis object the merged object belongs to.
+        :type analysis: SpatiotemporalAnalysis
+        :param distances:
+            The space-time array of distances that the objects were derived from.
+        :type distances: numpy.ndarray
+        """
 
         self.indices = indices
         self.start_epoch = start_epoch
@@ -1827,14 +1911,25 @@ class MergedObjectByChange:
 
     @property
     def distances(self):
+        """The space-time array of distances that the merged object refers to"""
         if self._distances is None and self._analysis is not None:
             self._distances = self._analysis.distances_for_compute
         return self._distances
 
     def distance(self, index):
+        """The mean distance of a core point within the time interval of the object
+        :param index:
+            The index of the core point.
+        :type index: int
+        """
         return np.nanmean(self.distances[index, self.start_epoch : self.end_epoch + 1])
 
     def attach_analysis(self, analysis):
+        """Attach the analysis object, e.g. after loading the object from a file
+        :param analysis:
+            The analysis object the merged object belongs to.
+        :type analysis: SpatiotemporalAnalysis
+        """
         self._analysis = analysis
         self._distances = None
 
@@ -1922,7 +2017,7 @@ class MergedObjectByChange:
 
         # Add labels to the histogram plot
         histax.set_title(f"Segment size: {distarray.shape[0]}")
-        histax.set_xlabel("DTW Distance")  # change label ?
+        histax.set_xlabel("Mean distance [m]")
 
         # Create a 2D view of the segment
         locations = self._analysis.corepoints.cloud[indexarray, 0:2]
