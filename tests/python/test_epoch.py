@@ -1,7 +1,9 @@
 from py4dgeo.epoch import *
 from py4dgeo.util import Py4DGeoError
 
+import copy
 import datetime
+import gc
 import numpy as np
 import os
 import pickle
@@ -321,3 +323,118 @@ def test_read_from_xyz_additional_dimensions(tmp_path):
     assert epoch.additional_dimensions["someint"].dtype == np.int32
     assert epoch.additional_dimensions["someint"][0] == 3
     assert epoch.additional_dimensions["someint"][1] == 6
+
+
+def _deepcopy_epoch():
+    """A small epoch with every optional per-point attribute set"""
+    rng = np.random.default_rng(42)
+    additional = np.empty((100, 1), dtype=[("intensity", "<f8")])
+    additional["intensity"] = rng.random((100, 1))
+    return Epoch(
+        rng.random((100, 3)),
+        normals=rng.random((100, 3)),
+        additional_dimensions=additional,
+        timestamp="2020-01-02 03:04:05",
+    )
+
+
+def test_deepcopy_cloud_is_independent():
+    epoch = _deepcopy_epoch()
+    copied = copy.deepcopy(epoch)
+    expected = epoch.cloud.copy()
+
+    assert np.array_equal(copied.cloud, expected)
+    assert not np.shares_memory(copied.cloud, epoch.cloud)
+
+    epoch.cloud[0, 0] += 1.0
+    assert np.array_equal(copied.cloud, expected)
+
+
+def test_deepcopy_preserves_timestamp():
+    epoch = _deepcopy_epoch()
+    assert copy.deepcopy(epoch).timestamp == epoch.timestamp
+
+
+def test_deepcopy_kdtree_is_independent():
+    epoch = _deepcopy_epoch()
+    epoch.build_kdtree()
+    query = np.array([0.5, 0.5, 0.5])
+    expected = np.sort(epoch.kdtree.radius_search(query, 0.3))
+
+    copied = copy.deepcopy(epoch)
+    assert copied.kdtree is not epoch.kdtree
+    assert copied.kdtree.leaf_parameter() == epoch.kdtree.leaf_parameter()
+    assert np.array_equal(np.sort(copied.kdtree.radius_search(query, 0.3)), expected)
+
+    # The copied tree must not depend on the original epoch's cloud or tree
+    epoch.cloud[:] += 100.0
+    epoch.build_kdtree(force_rebuild=True)
+    assert np.array_equal(np.sort(copied.kdtree.radius_search(query, 0.3)), expected)
+
+    del epoch
+    gc.collect()
+    assert np.array_equal(np.sort(copied.kdtree.radius_search(query, 0.3)), expected)
+
+
+def test_deepcopy_octree_is_independent():
+    epoch = _deepcopy_epoch()
+    epoch.build_octree()
+    copied = copy.deepcopy(epoch)
+
+    assert copied.octree is not epoch.octree
+    assert copied.octree.get_number_of_points() == epoch.octree.get_number_of_points()
+
+    del epoch
+    gc.collect()
+    assert copied.octree.get_number_of_points() == 100
+
+
+def test_deepcopy_unbuilt_kdtree_stays_separate():
+    epoch = _deepcopy_epoch()
+    copied = copy.deepcopy(epoch)
+
+    assert copied.kdtree.leaf_parameter() == 0
+    copied.build_kdtree()
+    assert copied.kdtree.leaf_parameter() != 0
+    assert epoch.kdtree.leaf_parameter() == 0
+
+
+@pytest.mark.xfail(
+    strict=True, raises=AttributeError, reason="__getstate__ does not store normals"
+)
+def test_deepcopy_normals_are_independent():
+    epoch = _deepcopy_epoch()
+    copied = copy.deepcopy(epoch)
+
+    assert np.array_equal(copied.normals, epoch.normals)
+    assert not np.shares_memory(copied.normals, epoch.normals)
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AttributeError,
+    reason="__getstate__ does not store additional_dimensions",
+)
+def test_deepcopy_additional_dimensions_are_independent():
+    epoch = _deepcopy_epoch()
+    copied = copy.deepcopy(epoch)
+
+    assert np.array_equal(copied.additional_dimensions, epoch.additional_dimensions)
+    assert not np.shares_memory(
+        copied.additional_dimensions, epoch.additional_dimensions
+    )
+
+
+@pytest.mark.xfail(
+    strict=True,
+    raises=AttributeError,
+    reason="__getstate__ does not store transformations",
+)
+def test_deepcopy_transformation_history_is_independent():
+    epoch = _deepcopy_epoch()
+    epoch.transform(translation=np.array([1.0, 0.0, 0.0]))
+    copied = copy.deepcopy(epoch)
+
+    assert len(copied.transformation) == 1
+    copied.transform(translation=np.array([0.0, 1.0, 0.0]))
+    assert len(epoch.transformation) == 1
